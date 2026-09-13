@@ -23,6 +23,7 @@ import {
   buildSceneSaveRefusePayload,
   CREATOR_SCENE_SAVE_MESSAGES as SCENE_HOST_SAVE_MESSAGES,
 } from "./editor-mcp-scene-host-routes.js";
+import { EditorMcpSceneInputReader } from "./editor-mcp-scene-input-reader.js";
 
 /** @description Creator 会弹确认框、卡住无头自动化的 scene 持久化消息。 */
 const CREATOR_SCENE_SAVE_MESSAGES = new Set<string>(SCENE_HOST_SAVE_MESSAGES);
@@ -49,6 +50,11 @@ export interface IEditorMcpSceneOpResult {
  * @description 场景打开/保存/重载与 Prefab 实例薄层网关（尽力 message；守卫路径）。
  */
 export class EditorMcpSceneGateway {
+  /**
+   * @description Scene 与 Prefab 实例操作输入读取器。
+   */
+  private readonly _inputReader = new EditorMcpSceneInputReader();
+
   /** @description 授权 runtime。 */
   private readonly _runtime: IGrantedRuntimeClientSet;
   /** @description 打开场景路径守卫。 */
@@ -651,176 +657,97 @@ export class EditorMcpSceneGateway {
   /**
    * @description 解析 scene.open 输入。
    * @param input 未校验输入。
-   * @returns 输入。
+   * @returns 已验证输入。
    */
   public readOpenInput(input: ContractPayload | undefined): ISceneOpenMcpInput {
-    if (
-      input == null ||
-      typeof input.path !== "string" ||
-      input.path.trim().length === 0
-    ) {
-      throw new Error("editor_mcp_scene_open_path_required");
-    }
-    return { path: input.path.trim() };
+    return this._inputReader.readOpenInput(input);
   }
 
   /**
    * @description 解析 scene.save 输入。
    * @param input 未校验输入。
-   * @returns 输入。
+   * @returns 已验证输入。
    */
   public readSaveInput(input: ContractPayload | undefined): ISceneSaveMcpInput {
-    const path =
-      input != null &&
-      typeof input.path === "string" &&
-      input.path.trim().length > 0
-        ? input.path.trim()
-        : undefined;
-    return path == null ? {} : { path };
+    return this._inputReader.readSaveInput(input);
   }
 
   /**
    * @description 解析 scene.reload 输入。
    * @param input 未校验输入。
-   * @returns 输入。
+   * @returns 已验证输入。
    */
   public readReloadInput(
     input: ContractPayload | undefined,
   ): ISceneReloadMcpInput {
-    return { soft: input?.soft !== false };
+    return this._inputReader.readReloadInput(input);
   }
 
   /**
    * @description 解析 scene.queryNode 输入。
    * @param input 未校验输入。
-   * @returns 输入。
+   * @returns 已验证输入。
    */
   public readQueryNodeInput(
     input: ContractPayload | undefined,
   ): ISceneQueryNodeMcpInput {
-    if (
-      input == null ||
-      typeof input.path !== "string" ||
-      input.path.trim().length === 0
-    ) {
-      throw new Error("editor_mcp_scene_query_node_path_required");
-    }
-    return {
-      path: input.path.trim(),
-      includeEditorNodes: input.includeEditorNodes === true,
-    };
+    return this._inputReader.readQueryNodeInput(input);
   }
 
   /**
    * @description 解析 scene.focusNode 输入。
    * @param input 未校验输入。
-   * @returns 输入。
+   * @returns 已验证输入。
    */
   public readFocusNodeInput(
     input: ContractPayload | undefined,
   ): ISceneFocusNodeMcpInput {
-    if (
-      input == null ||
-      typeof input.path !== "string" ||
-      input.path.trim().length === 0
-    ) {
-      throw new Error("editor_mcp_scene_focus_node_path_required");
-    }
-    return { path: input.path.trim() };
+    return this._inputReader.readFocusNodeInput(input);
   }
 
   /**
    * @description 解析 scene.createNode 输入。
    * @param input 未校验输入。
-   * @returns 输入。
+   * @returns 已验证输入。
    */
   public readCreateNodeInput(
     input: ContractPayload | undefined,
   ): ISceneCreateNodeMcpInput {
-    const parentPath =
-      input != null &&
-      typeof input.parentPath === "string" &&
-      input.parentPath.trim().length > 0
-        ? input.parentPath.trim()
-        : undefined;
-    const name =
-      input != null &&
-      typeof input.name === "string" &&
-      input.name.trim().length > 0
-        ? input.name.trim()
-        : undefined;
-    const type =
-      input != null &&
-      typeof input.type === "string" &&
-      input.type.trim().length > 0
-        ? input.type.trim()
-        : undefined;
-    return {
-      ...(parentPath != null ? { parentPath } : {}),
-      ...(name != null ? { name } : {}),
-      ...(type != null ? { type } : {}),
-    };
+    return this._inputReader.readCreateNodeInput(input);
   }
 
   /**
    * @description 解析 prefab.createFromNode 输入。
    * @param input 未校验输入。
-   * @returns 输入。
+   * @returns 已验证输入。
    */
   public readCreateFromNodeInput(
     input: ContractPayload | undefined,
   ): IPrefabCreateFromNodeMcpInput {
-    if (
-      input == null ||
-      typeof input.nodePath !== "string" ||
-      input.nodePath.trim().length === 0 ||
-      typeof input.prefabPath !== "string" ||
-      input.prefabPath.trim().length === 0
-    ) {
-      throw new Error("editor_mcp_prefab_create_node_and_path_required");
-    }
-    return {
-      nodePath: input.nodePath.trim(),
-      prefabPath: input.prefabPath.trim(),
-    };
+    return this._inputReader.readCreateFromNodeInput(input);
   }
 
   /**
-   * @description 解析实例操作输入。
+   * @description 解析 Prefab 实例操作输入。
    * @param input 未校验输入。
-   * @returns 输入。
+   * @returns 已验证输入。
    */
   public readInstanceOpInput(
     input: ContractPayload | undefined,
   ): IPrefabInstanceOpMcpInput {
-    if (
-      input == null ||
-      typeof input.nodePath !== "string" ||
-      input.nodePath.trim().length === 0
-    ) {
-      throw new Error("editor_mcp_prefab_node_path_required");
-    }
-    return { nodePath: input.nodePath.trim() };
+    return this._inputReader.readInstanceOpInput(input);
   }
 
   /**
-   * @description 解析 getInfo 输入。
+   * @description 解析 prefab.getInfo 输入。
    * @param input 未校验输入。
-   * @returns 输入。
+   * @returns 已验证输入。
    */
   public readGetInfoInput(
     input: ContractPayload | undefined,
   ): IPrefabGetInfoMcpInput {
-    if (
-      input == null ||
-      typeof input.pathOrUuid !== "string" ||
-      input.pathOrUuid.trim().length === 0
-    ) {
-      throw new Error("editor_mcp_prefab_path_or_uuid_required");
-    }
-    return { pathOrUuid: input.pathOrUuid.trim() };
+    return this._inputReader.readGetInfoInput(input);
   }
-
   /**
    * @description 将场景 db 路径解析为 AssetDB UUID。
    * @param dbPath `db://assets/...scene`。

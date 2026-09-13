@@ -4,16 +4,13 @@ import type {
     IPluginDiagnosticExport,
     IPluginFailureExport,
     IPluginFailureIncident,
-    IPluginRuntimeRecord,
 } from '@peanut/pod-protocol';
 import type { IExecutionDiagnosticsSnapshot } from '@peanut/pod-engine/runtime';
 
-import type { IPluginDevelopmentSessionSnapshot } from '../development/plugin-development-controller.js';
 import type {
     IPluginEmbeddedPanelPayload,
     IPluginFailureDetailPayload,
     IPluginFailureExportPayload,
-    IPluginFailureListItemPayload,
     IPluginManagerKernelReloadPayload,
     IPluginManagerMcpHubPayload,
     IPluginManualPackageSourceInputPayload,
@@ -21,7 +18,6 @@ import type {
     IPluginManagerPanelPreferencesPayload,
     IPluginManagerSnapshotPayload,
     IPluginPackageActionPayload,
-    IPluginPackageCatalogItemPayload,
     IPluginPackagePlanPayload,
     IPluginPackageSourceActionPayload,
     IPluginPackageVersionActionPayload,
@@ -37,8 +33,8 @@ import {
     translatePluginManagerPanelText,
 } from './plugin-manager-panel-i18n.js';
 import { PluginManagerPanelDomRenderer } from './plugin-manager-panel-ui-dom.js';
-import { PluginManagerPanelExecutionView } from './plugin-manager-panel-ui-execution-view.js';
 import { PluginManagerPanelMarkupRenderer } from './plugin-manager-panel-ui-markup.js';
+import { PluginManagerPanelStateProjector } from './plugin-manager-panel-state-projector.js';
 import type {
     IPluginManagerPanelBrowserWindow,
     IPluginManagerPanelUiState,
@@ -55,16 +51,15 @@ export type {
     PluginManagerPanelUiStatus,
 } from './plugin-manager-panel-ui-types.js';
 
-const EMPTY_DEVELOPMENT_SESSION: IPluginDevelopmentSessionSnapshot = {
-    enabled: false,
-    port: null,
-    recentOperations: [],
-};
-
 /**
  * @description 插件管理面板浏览器侧 UI 控制器，负责通过 panel bridge 同步插件列表、失败详情与恢复动作。
  */
 export class PluginManagerPanelUiController {
+    /**
+     * @description 初始状态与选中项投影规则。
+     */
+    private readonly _stateProjector = new PluginManagerPanelStateProjector();
+
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
     private readonly _pluginId: string;
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
@@ -100,52 +95,7 @@ export class PluginManagerPanelUiController {
         this._panelId = panelId;
         this._panelBridgeClient = panelBridgeClient;
         this._onStateChange = onStateChange;
-        this._state = {
-            pluginId,
-            panelId,
-            status: 'idle',
-            runtimeRecords: [],
-            failureItems: [],
-            packageCatalog: [],
-            recentPackagePaths: [],
-            preferences: {
-                locale: 'zh-CN',
-                packageFilter: 'all',
-                packageCatalogSort: 'plugin-id-asc',
-                selectedPluginId: null,
-                selectedPackagePath: null,
-            },
-            kernelReloadSupported: false,
-            selectedPluginId: null,
-            selectedPackagePath: null,
-            selectedRuntimeRecord: null,
-            embeddedPanel: null,
-            selectedInstalledPackageSnapshot: null,
-            selectedIncident: null,
-            selectedFailureExport: null,
-            selectedDiagnosticExport: null,
-            lastCleanupSteps: [],
-            lastPackageActionSummary: null,
-            lastError: null,
-            executionDiagnosticsSnapshot: null,
-            developmentSession: EMPTY_DEVELOPMENT_SESSION,
-            mcpHub: {
-                isAvailable: false,
-                isEnabled: false,
-                port: null,
-                preferredPort: null,
-                catalogRevision: 0,
-                capabilities: [],
-                disabledPluginIds: [],
-                writeEnabledPluginIds: [],
-                directWriteEnabled: false,
-                pendingPlans: [],
-                recentCalls: [],
-            },
-            executionPriorityFilter: 'all',
-            showOnlyExceptionalExecutionGroups: false,
-            selectedExecutionGroupId: null,
-        };
+        this._state = this._stateProjector.createInitialState(pluginId, panelId);
     }
 
     /**
@@ -192,7 +142,7 @@ export class PluginManagerPanelUiController {
             // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
             const pluginManagerSnapshot = await this._requestSnapshot();
             // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-            const nextSelectedPluginId = this._resolveSelectedPluginId(
+            const nextSelectedPluginId = this._stateProjector.resolveSelectedPluginId(
                 pluginManagerSnapshot,
                 pluginManagerSnapshot.preferences.selectedPluginId ?? this._state.selectedPluginId,
             );
@@ -207,14 +157,17 @@ export class PluginManagerPanelUiController {
                 preferences: pluginManagerSnapshot.preferences,
                 kernelReloadSupported: pluginManagerSnapshot.kernelReloadSupported,
                 executionDiagnosticsSnapshot: pluginManagerSnapshot.executionDiagnosticsSnapshot,
-                developmentSession: pluginManagerSnapshot.developmentSession ?? EMPTY_DEVELOPMENT_SESSION,
+                developmentSession:
+                    pluginManagerSnapshot.developmentSession ?? PluginManagerPanelStateProjector.EMPTY_DEVELOPMENT_SESSION,
                 mcpHub: pluginManagerSnapshot.mcpHub,
-                selectedExecutionGroupId: this._resolveSelectedExecutionGroupId(
+                selectedExecutionGroupId: this._stateProjector.resolveSelectedExecutionGroupId(
                     pluginManagerSnapshot.executionDiagnosticsSnapshot,
                     this._state.selectedExecutionGroupId,
+                    this._state.executionPriorityFilter,
+                    this._state.showOnlyExceptionalExecutionGroups,
                 ),
                 selectedPluginId: nextSelectedPluginId,
-                selectedPackagePath: this._resolveSelectedPackagePath(
+                selectedPackagePath: this._stateProjector.resolveSelectedPackagePath(
                     pluginManagerSnapshot.packageCatalog,
                     pluginManagerSnapshot.preferences.selectedPackagePath ?? this._state.selectedPackagePath,
                     nextSelectedPluginId,
@@ -250,9 +203,11 @@ export class PluginManagerPanelUiController {
             const executionDiagnosticsSnapshot = await this._requestExecutionDiagnosticsSnapshot();
             this._patchState({
                 executionDiagnosticsSnapshot,
-                selectedExecutionGroupId: this._resolveSelectedExecutionGroupId(
+                selectedExecutionGroupId: this._stateProjector.resolveSelectedExecutionGroupId(
                     executionDiagnosticsSnapshot,
                     this._state.selectedExecutionGroupId,
+                    this._state.executionPriorityFilter,
+                    this._state.showOnlyExceptionalExecutionGroups,
                 ),
                 lastError: this._state.status === 'error' ? null : this._state.lastError,
             });
@@ -299,7 +254,7 @@ export class PluginManagerPanelUiController {
      */
     public async selectPlugin(pluginId: string | null): Promise<IPluginManagerPanelUiState> {
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-        const nextSelectedPluginId = this._resolveSelectedPluginId(
+        const nextSelectedPluginId = this._stateProjector.resolveSelectedPluginId(
             {
                 runtimeRecords: this._state.runtimeRecords,
                 failureItems: this._state.failureItems,
@@ -369,7 +324,7 @@ export class PluginManagerPanelUiController {
     public async setExecutionPriorityFilter(priority: PluginManagerExecutionPriorityFilter): Promise<IPluginManagerPanelUiState> {
         this._patchState({
             executionPriorityFilter: priority,
-            selectedExecutionGroupId: this._resolveSelectedExecutionGroupId(
+            selectedExecutionGroupId: this._stateProjector.resolveSelectedExecutionGroupId(
                 this._state.executionDiagnosticsSnapshot,
                 this._state.selectedExecutionGroupId,
                 priority,
@@ -388,7 +343,7 @@ export class PluginManagerPanelUiController {
         const nextShowOnlyExceptionalExecutionGroups = !this._state.showOnlyExceptionalExecutionGroups;
         this._patchState({
             showOnlyExceptionalExecutionGroups: nextShowOnlyExceptionalExecutionGroups,
-            selectedExecutionGroupId: this._resolveSelectedExecutionGroupId(
+            selectedExecutionGroupId: this._stateProjector.resolveSelectedExecutionGroupId(
                 this._state.executionDiagnosticsSnapshot,
                 this._state.selectedExecutionGroupId,
                 this._state.executionPriorityFilter,
@@ -1187,7 +1142,10 @@ export class PluginManagerPanelUiController {
             // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
             const pluginManagerSnapshot = await this._requestSnapshot();
             // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-            const nextSelectedPluginId = this._resolveSelectedPluginId(pluginManagerSnapshot, this._state.selectedPluginId);
+            const nextSelectedPluginId = this._stateProjector.resolveSelectedPluginId(
+                pluginManagerSnapshot,
+                this._state.selectedPluginId,
+            );
             // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
             const pluginFailureDetail = await this._requestDetail(nextSelectedPluginId);
             this._patchState({
@@ -1198,12 +1156,14 @@ export class PluginManagerPanelUiController {
                 recentPackagePaths: pluginManagerSnapshot.recentPackagePaths,
                 preferences: pluginManagerSnapshot.preferences,
                 executionDiagnosticsSnapshot: pluginManagerSnapshot.executionDiagnosticsSnapshot,
-                selectedExecutionGroupId: this._resolveSelectedExecutionGroupId(
+                selectedExecutionGroupId: this._stateProjector.resolveSelectedExecutionGroupId(
                     pluginManagerSnapshot.executionDiagnosticsSnapshot,
                     this._state.selectedExecutionGroupId,
+                    this._state.executionPriorityFilter,
+                    this._state.showOnlyExceptionalExecutionGroups,
                 ),
                 selectedPluginId: nextSelectedPluginId,
-                selectedPackagePath: this._resolveSelectedPackagePath(
+                selectedPackagePath: this._stateProjector.resolveSelectedPackagePath(
                     pluginManagerSnapshot.packageCatalog,
                     this._state.selectedPackagePath,
                     nextSelectedPluginId,
@@ -1239,90 +1199,6 @@ export class PluginManagerPanelUiController {
             throw new Error(response.error ?? fallbackErrorMessage);
         }
         return response.payload;
-    }
-
-    /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */
-    private _resolveSelectedPluginId(
-        pluginManagerSnapshot: {
-            /** @description 定义调用方可传递或读取的契约字段，保持模块边界的数据一致性。 */
-            readonly runtimeRecords: readonly IPluginRuntimeRecord[];
-            /** @description 定义调用方可传递或读取的契约字段，保持模块边界的数据一致性。 */
-            readonly failureItems: readonly IPluginFailureListItemPayload[];
-        },
-        preferredPluginId: string | null,
-    ): string | null {
-        if (preferredPluginId != null) {
-            // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-            const existingRuntimeRecord = pluginManagerSnapshot.runtimeRecords.find((runtimeRecord) => {
-                return runtimeRecord.pluginId === preferredPluginId;
-            });
-            if (existingRuntimeRecord != null) {
-                return existingRuntimeRecord.pluginId;
-            }
-        }
-
-        // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-        const firstFailureItem = pluginManagerSnapshot.failureItems[0];
-        if (firstFailureItem != null) {
-            return firstFailureItem.pluginId;
-        }
-
-        return pluginManagerSnapshot.runtimeRecords[0]?.pluginId ?? null;
-    }
-
-    /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */
-    private _resolveSelectedPackagePath(
-        packageCatalog: readonly IPluginPackageCatalogItemPayload[],
-        preferredPackagePath: string | null,
-        selectedPluginId: string | null,
-    ): string | null {
-        if (preferredPackagePath != null) {
-            // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-            const existingPackageCatalogItem = packageCatalog.find((packageCatalogItem) => {
-                return packageCatalogItem.packagePath === preferredPackagePath;
-            });
-            if (existingPackageCatalogItem != null) {
-                return existingPackageCatalogItem.packagePath;
-            }
-        }
-
-        if (selectedPluginId != null) {
-            // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-            const selectedPluginPackageCatalogItem = packageCatalog.find((packageCatalogItem) => {
-                return packageCatalogItem.pluginId === selectedPluginId;
-            });
-            if (selectedPluginPackageCatalogItem != null) {
-                return selectedPluginPackageCatalogItem.packagePath;
-            }
-        }
-
-        return packageCatalog[0]?.packagePath ?? null;
-    }
-
-    /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */
-    private _resolveSelectedExecutionGroupId(
-        executionDiagnosticsSnapshot: IExecutionDiagnosticsSnapshot | null,
-        preferredGroupId: string | null,
-        priorityFilter: PluginManagerExecutionPriorityFilter = this._state.executionPriorityFilter,
-        showOnlyExceptionalExecutionGroups: boolean = this._state.showOnlyExceptionalExecutionGroups,
-    ): string | null {
-        // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-        const availableGroups = PluginManagerPanelExecutionView.getDisplayedExecutionGroups(
-            executionDiagnosticsSnapshot,
-            priorityFilter,
-            showOnlyExceptionalExecutionGroups,
-        );
-        if (preferredGroupId != null) {
-            // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-            const existingGroup = availableGroups.find((groupSnapshot) => {
-                return groupSnapshot.groupId === preferredGroupId;
-            });
-            if (existingGroup != null) {
-                return existingGroup.groupId;
-            }
-        }
-
-        return availableGroups[0]?.groupId ?? null;
     }
 
     /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */

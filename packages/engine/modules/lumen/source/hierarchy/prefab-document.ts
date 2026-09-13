@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 
 import { CompatibleUuid, SilentAssetCreateFolder } from '@peanut/pod-engine/assets';
@@ -13,7 +13,7 @@ import { LumenMetaImporterVersions } from '../schema/meta-importer-versions';
 import { LumenHierarchyEntry, type LumenAssetKind } from './entry';
 import { LumenNodeConventions, LumenNodeLayer } from '../schema/node-conventions';
 import { LumenPrefabIdTools } from './prefab-id-tools';
-import { LumenSceneScaffold } from './scene-scaffold';
+import { LumenPrefabDocumentSource } from './prefab-document-source';
 import type { ILumenNodeRecipe, ILumenNodeSpec, PrefabEntry } from '../types';
 
 export type { PrefabEntry } from '../types';
@@ -22,6 +22,11 @@ export type { PrefabEntry } from '../types';
  * @description 内存中的 Prefab / Scene 文档，负责结构脚手架、节点/组件 CRUD 与引用写入。
  */
 export class LumenPrefabDocument {
+    /**
+     * @description 文档初始条目与模板文件来源。
+     */
+    private static readonly _source = new LumenPrefabDocumentSource();
+
     /** @description 序列化条目数组。 */
     private _entries: PrefabEntry[];
 
@@ -86,54 +91,7 @@ export class LumenPrefabDocument {
      * @returns 文档实例
      */
     public static createEmpty(relativePath: string, rootName: string): LumenPrefabDocument {
-        const fileId = (): string => LumenPrefabIdTools.createFileId();
-        const entries: PrefabEntry[] = [
-            {
-                __type__: 'cc.Prefab',
-                _name: rootName,
-                _objFlags: 0,
-                _native: '',
-                data: { __id__: 1 },
-                optimizationPolicy: 0,
-                asyncLoadAssets: false,
-                persistent: false,
-            },
-            {
-                __type__: 'cc.Node',
-                _name: rootName,
-                _objFlags: 0,
-                _parent: null,
-                _children: [],
-                _active: true,
-                _components: [{ __id__: 2 }],
-                _prefab: { __id__: 4 },
-                _lpos: { __type__: 'cc.Vec3', x: 0, y: 0, z: 0 },
-                _lrot: { __type__: 'cc.Quat', x: 0, y: 0, z: 0, w: 1 },
-                _lscale: { __type__: 'cc.Vec3', x: 1, y: 1, z: 1 },
-                _layer: 33554432,
-                _euler: { __type__: 'cc.Vec3', x: 0, y: 0, z: 0 },
-                _id: '',
-            },
-            {
-                __type__: 'cc.UITransform',
-                _name: '',
-                _objFlags: 0,
-                node: { __id__: 1 },
-                _enabled: true,
-                __prefab: { __id__: 3 },
-                _contentSize: { __type__: 'cc.Size', width: 100, height: 100 },
-                _anchorPoint: { __type__: 'cc.Vec2', x: 0.5, y: 0.5 },
-                _id: '',
-            },
-            { __type__: 'cc.CompPrefabInfo', fileId: fileId() },
-            {
-                __type__: 'cc.PrefabInfo',
-                root: { __id__: 1 },
-                asset: { __id__: 0 },
-                fileId: fileId(),
-            },
-        ];
-        return new LumenPrefabDocument(relativePath, entries);
+        return new LumenPrefabDocument(relativePath, LumenPrefabDocument._source.createEmptyPrefabEntries(rootName));
     }
 
     /**
@@ -143,7 +101,7 @@ export class LumenPrefabDocument {
      * @returns 文档实例
      */
     public static createEmptyScene(relativePath: string, rootName: string): LumenPrefabDocument {
-        return new LumenPrefabDocument(relativePath, LumenSceneScaffold.createEntries(rootName));
+        return new LumenPrefabDocument(relativePath, LumenPrefabDocument._source.createEmptySceneEntries(rootName));
     }
 
     /**
@@ -158,22 +116,10 @@ export class LumenPrefabDocument {
         templateAbsolutePath: string,
         rootName?: string,
     ): LumenPrefabDocument {
-        const entries = LumenPrefabDocument._readPrefabEntries(
-            LumenPrefabDocument._parseJsonFile(templateAbsolutePath),
-            templateAbsolutePath,
-        ).map((entry) => LumenDeepClone.clone(entry));
-        LumenPrefabIdTools.regenerateLocalFileIds(entries);
-        if (rootName != null && rootName.length > 0) {
-            const prefabHeader = entries[0];
-            const rootNode = entries[1];
-            if (prefabHeader != null) {
-                prefabHeader._name = rootName;
-            }
-            if (rootNode != null && rootNode.__type__ === 'cc.Node') {
-                rootNode._name = rootName;
-            }
-        }
-        return new LumenPrefabDocument(relativePath, entries);
+        return new LumenPrefabDocument(
+            relativePath,
+            LumenPrefabDocument._source.cloneTemplateEntries(templateAbsolutePath, rootName),
+        );
     }
 
     /**
@@ -183,15 +129,7 @@ export class LumenPrefabDocument {
      * @returns 文档实例
      */
     public static open(projectRoot: string, relativePath: string): LumenPrefabDocument {
-        const absolutePath = join(projectRoot, relativePath);
-        if (!existsSync(absolutePath)) {
-            throw new Error(`lumen_prefab_missing:${relativePath}`);
-        }
-        const entries = LumenPrefabDocument._readPrefabEntries(
-            LumenPrefabDocument._parseJsonFile(absolutePath),
-            relativePath,
-        );
-        return new LumenPrefabDocument(relativePath, entries);
+        return new LumenPrefabDocument(relativePath, LumenPrefabDocument._source.readEntries(projectRoot, relativePath));
     }
 
     /**
@@ -313,10 +251,7 @@ export class LumenPrefabDocument {
      */
     public addChildFromTemplate(parentPath: string, templateAbsolutePath: string, childName?: string): string {
         const parentIndex = this.findNodeIndex(parentPath);
-        const parsed = LumenPrefabDocument._readPrefabEntries(
-            LumenPrefabDocument._parseJsonFile(templateAbsolutePath),
-            templateAbsolutePath,
-        );
+        const parsed = LumenPrefabDocument._source.readTemplateEntries(templateAbsolutePath);
         const embedAt = this._entries.length;
         const { entries: subtree } = LumenPrefabIdTools.cloneSubtreeForEmbed(parsed, embedAt);
         this._entries.push(...subtree);
@@ -1264,17 +1199,7 @@ export class LumenPrefabDocument {
         relativePath: string,
         templateAbsolutePath: string,
     ): void {
-        const absolutePath = join(projectRoot, relativePath);
-        const parentRelative = dirname(relativePath).replace(/\\/g, '/');
-        if (parentRelative.length > 0 && parentRelative !== '.' && parentRelative.startsWith('assets')) {
-            new SilentAssetCreateFolder().ensureDirectoryMetas({
-                projectRoot,
-                relativePath: parentRelative,
-            });
-        } else {
-            mkdirSync(dirname(absolutePath), { recursive: true });
-        }
-        copyFileSync(templateAbsolutePath, absolutePath);
+        LumenPrefabDocument._source.copyTemplateFile(projectRoot, relativePath, templateAbsolutePath);
     }
 
     /**
@@ -1619,44 +1544,4 @@ export class LumenPrefabDocument {
         node._components = components;
     }
 
-    /**
-     * @description 读取并解析 Prefab JSON；语法错误映射为稳定错误码。
-     * @param absolutePath 文件绝对路径
-     * @returns 解析后的 JSON 值
-     */
-    private static _parseJsonFile(absolutePath: string): unknown {
-        try {
-            return JSON.parse(readFileSync(absolutePath, 'utf8'));
-        } catch {
-            throw new Error(`lumen_prefab_json_corrupt:${absolutePath}`);
-        }
-    }
-
-    /**
-     * @description 将未受信 JSON 校验为 Prefab 条目数组。
-     * @param value JSON.parse 结果
-     * @param label 错误信息中的路径
-     * @returns 条目数组
-     */
-    private static _readPrefabEntries(value: unknown, label: string): PrefabEntry[] {
-        if (!Array.isArray(value) || value.length < 2) {
-            throw new Error(`lumen_prefab_json_corrupt:${label}`);
-        }
-        const entries: PrefabEntry[] = [];
-        for (const item of value) {
-            if (item == null || typeof item !== 'object' || Array.isArray(item)) {
-                throw new Error(`lumen_prefab_json_corrupt:${label}`);
-            }
-            const record: PrefabEntry = {};
-            for (const [key, fieldValue] of Object.entries(item)) {
-                record[key] = fieldValue;
-            }
-            entries.push(record);
-        }
-        const header = entries[0];
-        if (header == null || (header.__type__ !== 'cc.Prefab' && header.__type__ !== 'cc.SceneAsset')) {
-            throw new Error(`lumen_prefab_json_corrupt:${label}`);
-        }
-        return entries;
-    }
 }

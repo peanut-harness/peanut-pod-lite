@@ -32,6 +32,8 @@
 
 源码质量门禁使用 TypeScript AST 检查 `src/` 与 `source/` 中的生产源码，排除声明文件、测试和 fixture，避免注释、字符串或目录命名造成误计数。基线只能随真实旧债下降而收紧，不能掩盖最大文件回涨、新增自由函数、多类文件、旧式脚本或单行 JSDoc；生产文件已禁止再次出现多类实现。
 
+Lumen 属性 Schema 只负责编排字段目录、版本门控与嵌入对象流程，基础值校验和 Prefab 引用解码分别归 `LumenComponentPropertyValueParser`、`LumenComponentPropertyReferenceDecoder`；Prefab 文档只负责内存结构编辑，空白条目、模板读取、克隆与原样复制归 `LumenPrefabDocumentSource`。Plugin Manager 控制器把初始状态和选中项规则交给 `PluginManagerPanelStateProjector`，Scene Gateway 把九类未受信输入交给 `EditorMcpSceneInputReader`。
+
 ## 安全不变量
 
 - operation ID、schema 与审批语义保持稳定。
