@@ -1,7 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { dirname, isAbsolute, join, normalize, resolve, sep } from 'path';
 
-import { LumenAssetDbEditorRefreshAdapter } from './io/asset-db-refresh';
 import { LumenCatalogGateway } from './io/catalog-gateway';
 import { LumenCocosInfoProbe } from './schema/cocos-info-probe';
 import type { ILumenCocosInfoReport } from './schema/cocos-info-probe';
@@ -40,7 +39,6 @@ import type {
     ILumenBuildFromRecipeOptions,
     ILumenEditorRefreshAdapter,
     ILumenEditorRefreshResult,
-    ILumenMessagePort,
     ILumenResolveQuery,
     ILumenScaffoldPrefabOptions,
     ILumenSessionOptions,
@@ -1179,35 +1177,5 @@ export class LumenSession {
      */
     private _resolveAbsolute(pathValue: string): string {
         return isAbsolute(pathValue) ? pathValue : join(process.cwd(), pathValue);
-    }
-}
-
-/**
- * @description 创建 lumen 会话；在编辑器内可注入 AssetDB refresh。
- */
-export class LumenSessionFactory {
-    /**
-     * @description 创建默认会话（编辑器刷新为 no-op）。
-     * @param options 会话选项
-     * @returns 会话
-     */
-    public static create(options: ILumenSessionOptions): LumenSession {
-        return new LumenSession(options);
-    }
-
-    /**
-     * @description 创建已接入 AssetDB `refresh-asset` 的会话（供 Creator 插件内调用）。
-     * @param options 会话选项
-     * @param message 可调用 `asset-db` 的 message 端口
-     * @returns 会话
-     */
-    public static createWithAssetDbRefresh(
-        options: ILumenSessionOptions,
-        message: ILumenMessagePort,
-    ): LumenSession {
-        return new LumenSession({
-            ...options,
-            editorRefresh: new LumenAssetDbEditorRefreshAdapter(message),
-        });
     }
 }

@@ -78,9 +78,9 @@ export class LumenPrefabOfflineGateway {
 }
 
 /**
- * @description 兼容旧名（可作类型与构造）。
+ * @description 以同一实现导出兼容旧名，避免为别名创建无职责子类。
  */
-export class EditorMcpPrefabOfflineGateway extends LumenPrefabOfflineGateway {}
+export { LumenPrefabOfflineGateway as EditorMcpPrefabOfflineGateway };
 
 /**
  * @description 读取非空字符串字段。

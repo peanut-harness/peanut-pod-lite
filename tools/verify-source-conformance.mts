@@ -1,10 +1,17 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { join, resolve, sep } from 'node:path';
+import { join, resolve } from 'node:path';
+
+import { SourceFileConformanceInspector } from './source-file-conformance-inspector.mjs';
 
 /**
  * @description 可增长性门禁使用的历史代码质量基线。
  */
 interface ICodeQualityBaseline {
+    /**
+     * @description 最大生产 TypeScript 实现文件行数。
+     */
+    readonly maxProductionSourceLines: number;
+
     /**
      * @description 尚未迁移为 TypeScript 的脚本文件数量。
      */
@@ -31,6 +38,17 @@ interface ICodeQualityBaseline {
  */
 class SourceConformanceVerifier {
     /**
+     * @description 受基线约束的全部质量指标。
+     */
+    private readonly _metricNames: readonly (keyof ICodeQualityBaseline)[] = [
+        'maxProductionSourceLines',
+        'legacyScriptFiles',
+        'singleLineJSDoc',
+        'exportedFreeFunctions',
+        'multiClassSourceFiles',
+    ];
+
+    /**
      * @description 扫描时忽略的生成目录与外部依赖目录。
      */
     private readonly _ignoredDirectories = new Set([
@@ -55,7 +73,7 @@ class SourceConformanceVerifier {
         this._assertAdapterBoundaries();
         const baseline = this._readBaseline();
         const current = this._scan();
-        for (const metric of Object.keys(baseline) as Array<keyof ICodeQualityBaseline>) {
+        for (const metric of this._metricNames) {
             if (current[metric] > baseline[metric]) {
                 throw new Error(`source_conformance_regression:${metric}:${current[metric]}>${baseline[metric]}`);
             }
@@ -95,9 +113,33 @@ class SourceConformanceVerifier {
      * @returns 代码质量基线
      */
     private _readBaseline(): ICodeQualityBaseline {
-        return JSON.parse(
+        const value: unknown = JSON.parse(
             readFileSync(join(this._repositoryRoot, 'specs/code-quality-baseline.json'), 'utf8'),
-        ) as ICodeQualityBaseline;
+        );
+        if (typeof value !== 'object' || value == null || Array.isArray(value)) {
+            throw new Error('source_conformance_baseline_invalid:root');
+        }
+        return {
+            maxProductionSourceLines: this._readBaselineMetric(value, 'maxProductionSourceLines'),
+            legacyScriptFiles: this._readBaselineMetric(value, 'legacyScriptFiles'),
+            singleLineJSDoc: this._readBaselineMetric(value, 'singleLineJSDoc'),
+            exportedFreeFunctions: this._readBaselineMetric(value, 'exportedFreeFunctions'),
+            multiClassSourceFiles: this._readBaselineMetric(value, 'multiClassSourceFiles'),
+        };
+    }
+
+    /**
+     * @description 从未知基线对象读取非负整数指标。
+     * @param baseline 未受信的基线对象
+     * @param metricName 指标名称
+     * @returns 已验证的指标值
+     */
+    private _readBaselineMetric(baseline: object, metricName: keyof ICodeQualityBaseline): number {
+        const metricValue: unknown = Reflect.get(baseline, metricName);
+        if (typeof metricValue !== 'number' || !Number.isSafeInteger(metricValue) || metricValue < 0) {
+            throw new Error(`source_conformance_baseline_invalid:${metricName}`);
+        }
+        return metricValue;
     }
 
     /**
@@ -106,25 +148,26 @@ class SourceConformanceVerifier {
      */
     private _scan(): ICodeQualityBaseline {
         const sourceFiles = this._collectSourceFiles(this._repositoryRoot);
-        const legacyScriptFiles = sourceFiles.filter((filePath) => /\.(?:js|mjs|cjs)$/u.test(filePath)).length;
+        const inspector = new SourceFileConformanceInspector(this._repositoryRoot);
+        const legacyScriptFiles = sourceFiles.filter((filePath) => inspector.isLegacyScript(filePath)).length;
         let singleLineJSDoc = 0;
         let exportedFreeFunctions = 0;
         let multiClassSourceFiles = 0;
+        let maxProductionSourceLines = 0;
 
         for (const filePath of sourceFiles) {
             const source = readFileSync(filePath, 'utf8');
-            singleLineJSDoc += source.match(/\/\*\* [^\r\n]*\*\//gu)?.length ?? 0;
-            if (!filePath.includes(`${sep}src${sep}`)) {
-                continue;
-            }
-            exportedFreeFunctions += source.match(/export\s+(?:async\s+)?function\s+/gu)?.length ?? 0;
-            const classCount = source.match(/(?:^|\s)(?:export\s+)?(?:abstract\s+)?class\s+/gmu)?.length ?? 0;
-            if (classCount > 1) {
+            const inspection = inspector.inspect(filePath, source);
+            maxProductionSourceLines = Math.max(maxProductionSourceLines, inspection.productionLineCount);
+            singleLineJSDoc += inspection.singleLineJSDoc;
+            exportedFreeFunctions += inspection.exportedFreeFunctions;
+            if (inspection.hasMultipleClasses) {
                 multiClassSourceFiles += 1;
             }
         }
 
         return {
+            maxProductionSourceLines,
             legacyScriptFiles,
             singleLineJSDoc,
             exportedFreeFunctions,
@@ -146,7 +189,7 @@ class SourceConformanceVerifier {
             const absolutePath = join(directory, entry.name);
             if (entry.isDirectory()) {
                 sourceFiles.push(...this._collectSourceFiles(absolutePath));
-            } else if (/\.(?:ts|mts|cts|js|mjs|cjs)$/u.test(entry.name)) {
+            } else if (/\.(?:ts|mts|cts|tsx|js|mjs|cjs|jsx)$/u.test(entry.name)) {
                 sourceFiles.push(absolutePath);
             }
         }

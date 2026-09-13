@@ -22,11 +22,15 @@
 
 当前画像：2.4 与 3.0–3.5 为 experimental，3.6–3.7 为 unsupported，3.8.7 有 full 实机证据。只有宿主版本和项目声明版本都精确为 3.8.7 时允许写入；项目版本缺失、无法解析或不匹配时一律只读。
 
+`CreatorOperationAvailabilityMatrix` 将 83 项公开操作与可信 Creator 上下文组合为 `available`、`read_only`、`write` 或 `refused`，矩阵测试覆盖四个版本画像；unsupported 全拒绝，写操作仅在具备精确实机证据时进入 `write`。
+
 ## 构建模型
 
 仓库只有根 `package-lock.json`。根脚本按协议、SDK、engine、panel、hosts 顺序执行；engine/hosts 的内部模块由 manifest 自动发现，并按 `peanut.internalDependencies` 拓扑执行。`tools/verify-workspace-structure.mjs` 同时核对模块导出、源码导入、宿主画像、嵌套 lockfile 和逆向依赖。
 
 宿主发布物使用 esbuild 打成自包含目录包。Creator 2.4 模板在没有本机编辑器时保留已提交正式模板，绝不再用测试 fixture 覆盖发布资产。
+
+源码质量门禁使用 TypeScript AST 检查 `src/` 与 `source/` 中的生产源码，排除声明文件、测试和 fixture，避免注释、字符串或目录命名造成误计数。基线只能随真实旧债下降而收紧，不能掩盖最大文件回涨、新增自由函数、多类文件、旧式脚本或单行 JSDoc；生产文件已禁止再次出现多类实现。
 
 ## 安全不变量
 

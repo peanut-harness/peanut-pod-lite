@@ -19,6 +19,7 @@ import {
     type McpHubCallStatus,
 } from './mcp-hub-control.js';
 import { ensureAbortControllerPolyfill } from './abort-controller-polyfill.js';
+import { CocosMcpInputReader } from './cocos-mcp-input-reader.js';
 import { McpControlFlowRefusal } from './mcp-control-flow-refusal.js';
 
 ensureAbortControllerPolyfill();
@@ -121,6 +122,8 @@ interface IMcpHubActiveInvocation {
  * @description 编辑器进程内的 loopback Hub；只为 stdio bridge 提供经 token 认证的私有路由。
  */
 export class CocosMcpHub implements IMcpHubControl {
+    /** @description MCP 边界输入校验器。 */
+    private readonly _inputReader = new CocosMcpInputReader();
     /** @description 动态提供当前 plugin-manager 的函数，支持 kernel reload。 */
     private readonly _pluginManagerProvider: () => PluginManagerApp | null;
     /** @description 启动期配置。 */
@@ -440,7 +443,7 @@ export class CocosMcpHub implements IMcpHubControl {
             if (signal.aborted || response.destroyed) {
                 return;
             }
-            response.write(`${JSON.stringify({ type: 'progress', ...this._readProgress(progress) })}\n`);
+            response.write(`${JSON.stringify({ type: 'progress', ...this._inputReader.readProgress(progress) })}\n`);
         };
         try {
             const result = await this._dispatch(payload, { signal, reportProgress });
@@ -449,7 +452,7 @@ export class CocosMcpHub implements IMcpHubControl {
             }
         } catch (error) {
             if (!signal.aborted && !response.destroyed) {
-                response.end(`${JSON.stringify({ type: 'result', ok: false, error: this._toSafeErrorCode(error) })}\n`);
+                response.end(`${JSON.stringify({ type: 'result', ok: false, error: this._inputReader.toSafeErrorCode(error) })}\n`);
             }
         }
     }
@@ -467,8 +470,8 @@ export class CocosMcpHub implements IMcpHubControl {
             return this.getStatus();
         }
         if (action === 'setPluginExposure') {
-            const pluginId = this._readPluginId(payload.pluginId);
-            const mode = this._readExposureMode(payload.mode);
+            const pluginId = this._inputReader.readPluginId(payload.pluginId);
+            const mode = this._inputReader.readExposureMode(payload.mode);
             await this.setPluginExposure(pluginId, mode);
             return {
                 pluginId,
@@ -483,30 +486,30 @@ export class CocosMcpHub implements IMcpHubControl {
             await this.setDirectWriteEnabled(payload.isEnabled === true);
             return { directWriteEnabled: this._directWriteEnabled };
         }
-        const connectionId = this._readConnectionId(payload.connectionId);
+        const connectionId = this._inputReader.readConnectionId(payload.connectionId);
         if (action === 'cancel') {
-            this._cancelInvocation(connectionId, this._readInvocationId(payload.invocationId));
+            this._cancelInvocation(connectionId, this._inputReader.readInvocationId(payload.invocationId));
             return {};
         }
-        const invocationId = this._readOptionalInvocationId(payload.invocationId);
+        const invocationId = this._inputReader.readOptionalInvocationId(payload.invocationId);
         if (action === 'call') {
             return this._withInvocation(connectionId, invocationId, invocation, async (activeInvocation): Promise<unknown> =>
-                this._call(this._readName(payload.name), payload.input, connectionId, activeInvocation),
+                this._call(this._inputReader.readName(payload.name), payload.input, connectionId, activeInvocation),
             );
         }
         if (action === 'plan') {
-            return this._createPlan(this._readName(payload.name), payload.input, connectionId);
+            return this._createPlan(this._inputReader.readName(payload.name), payload.input, connectionId);
         }
         if (action === 'execute') {
             return this._withInvocation(connectionId, invocationId, invocation, async (activeInvocation): Promise<unknown> =>
-                this._executePlan(this._readPlanId(payload.planId), connectionId, activeInvocation),
+                this._executePlan(this._inputReader.readPlanId(payload.planId), connectionId, activeInvocation),
             );
         }
         if (action === 'issueApprovalToken') {
             return this._issueApprovalToken(connectionId, payload);
         }
         if (action === 'revokeApprovalToken') {
-            return { revoked: this._batchApprovals.revoke(this._readApprovalToken(payload.approvalToken)) };
+            return { revoked: this._batchApprovals.revoke(this._inputReader.readApprovalToken(payload.approvalToken)) };
         }
         throw new Error('cocos_mcp_hub_action_invalid');
     }
@@ -579,11 +582,11 @@ export class CocosMcpHub implements IMcpHubControl {
         if (definition == null) {
             throw new Error(`mcp_capability_unavailable:${name}`);
         }
-        const risk = this._resolveCallRisk(definition, input);
-        const resourceIds = this._readOptionalResources(input);
+        const risk = this._inputReader.resolveCallRisk(definition, input);
+        const resourceIds = this._inputReader.readOptionalResources(input);
         let hasLocalApproval = false;
         if (!definition.readOnly && !this._directWriteEnabled) {
-            const approvalToken = this._readOptionalApprovalToken(input);
+            const approvalToken = this._inputReader.readOptionalApprovalToken(input);
             if (
                 approvalToken == null ||
                 !this._batchApprovals.tryConsume(approvalToken, {
@@ -597,7 +600,7 @@ export class CocosMcpHub implements IMcpHubControl {
             }
             hasLocalApproval = true;
         }
-        if (risk === 'destructive' && this._readConfirmDestructive(input) !== true) {
+        if (risk === 'destructive' && this._inputReader.readConfirmDestructive(input) !== true) {
             McpControlFlowRefusal.reject('cocos_mcp_destructive_confirmation_required');
         }
         const recentCall = this._createRecentCall(definition, 'approved');
@@ -609,7 +612,7 @@ export class CocosMcpHub implements IMcpHubControl {
             this._completeRecentCall(recentCall.id, 'succeeded');
             return result;
         } catch (error) {
-            this._completeRecentCall(recentCall.id, 'failed', this._toSafeErrorCode(error));
+            this._completeRecentCall(recentCall.id, 'failed', this._inputReader.toSafeErrorCode(error));
             throw error;
         }
     }
@@ -626,7 +629,7 @@ export class CocosMcpHub implements IMcpHubControl {
         try {
             registry.validateInput(name, input);
         } catch (error) {
-            this._completeRecentCall(recentCall.id, 'failed', this._toSafeErrorCode(error));
+            this._completeRecentCall(recentCall.id, 'failed', this._inputReader.toSafeErrorCode(error));
             throw error;
         }
         const id = toHex(randomBytes(16));
@@ -677,16 +680,16 @@ export class CocosMcpHub implements IMcpHubControl {
                 plan.input,
                 connectionId,
                 invocation,
-                this._resolveCallRisk(definition, plan.input),
+                this._inputReader.resolveCallRisk(definition, plan.input),
                 {
-                    resourceIds: this._readOptionalResources(plan.input),
+                    resourceIds: this._inputReader.readOptionalResources(plan.input),
                     hasLocalApproval: true,
                 },
             );
             this._completeRecentCall(plan.auditId, 'succeeded');
             return result;
         } catch (error) {
-            this._completeRecentCall(plan.auditId, 'failed', this._toSafeErrorCode(error));
+            this._completeRecentCall(plan.auditId, 'failed', this._inputReader.toSafeErrorCode(error));
             throw error;
         }
     }
@@ -1189,35 +1192,6 @@ export class CocosMcpHub implements IMcpHubControl {
         record.errorCode = errorCode;
     }
 
-    /** @description 将未知 capability 错误收窄为可安全展示的稳定错误码。 */
-    private _toSafeErrorCode(error: unknown): string {
-        const message = error instanceof Error ? error.message : '';
-        return /^[a-z0-9._:-]+$/.test(message) ? message : 'mcp_capability_execution_failed';
-    }
-
-    /**
-     * @description 校验 capability 上报的 progress，避免将无效事件写入 bridge 私有流。
-     * @param value capability 提供的进度事件。
-     * @returns 可安全序列化的进度事件。
-     */
-    private _readProgress(value: IMcpCapabilityProgress): IMcpCapabilityProgress {
-        if (!Number.isFinite(value.progress) || value.progress < 0) {
-            throw new Error('cocos_mcp_progress_invalid');
-        }
-        if (value.total !== undefined && (!Number.isFinite(value.total) || value.total < value.progress)) {
-            throw new Error('cocos_mcp_progress_invalid');
-        }
-        if (value.message !== undefined && typeof value.message !== 'string') {
-            throw new Error('cocos_mcp_progress_invalid');
-        }
-        return value.total === undefined && value.message === undefined
-            ? { progress: value.progress }
-            : value.total === undefined
-              ? { progress: value.progress, message: value.message }
-              : value.message === undefined
-                ? { progress: value.progress, total: value.total }
-                : { progress: value.progress, total: value.total, message: value.message };
-    }
 
     /**
      * @description 从磁盘重新加载 MCP 设置并应用到当前 registry。
@@ -1257,81 +1231,6 @@ export class CocosMcpHub implements IMcpHubControl {
         return this.getStatus();
     }
 
-    /**
-     * @description 读取 Hub 动作中的插件标识。
-     * @param value 未受信输入。
-     * @returns 已校验的插件标识。
-     */
-    private _readPluginId(value: unknown): string {
-        if (typeof value !== 'string' || !this._isPluginId(value)) {
-            throw new Error('cocos_mcp_plugin_id_invalid');
-        }
-        return value;
-    }
-
-    /**
-     * @description 读取 Hub 动作中的插件公开级别。
-     * @param value 未受信输入。
-     * @returns 已校验的公开级别。
-     */
-    private _readExposureMode(value: unknown): McpPluginExposureMode {
-        if (value === 'disabled' || value === 'read_only' || value === 'all') {
-            return value;
-        }
-        throw new Error('cocos_mcp_plugin_exposure_invalid');
-    }
-
-    /** @description 读取全局 capability 名称。 */
-    private _readName(value: unknown): string {
-        if (typeof value !== 'string' || value.trim().length === 0) {
-            throw new Error('cocos_mcp_capability_name_invalid');
-        }
-        return value;
-    }
-
-    /** @description 读取 bridge 连接标识。 */
-    private _readConnectionId(value: unknown): string {
-        if (typeof value !== 'string' || !/^[a-f0-9]{32}$/.test(value)) {
-            throw new Error('cocos_mcp_connection_id_invalid');
-        }
-        return value;
-    }
-
-    /**
-     * @description 读取工具调用可选携带的瞬时 invocation ID。
-     * @param value 未受信的 Hub 动作字段。
-     * @returns 缺失时为 `null`，否则返回已验证 ID。
-     */
-    private _readOptionalInvocationId(value: unknown): string | null {
-        return value === undefined ? null : this._readInvocationId(value);
-    }
-
-    /**
-     * @description 读取用于显式取消的瞬时 invocation ID。
-     * @param value 未受信的 Hub 动作字段。
-     * @returns 已验证的 invocation ID。
-     */
-    private _readInvocationId(value: unknown): string {
-        if (typeof value !== 'string' || !/^[a-f0-9]{32}$/.test(value)) {
-            throw new Error('cocos_mcp_invocation_id_invalid');
-        }
-        return value;
-    }
-
-    /** @description 读取一次性计划标识。 */
-    private _readPlanId(value: unknown): string {
-        if (typeof value !== 'string' || !/^[a-f0-9]{32}$/.test(value)) {
-            throw new Error('cocos_mcp_plan_id_invalid');
-        }
-        return value;
-    }
-
-    /**
-     * @description 签发批次 approvalToken（需已由面板确认过的资源集合）。
-     * @param connectionId 连接。
-     * @param payload 请求体。
-     * @returns 令牌摘要。
-     */
 
     /**
      * @description 晚绑定 Lite 本地审批租约镜像（不自动免审；仅双写租约存储）。
@@ -1443,134 +1342,6 @@ export class CocosMcpHub implements IMcpHubControl {
         };
     }
 
-    /**
-     * @description 解析调用风险；覆盖导入视为 destructive。
-     * @param definition capability。
-     * @param input 输入。
-     * @returns 风险。
-     */
-    private _resolveCallRisk(definition: IMcpCapabilityDefinition, input: unknown): McpCapabilityRisk {
-        if (
-            definition.name.endsWith('.asset-import') &&
-            input != null &&
-            typeof input === 'object' &&
-            !Array.isArray(input) &&
-            ((input as Record<string, unknown>).overwrite === true ||
-                (input as Record<string, unknown>).mode === 'override')
-        ) {
-            return 'destructive';
-        }
-        return definition.risk;
-    }
-
-    /**
-     * @description 从输入读取可选 approvalToken。
-     * @param input 未校验输入。
-     * @returns 令牌或 undefined。
-     */
-    private _readOptionalApprovalToken(input: unknown): string | undefined {
-        if (input == null || typeof input !== 'object' || Array.isArray(input)) {
-            return undefined;
-        }
-        const token = (input as Record<string, unknown>).approvalToken;
-        return typeof token === 'string' && token.trim().length > 0 ? token.trim() : undefined;
-    }
-
-    /**
-     * @description 读取必填 approvalToken。
-     * @param value 未校验值。
-     * @returns 令牌。
-     */
-    private _readApprovalToken(value: unknown): string {
-        if (typeof value !== 'string' || value.trim().length === 0) {
-            throw new Error('cocos_mcp_approval_token_invalid');
-        }
-        return value.trim();
-    }
-
-    /**
-     * @description 从输入读取资源列表。
-     * @param input 未校验输入。
-     * @returns 资源。
-     */
-    private _readOptionalResources(input: unknown): readonly string[] {
-        if (input == null || typeof input !== 'object' || Array.isArray(input)) {
-            return [];
-        }
-        const record = input as Record<string, unknown>;
-        const collected: string[] = [];
-        const push = (value: unknown): void => {
-            if (typeof value === 'string' && value.trim().length > 0) {
-                collected.push(value.trim());
-                return;
-            }
-            if (!Array.isArray(value)) {
-                return;
-            }
-            for (const item of value) {
-                if (typeof item === 'string' && item.trim().length > 0) {
-                    collected.push(item.trim());
-                    continue;
-                }
-                if (typeof item === 'object' && item != null && 'path' in item) {
-                    push((item as { path: unknown }).path);
-                }
-            }
-        };
-        // 与 Lite extract 业务键对齐（含 replaceReferences uuid）；声明 resources 一并采集
-        for (const key of [
-            'resources',
-            'paths',
-            'sources',
-            'targets',
-            'dbPaths',
-            'files',
-            'path',
-            'from',
-            'to',
-            'target',
-            'targetDirectory',
-            'uuid',
-            'url',
-            'fromUuid',
-            'toUuid',
-            'prefabRelativePath',
-            'assetRelativePath',
-            'imagePath',
-            'scenePath',
-            'prefabPath',
-            'parentPath',
-            'scriptRelativePath',
-        ]) {
-            push(record[key]);
-        }
-        // 归一：assets ↔ db://assets（与 Lite/BatchStore 对齐）
-        const normalized = new Set<string>();
-        for (const item of collected) {
-            const trimmed = item.replace(/\\/gu, '/');
-            if (trimmed.length === 0) {
-                continue;
-            }
-            if (trimmed === 'assets' || trimmed.startsWith('assets/')) {
-                normalized.add(`db://${trimmed}`);
-            } else {
-                normalized.add(trimmed);
-            }
-        }
-        return [...normalized];
-    }
-
-    /**
-     * @description 读取破坏性确认标记。
-     * @param input 未校验输入。
-     * @returns 是否确认。
-     */
-    private _readConfirmDestructive(input: unknown): boolean {
-        if (input == null || typeof input !== 'object' || Array.isArray(input)) {
-            return false;
-        }
-        return (input as Record<string, unknown>).confirmDestructive === true;
-    }
 
     /** @description 返回当前活跃 plugin-manager；内核暂不可用时拒绝请求。 */
     private _requirePluginManager(): PluginManagerApp {

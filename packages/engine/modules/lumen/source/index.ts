@@ -237,6 +237,7 @@ export {
     EditorMcpPrefabOfflineGateway,
     type IPrefabBindScriptMcpInput,
 } from './offline/prefab-offline-gateway';
-export { LumenSession, LumenSessionFactory } from './session';
+export { LumenSession } from './session';
+export { LumenSessionFactory } from './lumen-session-factory';
 export { LumenTemplateCache } from './templates/cache';
 export { LumenTemplateCatalog } from './templates/catalog';

@@ -1,6 +1,7 @@
 {
-  "legacyScriptFiles": 68,
-  "singleLineJSDoc": 2796,
-  "exportedFreeFunctions": 95,
-  "multiClassSourceFiles": 7
+    "maxProductionSourceLines": 1851,
+    "legacyScriptFiles": 68,
+    "singleLineJSDoc": 2754,
+  "exportedFreeFunctions": 50,
+    "multiClassSourceFiles": 0
 }

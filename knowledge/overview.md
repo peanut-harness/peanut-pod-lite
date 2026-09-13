@@ -12,6 +12,7 @@ Cocos Creator 编辑器产品。公开 83 项免费操作（38 读、45 写/破�
 - 只有根 `package-lock.json`；内部 modules 不是 workspace，不得声明 `file:` 依赖。
 - 内部 modules 由 manifest 自动发现，按 `peanut.internalDependencies` 拓扑执行并校验源码导入。
 - Creator 版本实现使用阶段工厂注册表装配；版本目录互不导入，共用端口与宿主实现分别归 `adapters/core`、`adapters/shared`。
+- 源码质量门禁用 TypeScript AST 覆盖 `src/` 与 `source/` 的生产源码，排除声明文件、测试与 fixture，并锁定单文件单类及最大文件行数。
 
 ## Creator Profiles
 
@@ -20,6 +21,7 @@ Cocos Creator 编辑器产品。公开 83 项免费操作（38 读、45 写/破�
 - `specs/creator-profiles/creator-profiles.json` 生成 protocol 画像目录，规范与运行时不能双写。
 - 3.8.7：host/project 版本都存在且一致时 full，可写；其它 3.8 补丁版本只读。
 - 未知、缺失或不一致版本全部 fail-closed。
+- 83 项公开操作通过版本能力矩阵统一生成 `available`、`read_only`、`write`、`refused` 状态，并覆盖四个画像测试。
 
 ## Hard Rules
 

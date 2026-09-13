@@ -1,5 +1,10 @@
 export { McpCapabilityPolicy, type IMcpCapabilityPolicy, type McpCapabilityAccess } from './mcp-capability-policy.js';
 export {
+    CreatorOperationAvailabilityMatrix,
+    type CreatorOperationAvailability,
+    type ICreatorOperationAvailabilityEntry,
+} from './creator-operation-availability-matrix.js';
+export {
     CoreCocosMcpCapabilityCatalog,
     type CoreCocosMcpOperation,
     type ICoreCocosMcpCapability,

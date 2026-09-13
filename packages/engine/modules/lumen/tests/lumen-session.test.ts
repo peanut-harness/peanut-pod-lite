@@ -10,7 +10,8 @@ import { LumenAtomicFileWriter } from '../source/io/atomic-file-writer';
 import { LumenDefaultTemplateRoot } from '../source/templates/default-root';
 import { LumenEngineSerializableProbe } from '../source/schema/engine-serializable-probe';
 import { LumenPrefabDocument } from '../source/hierarchy/prefab-document';
-import { LumenSession, LumenSessionFactory } from '../source/session';
+import { LumenSessionFactory } from '../source/lumen-session-factory';
+import { LumenSession } from '../source/session';
 import { LumenCocosVersion } from '../source/schema/cocos-version';
 import { LumenMetaImporterVersions } from '../source/schema/meta-importer-versions';
 
