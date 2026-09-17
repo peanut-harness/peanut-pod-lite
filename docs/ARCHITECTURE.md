@@ -24,9 +24,13 @@
 
 `CreatorOperationAvailabilityMatrix` 将 83 项公开操作与可信 Creator 上下文组合为 `available`、`read_only`、`write` 或 `refused`，矩阵测试覆盖四个版本画像；unsupported 全拒绝，写操作仅在具备精确实机证据时进入 `write`。
 
+当前目录与矩阵测试的分类口径为 38 项读、45 项写/破坏性，与 README 一致。旧迁移台账的 36/47 是历史口径，不作为本仓验收基线；分类以当前 capability catalog 和 `creator-operation-availability-matrix.test.mts` 为准，不能仅凭总数 83 判定分类一致。
+
 ## 构建模型
 
 仓库只有根 `package-lock.json`。根脚本按协议、SDK、engine、panel、hosts 顺序执行；engine/hosts 的内部模块由 manifest 自动发现，并按 `peanut.internalDependencies` 拓扑执行。`tools/verify-workspace-structure.mjs` 同时核对模块导出、源码导入、宿主画像、嵌套 lockfile 和逆向依赖。
+
+旧 checkout 升级后，Git 不会清理已忽略的 `dist/`、`node_modules/` 与 `release/`，这些生成物可能让已迁出的旧顶层 `packages/*` 目录继续存在。结构门禁仍须拒绝这些目录，不能增加忽略规则来绕过。遇到 `unexpected_top_level_packages` 时，先核对 Git tracked 文件、工作区改动和目录内容；仅在确认没有 tracked 文件或用户源码且全部文件均为被忽略的生成物后，将旧目录原样移至仓外的 `/private/tmp` 独立备份目录，保留路径供回滚。无法确认归属的文件应保留并报告，不运行 `git clean` 或直接删除目录。处理后执行根 `npm ci`、`npm run verify` 和 `npm run pack`；安装依赖不得改变根 lockfile。
 
 宿主发布物使用 esbuild 打成自包含目录包。Creator 2.4 模板在没有本机编辑器时保留已提交正式模板，绝不再用测试 fixture 覆盖发布资产。
 

@@ -1,5 +1,9 @@
 export { PackagingApp } from './app/packaging-app.js';
 export type { IPackagingAppOptions } from './app/packaging-app.js';
+export { CpmIntegrityProtocol } from './integrity/cpm-integrity-protocol.js';
+export type { ICpmFileRecord } from './integrity/cpm-integrity-protocol.js';
+export { CpmManifestValidator } from './integrity/cpm-manifest-validator.js';
+export type { ICpmManifestValidationResult, ICpmPackageManifestInput } from './integrity/cpm-manifest-validator.js';
 export { PackageInspector } from './inspect/package-inspector.js';
 export { InstallPlanner } from './install/install-planner.js';
 export { PackageInstaller } from './install/package-installer.js';

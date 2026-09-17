@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -184,5 +184,5 @@ test('builder verifies Creator project buildPath and outputName artifacts', asyn
     const result = await new EditorMcpBuilderGateway(runtime).build({ platform: 'web-desktop' });
     assert.equal(result.status, 'completed');
     assert.equal(result.success, true);
-    assert.deepEqual(result.artifacts, [join(outputDirectory, 'index.html')]);
+    assert.deepEqual(result.artifacts, [realpathSync(join(outputDirectory, 'index.html'))]);
 });

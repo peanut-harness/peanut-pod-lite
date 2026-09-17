@@ -11,6 +11,7 @@
 - `upgrade`
 - `uninstall`
 - `repair`
+- CPM 目录包 manifest 与 SHA-256 完整性协议
 
 ## 公共入口
 
@@ -19,6 +20,18 @@
 ```typescript
 import { PackagingApp } from '@peanut/pod-engine/installation';
 ```
+
+Pro 等外部消费者需要生成或校验 CPM 目录包时，也从同一子路径导入纯协议 API：
+
+```typescript
+import {
+    CpmIntegrityProtocol,
+    CpmManifestValidator,
+    type ICpmFileRecord,
+} from '@peanut/pod-engine/installation';
+```
+
+这些 API 只处理规范化路径、摘要记录与最小 manifest，不包含 CLI、Creator 宿主或安装索引业务。
 
 ## 最小示例
 

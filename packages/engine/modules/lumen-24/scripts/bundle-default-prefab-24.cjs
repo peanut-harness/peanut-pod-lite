@@ -77,13 +77,26 @@ function main() {
         hash.update(readFileSync(join(bundledTemplates, relativePath)));
         hash.update('\n');
     }
+    const previousManifest = existsSync(manifestPath)
+        ? JSON.parse(readFileSync(manifestPath, 'utf8'))
+        : null;
+    const contentHash = hash.digest('hex');
+    const generatedAt =
+        previousManifest?.cocosVersion === cocosVersion &&
+        previousManifest?.packageVersion === packageVersion &&
+        previousManifest?.contentHash === contentHash &&
+        previousManifest?.templateCount === files.length &&
+        previousManifest?.sourceRoot === sourceRoot &&
+        typeof previousManifest?.generatedAt === 'string'
+            ? previousManifest.generatedAt
+            : new Date().toISOString();
     const manifest = {
         cocosVersion,
         packageVersion,
-        contentHash: hash.digest('hex'),
+        contentHash,
         templateCount: files.length,
         sourceRoot,
-        generatedAt: new Date().toISOString(),
+        generatedAt,
     };
     writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
     process.stdout.write(

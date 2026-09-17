@@ -31,8 +31,9 @@ Cocos Creator 编辑器产品。公开 83 项免费操作（38 读、45 写/破�
 - Lite 永不 import Pro；Pro 缺失不得挡住 Lite 启动；订阅不等于写盘许可。
 - Creator 2.4 缺本机安装时保留已提交正式模板，禁止用测试 fixture 覆盖发布资产。
 - 产品分发是目录包 / CPM，不是 `npm publish`。
+- `@peanut/pod-engine/installation` 公开纯 CPM manifest/完整性协议；Pro 不得恢复旧顶层 `cpm-core` 包。
 - Creator 进程必须精确匹配 `--project` / `--path`；Node 单测不是实机冒烟。
 
 ## Verification
 
-根目录执行 `npm run verify` 和 `npm run pack`。结构说明见 `docs/ARCHITECTURE.md`，产品契约见 Hub `contracts/pod-product.md`。
+根目录执行 `npm run verify` 和 `npm run pack`。旧 checkout 的 ignored 顶层生成物确认无源码后移出仓库，不放宽结构门禁。结构说明见 `docs/ARCHITECTURE.md`，产品契约见 Hub `contracts/pod-product.md`。
