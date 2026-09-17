@@ -1,5 +1,6 @@
 'use strict';
 
+const { createHash } = require('crypto');
 const { mkdirSync, readFileSync, writeFileSync } = require('fs');
 const { join } = require('path');
 const { CreatorContextResolver } = require('@peanut/pod-hosts');
@@ -30,6 +31,10 @@ let hubPublishedCount = 0;
 const serviceRegistry = new PluginServiceRegistry();
 let protectedKeyStore = null;
 let accountController = null;
+let coreArtifact = null;
+let proArtifact = null;
+
+const hostArtifact = resolveHostArtifactIdentity();
 let hostStatus = createStoppedStatus();
 let creatorContext = null;
 
@@ -68,6 +73,28 @@ function resolveTrustedCreatorContext() {
         throw new Error(`creator_profile_host_mismatch:${context.profileId}:creator-38`);
     }
     return context;
+}
+
+function resolveHostArtifactIdentity() {
+    const packageManifest = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'));
+    return Object.freeze({
+        id: packageManifest.name,
+        version: packageManifest.version,
+        mainDigest: createHash('sha256').update(readFileSync(__filename)).digest('hex'),
+    });
+}
+
+function resolvePackageArtifactIdentity(verified) {
+    return Object.freeze({
+        id: verified.manifest.id,
+        version: verified.manifest.version,
+        packageDigest: verified.manifest.package.digest,
+        packedAt: typeof verified.manifest.package.packedAt === 'string' ? verified.manifest.package.packedAt : null,
+    });
+}
+
+function artifactIdentitySnapshot() {
+    return Object.freeze({ host: hostArtifact, core: coreArtifact, pro: proArtifact });
 }
 
 
@@ -281,6 +308,7 @@ function loadVerifiedModule(verified, expectedPluginId) {
 
 async function activateCore(packageStore) {
     const verified = packageStore.resolveActivePackage(CORE_PLUGIN_ID, true);
+    coreArtifact = resolvePackageArtifactIdentity(verified);
     toolHandlers = new Map();
     coreModule = loadVerifiedModule(verified, CORE_PLUGIN_ID);
     await coreModule.register?.({ logger: createLogger(CORE_PLUGIN_ID) });
@@ -304,6 +332,7 @@ async function deactivateOptionalPro() {
         getEditor()?.warn?.(`[peanut-pod-lite] pro_deactivate_failed:${normalizeError(error)}`);
     } finally {
         proModule = null;
+        proArtifact = null;
         serviceRegistry.revokeProvider(PRO_PLUGIN_ID);
         protectedKeyStore?.clear();
         protectedKeyStore = null;
@@ -317,6 +346,7 @@ async function activateOptionalPro(packageStore) {
         if (verified === null) {
             return Object.freeze({ state: 'absent', version: null, error: null, services: [] });
         }
+        proArtifact = resolvePackageArtifactIdentity(verified);
         proModule = loadVerifiedModule(verified, PRO_PLUGIN_ID);
         protectedKeyStore = new SystemProtectedKeyStore(requireProjectPath(), PRO_PLUGIN_ID, resolveSafeStorage);
         await proModule.register?.({ logger: createLogger(PRO_PLUGIN_ID) });
@@ -377,6 +407,7 @@ async function load() {
             ready: true,
             error: null,
             coreVersion,
+            artifacts: artifactIdentitySnapshot(),
             creatorContext,
             tools: [...toolHandlers.keys()].sort(),
             pro,
@@ -396,6 +427,7 @@ async function load() {
             ready: false,
             error: normalizeError(error),
             coreVersion: null,
+            artifacts: artifactIdentitySnapshot(),
             creatorContext,
             tools: [],
             pro: Object.freeze({ state: 'not_checked', version: null, error: null, services: [] }),
@@ -421,6 +453,7 @@ async function deactivateModules() {
     } finally {
         disposeHubCapabilityRegistrations();
         coreModule = null;
+        coreArtifact = null;
         toolHandlers = new Map();
         serviceRegistry.clear();
         protectedKeyStore?.clear();
@@ -452,6 +485,7 @@ function createStoppedStatus() {
         ready: false,
         error: null,
         coreVersion: null,
+        artifacts: artifactIdentitySnapshot(),
         tools: [],
         pro: Object.freeze({ state: 'not_checked', version: null, error: null, services: [] }),
         account: createSignedOutAccount(),
@@ -479,6 +513,7 @@ function writeHostStatusReport() {
             ready: hostStatus.ready,
             error: hostStatus.error,
             coreVersion: hostStatus.coreVersion,
+            artifacts: hostStatus.artifacts,
             creatorContext: hostStatus.creatorContext ?? null,
             toolCount: hostStatus.tools.length,
             hubPublishedCount,
@@ -532,6 +567,7 @@ async function runStartupSmokeAndWriteReport() {
         toolCount: hostStatus.tools.length,
         hubPublishedCount,
         gatewayWired: hostStatus.tools.length >= 83,
+        artifacts: hostStatus.artifacts,
         passed: results.filter((item) => item.ok).length,
         failed: failed.length,
         skipped: skipped.length,
@@ -696,7 +732,7 @@ const methods = {
         await deactivateOptionalPro();
         const pro = await activateOptionalPro(new CpmPackageStore(requireProjectPath()));
         const account = accountController?.withPro(pro) ?? createSignedOutAccount();
-        hostStatus = Object.freeze({ ...hostStatus, pro, account });
+        hostStatus = Object.freeze({ ...hostStatus, artifacts: artifactIdentitySnapshot(), pro, account });
         return hostStatus;
     },
     async openAccount() {
@@ -737,4 +773,3 @@ function withAccount(account) {
 }
 
 module.exports = { load, unload, methods };
-

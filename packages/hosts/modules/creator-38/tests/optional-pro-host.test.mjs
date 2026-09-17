@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
@@ -31,8 +31,15 @@ test('optional Pro activation and corruption stay isolated from the required Cor
         const status = host.methods.queryStatus();
         assert.equal(status.ready, true);
         assert.equal(status.coreVersion, '0.1.0');
+        assert.match(status.artifacts.host.mainDigest, /^[a-f0-9]{64}$/u);
+        assert.equal(status.artifacts.core.packageDigest, readManifest(core).package.digest);
+        assert.equal(status.artifacts.pro.packageDigest, readManifest(pro).package.digest);
         assert.deepEqual(status.tools, ['core.read', 'peanut.editor-mcp.issue-local-approval-lease']);
         assert.deepEqual(status.pro, { state: 'active', version: '0.1.1', error: null, services: ['mcp.admit'] });
+        const hostReport = readJson(join(projectRoot, 'peanut-plugins', 'runtime', 'host-status.json'));
+        const smokeReport = readJson(join(projectRoot, 'peanut-plugins', 'runtime', 'smoke-results.json'));
+        assert.deepEqual(hostReport.artifacts, status.artifacts);
+        assert.deepEqual(smokeReport.artifacts, status.artifacts);
         assert.equal(status.account.state, 'signed_out');
         assert.equal(status.account.recommendedAction, 'sign-in');
         writeFileSync(join(pro.packagePath, 'peanut.cocos-mcp-pro.bundle.js'), 'tampered');
@@ -84,6 +91,14 @@ function writeInstalledIndex(projectRoot, packages) {
 
 function digest(value) {
     return createHash('sha256').update(value).digest('hex');
+}
+
+function readManifest(plugin) {
+    return readJson(join(plugin.packagePath, `${plugin.pluginId}.manifest.json`));
+}
+
+function readJson(path) {
+    return JSON.parse(readFileSync(path, 'utf8'));
 }
 
 function createEditor(projectRoot) {
