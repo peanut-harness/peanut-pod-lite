@@ -1,0 +1,200 @@
+{
+  "source": "peanut-agents/products/cocos/editor/plugins/integrations/editor-mcp/src/editor-mcp-tool-catalog.ts",
+  "ignoredLegacyControlProperties": ["proPlan"],
+  "writeControlProperties": {
+    "approvalId": "string",
+    "approvalToken": "string",
+    "confirmDestructive": "boolean",
+    "resources": "string[]"
+  },
+  "readOperations": {
+    "asset.queryInfo": {
+      "required": [],
+      "properties": { "pathOrUuid": "string", "paths": "string[]", "uuids": "string[]" }
+    },
+    "asset.catalog.summary": { "required": [], "properties": {} },
+    "asset.catalog.lookup": {
+      "required": [],
+      "properties": { "uuid": "string", "type": "string", "name": "string", "path": "string", "limit": "integer" }
+    },
+    "asset.importPlan": {
+      "required": ["sources"],
+      "properties": { "sources": "string[]", "dependencyMap": "object:*", "expandClosure": "boolean" }
+    },
+    "asset.managedStatus": {
+      "required": ["targets"],
+      "properties": { "targets": "string[]" }
+    },
+    "asset.queryDependencies": {
+      "required": [],
+      "properties": {
+        "dbPath": "string",
+        "uuid": "string",
+        "direction": { "type": "string", "enum": ["dependencies", "dependents", "both"] },
+        "refreshIndex": "boolean",
+        "expand": "string[]"
+      }
+    },
+    "asset.waitReady": {
+      "required": [],
+      "properties": { "timeoutMs": "integer", "intervalMs": "integer", "throwOnTimeout": "boolean" }
+    },
+    "asset.scanMissingReferences": {
+      "required": [],
+      "properties": { "pathContains": "string", "type": "string", "limit": "integer", "refreshIndex": "boolean" }
+    },
+    "asset.findReferencingNodes": {
+      "required": [],
+      "properties": {
+        "uuid": "string",
+        "missingOnly": "boolean",
+        "assetPath": "string",
+        "nodeNameContains": "string",
+        "nodePathContains": "string",
+        "limit": "integer"
+      }
+    },
+    "asset.resolve": {
+      "required": [],
+      "properties": { "uuid": "string", "path": "string", "url": "string" }
+    },
+    "asset.search": {
+      "required": ["mode"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["name", "uuid", "path", "type", "dependencies", "dependents", "missing", "bundle"] },
+        "query": "string",
+        "path": "string",
+        "uuid": "string",
+        "pathContains": "string",
+        "limit": "integer"
+      }
+    },
+    "asset.auditUnmanagedWrites": {
+      "required": [],
+      "properties": { "pathContains": "string", "modifiedSince": "string", "limit": "integer", "includeGit": "boolean" }
+    },
+    "asset.queryPropertySchema": {
+      "required": [],
+      "properties": { "uuid": "string", "path": "string", "url": "string" }
+    },
+    "asset.queryInheritance": {
+      "required": [],
+      "properties": { "uuid": "string", "path": "string", "url": "string" }
+    },
+    "asset.queryCompatibleTypes": {
+      "required": [],
+      "properties": {
+        "typeName": "string",
+        "scriptRelativePath": "string",
+        "field": "string",
+        "uuid": "string",
+        "path": "string",
+        "url": "string",
+        "limit": "integer"
+      }
+    }
+  },
+  "writeOperations": {
+    "asset.catalog.refresh": { "legacyRisk": "write", "liteRisk": "write", "required": [], "properties": {} },
+    "asset.import": {
+      "legacyRisk": "write",
+      "liteRisk": "write",
+      "legacyDynamicRisk": {
+        "when": "overwrite=true or mode=override",
+        "risk": "destructive"
+      },
+      "required": ["sources", "target"],
+      "properties": {
+        "sources": "string[]",
+        "target": "string",
+        "mode": "string",
+        "overwrite": "boolean",
+        "dependencyMap": "object:*",
+        "concurrency": "integer",
+        "refreshAfter": "boolean",
+        "allowMissingDependencies": "boolean",
+        "expandClosure": "boolean",
+        "planId": "string"
+      }
+    },
+    "asset.replaceReferences": {
+      "legacyRisk": "write",
+      "liteRisk": "destructive",
+      "required": ["fromUuid", "toUuid"],
+      "properties": {
+        "fromUuid": "string",
+        "toUuid": "string",
+        "pathContains": "string",
+        "dryRun": "boolean",
+        "allowMissingTarget": "boolean",
+        "refreshIndex": "boolean"
+      }
+    },
+    "asset.open": {
+      "legacyRisk": "write",
+      "liteRisk": "write",
+      "required": [],
+      "properties": { "uuid": "string", "path": "string", "url": "string" }
+    },
+    "asset.copy": {
+      "legacyRisk": "write",
+      "liteRisk": "write",
+      "required": ["paths", "targetDirectory"],
+      "properties": { "paths": "string[]", "targetDirectory": "string" }
+    },
+    "asset.move": {
+      "legacyRisk": "write",
+      "liteRisk": "write",
+      "required": ["from", "to"],
+      "properties": { "from": "string", "to": "string" }
+    },
+    "asset.rename": {
+      "legacyRisk": "write",
+      "liteRisk": "write",
+      "required": ["path", "newName"],
+      "properties": { "path": "string", "newName": "string" }
+    },
+    "asset.createFolder": {
+      "legacyRisk": "write",
+      "liteRisk": "write",
+      "required": ["path"],
+      "properties": { "path": "string" }
+    },
+    "asset.delete": {
+      "legacyRisk": "destructive",
+      "liteRisk": "destructive",
+      "required": ["paths"],
+      "properties": { "paths": "string[]" }
+    },
+    "asset.reimport": {
+      "legacyRisk": "write",
+      "liteRisk": "write",
+      "required": [],
+      "properties": { "paths": "string[]", "path": "string" }
+    },
+    "asset.writeText": {
+      "legacyRisk": "write",
+      "liteRisk": "write",
+      "required": [],
+      "properties": {
+        "path": "string",
+        "content": "string",
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "content"],
+            "additionalProperties": false,
+            "properties": { "path": "string", "content": "string" }
+          }
+        }
+      }
+    },
+    "asset.ensureSpriteFramesBatch": {
+      "legacyRisk": "write",
+      "liteRisk": "write",
+      "required": ["dbPaths"],
+      "properties": { "dbPaths": "string[]", "refreshRoot": "string" }
+    }
+  }
+}

@@ -112,7 +112,11 @@ test('a write lease cannot authorize destructive work', async () => {
     const context = { connectionId: 'local-a', resources: ['db://assets/test.txt'] };
     const lease = leases.issue({ ...context, operations: ['asset.delete'], maxRisk: 'write' });
     await assert.rejects(
-        dispatcher.execute('asset.delete', { approvalId: lease.token, paths: ['test.txt'] }, context),
+        dispatcher.execute(
+            'asset.delete',
+            { approvalId: lease.token, paths: ['test.txt'], confirmDestructive: true },
+            context,
+        ),
         /approval_required/u,
     );
     assert.equal(calls, 0);

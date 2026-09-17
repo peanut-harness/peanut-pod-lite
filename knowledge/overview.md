@@ -22,11 +22,14 @@ Cocos Creator 编辑器产品。公开 83 项免费操作（38 读、45 写/破�
 - 3.8.7：host/project 版本都存在且一致时 full，可写；其它 3.8 补丁版本只读。
 - 未知、缺失或不一致版本全部 fail-closed。
 - 83 项公开操作通过版本能力矩阵统一生成 `available`、`read_only`、`write`、`refused` 状态，并覆盖四个画像测试。
+- Creator 3.8.7 迁移验收按五个互斥域固定分母：Editor/Scene/Prefab 21、Asset read 15、Asset write 12、Preview/Builder/Reference 9、Lumen 26；legacy schema/readOnly/risk parity fixture 已覆盖全部 83 项，但不替代 Creator 实机证据。
 
 ## Hard Rules
 
 - 写操作必须消费绑定连接、operation、精确资源和风险的租约；非空 approval ID 不够。
 - `prefab.unpack`、`prefab.unlink`、`builder.build` 与删除/引用替换类操作是 destructive。
+- destructive 调用必须同时提供 destructive 租约与 `confirmDestructive:true`；`asset.import` 的 overwrite/override 动态升级为 destructive。
+- AssetDB 写入在进入宿主前拒绝绝对目标路径和 `.`/`..` 逃逸；仅 `asset.import.sources` 可读取项目外绝对源文件。
 - capability 缺 schema 时目录构造直接失败，不静默漏注册。
 - Lite 永不 import Pro；Pro 缺失不得挡住 Lite 启动；订阅不等于写盘许可。
 - Creator 2.4 缺本机安装时保留已提交正式模板，禁止用测试 fixture 覆盖发布资产。

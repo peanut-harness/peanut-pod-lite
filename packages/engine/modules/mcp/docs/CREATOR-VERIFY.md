@@ -36,6 +36,8 @@ npm run pack
 
 结果必须来自 MCP 响应和本轮 `project.log` 增量。
 
+完整验收按 `Creator38MigrationWorkstreamCatalog` 的固定分母记录，不得只报告 83 项总数：Editor/Scene/Prefab 21、Asset read 15、Asset write 12、Preview/Builder/Reference 9、Lumen 26。每项证据至少包含 operation、输入 fixture、MCP 结果、日志增量和清理结果；Node parity 测试只证明冻结契约，不替代本节的 Creator 3.8.7 证据。
+
 ## 4. 静默资源写入
 
 逐项验证资产创建、复制、移动、重命名、删除、导入、重导入、引用替换和 Lumen 源文件写入：

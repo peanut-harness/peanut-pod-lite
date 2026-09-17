@@ -1,0 +1,1239 @@
+{
+  "source": "peanut-agents/products/cocos/editor/plugins/integrations/editor-mcp/src/editor-mcp-tool-catalog.ts",
+  "metadataSource": "peanut-agents/products/cocos/editor/plugins/integrations/editor-mcp/src/editor-mcp-capability-catalog.ts",
+  "normalization": {
+    "ignoredSchemaFields": [
+      "description"
+    ],
+    "excludedControlProperties": [
+      "approvalId",
+      "proPlan"
+    ]
+  },
+  "definitions": [
+    {
+      "operation": "builder.build",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "options": {
+            "type": "object",
+            "required": [],
+            "additionalProperties": true
+          },
+          "platform": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "platform"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "destructive"
+    },
+    {
+      "operation": "builder.queryDefaultConfig",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": true,
+      "risk": "read"
+    },
+    {
+      "operation": "builder.queryPlatforms",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": true,
+      "risk": "read"
+    },
+    {
+      "operation": "builder.querySchema",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": true,
+      "risk": "read"
+    },
+    {
+      "operation": "lumen.assetSet",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "assetRelativePath": {
+            "type": "string"
+          },
+          "autoCommit": {
+            "type": "boolean"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "props": {
+            "type": "object",
+            "required": [],
+            "additionalProperties": true
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "props"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "lumen.bindClick",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "autoCommit": {
+            "type": "boolean"
+          },
+          "buttonNodePath": {
+            "type": "string"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "component": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "customEventData": {
+            "type": "string"
+          },
+          "handler": {
+            "type": "string"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "targetNodePath": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "buttonNodePath",
+          "component",
+          "handler",
+          "prefabRelativePath",
+          "targetNodePath"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "lumen.bindController",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "autoCommit": {
+            "type": "boolean"
+          },
+          "buttonEvents": {
+            "type": "array"
+          },
+          "className": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "propertyBindings": {
+            "type": "object",
+            "required": [],
+            "additionalProperties": true
+          },
+          "propertyComponents": {
+            "type": "object",
+            "required": [],
+            "additionalProperties": true
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scriptRelativePath": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "className",
+          "prefabRelativePath",
+          "propertyBindings",
+          "scriptRelativePath"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "lumen.bindRef",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "assetRelativePath": {
+            "type": "string"
+          },
+          "autoCommit": {
+            "type": "boolean"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "componentRef": {
+            "type": "object",
+            "required": [],
+            "additionalProperties": true
+          },
+          "componentType": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "field": {
+            "type": "string"
+          },
+          "nodePath": {
+            "type": "string"
+          },
+          "nodeRef": {
+            "type": "string"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "componentType",
+          "field",
+          "nodePath",
+          "prefabRelativePath"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "lumen.bindSprite",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "autoCommit": {
+            "type": "boolean"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "nodePath": {
+            "type": "string"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "spriteFrameUuid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "nodePath",
+          "prefabRelativePath",
+          "spriteFrameUuid"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "lumen.bindSpriteBatch",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "assetRelativePath": {
+            "type": "string"
+          },
+          "autoCommit": {
+            "type": "boolean"
+          },
+          "bindings": {
+            "type": "array"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "bindings",
+          "prefabRelativePath"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "lumen.cocosInfo",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cocosVersion": {
+            "type": "string"
+          },
+          "engineRoot": {
+            "type": "string"
+          },
+          "gapLimit": {
+            "type": "integer"
+          },
+          "gapOffset": {
+            "type": "integer"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": true,
+      "risk": "read"
+    },
+    {
+      "operation": "lumen.commit",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "assetRelativePath": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "lumen.compAdd",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "autoCommit": {
+            "type": "boolean"
+          },
+          "builtinType": {
+            "type": "string"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "nodePath": {
+            "type": "string"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scriptName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "nodePath",
+          "prefabRelativePath"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "lumen.compileRecipe",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "appendChildren",
+              "replaceRoot"
+            ]
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "recipe": {
+            "type": "object",
+            "required": [],
+            "additionalProperties": true
+          },
+          "recipes": {
+            "type": "array"
+          },
+          "rootAnchorPoint": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "rootContentSize": {
+            "type": "object",
+            "properties": {
+              "height": {
+                "type": "number"
+              },
+              "width": {
+                "type": "number"
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "rootName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "prefabRelativePath",
+          "rootName"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": true,
+      "risk": "read"
+    },
+    {
+      "operation": "lumen.compRm",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "autoCommit": {
+            "type": "boolean"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "componentType": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "nodePath": {
+            "type": "string"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "componentType",
+          "nodePath",
+          "prefabRelativePath"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "destructive"
+    },
+    {
+      "operation": "lumen.compSet",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "autoCommit": {
+            "type": "boolean"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "componentType": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "nodePath": {
+            "type": "string"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "props": {
+            "type": "object",
+            "required": [],
+            "additionalProperties": true
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "componentType",
+          "nodePath",
+          "prefabRelativePath",
+          "props"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "lumen.inspect",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "assetRelativePath": {
+            "type": "string"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "nodePath": {
+            "type": "string"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "region": {
+            "type": "object",
+            "required": [],
+            "additionalProperties": true
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": true,
+      "risk": "read"
+    },
+    {
+      "operation": "lumen.lodRecalcBounds",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "assetRelativePath": {
+            "type": "string"
+          },
+          "nodePath": {
+            "type": "string"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": true,
+      "risk": "read"
+    },
+    {
+      "operation": "lumen.nodeAdd",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "autoCommit": {
+            "type": "boolean"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parentPath": {
+            "type": "string"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "template": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "parentPath",
+          "prefabRelativePath",
+          "template"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "lumen.nodeRename",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "autoCommit": {
+            "type": "boolean"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nodePath": {
+            "type": "string"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "nodePath",
+          "prefabRelativePath"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "lumen.nodeReorder",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "autoCommit": {
+            "type": "boolean"
+          },
+          "childName": {
+            "type": "string"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "index": {
+            "type": "integer"
+          },
+          "parentPath": {
+            "type": "string"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "childName",
+          "index",
+          "parentPath",
+          "prefabRelativePath"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "lumen.nodeRm",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "autoCommit": {
+            "type": "boolean"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "nodePath": {
+            "type": "string"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "nodePath",
+          "prefabRelativePath"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "destructive"
+    },
+    {
+      "operation": "lumen.nodeSet",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "autoCommit": {
+            "type": "boolean"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "nodePath": {
+            "type": "string"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "props": {
+            "type": "object",
+            "required": [],
+            "additionalProperties": true
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "nodePath",
+          "prefabRelativePath",
+          "props"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "lumen.refresh",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "assetRelativePath": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "lumen.scaffold",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "assetRelativePath": {
+            "type": "string"
+          },
+          "autoCommit": {
+            "type": "boolean"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "reset": {
+            "type": "boolean"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rootName": {
+            "type": "string"
+          },
+          "template": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "lumen.schema",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cocosVersion": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": true,
+      "risk": "read"
+    },
+    {
+      "operation": "lumen.structure",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "autoCommit": {
+            "type": "boolean"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "parentPath": {
+            "type": "string"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "parentPath",
+          "prefabRelativePath",
+          "recipe"
+        ],
+        "additionalProperties": true
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "lumen.templates",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "cocosVersion": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": true,
+      "risk": "read"
+    },
+    {
+      "operation": "lumen.tree",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "assetRelativePath": {
+            "type": "string"
+          },
+          "cocosVersion": {
+            "type": "string"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": true,
+      "risk": "read"
+    },
+    {
+      "operation": "lumen.validateRefs",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "assetRelativePath": {
+            "type": "string"
+          },
+          "prefabRelativePath": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": true,
+      "risk": "read"
+    },
+    {
+      "operation": "preview.query",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": true,
+      "risk": "read"
+    },
+    {
+      "operation": "preview.queryErrors",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "contains": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "sinceOffset": {
+            "type": "integer"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": true,
+      "risk": "read"
+    },
+    {
+      "operation": "preview.refresh",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "refreshAssets": {
+            "type": "boolean"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    },
+    {
+      "operation": "reference.queryImage",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "scenePath": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "readOnly": true,
+      "risk": "read"
+    },
+    {
+      "operation": "reference.setImage",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "approvalToken": {
+            "type": "string"
+          },
+          "confirmDestructive": {
+            "type": "boolean"
+          },
+          "imagePath": {
+            "type": "string"
+          },
+          "opacity": {
+            "type": "number"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scenePath": {
+            "type": "string"
+          },
+          "sx": {
+            "type": "number"
+          },
+          "sy": {
+            "type": "number"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "imagePath"
+        ],
+        "additionalProperties": false
+      },
+      "readOnly": false,
+      "risk": "write"
+    }
+  ]
+}

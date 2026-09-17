@@ -1,0 +1,84 @@
+{
+  "readInputs": {
+    "asset.queryInfo": {},
+    "asset.catalog.summary": {},
+    "asset.catalog.lookup": {},
+    "asset.importPlan": { "sources": [] },
+    "asset.managedStatus": { "targets": [] },
+    "asset.queryDependencies": {},
+    "asset.waitReady": {},
+    "asset.scanMissingReferences": {},
+    "asset.findReferencingNodes": {},
+    "asset.resolve": {},
+    "asset.search": { "mode": "name" },
+    "asset.auditUnmanagedWrites": {},
+    "asset.queryPropertySchema": {},
+    "asset.queryInheritance": {},
+    "asset.queryCompatibleTypes": {}
+  },
+  "writeInputs": {
+    "asset.catalog.refresh": {},
+    "asset.import": { "sources": ["/tmp/source.png"], "target": "assets/imported" },
+    "asset.replaceReferences": {
+      "fromUuid": "11111111-1111-1111-1111-111111111111",
+      "toUuid": "22222222-2222-2222-2222-222222222222",
+      "confirmDestructive": true
+    },
+    "asset.open": { "path": "assets/ui/Main.prefab" },
+    "asset.copy": { "paths": ["assets/ui/Main.prefab"], "targetDirectory": "assets/copied" },
+    "asset.move": { "from": "assets/ui/Old.prefab", "to": "assets/ui/New.prefab" },
+    "asset.rename": { "path": "assets/ui/Old.prefab", "newName": "New.prefab" },
+    "asset.createFolder": { "path": "assets/ui/generated" },
+    "asset.delete": { "paths": ["assets/ui/obsolete.prefab"], "confirmDestructive": true },
+    "asset.reimport": { "path": "assets/ui/Main.prefab" },
+    "asset.writeText": { "path": "assets/scripts/generated.ts", "content": "export {};" },
+    "asset.ensureSpriteFramesBatch": { "dbPaths": ["db://assets/ui/icon.png"] }
+  },
+  "pathTraversalCases": [
+    {
+      "operation": "asset.import",
+      "input": { "sources": ["/tmp/source.png"], "target": "db://assets/../outside" },
+      "leaseResources": ["/tmp/source.png", "db://assets/imported"]
+    },
+    {
+      "operation": "asset.copy",
+      "input": { "paths": ["assets/ui/Main.prefab"], "targetDirectory": "/tmp/outside" },
+      "leaseResources": ["db://assets/ui/Main.prefab", "db://assets/copied"]
+    },
+    {
+      "operation": "asset.move",
+      "input": { "from": "assets/ui/Main.prefab", "to": "assets/../outside/Main.prefab" },
+      "leaseResources": ["db://assets/ui/Main.prefab", "db://assets/ui/Moved.prefab"]
+    },
+    {
+      "operation": "asset.rename",
+      "input": { "path": "../outside/Main.prefab", "newName": "Moved.prefab" },
+      "leaseResources": ["db://assets/ui/Main.prefab"]
+    },
+    {
+      "operation": "asset.createFolder",
+      "input": { "path": "assets/../../outside" },
+      "leaseResources": ["db://assets/generated"]
+    },
+    {
+      "operation": "asset.delete",
+      "input": { "paths": ["../outside"], "confirmDestructive": true },
+      "leaseResources": ["db://assets/obsolete"]
+    },
+    {
+      "operation": "asset.reimport",
+      "input": { "path": "db://assets/../settings/project.json" },
+      "leaseResources": ["db://assets/ui/Main.prefab"]
+    },
+    {
+      "operation": "asset.writeText",
+      "input": { "path": "assets/../../package.json", "content": "{}" },
+      "leaseResources": ["db://assets/scripts/generated.ts"]
+    },
+    {
+      "operation": "asset.ensureSpriteFramesBatch",
+      "input": { "dbPaths": ["db://assets/../../outside.png"] },
+      "leaseResources": ["db://assets/ui/icon.png"]
+    }
+  ]
+}

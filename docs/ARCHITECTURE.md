@@ -24,6 +24,8 @@
 
 `CreatorOperationAvailabilityMatrix` 将 83 项公开操作与可信 Creator 上下文组合为 `available`、`read_only`、`write` 或 `refused`，矩阵测试覆盖四个版本画像；unsupported 全拒绝，写操作仅在具备精确实机证据时进入 `write`。
 
+`Creator38MigrationWorkstreamCatalog` 只负责把同一份 83 项可信目录划分为五个互斥验收域：Editor/Scene/Prefab 21、Asset read 15、Asset write 12、Preview/Builder/Reference 9、Lumen 26。它不复制 schema、风险或审批规则，也不把 Node parity 测试当成 Creator 3.8.7 实机证据。
+
 当前目录与矩阵测试的分类口径为 38 项读、45 项写/破坏性，与 README 一致。旧迁移台账的 36/47 是历史口径，不作为本仓验收基线；分类以当前 capability catalog 和 `creator-operation-availability-matrix.test.mts` 为准，不能仅凭总数 83 判定分类一致。
 
 ## 构建模型

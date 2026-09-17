@@ -3,7 +3,7 @@ import { McpCapabilityPolicy, type IMcpCapabilityPolicy } from './mcp-capability
 /**
  * Cocos 原生写入能力的开源迁移账本。
  * 这些能力不需要订阅或在线许可证，但宿主必须消费本地审批租约后才可执行。
- * SnowB、Figma/PSD、UI Prefab、Lumen 与引用资源写入不属于本目录。
+ * SnowB、Figma/PSD 与 UI Prefab 不属于本目录；Lumen 与引用资源写入仍是免费的本地审批能力。
  */
 export type CoreCocosNativeWriteOperation =
     | 'editor.setSelection'

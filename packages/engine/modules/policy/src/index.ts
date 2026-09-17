@@ -5,6 +5,11 @@ export {
     type ICreatorOperationAvailabilityEntry,
 } from './creator-operation-availability-matrix.js';
 export {
+    Creator38MigrationWorkstreamCatalog,
+    type Creator38MigrationWorkstream,
+    type ICreator38MigrationWorkstreamEntry,
+} from './creator-38-migration-workstream-catalog.js';
+export {
     CoreCocosMcpCapabilityCatalog,
     type CoreCocosMcpOperation,
     type ICoreCocosMcpCapability,

@@ -3,6 +3,7 @@ import type { CoreCocosMcpPublicOperation } from './core-cocos-mcp-tool-name-res
 import { CoreMcpInputValidator } from './core-mcp-input-validator.js';
 import type { McpApprovalLeaseStore } from './mcp-approval-lease-store.js';
 import { McpControlFlowRefusal } from './mcp-control-flow-refusal.js';
+import { WriteResourceAuthorization } from './write-resource-authorization.js';
 
 /**
  * @description 由宿主计算的调用身份与资源范围，不能从 MCP 输入字段直接填入。
@@ -102,7 +103,8 @@ export class CoreCocosMcpExecutionDispatcher {
         if (adapter == null) {
             throw new Error(`core_cocos_mcp_execution_adapter_missing:${definition.operation}`);
         }
-        this.requireApproval(definition, input, context);
+        WriteResourceAuthorization.assertSafePaths(definition.operation, input);
+        this.requireApproval(definition, input, context, CoreCocosMcpExecutionDispatcher.resolveRisk(definition, input));
         return adapter.execute({ operation: definition.operation, input });
     }
 
@@ -111,15 +113,20 @@ export class CoreCocosMcpExecutionDispatcher {
      * @param definition 可信目录定义。
      * @param input 已通过 schema 检查的参数。
      * @param context 宿主提供的连接及资源范围。
+     * @param risk 当前输入对应的实际风险。
      * @returns 审批通过时返回，否则抛出拒绝错误。
      */
     private requireApproval(
         definition: ICoreCocosMcpToolDefinition,
         input: Readonly<Record<string, unknown>>,
         context: ICoreCocosMcpExecutionContext | null,
+        risk: ICoreCocosMcpToolDefinition['risk'],
     ): void {
         if (!definition.requiresLocalApproval) {
             return;
+        }
+        if (risk === 'destructive' && input.confirmDestructive !== true) {
+            McpControlFlowRefusal.reject(`core_cocos_mcp_execution_destructive_confirmation_required:${definition.operation}`);
         }
         const leaseId = CoreCocosMcpExecutionDispatcher.resolveLeaseId(input);
         if (
@@ -132,11 +139,29 @@ export class CoreCocosMcpExecutionDispatcher {
                 connectionId: context.connectionId,
                 resources: context.resources,
                 operation: definition.operation,
-                risk: definition.risk,
+                risk,
             })
         ) {
             McpControlFlowRefusal.reject(`core_cocos_mcp_execution_approval_required:${definition.operation}`);
         }
+    }
+
+    /**
+     * @description 解析依赖输入的实际风险；覆盖导入与 legacy router 一致的 overwrite 语义。
+     * @param definition 可信目录定义
+     * @param input 已通过 schema 校验的参数
+     */
+    private static resolveRisk(
+        definition: ICoreCocosMcpToolDefinition,
+        input: Readonly<Record<string, unknown>>,
+    ): ICoreCocosMcpToolDefinition['risk'] {
+        if (
+            definition.operation === 'asset.import'
+            && (input.overwrite === true || input.mode === 'override')
+        ) {
+            return 'destructive';
+        }
+        return definition.risk;
     }
 
     /**

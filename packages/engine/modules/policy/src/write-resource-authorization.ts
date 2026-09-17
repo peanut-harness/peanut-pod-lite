@@ -47,6 +47,13 @@ const ASSET_OP_KEYS: Readonly<Record<string, readonly string[]>> = Object.freeze
 });
 
 /**
+ * @description `asset.import` 允许从项目外读取源文件，但目标仍必须位于项目资产空间。
+ */
+const EXTERNAL_SOURCE_KEYS: Readonly<Record<string, ReadonlySet<string>>> = Object.freeze({
+    'asset.import': new Set(['sources']),
+});
+
+/**
  * @description 从输入采集字符串资源键（支持 string[] 与 {path}[]）。
  * @param value 未校验值。
  * @param into 采集目标。
@@ -69,6 +76,59 @@ function collectRaw(value: unknown, into: string[]): void {
             collectRaw((item as { path: unknown }).path, into);
         }
     }
+}
+
+/**
+ * @description 在调用宿主前拒绝资产写操作中的绝对目标路径和 `.`/`..` 逃逸段。
+ * @param operation 稳定 operation
+ * @param input 已通过 schema 校验的业务输入
+ * @returns 路径安全时无返回；否则抛出稳定错误
+ */
+export class WriteResourceAuthorization {
+    /**
+     * @description 在调用宿主前拒绝资产写操作中的绝对目标路径和 `.`/`..` 逃逸段。
+     * @param operation 稳定 operation
+     * @param input 已通过 schema 校验的业务输入
+     * @returns 路径安全时无返回；否则抛出稳定错误
+     */
+    public static assertSafePaths(
+        operation: string,
+        input: Readonly<Record<string, unknown>>,
+    ): void {
+        const assetKeys = ASSET_OP_KEYS[operation];
+        if (assetKeys == null) {
+            return;
+        }
+        const externalSourceKeys = EXTERNAL_SOURCE_KEYS[operation] ?? new Set<string>();
+        for (const key of assetKeys) {
+            if (externalSourceKeys.has(key)) {
+                continue;
+            }
+            const values: string[] = [];
+            collectRaw(input[key], values);
+            for (const value of values) {
+                if (isUnsafeProjectPath(value)) {
+                    throw new Error(`core_cocos_mcp_execution_resource_path_invalid:${operation}:${key}`);
+                }
+            }
+        }
+    }
+}
+
+/**
+ * @description 判断应留在项目资产空间的路径是否为绝对路径或包含导航逃逸段。
+ * @param value 未信任路径
+ */
+function isUnsafeProjectPath(value: string): boolean {
+    const normalized = value.trim().replace(/\\/gu, '/');
+    if (normalized.length === 0) {
+        return false;
+    }
+    if (normalized.startsWith('/') || /^[a-z]:\//iu.test(normalized)) {
+        return true;
+    }
+    const path = normalized.startsWith('db://') ? normalized.slice('db://'.length) : normalized;
+    return path.split('/').some((segment) => segment === '.' || segment === '..');
 }
 
 /**

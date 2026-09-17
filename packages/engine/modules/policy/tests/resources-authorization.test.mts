@@ -166,7 +166,11 @@ test('dispatcher: replaceReferences uuid bind / wrong uuid refuse', async () => 
     const ctx = { connectionId: 'local-a', resources: normalizeResourceKeys([from, to]) };
 
     await assert.rejects(
-        dispatcher.execute('asset.replaceReferences', { fromUuid: from, toUuid: to }, ctx),
+        dispatcher.execute(
+            'asset.replaceReferences',
+            { fromUuid: from, toUuid: to, confirmDestructive: true },
+            ctx,
+        ),
         /approval_required/u,
     );
 
