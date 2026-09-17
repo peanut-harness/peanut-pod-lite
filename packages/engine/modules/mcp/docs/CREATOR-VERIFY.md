@@ -72,3 +72,14 @@ node packages/engine/modules/lumen/scripts/diff-cc-dts-components.mjs <cc.d.ts-o
 - 以 MCP 返回、资源落盘内容和 `project.log` 增量作为判定依据；禁止截图验收。
 - 删除本轮临时资源后刷新 AssetDB，再确认日志没有新增错误或警告。
 - 保留可复现的 QA 工程资产与自动化用例，不在本仓保存机器相关日志、轮询快照或绝对路径转储。
+
+## 7. 当前迁移证据
+
+2026-09-17，提交 `743ebb9` 的 Creator 3.8.7 阶段验收已完成：
+
+- 83 个业务 operation 与 1 个本地审批入口全部发布到宿主和 Hub。
+- 启动 smoke 的 20 个空参只读调用与 18 个参数化只读 fixture 全部通过，即 38/38 个业务只读 operation 已具备实机证据。
+- 本地审批入口完成签发和消费；`asset.writeText` 验证无租约拒绝、租约写入、AssetDB settle、原内容与 `.meta` 哈希恢复。
+- 本轮日志增量没有 error 或 warning，三份状态/报告中的宿主和 CPM 产物身份一致。
+
+这不是 Wave 1 完成声明。剩余分母是 44 个写/破坏性 operation，必须继续按第 4、5 节逐项记录副作用、读取验证和清理结果。
