@@ -27,6 +27,7 @@ import { EditorMcpPreviewGateway } from './editor-mcp-preview-gateway.js';
 import { EditorMcpSceneGateway } from './editor-mcp-scene-gateway.js';
 import { EditorMcpPrefabOfflineGateway } from './editor-mcp-prefab-offline-gateway.js';
 import { CAPABILITIES, type EditorMcpCapabilitySeed } from './editor-mcp-capability-catalog.js';
+import { ResourceOperationTaskQueue } from './resource-operation-task-queue.js';
 
 /**
  * @description 显式校验外部 MCP 输入，并通过受限 runtime grant 与插件服务执行 action。
@@ -56,6 +57,8 @@ export class EditorMcpActionRouter {
     private readonly _lumenCommit: EditorMcpLumenCommitFacade;
     /** @description 编辑器选区 / 打开 / 恢复。 */
     private readonly _editor: EditorMcpEditorGateway;
+    /** @description 当前工程写 operation 的 FIFO 任务队列。 */
+    private readonly _taskQueue = new ResourceOperationTaskQueue();
 
     /**
      * @description 创建一个新的 Editor MCP action router。
@@ -218,6 +221,32 @@ export class EditorMcpActionRouter {
      * @returns 查询结果
      */
     public async execute(request: IEditorMcpOperationRequest): Promise<IEditorMcpActionResult> {
+        this._validateOperationInput(request);
+        const phase = this._runtime.version.getCurrentVersion().phase;
+        if (ProductLineMcpPolicy.decide(phase, request.operation) === 'refuse') {
+            McpControlFlowRefusal.reject(ProductLineMcpPolicy.refuseError(phase, request.operation));
+        }
+        const planned = this.plan(request);
+        if (planned.readOnly) {
+            return this._executeDirect(request);
+        }
+        const task = await this._taskQueue.run(request.operation, () => this._executeDirect(request));
+        if (task.result == null) {
+            throw new Error(`editor_mcp_task_result_missing:${task.taskId}`);
+        }
+        return {
+            ...task.result,
+            taskId: task.taskId,
+            taskStatus: 'succeeded',
+        };
+    }
+
+    /**
+     * @description 执行已排队的单个 operation；写任务必须由 execute 统一排队。
+     * @param request 已校验操作请求。
+     * @returns 原有 MCP 执行结果。
+     */
+    private async _executeDirect(request: IEditorMcpOperationRequest): Promise<IEditorMcpActionResult> {
         this._validateOperationInput(request);
         const phase = this._runtime.version.getCurrentVersion().phase;
         if (ProductLineMcpPolicy.decide(phase, request.operation) === 'refuse') {

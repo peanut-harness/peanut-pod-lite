@@ -1,4 +1,9 @@
 export { EditorMcpActionRouter } from './editor-mcp-action-router.js';
+export {
+    ResourceOperationTaskQueue,
+    type IResourceOperationTaskRecord,
+    type ResourceOperationTaskStatus,
+} from './resource-operation-task-queue.js';
 export { EditorMcpLumenGateway } from './editor-mcp-lumen-gateway.js';
 export { EditorMcpPluginModule } from './editor-mcp-plugin-module.js';
 export {

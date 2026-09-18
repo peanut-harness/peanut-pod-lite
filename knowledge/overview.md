@@ -26,6 +26,7 @@ Cocos Creator 编辑器产品。公开 83 项免费操作（38 读、45 写/破�
 - Creator 3.8 实机报告同时记录宿主入口 SHA-256、Lite CPM package digest/packedAt 与可选 Pro package digest；`query-status`、`host-status.json`、`smoke-results.json` 三方身份必须一致，旧报告不能冒充当前 release。
 - 新建 Prefab/Scene 的 AssetDB commit 屏障若仍返回 `pending` 未登记资源，必须 fail-closed；不得继续 catalog、commit 后续或把本地序列化结果当作干净实机证据。Creator 3.8 Assets 面板的 `original asset is not exist` 竞态仍需通过 AssetDB 原子创建/登记流程消除。
 - MCP 写调用的任务队列、资源闭包、批次审批、工程级 AssetDB writer、锁排序和并发验收设计见 `docs/MCP-TASK-QUEUE-DESIGN.md`；当前为后续实施设计，不代表队列代码已完成。
+- Phase 1 已落地：Editor MCP Router 的写/破坏性 operation 进入实例级 FIFO `ResourceOperationTaskQueue`，同步结果附 `taskId/taskStatus`；资源闭包、跨 Router 工程级 writer、异步控制面和 AssetDB 原子创建仍待后续阶段。
 - 2026-09-17 的 Creator 3.8.7 阶段证据绑定提交 `743ebb9`：宿主公开 83 个业务 operation 加 1 个审批入口，38/38 个业务只读 operation 均完成实机调用；`asset.writeText` 额外完成无租约拒绝、一次性租约写入、AssetDB settle 与原文件/`.meta` 哈希恢复。其余 44 个写/破坏性 operation 仍需逐项可恢复实机证据。
 
 ## Hard Rules

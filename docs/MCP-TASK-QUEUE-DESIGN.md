@@ -242,13 +242,15 @@ lumen.commit
 
 ### Phase 1：任务外壳
 
-- 新增 `ResourceOperationTask`、状态机和 `ResourceOperationQueue`。
-- 将现有写 MCP 调用包装成同步任务。
-- 保留现有工具名和返回兼容字段。
+- [x] 新增 `ResourceOperationTask`、状态机和 `ResourceOperationTaskQueue`。
+- [x] 将现有写 MCP 调用包装成同步任务。
+- [x] 保留现有工具名和结果字段，并为写结果附加 `taskId/taskStatus`。
+
+Phase 1 当前是 Router 实例级 FIFO：它保证同一宿主 Router 中写操作不会交叉执行，但还没有完成资源闭包锁、跨 Router 工程级 writer、异步任务控制面或 AssetDB 原子创建。
 
 ### Phase 2：资源闭包和锁预留
 
-- 接入 `AssetImportPlanner`、AssetDB 查询、UUID 扫描和 `LumenResourceWriteLock`。
+- [ ] 接入 `AssetImportPlanner`、AssetDB 查询、UUID 扫描和 `LumenResourceWriteLock`。
 - 所有锁一次性预留，增加冲突、超时、取消和幂等测试。
 
 ### Phase 3：完整事务
