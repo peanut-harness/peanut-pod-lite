@@ -82,6 +82,13 @@ export class LumenAssetDbEditorRefreshAdapter implements ILumenEditorRefreshAdap
         return this._runExclusive(async () => {
             const refreshed = await this._refreshUnlocked(projectRoot, relativePaths);
             const settle = await this._settleHierarchy(projectRoot, relativePaths);
+            if (settle.pending > 0) {
+                const pendingPaths = relativePaths
+                    .map((pathValue) => this._normalizeRelativePath(pathValue))
+                    .filter((relative) => existsSync(join(projectRoot, relative)) && !statSync(join(projectRoot, relative)).isDirectory())
+                    .map((relative) => this._toDbUrl(relative));
+                throw new Error(`lumen_asset_db_registration_pending:${pendingPaths.join(',')}`);
+            }
             return {
                 ...refreshed,
                 message: `${refreshed.message}|settle:${settle.registered}/${settle.registered + settle.pending}:${settle.waitedMs}ms/budget:${settle.budgetMs}ms${settle.overBudget ? ':overBudget' : ''}`,

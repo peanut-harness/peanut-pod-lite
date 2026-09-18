@@ -17,7 +17,7 @@ test('optional Pro activation and corruption stay isolated from the required Cor
             projectRoot,
             'peanut.pod-lite',
             '0.1.0',
-            "module.exports.createPluginModule=()=>({manifest:{id:'peanut.pod-lite',version:'0.1.0'},activate:async(context)=>{context.mcp.register({name:'core.read'},async()=>({ok:true}))},deactivate:async()=>{}});",
+            "module.exports.createPluginModule=()=>({manifest:{id:'peanut.pod-lite',version:'0.1.0'},activate:async(context)=>{context.mcp.register({name:'core.read'},async(input,invocation)=>({input,invocation}))},deactivate:async()=>{}});",
         );
         const pro = writePackage(
             projectRoot,
@@ -36,6 +36,17 @@ test('optional Pro activation and corruption stay isolated from the required Cor
         assert.equal(status.artifacts.pro.packageDigest, readManifest(pro).package.digest);
         assert.deepEqual(status.tools, ['core.read', 'peanut.editor-mcp.issue-local-approval-lease']);
         assert.deepEqual(status.pro, { state: 'active', version: '0.1.1', error: null, services: ['mcp.admit'] });
+        assert.deepEqual(
+            await host.methods.invokeTool(
+                'core.read',
+                { value: 1 },
+                { connectionId: 'bridge-connection', resourceIds: ['db://assets/a.prefab'] },
+            ),
+            {
+                input: { value: 1 },
+                invocation: { connectionId: 'bridge-connection', resourceIds: ['db://assets/a.prefab'] },
+            },
+        );
         const hostReport = readJson(join(projectRoot, 'peanut-plugins', 'runtime', 'host-status.json'));
         const smokeReport = readJson(join(projectRoot, 'peanut-plugins', 'runtime', 'smoke-results.json'));
         assert.deepEqual(hostReport.artifacts, status.artifacts);

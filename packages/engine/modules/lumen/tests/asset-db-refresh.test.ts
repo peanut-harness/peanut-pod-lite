@@ -512,3 +512,25 @@ test('LumenAssetDbEditorRefreshAdapter refreshBarrier settles registered paths',
     assert.ok((barrier.settle?.waitedMs ?? 0) >= 0);
     assert.ok(barrier.message.includes('settle:'));
 });
+
+test('LumenAssetDbEditorRefreshAdapter fails closed when a new asset remains unregistered', async (): Promise<void> => {
+    const projectRoot = mkdtempSync(join(tmpdir(), 'lumen-refresh-pending-'));
+    const relativePath = 'assets/mcp-verify/Pending.prefab';
+    mkdirSync(join(projectRoot, 'assets/mcp-verify'), { recursive: true });
+    writeFileSync(join(projectRoot, relativePath), '[]', 'utf8');
+
+    const message: ILumenMessagePort = {
+        request: async (_target, messageName) => {
+            if (messageName === 'query-ready') {
+                return true;
+            }
+            return null;
+        },
+    };
+
+    const adapter = new LumenAssetDbEditorRefreshAdapter(message, 0);
+    await assert.rejects(
+        adapter.refreshBarrier(projectRoot, [relativePath]),
+        /lumen_asset_db_registration_pending:db:\/\/assets\/mcp-verify\/Pending\.prefab/u,
+    );
+});

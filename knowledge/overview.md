@@ -24,6 +24,7 @@ Cocos Creator 编辑器产品。公开 83 项免费操作（38 读、45 写/破�
 - 83 项公开操作通过版本能力矩阵统一生成 `available`、`read_only`、`write`、`refused` 状态，并覆盖四个画像测试。
 - Creator 3.8.7 迁移验收按五个互斥域固定分母：Editor/Scene/Prefab 21、Asset read 15、Asset write 12、Preview/Builder/Reference 9、Lumen 26；legacy schema/readOnly/risk parity fixture 已覆盖全部 83 项，但不替代 Creator 实机证据。
 - Creator 3.8 实机报告同时记录宿主入口 SHA-256、Lite CPM package digest/packedAt 与可选 Pro package digest；`query-status`、`host-status.json`、`smoke-results.json` 三方身份必须一致，旧报告不能冒充当前 release。
+- 新建 Prefab/Scene 的 AssetDB commit 屏障若仍返回 `pending` 未登记资源，必须 fail-closed；不得继续 catalog、commit 后续或把本地序列化结果当作干净实机证据。Creator 3.8 Assets 面板的 `original asset is not exist` 竞态仍需通过 AssetDB 原子创建/登记流程消除。
 - 2026-09-17 的 Creator 3.8.7 阶段证据绑定提交 `743ebb9`：宿主公开 83 个业务 operation 加 1 个审批入口，38/38 个业务只读 operation 均完成实机调用；`asset.writeText` 额外完成无租约拒绝、一次性租约写入、AssetDB settle 与原文件/`.meta` 哈希恢复。其余 44 个写/破坏性 operation 仍需逐项可恢复实机证据。
 
 ## Hard Rules

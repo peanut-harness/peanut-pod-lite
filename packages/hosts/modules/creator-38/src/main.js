@@ -750,7 +750,20 @@ const methods = {
             expiresAt: issued.expiresAt,
         });
     },
-    async invokeTool(name, input = {}) {
+    /**
+     * Invoke a registered Lite tool and preserve the bridge invocation context.
+     *
+     * The plugin handler receives this as its second argument so write tools can
+     * bind approval leases to the authenticated connection and resource scope.
+     * Keeping the context outside `input` prevents callers from spoofing it via
+     * MCP business parameters.
+     *
+     * @param {string} name Registered tool name.
+     * @param {Record<string, unknown>} input Tool input payload.
+     * @param {{ connectionId?: string, resourceIds?: readonly string[] }} invocation Bridge invocation context.
+     * @returns {Promise<unknown>} Tool result.
+     */
+    async invokeTool(name, input = {}, invocation = {}) {
         if (!hostStatus.ready) {
             throw new Error('peanut_cocos_mcp_core_host_not_ready');
         }
@@ -758,7 +771,7 @@ const methods = {
         if (entry === undefined) {
             throw new Error(`peanut_cocos_mcp_core_tool_unknown:${name}`);
         }
-        return entry.handler(input);
+        return entry.handler(input, invocation);
     },
 };
 
