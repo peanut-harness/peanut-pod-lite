@@ -105,9 +105,9 @@ export class ProjectLogPostflightMonitor {
           verified: true,
         };
       }
-      const text = readFileSync(checkpoint.path, "utf8").slice(
-        checkpoint.offset,
-      );
+      const bytes = readFileSync(checkpoint.path);
+      const offset = checkpoint.offset <= bytes.length ? checkpoint.offset : 0;
+      const text = bytes.subarray(offset).toString("utf8");
       const lines = text
         .split(/\r?\n/u)
         .filter((line: string) => line.trim().length > 0);

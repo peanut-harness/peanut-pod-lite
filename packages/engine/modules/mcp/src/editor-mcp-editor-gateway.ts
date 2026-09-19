@@ -298,12 +298,21 @@ export class EditorMcpEditorGateway {
                 };
             }
         }
-        const result = await this._host.sceneGateway.open(openInput);
+        const initial = await this._host.sceneGateway.open(openInput);
         const projectRoot = await this._host.requireProjectPath().catch(() => null);
-        const settle =
-            result.available === true
-                ? await this._host.sceneGateway.waitForHierarchySettle()
+        const initialSettle =
+            initial.available === true
+                ? await this._host.sceneGateway.waitForHierarchySettle(1500)
                 : { waitedMs: 0, nodeCount: 0, settled: false };
+        const fallback =
+            initial.available === true && initialSettle.settled !== true
+                ? await this._host.sceneGateway.retryOpenViaAssetDb(openInput)
+                : null;
+        const result = fallback?.available === true ? fallback : initial;
+        const settle =
+            fallback?.available === true
+                ? await this._host.sceneGateway.waitForHierarchySettle()
+                : initialSettle;
         // open-scene 消息常不抛错；层次未沉降则视为打开未完成，避免 Agent 以为成功。
         const available = result.available === true && settle.settled === true;
         const message =
@@ -313,7 +322,7 @@ export class EditorMcpEditorGateway {
                   ? result.message
                   : 'scene_open_incomplete:hierarchy_empty_after_open';
         if (projectRoot == null) {
-            return { ...result, available, message, settle };
+            return { ...result, available, message, settle, initial, initialSettle, fallback };
         }
         const relative = openInput.path.replace(/^db:\/\//u, '').trim();
         return {
@@ -321,6 +330,9 @@ export class EditorMcpEditorGateway {
             available,
             message,
             settle,
+            initial,
+            initialSettle,
+            fallback,
             ...this._attachHierarchyValidation(projectRoot, relative),
         };
     }

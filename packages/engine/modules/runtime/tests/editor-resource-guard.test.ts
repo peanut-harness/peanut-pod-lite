@@ -1,6 +1,6 @@
 import assert from "assert/strict";
 import test from "node:test";
-import { mkdtempSync, mkdirSync, writeFileSync } from "fs";
+import { appendFileSync, mkdtempSync, mkdirSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 
@@ -129,6 +129,30 @@ test("ProjectLogPostflightMonitor ignores disposed preview frames but keeps real
   const result = monitor.readDelta(checkpoint);
   assert.equal(result.newErrorCount, 1);
   assert.match(result.newErrors[0] ?? "", /real import failure/u);
+});
+
+test("ProjectLogPostflightMonitor applies byte offsets after multibyte log content", (): void => {
+  const root = mkdtempSync(join(tmpdir(), "peanut-project-log-byte-offset-"));
+  const logDir = join(root, "temp", "logs");
+  mkdirSync(logDir, { recursive: true });
+  const logPath = join(logDir, "project.log");
+  writeFileSync(logPath, "2026-9-20 - info: 中文启动日志\n", "utf8");
+  const monitor = new ProjectLogPostflightMonitor();
+  const checkpoint = monitor.checkpoint(root);
+  appendFileSync(
+    logPath,
+    [
+      "2026-9-20 - error: Error sending from webFrameMain: Error: Render frame was disposed before WebFrameMain could be accessed",
+      "2026-9-20 - error: [Assets] real import failure",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+  const result = monitor.readDelta(checkpoint);
+  assert.equal(result.newErrorCount, 1);
+  assert.deepEqual(result.newErrors, [
+    "2026-9-20 - error: [Assets] real import failure",
+  ]);
 });
 
 test("ProjectLogPostflightMonitor treats bare Warn prefixes as warnings", (): void => {

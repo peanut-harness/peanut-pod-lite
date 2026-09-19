@@ -24,6 +24,8 @@ import {
   CREATOR_SCENE_SAVE_MESSAGES as SCENE_HOST_SAVE_MESSAGES,
 } from "./editor-mcp-scene-host-routes.js";
 import { EditorMcpSceneInputReader } from "./editor-mcp-scene-input-reader.js";
+import { EditorMcpMessageDeadline } from "./editor-mcp-message-deadline.js";
+import { EditorMcpSceneAssetDbOpener } from "./editor-mcp-scene-asset-db-opener.js";
 
 /** @description Creator 会弹确认框、卡住无头自动化的 scene 持久化消息。 */
 const CREATOR_SCENE_SAVE_MESSAGES = new Set<string>(SCENE_HOST_SAVE_MESSAGES);
@@ -59,6 +61,10 @@ export class EditorMcpSceneGateway {
   private readonly _runtime: IGrantedRuntimeClientSet;
   /** @description 打开场景路径守卫。 */
   private readonly _guard: EditorResourceGuard;
+  /**
+   * @description AssetDB 场景打开兜底。
+   */
+  private readonly _assetDbOpener: EditorMcpSceneAssetDbOpener;
 
   /**
    * @description 构造场景网关。
@@ -71,6 +77,7 @@ export class EditorMcpSceneGateway {
   ) {
     this._runtime = runtime;
     this._guard = guard;
+    this._assetDbOpener = new EditorMcpSceneAssetDbOpener(runtime);
   }
 
   /**
@@ -105,6 +112,44 @@ export class EditorMcpSceneGateway {
   }
 
   /**
+   * @description Scene 消息已受理但层次未加载时，改用 AssetDB 再触发一次打开。
+   * @param input 已校验的场景输入。
+   * @returns AssetDB 投递结果。
+   */
+  public async retryOpenViaAssetDb(
+    input: ISceneOpenMcpInput,
+  ): Promise<IEditorMcpSceneOpResult> {
+    const raw = input.path.trim();
+    const dbPath = this._isAssetUuid(raw) ? undefined : this._toDbAssetsPath(raw);
+    if (dbPath != null && !this._guard.canOpenAsScene(dbPath)) {
+      return this._finalize({
+        available: false,
+        message: "scene_open_blocked:invalid_or_blocked_path",
+      });
+    }
+    const uuid = this._isAssetUuid(raw) ? raw : await this._resolveSceneUuid(dbPath!);
+    if (uuid == null) {
+      return this._finalize({
+        available: false,
+        message: "scene_open_unavailable:uuid_unresolved",
+        data: { dbPath },
+      });
+    }
+    const result = await this._assetDbOpener.open(uuid);
+    return {
+      ...result,
+      data: {
+        ...(result.data != null && typeof result.data === "object"
+          ? (result.data as Record<string, unknown>)
+          : { raw: result.data }),
+        uuid,
+        ...(dbPath != null ? { dbPath } : {}),
+        openVia: "asset-db:open-asset",
+      },
+    };
+  }
+
+  /**
    * @description 仅用 UUID 打开场景；失败时尝试 asset-db open-asset(UUID)，仍禁止传 db://。
    * @param uuid 场景资产 UUID。
    * @param dbPath 可选 db 路径，仅回显。
@@ -122,7 +167,22 @@ export class EditorMcpSceneGateway {
       "scene_open",
     );
     if (opened.available !== true) {
-      const viaAsset = await this._openSceneViaAssetDb(uuid);
+      const viaSceneSend = await this._sendSceneOpen(uuid);
+      if (viaSceneSend.available === true) {
+        return {
+          ...viaSceneSend,
+          data: {
+            ...(viaSceneSend.data != null &&
+            typeof viaSceneSend.data === "object"
+              ? (viaSceneSend.data as Record<string, unknown>)
+              : { raw: viaSceneSend.data }),
+            uuid,
+            ...(dbPath != null ? { dbPath } : {}),
+            openVia: "scene:open-scene:send",
+          },
+        };
+      }
+      const viaAsset = await this._assetDbOpener.open(uuid);
       if (viaAsset.available === true) {
         return {
           ...viaAsset,
@@ -144,6 +204,7 @@ export class EditorMcpSceneGateway {
             : { raw: opened.data }),
           uuid,
           ...(dbPath != null ? { dbPath } : {}),
+          sceneSendFallback: viaSceneSend,
           assetDbFallback: viaAsset,
         },
       };
@@ -162,31 +223,35 @@ export class EditorMcpSceneGateway {
   }
 
   /**
-   * @description 用 asset-db open-asset(UUID) 打开场景（不传 db://）。
-   * @param uuid 场景 UUID。
-   * @returns 结果。
+   * @description request 路由不回包时，用 Creator 单向消息触发场景打开。
+   * @param uuid 场景资源 UUID。
+   * @returns 单向投递结果。
    */
-  private async _openSceneViaAssetDb(
+  private async _sendSceneOpen(
     uuid: string,
   ): Promise<IEditorMcpSceneOpResult> {
     const message = this._runtime.message;
-    if (message == null) {
+    if (message == null || typeof message.send !== "function") {
       return this._finalize({
         available: false,
-        message: "scene_open_unavailable:runtime_message_missing",
+        message: "scene_open_unavailable:scene_send_missing",
       });
     }
     try {
-      const data = await message.request("asset-db", "open-asset", uuid);
+      await EditorMcpMessageDeadline.wait(
+        message.send("scene", "open-scene", uuid),
+        EditorMcpMessageDeadline.sceneOpenMs,
+        "creator_scene_open_send_timeout",
+      );
       return this._finalize({
         available: true,
-        message: "scene_open_ok:asset-db:open-asset",
-        data,
+        message: "scene_open_accepted:scene:open-scene",
+        data: { delivery: "send" },
       });
     } catch (error) {
       return this._finalize({
         available: false,
-        message: "scene_open_unavailable:asset-db_open_asset_failed",
+        message: "scene_open_unavailable:scene_send_failed",
         data: {
           error: error instanceof Error ? error.message : String(error),
         },
@@ -885,7 +950,7 @@ export class EditorMcpSceneGateway {
    * @description open-scene 后轮询层次，直到有节点或超时（场景进程异步加载）。
    * @returns 沉降结果摘要。
    */
-  public async waitForHierarchySettle(): Promise<{
+  public async waitForHierarchySettle(timeoutMs = 8000): Promise<{
     readonly waitedMs: number;
     readonly nodeCount: number;
     readonly settled: boolean;
@@ -895,14 +960,18 @@ export class EditorMcpSceneGateway {
       return { waitedMs: 0, nodeCount: 0, settled: false };
     }
     const message = this._runtime.message;
-    const deadline = Date.now() + 8000;
+    const deadline = Date.now() + timeoutMs;
     let nodeCount = 0;
     let sceneReady = false;
     const started = Date.now();
     while (Date.now() < deadline) {
       if (message != null && !sceneReady) {
         try {
-          const ready = await message.request("scene", "query-is-ready");
+          const ready = await EditorMcpMessageDeadline.wait(
+            message.request("scene", "query-is-ready"),
+            EditorMcpMessageDeadline.sceneProbeMs,
+            "creator_scene_ready_probe_timeout",
+          );
           sceneReady = ready === true;
         } catch {
           // 旧 Creator 可能无此消息。
@@ -952,7 +1021,11 @@ export class EditorMcpSceneGateway {
     if (scene != null) {
       for (let attempt = 0; attempt < attempts; attempt += 1) {
         try {
-          const nodes = await scene.getHierarchy({ includeEditorNodes });
+          const nodes = await EditorMcpMessageDeadline.wait(
+            scene.getHierarchy({ includeEditorNodes }),
+            EditorMcpMessageDeadline.sceneProbeMs,
+            "creator_scene_hierarchy_probe_timeout",
+          );
           if (Array.isArray(nodes) && nodes.length > 0) {
             return {
               nodes: nodes as readonly Record<string, unknown>[],
@@ -989,7 +1062,11 @@ export class EditorMcpSceneGateway {
       return [];
     }
     try {
-      const tree = await message.request("scene", "query-node-tree");
+      const tree = await EditorMcpMessageDeadline.wait(
+        message.request("scene", "query-node-tree"),
+        EditorMcpMessageDeadline.sceneProbeMs,
+        "creator_scene_tree_probe_timeout",
+      );
       if (tree == null || typeof tree !== "object") {
         return [];
       }
@@ -1404,7 +1481,15 @@ export class EditorMcpSceneGateway {
         }
       }
       try {
-        const data = await message.request("scene", name, ...args);
+        const request = message.request("scene", name, ...args);
+        const data =
+          name === "open-scene"
+            ? await EditorMcpMessageDeadline.wait(
+                request,
+                EditorMcpMessageDeadline.sceneOpenMs,
+                "creator_scene_open_message_timeout",
+              )
+            : await request;
         return this._finalize({
           available: true,
           message: `${label}_ok:${name}`,

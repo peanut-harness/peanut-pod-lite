@@ -88,7 +88,9 @@ async function activateRouter(options = {}) {
             scene: {
                 getCurrent: async () => options.sceneCurrent ?? null,
                 getHierarchy: async () =>
-                    options.sceneHierarchy ?? [
+                    (typeof options.sceneHierarchy === 'function'
+                        ? options.sceneHierarchy()
+                        : options.sceneHierarchy) ?? [
                         {
                             uuid: 'canvas-uuid',
                             name: 'Canvas',
@@ -107,6 +109,14 @@ async function activateRouter(options = {}) {
                 getProjectPath: async () => projectPath,
             },
             message: {
+                ...(options.messageSendHandler == null
+                    ? {}
+                    : {
+                          send: async (target, message, ...args) => {
+                              importCalls.push({ target, message, args, delivery: 'send' });
+                              return options.messageSendHandler(target, message, ...args);
+                          },
+                      }),
                 request: async (target, message, ...args) => {
                     importCalls.push({ target, message, args });
                     if (options.messageHandler != null) {
@@ -509,6 +519,151 @@ test('matrix: scene.open blocks non-scene paths and opens guarded scenes', async
     assert.ok(openCall);
     assert.deepEqual(openCall.args, ['aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee']);
     assert.ok(!String(openCall.args[0]).includes('://'), 'open-scene must never receive db://');
+});
+
+test('matrix: scene.open falls back to asset-db when the Scene package never replies', async () => {
+    const { pluginModule, importCalls } = await activateRouter({
+        messageHandler: async (target, message, ...args) => {
+            if (target === 'asset-db' && message === 'query-uuid') {
+                return 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            }
+            if (target === 'scene' && message === 'open-scene') {
+                return new Promise(() => {});
+            }
+            if (target === 'asset-db' && message === 'open-asset') {
+                return { opened: true, uuid: args[0] };
+            }
+            throw new Error(`unexpected:${target}:${message}`);
+        },
+    });
+    const started = Date.now();
+    const opened = await pluginModule.dispatchMcpAction('cocos.call', {
+        operation: 'scene.open',
+        input: { path: 'assets/Main.scene' },
+    });
+    assert.equal(opened.data.message, 'scene_open_ok:asset-db:open-asset');
+    assert.equal(opened.data.data.openVia, 'asset-db:open-asset');
+    assert.ok(Date.now() - started < 3500, 'hung Scene message must not hold the Hub request');
+    assert.equal(
+        importCalls.some((call) => call.target === 'asset-db' && call.message === 'open-asset'),
+        true,
+    );
+});
+
+test('matrix: scene.open uses one-way AssetDB delivery when request routes reject', async () => {
+    const { pluginModule, importCalls } = await activateRouter({
+        messageSendHandler: async (target, message, uuid) => {
+            if (target === 'scene') {
+                throw new Error('scene_send_unavailable');
+            }
+            assert.equal(target, 'asset-db');
+            assert.equal(message, 'open-asset');
+            assert.equal(uuid, 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
+        },
+        messageHandler: async (target, message) => {
+            if (target === 'asset-db' && message === 'query-uuid') {
+                return 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            }
+            if (target === 'scene' && message === 'open-scene') {
+                throw new Error('scene_package_unavailable');
+            }
+            throw new Error(`unexpected:${target}:${message}`);
+        },
+    });
+    const opened = await pluginModule.dispatchMcpAction('cocos.call', {
+        operation: 'scene.open',
+        input: { path: 'assets/Main.scene' },
+    });
+    assert.equal(opened.data.message, 'scene_open_accepted:asset-db:open-asset');
+    assert.equal(opened.data.data.delivery, 'send');
+    assert.equal(
+        importCalls.some(
+            (call) => call.delivery === 'send' && call.target === 'asset-db' && call.message === 'open-asset',
+        ),
+        true,
+    );
+});
+
+test('matrix: scene.open uses one-way Scene delivery before AssetDB fallback', async () => {
+    const { pluginModule, importCalls } = await activateRouter({
+        messageSendHandler: async (target, message, uuid) => {
+            assert.equal(target, 'scene');
+            assert.equal(message, 'open-scene');
+            assert.equal(uuid, 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
+        },
+        messageHandler: async (target, message) => {
+            if (target === 'asset-db' && message === 'query-uuid') {
+                return 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            }
+            if (target === 'scene' && message === 'open-scene') {
+                throw new Error('scene_request_never_replies');
+            }
+            throw new Error(`unexpected:${target}:${message}`);
+        },
+    });
+    const opened = await pluginModule.dispatchMcpAction('cocos.call', {
+        operation: 'scene.open',
+        input: { path: 'assets/Main.scene' },
+    });
+    assert.equal(opened.data.message, 'scene_open_accepted:scene:open-scene');
+    assert.equal(opened.data.data.openVia, 'scene:open-scene:send');
+    assert.equal(
+        importCalls.some(
+            (call) => call.delivery === 'send' && call.target === 'asset-db' && call.message === 'open-asset',
+        ),
+        false,
+    );
+});
+
+test('matrix: scene.open retries through AssetDB when Scene delivery leaves hierarchy empty', async () => {
+    let openedByAssetDb = false;
+    const { pluginModule, importCalls } = await activateRouter({
+        sceneHierarchy: () =>
+            openedByAssetDb
+                ? [{ uuid: 'canvas-uuid', name: 'Canvas', active: true, path: 'Canvas', children: [] }]
+                : [],
+        messageSendHandler: async (target, message, uuid) => {
+            assert.equal(target, 'asset-db');
+            assert.equal(message, 'open-asset');
+            assert.equal(uuid, 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
+            openedByAssetDb = true;
+        },
+    });
+    const opened = await pluginModule.dispatchMcpAction('cocos.call', {
+        operation: 'scene.open',
+        input: { path: 'assets/Main.scene' },
+    });
+    assert.equal(opened.data.available, true);
+    assert.equal(opened.data.data.openVia, 'asset-db:open-asset');
+    assert.equal(opened.data.initialSettle.settled, false);
+    assert.equal(opened.data.settle.settled, true);
+    assert.equal(
+        importCalls.some(
+            (call) => call.delivery === 'send' && call.target === 'asset-db' && call.message === 'open-asset',
+        ),
+        true,
+    );
+});
+
+test('matrix: scene hierarchy returns refused instead of hanging on unavailable probes', async () => {
+    const never = new Promise(() => {});
+    const { pluginModule } = await activateRouter({
+        sceneHierarchy: never,
+        messageHandler: async (target, message) => {
+            if (target === 'scene' && message === 'query-node-tree') {
+                return never;
+            }
+            throw new Error(`unexpected:${target}:${message}`);
+        },
+    });
+    const started = Date.now();
+    const hierarchy = await pluginModule.dispatchMcpAction('cocos.call', {
+        operation: 'scene.getHierarchy',
+        input: {},
+    });
+    assert.deepEqual(hierarchy.data.nodes, []);
+    assert.equal(hierarchy.data.availability, 'refused');
+    assert.ok(Date.now() - started < 4000, 'unavailable Scene probes must have a finite deadline');
 });
 
 test('matrix: scene.open hard-blocks db:// args to open-scene', async () => {
