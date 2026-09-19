@@ -109,6 +109,28 @@ test("ProjectLogPostflightMonitor ignores Error stacks on Creator warn lines", (
   assert.match(result.newErrors[0] ?? "", /real failure/u);
 });
 
+test("ProjectLogPostflightMonitor ignores disposed preview frames but keeps real Creator errors", (): void => {
+  const root = mkdtempSync(join(tmpdir(), "peanut-project-log-disposed-frame-"));
+  const logDir = join(root, "temp", "logs");
+  mkdirSync(logDir, { recursive: true });
+  const logPath = join(logDir, "project.log");
+  writeFileSync(logPath, "", "utf8");
+  const monitor = new ProjectLogPostflightMonitor();
+  const checkpoint = monitor.checkpoint(root);
+  writeFileSync(
+    logPath,
+    [
+      "2026-9-19 21:52:20 - error: Error sending from webFrameMain: Error: Render frame was disposed before WebFrameMain could be accessed",
+      "2026-9-19 21:52:21 - error: [Assets] real import failure",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+  const result = monitor.readDelta(checkpoint);
+  assert.equal(result.newErrorCount, 1);
+  assert.match(result.newErrors[0] ?? "", /real import failure/u);
+});
+
 test("ProjectLogPostflightMonitor treats bare Warn prefixes as warnings", (): void => {
   const root = mkdtempSync(join(tmpdir(), "peanut-project-log-bare-warn-"));
   const logDir = join(root, "temp", "logs");

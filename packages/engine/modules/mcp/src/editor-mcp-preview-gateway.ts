@@ -127,10 +127,8 @@ export class EditorMcpPreviewGateway {
         return this._enrichStartScene(live);
       }
       try {
-        await message.request("preview", "start-preview", {
-          platform: input.platform ?? "browser",
-        });
-        liveTried.push("preview.start-preview");
+        await message.send("preview", "open-terminal", undefined);
+        liveTried.push("preview.open-terminal");
       } catch {
         // optional warm-up
       }
@@ -261,6 +259,18 @@ export class EditorMcpPreviewGateway {
         // continue
       }
     }
+    let opened = false;
+    try {
+      // Creator 3.8 的预览面板“播放”按钮调用 preview.open-terminal；
+      // start-preview 不在 3.8 的消息清单中。
+      // Do not await Creator's terminal lifecycle: before Scene is ready the
+      // request form can hold the Hub lane until its timeout. The official
+      // Message API provides send for this command-style operation.
+      await message.send("preview", "open-terminal", undefined);
+      opened = true;
+    } catch {
+      // Keep the reload fallbacks below for already-open preview terminals.
+    }
     for (const candidate of [
       "reload-terminal",
       "refresh",
@@ -273,11 +283,18 @@ export class EditorMcpPreviewGateway {
         return this._finalize({
           available: true,
           source: "live",
-          message: `preview_refresh_ok:${candidate}`,
+          message: `preview_refresh_ok:${opened ? "open-terminal+" : ""}${candidate}`,
         });
       } catch {
         // try next
       }
+    }
+    if (opened) {
+      return this._finalize({
+        available: true,
+        source: "live",
+        message: "preview_refresh_ok:open-terminal",
+      });
     }
     return this._finalize({
       available: false,

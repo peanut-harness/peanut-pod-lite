@@ -244,6 +244,9 @@ function readCreatorLogSeverity(
  * @oopException 纯分类函数，无对象归属。
  */
 function isCreatorErrorLine(line: string): boolean {
+  if (/Render frame was disposed before WebFrameMain could be accessed/iu.test(line)) {
+    return false;
+  }
   const severity = readCreatorLogSeverity(line);
   if (severity === "warn" || severity === "other") {
     return false;

@@ -5,6 +5,40 @@ import { join } from 'path';
 import test from 'node:test';
 
 import { createPluginModule, EditorMcpActionRouter, EditorMcpLumenGateway, EditorMcpPluginModule } from '../dist/index.js';
+import { EditorMcpPreviewGateway } from '../dist/editor-mcp-preview-gateway.js';
+
+test('preview refresh starts the browser preview before reload and reports the actual route', async () => {
+    const requests = [];
+    const gateway = new EditorMcpPreviewGateway({
+        message: {
+            send: async (target, message, ...args) => {
+                requests.push({ target, message, args });
+                if (target === 'preview' && message === 'open-terminal') {
+                    return;
+                }
+                throw new Error('unsupported');
+            },
+            request: async (target, message, ...args) => {
+                requests.push({ target, message, args });
+                if (target === 'preview' && message === 'reload-terminal') {
+                    return { ok: true };
+                }
+                throw new Error('unsupported');
+            },
+        },
+    });
+
+    const result = await gateway.refresh({ refreshAssets: false });
+
+    assert.equal(result.available, true);
+    assert.equal(result.source, 'live');
+    assert.equal(result.message, 'preview_refresh_ok:open-terminal+reload-terminal');
+    assert.deepEqual(
+        requests.map(({ target, message }) => `${target}.${message}`),
+        ['preview.open-terminal', 'preview.reload-terminal'],
+    );
+    assert.deepEqual(requests[0].args, [undefined]);
+});
 
 function createCatalogLookupStub() {
     return {
