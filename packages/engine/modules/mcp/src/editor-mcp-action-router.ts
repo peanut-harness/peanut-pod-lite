@@ -11,11 +11,13 @@ import type {
     LocalizedText,
 } from '@peanut/pod-protocol';
 import { McpControlFlowRefusal } from '@peanut/pod-engine/kernel';
+import { ProjectLogPostflightMonitor } from '@peanut/pod-engine/runtime';
 import { EditorMcpExecutionLaneResolver, ProductLineMcpPolicy } from '@peanut/pod-protocol';
 import type { IGrantedRuntimeClientSet } from '@peanut/pod-sdk';
 import { AssetCatalogFastLookupApi, type IAssetCatalogFastLookup } from '@peanut/pod-engine/assets';
 
 import { EditorMcpAssetDiagnostics } from './editor-mcp-asset-diagnostics.js';
+import { EditorMcpAssetDbTransaction } from './editor-mcp-asset-db-transaction.js';
 import { EditorMcpBuilderGateway } from './editor-mcp-builder-gateway.js';
 import { EditorMcpReferenceGateway } from './editor-mcp-reference-gateway.js';
 import { Lumen24McpBridge } from './editor-mcp-lumen-24-bridge.js';
@@ -27,6 +29,7 @@ import { EditorMcpPreviewGateway } from './editor-mcp-preview-gateway.js';
 import { EditorMcpSceneGateway } from './editor-mcp-scene-gateway.js';
 import { EditorMcpPrefabOfflineGateway } from './editor-mcp-prefab-offline-gateway.js';
 import { CAPABILITIES, type EditorMcpCapabilitySeed } from './editor-mcp-capability-catalog.js';
+import { ResourceOperationPlanner } from './resource-operation-planner.js';
 import { ResourceOperationTaskQueue } from './resource-operation-task-queue.js';
 
 /**
@@ -57,22 +60,32 @@ export class EditorMcpActionRouter {
     private readonly _lumenCommit: EditorMcpLumenCommitFacade;
     /** @description 编辑器选区 / 打开 / 恢复。 */
     private readonly _editor: EditorMcpEditorGateway;
-    /** @description 当前工程写 operation 的 FIFO 任务队列。 */
-    private readonly _taskQueue = new ResourceOperationTaskQueue();
+    /**
+     * @description 跨 Router 共享的项目级资源调度器。
+     */
+    private readonly _taskQueue: ResourceOperationTaskQueue;
+    /**
+     * @description 写 operation 资源闭包规划器。
+     */
+    private readonly _taskPlanner: ResourceOperationPlanner;
 
     /**
      * @description 创建一个新的 Editor MCP action router。
      * @param runtime 由插件宿主裁剪并可撤销的 runtime client 集合
      * @param catalogLookup 资产目录快查接口；测试可注入替代实现
      * @param lumenGateway 可选 lumen 网关；测试可注入替代实现
+     * @param taskQueue 可选项目级资源调度器；默认跨 Router 共享
      */
     public constructor(
         runtime: IGrantedRuntimeClientSet,
         catalogLookup: IAssetCatalogFastLookup = new AssetCatalogFastLookupApi(),
         lumenGateway?: EditorMcpLumenGateway,
+        taskQueue: ResourceOperationTaskQueue = ResourceOperationTaskQueue.shared(),
     ) {
         this._runtime = runtime;
         this._catalogLookup = catalogLookup;
+        this._taskQueue = taskQueue;
+        this._taskPlanner = new ResourceOperationPlanner();
         this._diagnostics = new EditorMcpAssetDiagnostics();
         this._preview = new EditorMcpPreviewGateway(runtime, async () => {
             try {
@@ -91,17 +104,24 @@ export class EditorMcpActionRouter {
         });
         this._sceneGateway = new EditorMcpSceneGateway(runtime);
         this._lumen = lumenGateway ?? new EditorMcpLumenGateway(async () => this._requireProjectPath());
+        const assetDbTransaction = new EditorMcpAssetDbTransaction({
+            requireProjectPath: async () => this._requireProjectPath(),
+            requireMessage: () => this._requireMessage(),
+            refreshForCommit: async (paths) => this._lumen.refreshForCommit(paths),
+        });
         this._prefabOffline = new EditorMcpPrefabOfflineGateway();
         this._silentAssets = new EditorMcpSilentAssetGateway({
             requireProjectPath: async () => this._requireProjectPath(),
             lumen: this._lumen,
             runtime: this._runtime,
+            assetDbTransaction,
             isRecord: (value: unknown): value is Record<string, unknown> => this._isRecord(value),
         });
         this._lumenCommit = new EditorMcpLumenCommitFacade({
             requireProjectPath: async () => this._requireProjectPath(),
             lumen: this._lumen,
             requireCatalogLookup: () => this._requireCatalogLookup(),
+            assetDbTransaction,
         });
         this._editor = new EditorMcpEditorGateway({
             runtime: this._runtime,
@@ -230,7 +250,28 @@ export class EditorMcpActionRouter {
         if (planned.readOnly) {
             return this._executeDirect(request);
         }
-        const task = await this._taskQueue.run(request.operation, () => this._executeDirect(request));
+        if (planned.risk === 'destructive' && this._readConfirmDestructive(request.input) !== true) {
+            McpControlFlowRefusal.reject('editor_mcp_destructive_confirmation_required');
+        }
+        const projectRoot = await this._requireProjectPath();
+        const taskPlan = this._taskPlanner.plan(projectRoot, request.operation, request.input);
+        const postflightMonitor = new ProjectLogPostflightMonitor();
+        const logCheckpoint = postflightMonitor.checkpoint(projectRoot);
+        const task = await this._taskQueue.run(taskPlan, async () => {
+            const result = await this._executeDirect(request);
+            const postflight = postflightMonitor.readDelta(logCheckpoint);
+            if (!postflight.logChecked || postflight.newErrorCount > 0 || postflight.newWarningCount > 0) {
+                throw new Error(
+                    `editor_mcp_project_log_postflight_failed:errors=${postflight.newErrorCount}:warnings=${postflight.newWarningCount}`,
+                );
+            }
+            return {
+                ...result,
+                data: this._isRecord(result.data)
+                    ? { ...result.data, taskPostflight: postflight }
+                    : { value: result.data, taskPostflight: postflight },
+            };
+        });
         if (task.result == null) {
             throw new Error(`editor_mcp_task_result_missing:${task.taskId}`);
         }

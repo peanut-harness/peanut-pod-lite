@@ -1,6 +1,7 @@
-import type { IMcpCapabilityDefinition, McpCapabilityRisk } from '@peanut/pod-protocol';
+import type { IMcpCapabilityDefinition, IMcpFailureDetails, McpCapabilityRisk } from '@peanut/pod-protocol';
 
 import type { IMcpCapabilityProgress, McpPluginExposureMode } from './mcp-capability-registry.js';
+import { McpFailurePresenter } from './mcp-failure-presenter.js';
 
 /**
  * @description 校验并规范化来自 MCP loopback 边界的未受信输入。
@@ -10,8 +11,16 @@ export class CocosMcpInputReader {
      * @description 将未知 capability 错误收窄为可安全展示的稳定错误码。
      */
     public toSafeErrorCode(error: unknown): string {
-        const message = error instanceof Error ? error.message : '';
-        return /^[a-z0-9._:-]+$/u.test(message) ? message : 'mcp_capability_execution_failed';
+        return McpFailurePresenter.present(error).code;
+    }
+
+    /**
+     * @description 将未知 capability 错误收窄为结构化安全失败详情。
+     * @param error 未受信异常。
+     * @returns 可安全返回给 MCP 调用方的失败详情。
+     */
+    public toSafeFailure(error: unknown): IMcpFailureDetails {
+        return McpFailurePresenter.present(error);
     }
 
     /**

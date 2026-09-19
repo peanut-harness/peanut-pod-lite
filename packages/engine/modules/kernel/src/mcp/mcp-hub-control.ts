@@ -1,5 +1,6 @@
 import type {
     ContractPayload,
+    IMcpAiHandlingGuidance,
     IMcpCapabilityDefinition,
     IMcpJsonSchema,
     LocalizedText,
@@ -51,6 +52,10 @@ export interface IMcpHubCapabilitySummary extends ContractPayload {
     readonly category: McpCapabilityCategory;
     /** @description 经 registry 校验的输入 schema。 */
     readonly inputSchema: IMcpJsonSchema;
+    /**
+     * @description 写操作成功返回值的最小 schema。
+     */
+    readonly outputSchema?: IMcpJsonSchema;
     /** @description 工具是否不会修改项目状态。 */
     readonly readOnly: boolean;
     /** @description 工具对应的风险等级。 */
@@ -59,6 +64,10 @@ export interface IMcpHubCapabilitySummary extends ContractPayload {
      * @description 可选执行车道（editor-mcp 会填）：lumen-offline / editor-ui / preview。
      */
     readonly lane?: McpCapabilityExecutionLane;
+    /**
+     * @description AI 判定成功、处理失败与重试的机器可读规则。
+     */
+    readonly aiHandling?: IMcpAiHandlingGuidance;
 }
 
 /**
@@ -185,8 +194,10 @@ export function summarizeMcpHubCapability(definition: IMcpCapabilityDefinition):
         description: definition.description,
         category: definition.category,
         inputSchema: definition.inputSchema,
+        ...(definition.outputSchema != null ? { outputSchema: definition.outputSchema } : {}),
         readOnly: definition.readOnly,
         risk: definition.risk,
         ...(definition.lane != null ? { lane: definition.lane } : {}),
+        ...(definition.aiHandling != null ? { aiHandling: definition.aiHandling } : {}),
     };
 }

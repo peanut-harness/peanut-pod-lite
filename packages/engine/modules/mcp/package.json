@@ -22,7 +22,7 @@
         "build": "tsc -p tsconfig.json",
         "pack": "npm run build && node scripts/pack-plugin.mjs",
         "typecheck": "tsc -p tsconfig.json --noEmit",
-        "test": "npm run build && node --test tests/editor-mcp-plugin.test.mjs tests/editor-mcp-host-integration.test.mjs tests/editor-mcp-write-safety-matrix.test.mjs tests/editor-mcp-thin-layer-availability.test.mjs tests/editor-mcp-tableview-scaffold.test.mjs tests/editor-mcp-builder-gateway.test.mjs tests/editor-mcp-pink-p0-p3.test.mjs tests/resource-operation-task-queue.test.mjs && node scripts/lumen-ai-playbook.smoke.mjs",
+        "test": "npm run build && node --test tests/editor-mcp-plugin.test.mjs tests/editor-mcp-host-integration.test.mjs tests/editor-mcp-write-safety-matrix.test.mjs tests/editor-mcp-thin-layer-availability.test.mjs tests/editor-mcp-tableview-scaffold.test.mjs tests/editor-mcp-builder-gateway.test.mjs tests/editor-mcp-pink-p0-p3.test.mjs && tsx --test tests/resource-operation-task-queue.test.mts tests/editor-mcp-asset-db-transaction.test.mts && node scripts/lumen-ai-playbook.smoke.mjs",
         "verify:mcp-safety": "node ../../../../scripts/verify-mcp-write-safety.mjs"
     },
     "devDependencies": {
@@ -38,6 +38,7 @@
             "@peanut/pod-engine/kernel",
             "@peanut/pod-engine/lumen",
             "@peanut/pod-engine/lumen-24",
+            "@peanut/pod-engine/policy",
             "@peanut/pod-engine/runtime"
         ]
     }

@@ -1,13 +1,34 @@
+const GLOBAL_FALLBACK_LOCK_KEY = 'project:global';
+
 /**
- * @description 按资源键串行化 lumen 磁盘写，支持高并发下同一 prefab/scene 的 FIFO 排队。
+ * @description 等待原子获取一组 Lumen 资源锁的请求。
+ */
+interface IResourceWriteLockRequest {
+    /**
+     * @description 已归一、去重的完整资源集合。
+     */
+    readonly lockKeys: ReadonlySet<string>;
+    /**
+     * @description 全部资源同时可用时授予锁。
+     */
+    readonly grant: () => void;
+}
+
+/**
+ * @description 按资源键串行化 lumen 磁盘写，并对多资源任务执行原子预约。
  */
 export class LumenResourceWriteLock {
-    /** @description 进程内共享实例（MCP 网关 / router 复用）。 */
+    /**
+     * @description 进程内共享实例（MCP 网关 / router 复用）。
+     */
     private static _shared: LumenResourceWriteLock | null = null;
-
-    /** @description 每个资源键的等待队列与是否已有持有者。 */
-    private readonly _queues = new Map<string, Array<() => void>>();
-    /** @description 当前持锁的资源键集合。 */
+    /**
+     * @description 尚未取得完整资源集合的 FIFO 请求。
+     */
+    private readonly _pending: IResourceWriteLockRequest[] = [];
+    /**
+     * @description 当前持锁的资源键集合。
+     */
     private readonly _held = new Set<string>();
 
     /**
@@ -30,94 +51,105 @@ export class LumenResourceWriteLock {
     }
 
     /**
-     * @description 在单资源键上独占执行异步任务；并发调用按 FIFO 排队。
+     * @description 在单资源键上独占执行异步任务；并发调用按资源 FIFO 排队。
      * @param lockKey 规范化资源键（如 `assets/ui/Foo.prefab`）。
      * @param worker 受保护任务。
      * @returns worker 结果。
      */
     public async runExclusive<T>(lockKey: string, worker: () => Promise<T>): Promise<T> {
-        const normalized = normalizeResourceLockKey(lockKey);
-        if (normalized.length === 0) {
-            return worker();
-        }
-        await this._acquire(normalized);
-        try {
-            return await worker();
-        } finally {
-            this._release(normalized);
-        }
+        return this.runExclusiveMany([lockKey], worker);
     }
 
     /**
-     * @description 按字典序依次获取多把资源锁后执行 worker，避免 commit/批写死锁。
-     * @param lockKeys 资源键列表。
+     * @description 原子获取全部资源锁后执行 worker，避免持有部分资源等待其余资源。
+     * @param lockKeys 资源键列表；空集合降级为进程级项目锁，不允许绕锁。
      * @param worker 受保护任务。
      * @returns worker 结果。
      */
     public async runExclusiveMany<T>(lockKeys: readonly string[], worker: () => Promise<T>): Promise<T> {
-        const ordered = [...new Set(lockKeys.map((key) => normalizeResourceLockKey(key)).filter((key) => key.length > 0))].sort();
-        if (ordered.length === 0) {
-            return worker();
+        const normalizedKeys = lockKeys.map((key) => normalizeResourceLockKey(key)).filter((key) => key.length > 0);
+        const lockSet = new Set(normalizedKeys.length > 0 ? normalizedKeys : [GLOBAL_FALLBACK_LOCK_KEY]);
+        await this._acquireMany(lockSet);
+        try {
+            return await worker();
+        } finally {
+            this._releaseMany(lockSet);
         }
-        return this._runExclusiveManyOrdered(ordered, 0, worker);
     }
 
     /**
-     * @description 递归按序加锁。
-     * @param keys 已排序键。
-     * @param index 当前下标。
-     * @param worker 最内层任务。
-     * @returns worker 结果。
+     * @description 等待完整资源集合一次性可用。
+     * @param lockKeys 已归一资源集合。
+     * @returns 全部锁已登记后完成。
      */
-    private async _runExclusiveManyOrdered<T>(
-        keys: readonly string[],
-        index: number,
-        worker: () => Promise<T>,
-    ): Promise<T> {
-        if (index >= keys.length) {
-            return worker();
-        }
-        const key = keys[index];
-        if (key == null) {
-            return worker();
-        }
-        return this.runExclusive(key, () => this._runExclusiveManyOrdered(keys, index + 1, worker));
-    }
-
-    /**
-     * @description 等待并获取资源锁。
-     * @param lockKey 已规范化键。
-     * @returns 无返回值。
-     */
-    private async _acquire(lockKey: string): Promise<void> {
-        if (!this._held.has(lockKey)) {
-            this._held.add(lockKey);
-            return;
-        }
-        await new Promise<void>((resolve) => {
-            const queue = this._queues.get(lockKey) ?? [];
-            queue.push(resolve);
-            this._queues.set(lockKey, queue);
+    private async _acquireMany(lockKeys: ReadonlySet<string>): Promise<void> {
+        await new Promise<void>((resolveAcquire) => {
+            this._pending.push({ lockKeys, grant: resolveAcquire });
+            this._drain();
         });
     }
 
     /**
-     * @description 释放资源锁并唤醒下一个等待者。
-     * @param lockKey 已规范化键。
+     * @description 启动所有不冲突且未越过同资源前序请求的任务。
      * @returns 无返回值。
      */
-    private _release(lockKey: string): void {
-        const queue = this._queues.get(lockKey);
-        const next = queue?.shift();
-        if (next != null) {
-            next();
-            if (queue != null && queue.length === 0) {
-                this._queues.delete(lockKey);
+    private _drain(): void {
+        let index = 0;
+        while (index < this._pending.length) {
+            const request = this._pending[index];
+            if (request == null || !this._canGrant(request, this._pending.slice(0, index))) {
+                index += 1;
+                continue;
             }
-            return;
+            this._pending.splice(index, 1);
+            for (const lockKey of request.lockKeys) {
+                this._held.add(lockKey);
+            }
+            request.grant();
         }
-        this._held.delete(lockKey);
-        this._queues.delete(lockKey);
+    }
+
+    /**
+     * @description 判断请求是否可原子授予且不越过冲突的前序请求。
+     * @param request 当前请求。
+     * @param earlierRequests 更早但尚未授予的请求。
+     * @returns 可以授予时返回 true。
+     */
+    private _canGrant(
+        request: IResourceWriteLockRequest,
+        earlierRequests: readonly IResourceWriteLockRequest[],
+    ): boolean {
+        if (this._intersects(request.lockKeys, this._held)) {
+            return false;
+        }
+        return !earlierRequests.some((earlier) => this._intersects(request.lockKeys, earlier.lockKeys));
+    }
+
+    /**
+     * @description 一次性释放完整资源集合并继续调度。
+     * @param lockKeys 当前任务持有的资源集合。
+     * @returns 无返回值。
+     */
+    private _releaseMany(lockKeys: ReadonlySet<string>): void {
+        for (const lockKey of lockKeys) {
+            this._held.delete(lockKey);
+        }
+        this._drain();
+    }
+
+    /**
+     * @description 判断两个资源集合是否相交。
+     * @param left 左集合。
+     * @param right 右集合。
+     * @returns 存在相同资源键时返回 true。
+     */
+    private _intersects(left: ReadonlySet<string>, right: ReadonlySet<string>): boolean {
+        for (const lockKey of left) {
+            if (right.has(lockKey)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

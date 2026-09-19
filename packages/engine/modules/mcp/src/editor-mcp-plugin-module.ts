@@ -142,7 +142,26 @@ export class EditorMcpPluginModule extends PluginModuleBase {
             if (!this._isActionResult(result)) {
                 throw new Error('editor_mcp_capability_result_invalid');
             }
-            return result.data;
+            if (result.taskId == null && result.taskStatus == null) {
+                return result.data;
+            }
+            const taskMetadata = {
+                ...(result.taskId == null ? {} : { taskId: result.taskId }),
+                ...(result.taskStatus == null ? {} : { taskStatus: result.taskStatus }),
+            };
+            if (this._isRecord(result.data)) {
+                const postflight = 'postflight' in result.data
+                    ? result.data.postflight
+                    : 'taskPostflight' in result.data
+                      ? result.data.taskPostflight
+                      : undefined;
+                return {
+                    ...result.data,
+                    ...taskMetadata,
+                    ...(postflight === undefined ? {} : { postflight }),
+                };
+            }
+            return { value: result.data, ...taskMetadata };
         } catch (error: unknown) {
             throw this._asHostCompatibleClientRejection(error);
         }
@@ -175,6 +194,15 @@ export class EditorMcpPluginModule extends PluginModuleBase {
         value: readonly IEditorMcpCapabilityDescriptor[] | IEditorMcpActionPlan | IEditorMcpActionResult,
     ): value is IEditorMcpActionResult {
         return typeof value === 'object' && value != null && !Array.isArray(value) && 'data' in value;
+    }
+
+    /**
+     * @description 判断值是否为可安全展开的记录对象。
+     * @param value 未知值。
+     * @returns 普通记录对象时返回 true。
+     */
+    private _isRecord(value: unknown): value is Record<string, unknown> {
+        return typeof value === 'object' && value != null && !Array.isArray(value);
     }
 
     /** @description 撤销本次激活期注册的 capability，保证停用幂等。 */

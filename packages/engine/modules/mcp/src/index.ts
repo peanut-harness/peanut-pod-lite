@@ -1,9 +1,24 @@
 export { EditorMcpActionRouter } from './editor-mcp-action-router.js';
 export {
+    EditorMcpAssetDbTransaction,
+    type IEditorMcpAssetDbRegistrationEvidence,
+    type IEditorMcpAssetDbTransactionEvidence,
+    type IEditorMcpAssetDbTransactionHost,
+    type IEditorMcpAssetDbTransactionMessagePort,
+    type IEditorMcpAssetDbTransactionOptions,
+} from './editor-mcp-asset-db-transaction.js';
+export {
     ResourceOperationTaskQueue,
-    type IResourceOperationTaskRecord,
-    type ResourceOperationTaskStatus,
 } from './resource-operation-task-queue.js';
+export { ResourceOperationPlanner } from './resource-operation-planner.js';
+export { ResourceOperationClosureResolver } from './resource-operation-closure-resolver.js';
+export { ResourceOperationTaskError } from './resource-operation-task-error.js';
+export {
+    type IResourceOperationTaskRecord,
+    type IResourceOperationTaskPlan,
+    type IResourceOperationClosureSummary,
+    type ResourceOperationTaskStatus,
+} from './resource-operation-contracts.js';
 export { EditorMcpLumenGateway } from './editor-mcp-lumen-gateway.js';
 export { EditorMcpPluginModule } from './editor-mcp-plugin-module.js';
 export {

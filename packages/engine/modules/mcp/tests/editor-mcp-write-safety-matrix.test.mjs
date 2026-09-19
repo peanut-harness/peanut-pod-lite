@@ -118,6 +118,9 @@ async function activateRouter(options = {}) {
                     if (message === 'query-ready') {
                         return true;
                     }
+                    if (message === 'query-asset-info') {
+                        return { uuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', importer: 'test' };
+                    }
                     if (message === 'import-asset' || message === 'import') {
                         return { imported: args[0] };
                     }
@@ -550,6 +553,19 @@ test('matrix: flat tools expose one tool per operation with correct readOnly/ris
     assert.equal(refresh.readOnly, false);
     assert.equal(refresh.risk, 'write');
     assert.equal(refresh.lane, 'lumen-offline');
+    assert.deepEqual(refresh.aiHandling.successSignals, [
+        'response.ok=true',
+        'result.taskStatus=succeeded',
+        'result.postflight.verified=true',
+    ]);
+    assert.equal(refresh.aiHandling.failureField, 'failure');
+    assert.equal(refresh.aiHandling.unknownStateAction, 'query_before_retry');
+    assert.equal(refresh.aiHandling.blindRetryAllowed, false);
+    assert.deepEqual(refresh.outputSchema.required, ['taskId', 'taskStatus', 'postflight']);
+    assert.equal(refresh.outputSchema.additionalProperties, true);
+    assert.deepEqual(refresh.outputSchema.properties.postflight.required, ['verified']);
+    assert.match(refresh.description['en-US'], /Never retry a write blindly/u);
+    assert.deepEqual(version.aiHandling.successSignals, ['response.ok=true']);
     const nodeRm = definitions.get('peanut.editor-mcp.lumen-node-rm');
     assert.ok(nodeRm, 'lumen-node-rm');
     assert.equal(nodeRm.risk, 'destructive');
@@ -572,6 +588,16 @@ test('matrix: flat read tool handler routes operation and returns data', async (
     assert.equal(typeof version, 'function');
     const data = await version({});
     assert.equal(data.raw, '3.8.7');
+});
+
+test('matrix: flat write tool exposes task postflight under the public success field', async () => {
+    const { handlers } = await activateRouter();
+    const refresh = handlers.get('peanut.editor-mcp.asset-catalog-refresh');
+    assert.equal(typeof refresh, 'function');
+    const result = await refresh({});
+    assert.equal(result.taskStatus, 'succeeded');
+    assert.equal(typeof result.taskId, 'string');
+    assert.equal(result.postflight.verified, true);
 });
 
 test('matrix: Lite schemas do not accept Pro plan control fields', async () => {

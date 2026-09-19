@@ -10,6 +10,7 @@ import {
 } from '@peanut/pod-engine/lumen';
 
 import { Lumen24McpBridge } from './editor-mcp-lumen-24-bridge.js';
+import type { EditorMcpAssetDbTransaction } from './editor-mcp-asset-db-transaction.js';
 import type { EditorMcpLumenGateway } from './editor-mcp-lumen-gateway.js';
 
 /**
@@ -22,6 +23,10 @@ export interface IEditorMcpLumenCommitHost {
     readonly lumen: EditorMcpLumenGateway;
     /** @description catalog 快查。 */
     readonly requireCatalogLookup: () => IAssetCatalogFastLookup;
+    /**
+     * @description AssetDB 原子登记事务。
+     */
+    readonly assetDbTransaction: EditorMcpAssetDbTransaction;
 }
 
 /**
@@ -53,24 +58,24 @@ export class EditorMcpLumenCommitFacade {
         const directoryLockKeys = [
             ...new Set(refreshPaths.map((pathValue) => normalizeResourceDirectoryLockKey(pathValue)).filter((key) => key.length > 0)),
         ].sort();
-        return LumenResourceWriteLock.shared().runExclusiveMany(directoryLockKeys, () =>
-            LumenResourceWriteLock.shared().runExclusiveMany(fileLockKeys, async () => {
-                const editorRefresh = await this._host.lumen.refreshForCommit(refreshPaths);
+        const lockKeys = [...new Set([...directoryLockKeys, ...fileLockKeys])].sort();
+        return LumenResourceWriteLock.shared().runExclusiveMany(lockKeys, async () => {
+                const transaction = await this._host.assetDbTransaction.commit(refreshPaths, { allowUnavailable: true });
                 const projectRoot = await this._host.requireProjectPath();
                 const catalog = this._host.requireCatalogLookup().refresh(projectRoot);
                 const validation = await this._validateCommittedHierarchy(projectRoot, input);
                 const guidance = this._buildCommitAcceptanceGuidance(validation);
                 return {
-                    editorRefresh,
+                    editorRefresh: transaction.refresh,
+                    transaction,
                     catalog,
                     validation,
-                    pipeline: ['assetdb_refresh', 'hierarchy_settle', 'catalog_refresh', 'validate_refs'],
+                    pipeline: ['assetdb_refresh', 'hierarchy_settle', 'assetdb_registration', 'catalog_refresh', 'validate_refs'],
                     acceptancePipeline: guidance.acceptancePipeline,
                     recommendedNext: guidance.recommendedNext,
                     nextHint: guidance.nextHint,
                 };
-            }),
-        );
+            });
     }
 
     /**

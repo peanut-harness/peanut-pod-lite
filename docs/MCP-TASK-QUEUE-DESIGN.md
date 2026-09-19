@@ -177,9 +177,11 @@ uuid:<sub-asset-uuid>
 ### 3. AssetDB registration
 
 - 先确保父目录已由 AssetDB 登记。
+- 对 `asset.copy` / `asset.createFolder` 这类纯磁盘变更，若目标路径尚未被 `query-asset-info` 识别，transaction 必须在目标目录用 `asset-db.create-asset` 创建短生命周期 JSON 探针，借助 Creator 原生 AssetDB 注册父目录和同目录资产；refresh/settle 后删除探针，删除失败必须清理文件与 `.meta` 并使缓存失效。
 - 新建主资源必须等待 `query-asset-info` 返回有效 UUID。
 - sidecar、子资源和依赖资源必须达到 ready 状态。
 - 任一资源仍是 `pending` 时，任务失败关闭，不继续 compAdd、bind、commit 或 catalog。
+- 成功事务结束后不得残留 `__peanut_assetdb_register_*.json` 或对应 `.meta`。
 
 这一步专门防止 Creator 3.8 Assets 面板的 `original asset is not exist` 竞态。
 
@@ -238,6 +240,19 @@ lumen.commit
 
 证据按 `taskId` 隔离。批量矩阵必须同时提供组件分母、通过、拒绝、失败和未覆盖列表；不能用一个总数替代逐项产物。
 
+## AI 调用契约
+
+MCP 工具目录必须同时提供自然语言说明、精确 input/output schema 和 `aiHandling` 机器规则。AI 不得仅依据 HTTP 状态、磁盘文件存在或异常字符串判断结果：
+
+1. 只读调用仅在 `response.ok=true` 时成功。
+2. 写调用仅在 `response.ok=true`、`taskStatus=succeeded`、`postflight.verified=true` 同时成立时成功。
+3. 失败响应保留兼容字段 `error`，并返回 `failure.schemaVersion/code/category/retryable/state/recommendedAction`。
+4. 已入队写任务失败时，`failure` 还必须包含 `taskId/taskStatus/operation`，便于审计和后续状态查询。
+5. `failure.state` 为 `unknown` 或 `may_have_changed` 时，必须先用只读工具查询目标资源，禁止直接重放写操作。
+6. `approval_required`、`confirmation_required`、`invalid_input` 分别只允许在取得匹配租约、补充显式确认、修复输入后重试；`postflight_failed` 必须先检查 `project.log`。
+
+目录说明和结构化规则必须由契约测试覆盖，普通 JSON 与 NDJSON 流式失败响应必须返回相同的 `failure`。契约从 Core policy 目录经 Creator host 到 Hub summary 不得被裁剪；registry 拒绝畸形 `aiHandling`。已携完整结构化失败的任务终态直接返回调用方，不得再以未处理异常重复写入 `project.log`。
+
 ## 分阶段改造
 
 ### Phase 1：任务外壳
@@ -246,23 +261,30 @@ lumen.commit
 - [x] 将现有写 MCP 调用包装成同步任务。
 - [x] 保留现有工具名和结果字段，并为写结果附加 `taskId/taskStatus`。
 
-Phase 1 当前是 Router 实例级 FIFO：它保证同一宿主 Router 中写操作不会交叉执行，但还没有完成资源闭包锁、跨 Router 工程级 writer、异步任务控制面或 AssetDB 原子创建。
+Phase 1 已从 Router 实例级 FIFO 升级为进程内共享的项目调度器：同步结果继续附加 `taskId/taskStatus`，失败异常也携带最终任务记录，完成历史按上限回收。
 
 ### Phase 2：资源闭包和锁预留
 
-- [ ] 接入 `AssetImportPlanner`、AssetDB 查询、UUID 扫描和 `LumenResourceWriteLock`。
-- 所有锁一次性预留，增加冲突、超时、取消和幂等测试。
+- [x] 接入 operation 资源推导，并补齐 copy/rename 目标、主资源 `.meta` 与父目录锁。
+- [x] `ResourceOperationTaskQueue` 与 `LumenResourceWriteLock` 都一次性原子预约完整锁集合；同资源 FIFO、不同资源并行，空集合不再绕锁。
+- [x] 同工程跨 Router 共享 writer 屏障，不同工程 writer 可并行。
+- [x] 接入 `.meta` UUID/子资源、序列化引用和传递依赖扫描，并把闭包纳入一次性锁预留。
+- [ ] 增加任务级超时、取消和幂等控制。
 
 ### Phase 3：完整事务
 
-- 将 scaffold/compAdd/compSet/bind/commit 合并为批次执行。
-- AssetDB 未登记直接失败关闭。
-- 将 preview 和日志增量纳入任务成功条件。
+- [ ] 将 scaffold/compAdd/compSet/bind/commit 合并为批次执行。
+- [x] 通过统一 AssetDB transaction 执行父目录注册探针、refresh/settle、查询 UUID/子资源和 `.meta`，未登记直接失败关闭，并清理探针。
+- [x] 将 `project.log` 增量错误和警告纳入写任务成功条件。
+- [x] 失败任务返回稳定错误码、失败分类、状态歧义、可重试性、推荐动作和任务标识；普通与流式 Hub 响应保持一致。
+- [x] 工具目录公开写任务成功判据与禁止盲目重试规则。
+- [ ] 将 preview 状态纳入任务成功条件。
 
 ### Phase 4：异步和并行
 
-- 增加 `task.status/cancel/retry/evidence`。
-- 增加工程级 writer、优先级、公平调度和跨工程并行。
+- [ ] 增加 `task.status/cancel/retry/evidence`。
+- [x] 增加工程级 writer、公平的冲突 FIFO 和跨工程并行。
+- [ ] 增加优先级、取消、超时和批量公平配额。
 - 用两个 bridge connection 运行冲突和不冲突任务回归。
 
 ## 验收标准

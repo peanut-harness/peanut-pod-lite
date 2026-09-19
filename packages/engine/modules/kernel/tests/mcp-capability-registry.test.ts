@@ -90,6 +90,21 @@ test('MCP capability registry should reject unscoped names and inconsistent risk
         readOnly: true,
         risk: 'write',
     }, async (): Promise<unknown> => null), /mcp_capability_definition_invalid/);
+    assert.throws(() => registry.register('peanut.example', {
+        name: 'peanut.example.bad-guidance',
+        description: 'Invalid AI handling guidance.',
+        category: 'workflow',
+        inputSchema: { type: 'object' },
+        readOnly: true,
+        risk: 'read',
+        aiHandling: {
+            schemaVersion: 1,
+            successSignals: [],
+            failureField: 'failure',
+            unknownStateAction: 'query_before_retry',
+            blindRetryAllowed: false,
+        },
+    }, async (): Promise<unknown> => null), /mcp_capability_ai_handling_invalid/);
 });
 
 test('control-flow refusal must not report diagnostic / still rejects invoke', async (): Promise<void> => {
@@ -155,4 +170,38 @@ test('unexpected handler Error still reports diagnostic', async (): Promise<void
     });
     await assert.rejects(registry.invoke('peanut.example.boom', {}, { connectionId: 'a'.repeat(32) }), /module_load_failed/);
     assert.equal(reports.length, 1);
+});
+
+test('structured task failure reaches the caller without duplicate diagnostic logging', async (): Promise<void> => {
+    const reports: unknown[] = [];
+    const registry = new McpCapabilityRegistry((pluginId, error) => {
+        reports.push({ pluginId, error });
+    });
+    const failure = Object.assign(new Error('silent_copy_seed_missing:assets/missing.json'), {
+        mcpFailure: {
+            schemaVersion: 1,
+            code: 'silent_copy_seed_missing',
+            category: 'execution_failed',
+            reason: 'The operation failed without a safely confirmed final project state.',
+            retryable: false,
+            state: 'unknown',
+            recommendedAction: 'stop',
+            taskId: 'task-1',
+            taskStatus: 'failed',
+            operation: 'asset.copy',
+        },
+    });
+    registry.register('peanut.example', {
+        name: 'peanut.example.copy',
+        description: 'Copy an asset.',
+        category: 'cocos',
+        inputSchema: { type: 'object', additionalProperties: false },
+        readOnly: true,
+        risk: 'read',
+    }, async (): Promise<unknown> => {
+        throw failure;
+    });
+
+    await assert.rejects(registry.invoke('peanut.example.copy', {}, { connectionId: 'a'.repeat(32) }), (error) => error === failure);
+    assert.equal(reports.length, 0);
 });

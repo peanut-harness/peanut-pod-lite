@@ -26,6 +26,25 @@ export function createEditorMcpExecuteOperation(runtime: IGrantedRuntimeClientSe
     return async (operation, input) => {
         const result = await router.dispatch('cocos.call', { operation, input });
         if (typeof result === 'object' && result != null && !Array.isArray(result) && 'data' in result) {
+            if ('taskId' in result || 'taskStatus' in result) {
+                const taskMetadata = {
+                    ...('taskId' in result ? { taskId: result.taskId } : {}),
+                    ...('taskStatus' in result ? { taskStatus: result.taskStatus } : {}),
+                };
+                if (typeof result.data === 'object' && result.data != null && !Array.isArray(result.data)) {
+                    const postflight = 'postflight' in result.data
+                        ? result.data.postflight
+                        : 'taskPostflight' in result.data
+                          ? result.data.taskPostflight
+                          : undefined;
+                    return {
+                        ...result.data,
+                        ...taskMetadata,
+                        ...(postflight === undefined ? {} : { postflight }),
+                    };
+                }
+                return { value: result.data, ...taskMetadata };
+            }
             return result.data;
         }
         return result;

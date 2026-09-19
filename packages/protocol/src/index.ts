@@ -1,10 +1,15 @@
 export type {
     IMcpCapabilityCatalog,
     IMcpCapabilityDefinition,
+    IMcpAiHandlingGuidance,
+    IMcpFailureDetails,
     IMcpJsonSchema,
     McpCapabilityRisk,
     McpCapabilityCategory,
     McpCapabilityExecutionLane,
+    McpFailureCategory,
+    McpFailureRecommendedAction,
+    McpFailureState,
 } from './mcp/mcp-capability-contracts.js';
 export type {
     ICommandContribution,

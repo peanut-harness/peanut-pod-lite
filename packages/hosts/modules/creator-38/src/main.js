@@ -131,8 +131,10 @@ function toHubCapabilityDefinition(definition) {
             : `Lite capability: ${definition.name}`,
         category: 'cocos',
         inputSchema: definition.inputSchema,
+        ...(definition.outputSchema != null ? { outputSchema: definition.outputSchema } : {}),
         readOnly,
         risk,
+        ...(definition.aiHandling != null ? { aiHandling: definition.aiHandling } : {}),
     });
 }
 
@@ -163,9 +165,36 @@ function bindHubLocalApprovalLeaseMirror() {
         if (coreModule == null || typeof coreModule.issueApprovalLease !== 'function') {
             return null;
         }
-        return coreModule.issueApprovalLease(request);
+        return coreModule.issueApprovalLease(withLiteOperationAliases(request));
     });
     return true;
+}
+
+/**
+ * Expand Hub capability names with the Lite operation IDs consumed by the
+ * local execution dispatcher. Hub keeps its namespaced tool whitelist while
+ * the mirrored lease accepts the corresponding internal operation as well.
+ *
+ * @param {Record<string, unknown>} request Hub approval lease request.
+ * @returns {Record<string, unknown>} Request with stable Hub and Lite operation aliases.
+ */
+function withLiteOperationAliases(request) {
+    if (!Array.isArray(request.operations) || request.operations.length === 0) {
+        return request;
+    }
+    const operations = new Set();
+    for (const operation of request.operations) {
+        if (typeof operation !== 'string' || operation.trim().length === 0) {
+            continue;
+        }
+        const normalized = operation.trim();
+        operations.add(normalized);
+        const liteOperation = toolHandlers.get(normalized)?.definition?.operation;
+        if (typeof liteOperation === 'string' && liteOperation.trim().length > 0) {
+            operations.add(liteOperation.trim());
+        }
+    }
+    return Object.freeze({ ...request, operations: Object.freeze([...operations]) });
 }
 
 function registerLocalApprovalLeaseTool() {

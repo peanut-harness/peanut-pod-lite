@@ -46,6 +46,7 @@ import { McpControlFlowRefusal } from '@peanut/pod-engine/kernel';
 import { ProjectLogPostflightMonitor } from '@peanut/pod-engine/runtime';
 
 import { Lumen24McpBridge } from './editor-mcp-lumen-24-bridge.js';
+import type { EditorMcpAssetDbTransaction } from './editor-mcp-asset-db-transaction.js';
 import type { EditorMcpLumenGateway } from './editor-mcp-lumen-gateway.js';
 
 /**
@@ -58,6 +59,10 @@ export interface IEditorMcpSilentAssetHost {
     readonly lumen: EditorMcpLumenGateway;
     /** @description 授权 runtime。 */
     readonly runtime: IGrantedRuntimeClientSet;
+    /**
+     * @description AssetDB 原子登记事务。
+     */
+    readonly assetDbTransaction: EditorMcpAssetDbTransaction;
     /** @description 普通对象判定。 */
     readonly isRecord: (value: unknown) => value is Record<string, unknown>;
 }
@@ -139,8 +144,8 @@ export class EditorMcpSilentAssetGateway {
             FileAssetDependencyIndex.invalidate(projectRoot);
             const copiedPaths = [...new Set(result.items.map((item: ISilentAssetClosureCopyItem) => item.toPath))];
             const dirReady = await this._awaitNewAssetReadyWithoutForceRefresh([request.targetDirectory]);
-            const refresh = await this._awaitAssetDbRefreshBarrier(copiedPaths);
-            return { ...result, dirReady, refresh };
+            const transaction = await this._host.assetDbTransaction.commit(copiedPaths);
+            return { ...result, dirReady, refresh: transaction.refresh, transaction };
         });
     }
 
@@ -335,7 +340,8 @@ export class EditorMcpSilentAssetGateway {
             });
             FileAssetDependencyIndex.invalidate(projectRoot);
             const refresh = await this._refreshAfterSilentMoveOrRename(result.fromPath, result.toPath);
-            return { ...result, refresh };
+            const transaction = await this._host.assetDbTransaction.commit([result.toPath], { refresh: false });
+            return { ...result, refresh, transaction };
         });
     }
 
@@ -352,7 +358,8 @@ export class EditorMcpSilentAssetGateway {
             if (Lumen24McpBridge.isCreator2x()) {
                 const created = await Lumen24McpBridge.createFolder(projectRoot, request.path);
                 const refresh = await this._awaitNewAssetReadyWithoutForceRefresh([created.path]);
-                return { ...created, refresh, source: 'editor.assetdb' };
+                const transaction = await this._host.assetDbTransaction.commit([created.path], { refresh: false });
+                return { ...created, refresh, transaction, source: 'editor.assetdb' };
             }
             const folder = new SilentAssetCreateFolder();
             let result: {
@@ -379,7 +386,8 @@ export class EditorMcpSilentAssetGateway {
                 result = { ...ensured, existed: true };
             }
             const refresh = await this._awaitNewAssetReadyWithoutForceRefresh([result.path]);
-            return { ...result, refresh };
+            const transaction = await this._host.assetDbTransaction.commit([result.path], { refresh: false });
+            return { ...result, refresh, transaction };
         });
     }
 
@@ -548,28 +556,15 @@ export class EditorMcpSilentAssetGateway {
                 createdDirectories.length > 0
                     ? await this._awaitNewAssetReadyWithoutForceRefresh(createdDirectories)
                     : null;
-            const refresh = await this._awaitAssetDbRefreshBarrier(written);
-            // Ensure sidecar .meta exists before callers rename/move (uuid continuity).
-            const metaReady: string[] = [];
-            const deadline = Date.now() + 5000;
-            for (const relative of written) {
-                const metaAbsolute = join(projectRoot, `${relative}.meta`);
-                while (Date.now() < deadline) {
-                    if (existsSync(metaAbsolute)) {
-                        metaReady.push(relative);
-                        break;
-                    }
-                    await new Promise<void>((resolve) => setTimeout(resolve, 50));
-                }
-            }
-            await this._awaitNewAssetReadyWithoutForceRefresh(written);
+            const transaction = await this._host.assetDbTransaction.commit(written);
             return {
                 written,
                 createdDirectories,
                 byteCount: request.files.reduce((sum, file) => sum + Buffer.byteLength(file.content, 'utf8'), 0),
                 dirReady,
-                refresh,
-                metaReady,
+                refresh: transaction.refresh,
+                metaReady: transaction.registrations.map((registration) => registration.dbPath.slice('db://'.length)),
+                transaction,
             };
         });
     }
@@ -814,6 +809,10 @@ export class EditorMcpSilentAssetGateway {
                 expandClosure: request.expandClosure !== false,
                 projectRoot,
             });
+            const transaction = await this._host.assetDbTransaction.commit(
+                result.imported.map((row) => row.targetDbPath),
+                { refresh: false, requireMeta: false },
+            );
             if (ticket != null) {
                 for (const row of result.imported) {
                     let uuid: string | undefined;
@@ -834,7 +833,7 @@ export class EditorMcpSilentAssetGateway {
                 FileAssetDependencyIndex.invalidate(projectRoot);
             }
             const postflight = monitor.readDelta(checkpoint);
-            return { ...result, postflight, planId: ticket?.id, managedAssetsMode };
+            return { ...result, transaction, postflight, planId: ticket?.id, managedAssetsMode };
         });
     }
 
