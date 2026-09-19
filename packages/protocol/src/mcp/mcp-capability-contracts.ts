@@ -17,6 +17,110 @@ export type McpCapabilityExecutionLane = 'lumen-offline' | 'editor-ui' | 'previe
 export type McpCapabilityCategory = 'cocos' | 'atom' | 'workflow';
 
 /**
+ * @description MCP 调用失败的稳定分类，供 AI 选择修复、审批、查询或停止策略。
+ */
+export type McpFailureCategory =
+    | 'invalid_input'
+    | 'approval_required'
+    | 'confirmation_required'
+    | 'assetdb_pending'
+    | 'postflight_failed'
+    | 'timeout'
+    | 'cancelled'
+    | 'unavailable'
+    | 'execution_failed';
+
+/**
+ * @description MCP 失败后项目状态的保守判定。
+ */
+export type McpFailureState = 'not_started' | 'unchanged' | 'may_have_changed' | 'unknown';
+
+/**
+ * @description AI 收到失败后必须采用的下一步动作类型。
+ */
+export type McpFailureRecommendedAction =
+    | 'fix_input'
+    | 'request_approval'
+    | 'confirm_destructive'
+    | 'query_state_before_retry'
+    | 'retry_same_request'
+    | 'restore_service'
+    | 'inspect_project_log'
+    | 'stop';
+
+/**
+ * @description MCP Hub 对调用方返回的安全失败详情。
+ */
+export interface IMcpFailureDetails extends ContractPayload {
+    /**
+     * @description 失败详情协议版本。
+     */
+    readonly schemaVersion: 1;
+    /**
+     * @description 可稳定匹配且不包含敏感数据的错误码。
+     */
+    readonly code: string;
+    /**
+     * @description 失败所属的处理类别。
+     */
+    readonly category: McpFailureCategory;
+    /**
+     * @description 面向用户与 AI 的受控失败原因。
+     */
+    readonly reason: string;
+    /**
+     * @description 完成推荐动作后是否允许重试。
+     */
+    readonly retryable: boolean;
+    /**
+     * @description 失败发生后项目是否可能已经改变。
+     */
+    readonly state: McpFailureState;
+    /**
+     * @description AI 必须优先执行的下一步动作。
+     */
+    readonly recommendedAction: McpFailureRecommendedAction;
+    /**
+     * @description 写任务标识；失败发生在入队前时省略。
+     */
+    readonly taskId?: string;
+    /**
+     * @description 写任务最终状态；失败发生在入队前时省略。
+     */
+    readonly taskStatus?: 'failed' | 'cancelled' | 'timed_out';
+    /**
+     * @description 失败对应的稳定内部 operation。
+     */
+    readonly operation?: string;
+}
+
+/**
+ * @description 工具目录提供给 AI 的机器可读调用处理规则。
+ */
+export interface IMcpAiHandlingGuidance extends ContractPayload {
+    /**
+     * @description 调用处理规则版本。
+     */
+    readonly schemaVersion: 1;
+    /**
+     * @description AI 判定调用成功必须同时满足的字段表达式。
+     */
+    readonly successSignals: readonly string[];
+    /**
+     * @description 失败详情所在的响应字段。
+     */
+    readonly failureField: 'failure';
+    /**
+     * @description 项目状态不明时必须执行的动作。
+     */
+    readonly unknownStateAction: 'query_before_retry';
+    /**
+     * @description 是否允许 AI 在未检查 failure 时自动重试。
+     */
+    readonly blindRetryAllowed: false;
+}
+
+/**
  * @description 受限 JSON Schema 子集，用于向 MCP 调用方公开稳定参数边界。
  */
 export interface IMcpJsonSchema extends ContractPayload {
@@ -58,6 +162,10 @@ export interface IMcpCapabilityDefinition extends ContractPayload {
      * @description 可选执行车道（editor-mcp 一级工具会填）；其它插件可省略。
      */
     readonly lane?: McpCapabilityExecutionLane;
+    /**
+     * @description 面向 AI 调用方的成功判据与失败处理规则。
+     */
+    readonly aiHandling?: IMcpAiHandlingGuidance;
 }
 
 /**

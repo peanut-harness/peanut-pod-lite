@@ -2,6 +2,7 @@ import type { IMcpCapabilityCatalog, IMcpCapabilityDefinition, LocalizedText } f
 import type { IMcpCapabilityInvocation, IMcpCapabilityProgress, McpCapabilityHandler } from '@peanut/pod-sdk';
 
 import { isMcpControlFlowRefusal } from './mcp-control-flow-refusal.js';
+import { McpFailurePresenter } from './mcp-failure-presenter.js';
 
 export type { IMcpCapabilityInvocation, IMcpCapabilityProgress, McpCapabilityHandler } from '@peanut/pod-sdk';
 
@@ -264,7 +265,7 @@ export class McpCapabilityRegistry {
             output = await registration.handler(this._asHandlerInput(input), invocation);
         } catch (error) {
             // Expected gate/policy refusal: Hub gets structured ok:false; do not console.error via diagnostic.
-            if (!isMcpControlFlowRefusal(error)) {
+            if (!isMcpControlFlowRefusal(error) && !McpFailurePresenter.hasStructuredFailure(error)) {
                 this._reporter?.(registration.pluginId, error, {
                     capability: name,
                     connectionId: invocation.connectionId,
@@ -306,6 +307,9 @@ export class McpCapabilityRegistry {
         if (!this._isSchema(definition.inputSchema) || definition.outputSchema != null && !this._isSchema(definition.outputSchema)) {
             throw new Error(`mcp_capability_schema_invalid:${definition.name}`);
         }
+        if (definition.aiHandling != null && !this._isAiHandlingGuidance(definition.aiHandling)) {
+            throw new Error(`mcp_capability_ai_handling_invalid:${definition.name}`);
+        }
     }
 
     /**
@@ -333,6 +337,23 @@ export class McpCapabilityRegistry {
             return false;
         }
         return true;
+    }
+
+    /**
+     * @description 验证公开给 AI 的调用处理规则使用受支持的稳定协议。
+     */
+    private _isAiHandlingGuidance(value: unknown): value is NonNullable<IMcpCapabilityDefinition['aiHandling']> {
+        if (typeof value !== 'object' || value == null || Array.isArray(value)) {
+            return false;
+        }
+        const guidance = value as Record<string, unknown>;
+        return guidance.schemaVersion === 1
+            && Array.isArray(guidance.successSignals)
+            && guidance.successSignals.length > 0
+            && guidance.successSignals.every((signal) => typeof signal === 'string' && signal.trim().length > 0)
+            && guidance.failureField === 'failure'
+            && guidance.unknownStateAction === 'query_before_retry'
+            && guidance.blindRetryAllowed === false;
     }
 
     /** @description 按受支持的 JSON Schema 子集收窄外部输入。 */

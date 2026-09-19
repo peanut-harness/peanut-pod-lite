@@ -1,4 +1,11 @@
-import type { EditorMcpOperationId, IEditorMcpCapabilityDescriptor, IMcpCapabilityDefinition, IMcpJsonSchema } from '@peanut/pod-protocol';
+import type {
+    EditorMcpOperationId,
+    IEditorMcpCapabilityDescriptor,
+    IMcpAiHandlingGuidance,
+    IMcpCapabilityDefinition,
+    IMcpJsonSchema,
+    LocalizedText,
+} from '@peanut/pod-protocol';
 
 const TOOL_NAME_PREFIX = 'peanut.editor-mcp.';
 
@@ -60,14 +67,78 @@ export class EditorMcpToolCatalog {
             }
             return {
                 name: this.toolName(descriptor.operation),
-                description: descriptor.description,
+                description: this._descriptionWithAiContract(descriptor.description, descriptor.readOnly),
                 category: 'cocos',
                 inputSchema,
+                ...(descriptor.readOnly ? {} : { outputSchema: this._writeOutputSchema() }),
                 readOnly: descriptor.readOnly,
                 risk: descriptor.risk,
                 lane: descriptor.lane,
+                aiHandling: this._aiHandling(descriptor.readOnly),
             };
         });
+    }
+
+    /**
+     * @description 为工具说明追加 AI 可直接执行的成功判据与失败规则。
+     * @param description 原始本地化能力说明。
+     * @param readOnly 是否为只读工具。
+     * @returns 包含统一调用规则的本地化说明。
+     */
+    private _descriptionWithAiContract(description: LocalizedText, readOnly: boolean): LocalizedText {
+        const englishRule = readOnly
+            ? ' Treat the call as successful only when response.ok=true. On response.ok=false, inspect failure.code, failure.category, and failure.recommendedAction.'
+            : ' Accept success only when taskStatus=succeeded and postflight.verified=true. On failure inspect the structured failure object; when failure.state is unknown or may_have_changed, query the target state before retrying. Never retry a write blindly.';
+        const chineseRule = readOnly
+            ? ' 仅当 response.ok=true 时判定成功；response.ok=false 时必须读取 failure.code、failure.category 与 failure.recommendedAction。'
+            : ' 仅当 taskStatus=succeeded 且 postflight.verified=true 时判定成功。失败时读取结构化 failure；failure.state 为 unknown 或 may_have_changed 时必须先查询目标状态再重试，禁止盲目重放写操作。';
+        if (typeof description === 'string') {
+            return `${description}${englishRule}`;
+        }
+        return {
+            'en-US': `${description['en-US']}${englishRule}`,
+            'zh-CN': `${description['zh-CN']}${chineseRule}`,
+        };
+    }
+
+    /**
+     * @description 构造 AI 调用处理的机器可读规则。
+     * @param readOnly 是否为只读工具。
+     * @returns 稳定调用规则。
+     */
+    private _aiHandling(readOnly: boolean): IMcpAiHandlingGuidance {
+        return Object.freeze({
+            schemaVersion: 1,
+            successSignals: Object.freeze(
+                readOnly
+                    ? ['response.ok=true']
+                    : ['response.ok=true', 'result.taskStatus=succeeded', 'result.postflight.verified=true'],
+            ),
+            failureField: 'failure',
+            unknownStateAction: 'query_before_retry',
+            blindRetryAllowed: false,
+        });
+    }
+
+    /**
+     * @description 构造所有写工具共享的最小成功输出 schema。
+     * @returns 要求任务与日志验收信号的输出 schema。
+     */
+    private _writeOutputSchema(): IMcpJsonSchema {
+        return {
+            type: 'object',
+            properties: {
+                taskId: this._string('稳定任务标识。'),
+                taskStatus: this._enum(['succeeded'], '同步写任务只有完成后才返回 succeeded。'),
+                postflight: this._object(
+                    { verified: this._boolean('project.log 增量验收是否通过。') },
+                    ['verified'],
+                    true,
+                ),
+            },
+            required: ['taskId', 'taskStatus', 'postflight'],
+            additionalProperties: true,
+        };
     }
 
     /**
@@ -909,10 +980,14 @@ export class EditorMcpToolCatalog {
      * @param required 必填字段列表。
      * @returns 对象 schema。
      */
-    private _object(properties: Readonly<Record<string, IMcpJsonSchema>>, required: readonly string[] = []): IMcpJsonSchema {
+    private _object(
+        properties: Readonly<Record<string, IMcpJsonSchema>>,
+        required: readonly string[] = [],
+        additionalProperties = false,
+    ): IMcpJsonSchema {
         return required.length > 0
-            ? { type: 'object', properties, required, additionalProperties: false }
-            : { type: 'object', properties, additionalProperties: false };
+            ? { type: 'object', properties, required, additionalProperties }
+            : { type: 'object', properties, additionalProperties };
     }
 
     /**

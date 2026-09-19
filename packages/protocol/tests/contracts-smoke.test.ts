@@ -4,6 +4,8 @@ import test from 'node:test';
 import type {
     ICleanupStepResult,
     ICreatorVersionInfo,
+    IMcpCapabilityDefinition,
+    IMcpFailureDetails,
     IPanelBridgeRequest,
     IPluginFailureExport,
     IPluginInstallPlan,
@@ -12,6 +14,39 @@ import type {
     ITaskRequest,
     ITaskResult,
 } from '../src/index';
+
+test('contracts root exports should compose MCP failure and AI handling guidance', (): void => {
+    const failure: IMcpFailureDetails = {
+        schemaVersion: 1,
+        code: 'lumen_asset_db_registration_pending',
+        category: 'assetdb_pending',
+        reason: 'AssetDB registration is pending.',
+        retryable: true,
+        state: 'may_have_changed',
+        recommendedAction: 'query_state_before_retry',
+        taskId: 'contracts-task-failure',
+        taskStatus: 'failed',
+        operation: 'asset.copy',
+    };
+    const definition: IMcpCapabilityDefinition = {
+        name: 'peanut.editor-mcp.asset-copy',
+        description: 'Copy an asset.',
+        category: 'cocos',
+        inputSchema: { type: 'object', additionalProperties: false },
+        readOnly: false,
+        risk: 'write',
+        aiHandling: {
+            schemaVersion: 1,
+            successSignals: ['response.ok=true', 'result.taskStatus=succeeded'],
+            failureField: 'failure',
+            unknownStateAction: 'query_before_retry',
+            blindRetryAllowed: false,
+        },
+    };
+
+    assert.equal(failure.recommendedAction, 'query_state_before_retry');
+    assert.equal(definition.aiHandling?.blindRetryAllowed, false);
+});
 
 test('contracts root exports should support composing manifest, task, panel, and install DTOs', (): void => {
     // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。

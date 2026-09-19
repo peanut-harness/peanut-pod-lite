@@ -231,6 +231,20 @@ async function createActivePluginModule(options = {}) {
                     if (target === 'asset-db' && message === 'open-asset') {
                         return { opened: 'asset' };
                     }
+                    if (target === 'asset-db' && message === 'query-ready') {
+                        return true;
+                    }
+                    if (target === 'asset-db' && message === 'query-asset-info') {
+                        const dbPath = typeof args[0] === 'string' ? args[0] : '';
+                        const projectPath = options.projectPath ?? 'projects/mcp-test';
+                        const relativePath = dbPath.replace(/^db:\/\//u, '');
+                        const metaPath = join(projectPath, `${relativePath}.meta`);
+                        if (!existsSync(metaPath)) {
+                            return null;
+                        }
+                        const meta = JSON.parse(readFileSync(metaPath, 'utf8'));
+                        return { uuid: meta.uuid, importer: meta.importer ?? '' };
+                    }
                     return null;
                 },
             },
@@ -295,7 +309,7 @@ test('Editor MCP plugin should list, plan, and execute supported operations', as
     });
     const lumenCommit = await pluginModule.dispatchMcpAction('cocos.call', {
         operation: 'lumen.commit',
-        input: { paths: ['assets/ui/Demo.prefab'] },
+        input: {},
     });
 
     assert.equal(capabilities.length, 83);
@@ -388,12 +402,13 @@ test('Editor MCP plugin should list, plan, and execute supported operations', as
     assert.deepEqual(lumenCommit.data.pipeline, [
         'assetdb_refresh',
         'hierarchy_settle',
+        'assetdb_registration',
         'catalog_refresh',
         'validate_refs',
     ]);
     assert.ok(Array.isArray(lumenCommit.data.validation));
-    assert.equal(lumenCommit.data.validation[0].ok, true);
-    assert.equal(lumenCommit.data.recommendedNext.operation, 'preview.refresh');
+    assert.equal(lumenCommit.data.validation.length, 0);
+    assert.equal(lumenCommit.data.recommendedNext, undefined);
     assert.ok(Array.isArray(lumenCommit.data.acceptancePipeline));
     assert.ok(lumenCommit.data.acceptancePipeline.includes('preview.refresh'));
     assert.match(String(lumenCommit.data.nextHint), /Never scene\.save/);
@@ -739,6 +754,7 @@ test('Editor MCP lumen gateway scaffolds and builds structure on a real project'
         assert.deepEqual(structure.data.commit.pipeline, [
             'assetdb_refresh',
             'hierarchy_settle',
+            'assetdb_registration',
             'catalog_refresh',
             'validate_refs',
         ]);
@@ -1460,6 +1476,7 @@ test('Editor MCP lumen gateway scaffolds and builds structure on a real project'
         assert.deepEqual(commit.data.pipeline, [
             'assetdb_refresh',
             'hierarchy_settle',
+            'assetdb_registration',
             'catalog_refresh',
             'validate_refs',
         ]);
@@ -1476,6 +1493,7 @@ test('Editor MCP lumen gateway scaffolds and builds structure on a real project'
         assert.deepEqual(commitByAlias.data.pipeline, [
             'assetdb_refresh',
             'hierarchy_settle',
+            'assetdb_registration',
             'catalog_refresh',
             'validate_refs',
         ]);

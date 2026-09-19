@@ -24,6 +24,8 @@ export { AssetCatalogQueryGateway } from './asset-catalog-query-gateway';
 export { AssetCatalogQueryService } from './asset-catalog-query-service';
 export { AssetCatalogRefreshService } from './asset-catalog-refresh-service';
 export { AssetCatalogStore } from './asset-catalog-store';
+export { AssetMetaParser } from './asset-meta-parser';
+export type { IParsedAssetMeta, IParsedAssetSubMeta } from './asset-meta-parser';
 export { CocosUuidCodec } from './cocos-uuid-codec';
 export { CompatibleUuid } from './compatible-uuid';
 export { EditorAssetDbRebuildSource } from './editor-asset-db-rebuild-source';

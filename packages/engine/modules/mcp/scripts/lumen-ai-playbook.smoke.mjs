@@ -251,7 +251,13 @@ try {
     assert.equal(commit.data.validation[0].prefabRelativePath, 'assets/ui/Playbook.prefab');
     assert.equal(commit.data.validation[0].summary.missingUuid, 0);
     assert.ok((commit.data.validation[0].summary.ignoredEngineDefaultUuid ?? 0) >= 1);
-    assert.deepEqual(commit.data.pipeline, ['assetdb_refresh', 'hierarchy_settle', 'catalog_refresh', 'validate_refs']);
+    assert.deepEqual(commit.data.pipeline, [
+        'assetdb_refresh',
+        'hierarchy_settle',
+        'assetdb_registration',
+        'catalog_refresh',
+        'validate_refs',
+    ]);
     assert.equal(commit.data.recommendedNext.operation, 'preview.refresh');
 
     process.stdout.write('lumen-ai-playbook.smoke: ok\n');

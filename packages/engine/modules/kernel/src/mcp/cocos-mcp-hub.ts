@@ -424,9 +424,10 @@ export class CocosMcpHub implements IMcpHubControl {
             if (abortController.signal.aborted) {
                 return;
             }
+            const failure = this._inputReader.toSafeFailure(error);
             response
                 .writeHead(400, { 'content-type': 'application/json', connection: 'close' })
-                .end(JSON.stringify({ ok: false, error: error instanceof Error ? error.message : 'cocos_mcp_hub_failed' }));
+                .end(JSON.stringify({ ok: false, error: failure.code, failure }));
         }
     }
 
@@ -452,7 +453,8 @@ export class CocosMcpHub implements IMcpHubControl {
             }
         } catch (error) {
             if (!signal.aborted && !response.destroyed) {
-                response.end(`${JSON.stringify({ type: 'result', ok: false, error: this._inputReader.toSafeErrorCode(error) })}\n`);
+                const failure = this._inputReader.toSafeFailure(error);
+                response.end(`${JSON.stringify({ type: 'result', ok: false, error: failure.code, failure })}\n`);
             }
         }
     }

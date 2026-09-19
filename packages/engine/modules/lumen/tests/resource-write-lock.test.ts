@@ -56,12 +56,49 @@ test('LumenResourceWriteLock allows parallel writers on different keys', async (
     assert.equal(maxInFlight, 3);
 });
 
-test('LumenResourceWriteLock runExclusiveMany acquires in sorted order', async (): Promise<void> => {
+test('LumenResourceWriteLock reserves a complete resource set atomically', async (): Promise<void> => {
     LumenResourceWriteLock.resetSharedForTests();
     const lock = LumenResourceWriteLock.shared();
-    const acquired: string[] = [];
-    await lock.runExclusiveMany(['assets/z.prefab', 'assets/a.prefab'], async () => {
-        acquired.push('inner');
+    const order: string[] = [];
+    let releaseFirst: (() => void) | null = null;
+    const firstBarrier = new Promise<void>((resolveBarrier) => {
+        releaseFirst = resolveBarrier;
     });
-    assert.deepEqual(acquired, ['inner']);
+    const first = lock.runExclusive('assets/a.prefab', async () => {
+        order.push('first:start');
+        await firstBarrier;
+        order.push('first:end');
+    });
+    const combined = lock.runExclusiveMany(['assets/a.prefab', 'assets/b.prefab'], async () => {
+        order.push('combined');
+    });
+    const second = lock.runExclusive('assets/b.prefab', async () => {
+        order.push('second');
+    });
+
+    await new Promise((resolveDelay) => {
+        setTimeout(resolveDelay, 10);
+    });
+    assert.deepEqual(order, ['first:start']);
+    releaseFirst?.();
+    await Promise.all([first, combined, second]);
+    assert.deepEqual(order, ['first:start', 'first:end', 'combined', 'second']);
+});
+
+test('LumenResourceWriteLock serializes empty lock sets through a fallback lock', async (): Promise<void> => {
+    LumenResourceWriteLock.resetSharedForTests();
+    const lock = LumenResourceWriteLock.shared();
+    const order: string[] = [];
+    const first = lock.runExclusive('', async () => {
+        order.push('first:start');
+        await new Promise((resolveDelay) => {
+            setTimeout(resolveDelay, 20);
+        });
+        order.push('first:end');
+    });
+    const second = lock.runExclusiveMany([], async () => {
+        order.push('second');
+    });
+    await Promise.all([first, second]);
+    assert.deepEqual(order, ['first:start', 'first:end', 'second']);
 });

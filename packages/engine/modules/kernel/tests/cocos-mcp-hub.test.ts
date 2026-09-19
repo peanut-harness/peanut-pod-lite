@@ -130,6 +130,109 @@ test('Cocos MCP Hub should stream capability progress and pass the request cance
     }
 });
 
+test('Cocos MCP Hub should return structured failure guidance for direct and streamed calls', async (): Promise<void> => {
+    const projectPath = mkdtempSync(join(tmpdir(), 'peanut-cocos-mcp-hub-failure-'));
+    const pluginManager = new PluginManagerApp(new RuntimeFacade('3.8.7'));
+    const hub = new CocosMcpHub(() => pluginManager, { projectPath });
+    pluginManager.getMcpCapabilityRegistry().register(
+        'peanut.example',
+        {
+            name: 'peanut.example.copy',
+            description: '复制测试资源。',
+            category: 'cocos',
+            inputSchema: { type: 'object', additionalProperties: false },
+            outputSchema: {
+                type: 'object',
+                properties: { taskStatus: { type: 'string', enum: ['succeeded'] } },
+                required: ['taskStatus'],
+                additionalProperties: true,
+            },
+            readOnly: true,
+            risk: 'read',
+            aiHandling: {
+                schemaVersion: 1,
+                successSignals: ['response.ok=true'],
+                failureField: 'failure',
+                unknownStateAction: 'query_before_retry',
+                blindRetryAllowed: false,
+            },
+        },
+        async (): Promise<unknown> => {
+            throw new Error('lumen_asset_db_registration_pending:db://assets/generated/Record.json');
+        },
+    );
+
+    try {
+        await hub.start();
+        const descriptor = JSON.parse(readFileSync(join(projectPath, '.peanut-ai', 'cocos-mcp.json'), 'utf8')) as Record<string, unknown>;
+        const request = async (stream: boolean): Promise<Response> => {
+            return fetch(`http://127.0.0.1:${descriptor.port as number}/mcp`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json', 'x-peanut-mcp-token': descriptor.token as string },
+                body: JSON.stringify({
+                    action: 'call',
+                    name: 'peanut.example.copy',
+                    input: {},
+                    connectionId: stream ? 'c'.repeat(32) : 'd'.repeat(32),
+                    stream,
+                }),
+            });
+        };
+
+        const catalogResponse = await fetch(`http://127.0.0.1:${descriptor.port as number}/mcp`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-peanut-mcp-token': descriptor.token as string },
+            body: JSON.stringify({ action: 'catalog' }),
+        });
+        assert.equal(catalogResponse.status, 200);
+        const catalogBody = (await catalogResponse.json()) as {
+            result: { capabilities: Array<Record<string, unknown>> };
+        };
+        assert.deepEqual(catalogBody.result.capabilities[0]?.outputSchema, {
+            type: 'object',
+            properties: { taskStatus: { type: 'string', enum: ['succeeded'] } },
+            required: ['taskStatus'],
+            additionalProperties: true,
+        });
+        assert.deepEqual(catalogBody.result.capabilities[0]?.aiHandling, {
+            schemaVersion: 1,
+            successSignals: ['response.ok=true'],
+            failureField: 'failure',
+            unknownStateAction: 'query_before_retry',
+            blindRetryAllowed: false,
+        });
+
+        const directResponse = await request(false);
+        assert.equal(directResponse.status, 400);
+        const directBody = (await directResponse.json()) as Record<string, unknown>;
+        assert.equal(directBody.error, 'lumen_asset_db_registration_pending');
+        assert.deepEqual(directBody.failure, {
+            schemaVersion: 1,
+            code: 'lumen_asset_db_registration_pending',
+            category: 'assetdb_pending',
+            reason: 'AssetDB did not confirm registration before the deadline; disk state may already have changed.',
+            retryable: true,
+            state: 'may_have_changed',
+            recommendedAction: 'query_state_before_retry',
+        });
+
+        const streamedResponse = await request(true);
+        assert.equal(streamedResponse.status, 200);
+        const events = (await streamedResponse.text())
+            .trim()
+            .split('\n')
+            .map((line) => JSON.parse(line) as Record<string, unknown>);
+        assert.equal(events.length, 1);
+        assert.equal(events[0]?.type, 'result');
+        assert.equal(events[0]?.ok, false);
+        assert.equal(events[0]?.error, 'lumen_asset_db_registration_pending');
+        assert.deepEqual(events[0]?.failure, directBody.failure);
+    } finally {
+        await hub.stop();
+        rmSync(projectPath, { recursive: true, force: true });
+    }
+});
+
 test('Cocos MCP Hub should pass trusted risk and local resource context to capability handlers', async (): Promise<void> => {
     const projectPath = mkdtempSync(join(tmpdir(), 'peanut-cocos-mcp-hub-admission-context-'));
     const pluginManager = new PluginManagerApp(new RuntimeFacade('3.8.7'));

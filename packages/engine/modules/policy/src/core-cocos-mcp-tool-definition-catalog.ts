@@ -6,6 +6,17 @@ import { CoreCocosMcpToolNameResolver, type CoreCocosMcpPublicOperation } from '
 import type { McpExecutionRisk } from './mcp-approval-lease-store.js';
 
 /**
+ * @description Core 工具目录公开的 JSON schema；保持 policy 包无运行时依赖。
+ */
+interface ICoreCocosMcpAiHandlingGuidance {
+    readonly schemaVersion: 1;
+    readonly successSignals: readonly string[];
+    readonly failureField: 'failure';
+    readonly unknownStateAction: 'query_before_retry';
+    readonly blindRetryAllowed: false;
+}
+
+/**
  * @description 可直接注册到 MCP Hub 的 Core 工具定义。
  */
 export interface ICoreCocosMcpToolDefinition {
@@ -17,10 +28,18 @@ export interface ICoreCocosMcpToolDefinition {
     readonly description: string;
     /** @description MCP 参数 schema。 */
     readonly inputSchema: ICoreMcpJsonSchema;
+    /**
+     * @description 写操作成功返回值的最小 schema。
+     */
+    readonly outputSchema?: ICoreMcpJsonSchema;
     readonly readOnly: boolean;
     readonly risk: McpExecutionRisk;
     /** @description 写操作执行前必须消费本地审批租约。 */
     readonly requiresLocalApproval: boolean;
+    /**
+     * @description AI 判定成功、处理失败与重试的机器可读规则。
+     */
+    readonly aiHandling: ICoreCocosMcpAiHandlingGuidance;
 }
 
 /**
@@ -51,11 +70,12 @@ export class CoreCocosMcpToolDefinitionCatalog {
                 Object.freeze({
                     name,
                     operation: capability.operation,
-                    description: `Read-only Cocos MCP capability: ${capability.operation}.`,
+                    description: `Read-only Cocos MCP capability: ${capability.operation}. Treat the call as successful only when response.ok=true. On response.ok=false, inspect failure.code, failure.category, and failure.recommendedAction.`,
                     inputSchema,
                     readOnly: true,
                     risk: 'read',
                     requiresLocalApproval: false,
+                    aiHandling: this.createAiHandling(true),
                 }),
             );
         }
@@ -68,11 +88,13 @@ export class CoreCocosMcpToolDefinitionCatalog {
             definitions.set(capability.operation, Object.freeze({
                 name,
                 operation: capability.operation,
-                description: `Locally-approved Cocos MCP capability: ${capability.operation}.`,
+                description: `Locally-approved Cocos MCP capability: ${capability.operation}. Accept success only when response.ok=true, result.taskStatus=succeeded, and result.postflight.verified=true. On failure inspect failure; when failure.state is unknown or may_have_changed, query the target state before retrying. Never retry a write blindly.`,
                 inputSchema,
+                outputSchema: this.createWriteOutputSchema(),
                 readOnly: false,
                 risk: capability.risk,
                 requiresLocalApproval: true,
+                aiHandling: this.createAiHandling(false),
             }));
         }
         this.definitions = definitions;
@@ -104,5 +126,53 @@ export class CoreCocosMcpToolDefinitionCatalog {
     public findByOperation(operation: unknown): ICoreCocosMcpToolDefinition | null {
         const capability = CoreCocosMcpCapabilityCatalog.find(operation) ?? CoreCocosNativeWriteCapabilityCatalog.find(operation);
         return capability == null ? null : (this.definitions.get(capability.operation) ?? null);
+    }
+
+    /**
+     * @description 构造 AI 调用处理的稳定规则。
+     * @param readOnly 是否为只读工具。
+     * @returns 不可变调用规则。
+     */
+    private createAiHandling(readOnly: boolean): ICoreCocosMcpAiHandlingGuidance {
+        return Object.freeze({
+            schemaVersion: 1,
+            successSignals: Object.freeze(
+                readOnly
+                    ? ['response.ok=true']
+                    : ['response.ok=true', 'result.taskStatus=succeeded', 'result.postflight.verified=true'],
+            ),
+            failureField: 'failure',
+            unknownStateAction: 'query_before_retry',
+            blindRetryAllowed: false,
+        });
+    }
+
+    /**
+     * @description 构造写操作共享的最小成功输出 schema。
+     * @returns 要求任务状态与日志验收信号的输出 schema。
+     */
+    private createWriteOutputSchema(): ICoreMcpJsonSchema {
+        return Object.freeze({
+            type: 'object',
+            properties: Object.freeze({
+                taskId: Object.freeze({ type: 'string', description: 'Stable resource-operation task id.' }),
+                taskStatus: Object.freeze({
+                    type: 'string',
+                    enum: Object.freeze(['succeeded']),
+                    description: 'Synchronous writes return only after the task succeeds.',
+                }),
+                postflight: Object.freeze({
+                    type: 'object',
+                    properties: Object.freeze({
+                        verified: Object.freeze({ type: 'boolean', description: 'Whether project.log verification passed.' }),
+                    }),
+                    required: Object.freeze(['verified']),
+                    additionalProperties: true,
+                    description: 'Incremental project.log verification; verified must be true.',
+                }),
+            }),
+            required: Object.freeze(['taskId', 'taskStatus', 'postflight']),
+            additionalProperties: true,
+        });
     }
 }
