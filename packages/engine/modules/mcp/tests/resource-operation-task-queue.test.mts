@@ -5,7 +5,7 @@ import { ResourceOperationTaskQueue } from '../dist/resource-operation-task-queu
 
 test('resource operation tasks execute in FIFO order and expose stable completion records', async () => {
     const queue = new ResourceOperationTaskQueue();
-    const order = [];
+    const order: string[] = [];
     const first = queue.run('asset.writeText', async () => {
         order.push('first:start');
         await new Promise((resolve) => setTimeout(resolve, 10));

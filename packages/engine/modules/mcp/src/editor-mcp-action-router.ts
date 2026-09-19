@@ -57,7 +57,9 @@ export class EditorMcpActionRouter {
     private readonly _lumenCommit: EditorMcpLumenCommitFacade;
     /** @description 编辑器选区 / 打开 / 恢复。 */
     private readonly _editor: EditorMcpEditorGateway;
-    /** @description 当前工程写 operation 的 FIFO 任务队列。 */
+    /**
+     * @description 当前工程写 operation 的 FIFO 任务队列。
+     */
     private readonly _taskQueue = new ResourceOperationTaskQueue();
 
     /**

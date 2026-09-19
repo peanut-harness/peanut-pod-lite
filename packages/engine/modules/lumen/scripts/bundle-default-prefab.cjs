@@ -57,7 +57,7 @@ function main() {
     for (const relativePath of files) {
         hash.update(relativePath);
         hash.update('\0');
-        hash.update(readFileSync(join(bundledTemplates, relativePath)));
+        hash.update(readFileSync(join(bundledTemplates, relativePath), 'utf8').replace(/\r\n?/gu, '\n'));
         hash.update('\n');
     }
     const manifest = {

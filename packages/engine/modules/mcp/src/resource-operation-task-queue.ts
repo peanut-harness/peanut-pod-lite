@@ -1,33 +1,59 @@
 import { randomUUID } from 'node:crypto';
 
-/** @description 写任务生命周期状态。 */
+/**
+ * @description 写任务生命周期状态。
+ */
 export type ResourceOperationTaskStatus = 'queued' | 'running' | 'succeeded' | 'failed';
 
-/** @description 写任务执行记录的最小公开摘要。 */
+/**
+ * @description 写任务执行记录的最小公开摘要。
+ */
 export interface IResourceOperationTaskRecord<T> {
-    /** @description 稳定任务标识。 */
+    /**
+     * @description 稳定任务标识。
+     */
     readonly taskId: string;
-    /** @description 稳定 MCP operation。 */
+    /**
+     * @description 稳定 MCP operation。
+     */
     readonly operation: string;
-    /** @description 当前生命周期状态。 */
+    /**
+     * @description 当前生命周期状态。
+     */
     readonly status: ResourceOperationTaskStatus;
-    /** @description 入队时间戳。 */
+    /**
+     * @description 入队时间戳。
+     */
     readonly queuedAt: number;
-    /** @description 开始执行时间戳。 */
+    /**
+     * @description 开始执行时间戳。
+     */
     readonly startedAt: number | null;
-    /** @description 完成时间戳。 */
+    /**
+     * @description 完成时间戳。
+     */
     readonly completedAt: number | null;
-    /** @description 成功结果；失败时为空。 */
+    /**
+     * @description 成功结果；失败时为空。
+     */
     readonly result: T | null;
-    /** @description 受控失败消息；不包含凭据或文件内容。 */
+    /**
+     * @description 受控失败消息；不包含凭据或文件内容。
+     */
     readonly error: string | null;
 }
 
-/** @description 每个 Editor MCP Router 的工程写任务 FIFO 队列。 */
+/**
+ * @description 每个 Editor MCP Router 的工程写任务 FIFO 队列。
+ */
 export class ResourceOperationTaskQueue {
-    /** @description 前一个任务的完成屏障；保证同一 Router 的写操作严格串行。 */
+    /**
+     * @description 前一个任务的完成屏障；保证同一 Router 的写操作严格串行。
+     */
     private _tail: Promise<void> = Promise.resolve();
-    /** @description 最近任务记录；仅用于同步调用返回和诊断。 */
+    /**
+     * @description 最近任务记录；仅用于同步调用返回和诊断。
+     */
     private readonly _records = new Map<string, IResourceOperationTaskRecord<unknown>>();
 
     /**

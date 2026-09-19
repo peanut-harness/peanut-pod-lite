@@ -1168,8 +1168,12 @@ export interface IEditorMcpActionResult extends ContractPayload {
     readonly operation: EditorMcpOperationId;
     /** @description 实际查询结果；未命中时为 `null`。 */
     readonly data: unknown | null;
-    /** @description 写操作任务标识；只读 operation 不提供。 */
+    /**
+     * @description 写操作任务标识；只读 operation 不提供。
+     */
     readonly taskId?: string;
-    /** @description 写操作任务完成状态；同步调用成功时为 succeeded。 */
+    /**
+     * @description 写操作任务完成状态；同步调用成功时为 succeeded。
+     */
     readonly taskStatus?: 'succeeded';
 }

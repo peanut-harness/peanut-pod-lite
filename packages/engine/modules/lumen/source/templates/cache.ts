@@ -88,7 +88,9 @@ export class LumenTemplateCache {
         for (const relativePath of files) {
             hash.update(relativePath);
             hash.update('\0');
-            hash.update(readFileSync(join(templateRoot, relativePath)));
+            hash.update(
+                readFileSync(join(templateRoot, relativePath), 'utf8').replace(/\r\n?/gu, '\n'),
+            );
             hash.update('\n');
         }
         return {
