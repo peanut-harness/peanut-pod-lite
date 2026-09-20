@@ -7,17 +7,15 @@ export {
     type IEditorMcpAssetDbTransactionMessagePort,
     type IEditorMcpAssetDbTransactionOptions,
 } from './editor-mcp-asset-db-transaction.js';
-export {
-    ResourceOperationTaskQueue,
-} from './resource-operation-task-queue.js';
+export { ResourceOperationTaskExecutor } from './resource-operation-task-executor.js';
+export type { IResourceOperationTaskExecutorOptions } from './resource-operation-task-executor.js';
+export { EditorMcpExecutionCodec } from './editor-mcp-execution-codec.js';
+export type { IEditorMcpDecodedExecutionInput } from './editor-mcp-execution-codec.js';
 export { ResourceOperationPlanner } from './resource-operation-planner.js';
 export { ResourceOperationClosureResolver } from './resource-operation-closure-resolver.js';
-export { ResourceOperationTaskError } from './resource-operation-task-error.js';
 export {
-    type IResourceOperationTaskRecord,
     type IResourceOperationTaskPlan,
     type IResourceOperationClosureSummary,
-    type ResourceOperationTaskStatus,
 } from './resource-operation-contracts.js';
 export { EditorMcpLumenGateway } from './editor-mcp-lumen-gateway.js';
 export { EditorMcpPluginModule } from './editor-mcp-plugin-module.js';

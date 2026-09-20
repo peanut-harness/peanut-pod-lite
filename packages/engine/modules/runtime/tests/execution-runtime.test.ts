@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import type { ITaskRequest } from '@peanut/pod-protocol';
 
-import { EditorApi38Adapter, RuntimeFacade } from '../src/index';
+import { EditorApi38Adapter, RuntimeFacade, TaskControlPlane } from '../src/index';
 import { AdapterRegistry } from '../src/cocos/adapters/core/adapter-registry';
 import { AssetRuntimeService } from '../src/cocos/foundation/asset/asset-runtime-service';
 import { SceneRuntimeService } from '../src/cocos/foundation/scene/scene-runtime-service';
@@ -11,11 +11,16 @@ import { CreatorHostState } from '../src/cocos/shared/host-state';
 import { VersionResolver } from '../src/cocos/version/version-resolver';
 import { BatchCommitCoordinator } from '../src/execution/commit/batch-commit-coordinator';
 import { RuntimeTaskCommitDispatcher } from '../src/execution/commit/runtime-task-commit-dispatcher';
+import {
+    BuiltInRuntimeTaskExecutors,
+    RUNTIME_BUILTIN_EXECUTOR_PLUGIN_ID,
+} from '../src/execution/commit/builtin-runtime-task-executors';
 import { ExecutionRuntimeService } from '../src/execution/execution-runtime-service';
 import { TaskIngress } from '../src/execution/ingress/task-ingress';
 import { TaskLedger } from '../src/execution/ledger/task-ledger';
 import { ResourceLockManager } from '../src/execution/locks/resource-lock-manager';
 import { TaskMerger } from '../src/execution/merge/task-merger';
+import { TaskExecutorRegistry } from '../src/execution/registry/task-executor-registry';
 import { TaskScheduler } from '../src/execution/scheduler/task-scheduler';
 import { TaskSnapshotInspector } from '../src/execution/snapshot/task-snapshot-inspector';
 import { TimeoutAndCancelController } from '../src/execution/timeout/timeout-and-cancel-controller';
@@ -191,6 +196,8 @@ function createHostBackedExecutionRuntimeService(options?: {
     const taskSnapshotInspector = new TaskSnapshotInspector(hostState);
     // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
     const taskLedger = new TaskLedger();
+    const taskExecutorRegistry = new TaskExecutorRegistry();
+    BuiltInRuntimeTaskExecutors.register(taskExecutorRegistry, assetRuntimeService, sceneRuntimeService);
 
     return {
         executionRuntimeService: new ExecutionRuntimeService(
@@ -201,7 +208,7 @@ function createHostBackedExecutionRuntimeService(options?: {
             new TaskMerger(),
             new ResourceLockManager(),
             new BatchCommitCoordinator(
-                new RuntimeTaskCommitDispatcher(assetRuntimeService, sceneRuntimeService),
+                new RuntimeTaskCommitDispatcher(taskExecutorRegistry, RUNTIME_BUILTIN_EXECUTOR_PLUGIN_ID),
                 taskSnapshotInspector,
                 options?.commitDelayMs ?? 0,
             ),
@@ -229,6 +236,35 @@ test('adapter registry should reject duplicate ids and ambiguous version matches
     assert.throws(
         (): unknown => adapterRegistry.resolve('3.8.7'),
         /adapter_resolution_ambiguous:3\.8\.7:adapter-38,adapter-38-overlap/u,
+    );
+});
+
+test('task executor registry should reject duplicate, unknown, and revoked executors', async (): Promise<void> => {
+    const registry = new TaskExecutorRegistry();
+    const executor = {
+        execute: async (task: import('../src/execution/ingress/task-ingress').IAcceptedTask) => ({
+            taskId: task.taskId,
+            kind: task.request.kind,
+            changes: [],
+        }),
+    };
+    const revoke = registry.register('peanut.registry-test', 'asset.query', executor);
+
+    assert.equal(registry.has('peanut.registry-test', 'asset.query'), true);
+    assert.throws(
+        () => registry.register('peanut.registry-test', 'asset.query', executor),
+        /task_executor_duplicate/u,
+    );
+    assert.throws(
+        () => registry.resolve('peanut.registry-test', 'asset.missing'),
+        /task_executor_unavailable/u,
+    );
+    revoke();
+    assert.equal(registry.has('peanut.registry-test', 'asset.query'), false);
+    assert.throws(() => revoke(), /task_executor_already_revoked/u);
+    assert.throws(
+        () => registry.resolve('peanut.registry-test', 'asset.query'),
+        /task_executor_unavailable/u,
     );
 });
 
@@ -295,6 +331,231 @@ test('execution runtime service should keep distinct task ids while deduping a b
     assert.equal(secondTaskResult?.data?.canonicalTaskId, firstTaskId);
     assert.notEqual(firstTaskResult?.trace.traceId, secondTaskResult?.trace.traceId);
     assert.deepEqual(secondTaskResult?.data?.taskIds, [firstTaskId, secondTaskId]);
+});
+
+test('execution runtime service should preserve the successful planning and commit trace contract', async (): Promise<void> => {
+    // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
+    const runtimeFacade = createSeededRuntimeFacade();
+    // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
+    const taskReceipt = await runtimeFacade.execution.submit(
+        createAssetQueryTaskRequest('trace-characterization-plugin', 'trace-characterization-request', 'assets/example.prefab'),
+    );
+    // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
+    const taskResult = await runtimeFacade.execution.getResult(taskReceipt.taskId);
+
+    assert.equal(taskReceipt.status, 'succeeded');
+    assert.equal(taskResult?.trace.taskId, taskReceipt.taskId);
+    assert.equal(taskResult?.trace.traceId, `${taskReceipt.taskId}:trace`);
+    assert.deepEqual(
+        taskResult?.trace.steps.map((step) => ({ id: step.id, status: step.status })),
+        [
+            { id: 'planning', status: 'planned' },
+            { id: 'commit', status: 'completed' },
+        ],
+    );
+    assert.equal(typeof taskResult?.trace.finishedAt, 'string');
+});
+
+test('task control plane should enforce owner-scoped status, evidence, and idempotency retention', (): void => {
+    let now = Date.parse('2026-09-20T00:00:00.000Z');
+    const ledger = new TaskLedger();
+    const scheduler = new TaskScheduler(ledger);
+    const ingress = new TaskIngress();
+    const controlPlane = new TaskControlPlane(
+        ledger,
+        new TimeoutAndCancelController(),
+        new TracePipeline(),
+        { retentionMs: 50, now: () => now },
+    );
+    const task = ingress.accept(createAssetQueryTaskRequest('control-plane-plugin', 'control-plane-request', 'assets/example.prefab'));
+    const owner = {
+        pluginId: 'control-plane-plugin',
+        connectionId: 'bridge:control-plane',
+        projectKey: 'project:control-plane',
+        capability: 'peanut.editor-mcp.asset-copy',
+    } as const;
+    scheduler.schedule(task);
+    controlPlane.register(task.taskId, 1_000, owner);
+
+    assert.deepEqual(controlPlane.claimIdempotency(owner, 'copy-key', 'digest-a', task.taskId), {
+        reused: false,
+        taskId: task.taskId,
+    });
+    assert.deepEqual(controlPlane.claimIdempotency(owner, 'copy-key', 'digest-a', 'ignored-task'), {
+        reused: true,
+        taskId: task.taskId,
+    });
+    assert.throws(
+        () => controlPlane.claimIdempotency(owner, 'copy-key', 'digest-b', 'other-task'),
+        /task_idempotency_conflict/u,
+    );
+    assert.throws(
+        () => controlPlane.bindOwner(task.taskId, { ...owner, connectionId: 'bridge:other' }),
+        /task_owner_immutable/u,
+    );
+
+    controlPlane.recordEvidence(task.taskId, {
+        id: 'postflight',
+        kind: 'postflight',
+        status: 'completed',
+        summary: 'Postflight passed.',
+        recordedAt: new Date(now).toISOString(),
+    });
+    const trace = controlPlane.finishTrace(
+        controlPlane.appendTrace(controlPlane.createTrace(task.taskId, task.request.kind), 'commit', 'Commit task', 'failed'),
+    );
+    controlPlane.setResult({
+        taskId: task.taskId,
+        ok: false,
+        status: 'failed',
+        changes: [],
+        trace,
+        error: { code: 'control_plane_failure', message: 'Controlled failure.', recoverable: false },
+    });
+
+    assert.equal(controlPlane.getStatusSummary(task.taskId, owner)?.failure?.code, 'control_plane_failure');
+    assert.equal(controlPlane.getEvidence(task.taskId, owner)?.entries[0]?.kind, 'postflight');
+    assert.equal(controlPlane.getStatusSummary(task.taskId, { ...owner, connectionId: 'bridge:other' }), null);
+    now += 51;
+    assert.deepEqual(controlPlane.purgeExpired(), [task.taskId]);
+    assert.equal(controlPlane.query(task.taskId), null);
+});
+
+test('task control plane should cancel only before the commit window', (): void => {
+    const ledger = new TaskLedger();
+    const scheduler = new TaskScheduler(ledger);
+    const ingress = new TaskIngress();
+    const controlPlane = new TaskControlPlane(ledger, new TimeoutAndCancelController(), new TracePipeline());
+    const queuedTask = ingress.accept(createAssetQueryTaskRequest('control-plane-plugin', 'cancel-queued', 'assets/example.prefab'));
+    const committingTask = ingress.accept(createAssetQueryTaskRequest('control-plane-plugin', 'cancel-commit', 'assets/example-2.prefab'));
+    scheduler.schedule(queuedTask);
+    scheduler.schedule(committingTask);
+    controlPlane.register(queuedTask.taskId);
+    controlPlane.register(committingTask.taskId);
+    controlPlane.enterCommitWindow(committingTask.taskId);
+
+    assert.deepEqual(controlPlane.cancel(queuedTask.taskId), { taskId: queuedTask.taskId, cancelled: true });
+    assert.deepEqual(controlPlane.cancel(committingTask.taskId), {
+        taskId: committingTask.taskId,
+        cancelled: false,
+        reason: 'task_in_commit_window',
+    });
+});
+
+test('resource lock manager should preserve FIFO for conflicts and parallelize disjoint closures', async (): Promise<void> => {
+    const manager = new ResourceLockManager();
+    const first = await manager.acquireSet({
+        projectKey: 'project:a',
+        resourceKeys: ['asset:b', 'asset:a'],
+        requiresProjectWriter: false,
+    });
+    const acquisitionOrder: string[] = [];
+    const secondPromise = manager.acquireSet({
+        projectKey: 'project:a',
+        resourceKeys: ['asset:a'],
+        requiresProjectWriter: false,
+    }).then((lease) => {
+        acquisitionOrder.push('second');
+        return lease;
+    });
+    const thirdPromise = manager.acquireSet({
+        projectKey: 'project:a',
+        resourceKeys: ['asset:a'],
+        requiresProjectWriter: false,
+    }).then((lease) => {
+        acquisitionOrder.push('third');
+        return lease;
+    });
+    const disjoint = await manager.acquireSet({
+        projectKey: 'project:a',
+        resourceKeys: ['asset:c'],
+        requiresProjectWriter: false,
+    });
+
+    assert.deepEqual(first.resourceKeys, ['asset:a', 'asset:b']);
+    assert.deepEqual(acquisitionOrder, []);
+    first.release();
+    const second = await secondPromise;
+    assert.deepEqual(acquisitionOrder, ['second']);
+    second.release();
+    const third = await thirdPromise;
+    assert.deepEqual(acquisitionOrder, ['second', 'third']);
+    third.release();
+    disjoint.release();
+});
+
+test('resource lock manager should scope project writers and form same-project barriers', async (): Promise<void> => {
+    const manager = new ResourceLockManager();
+    const projectResource = await manager.acquireSet({
+        projectKey: 'project:a',
+        resourceKeys: ['asset:a'],
+        requiresProjectWriter: false,
+    });
+    let writerAcquired = false;
+    const writerPromise = manager.acquireSet({
+        projectKey: 'project:a',
+        resourceKeys: [],
+        requiresProjectWriter: true,
+    }).then((lease) => {
+        writerAcquired = true;
+        return lease;
+    });
+    const otherProjectWriter = await manager.acquireSet({
+        projectKey: 'project:b',
+        resourceKeys: [],
+        requiresProjectWriter: true,
+    });
+
+    assert.equal(writerAcquired, false);
+    projectResource.release();
+    const writer = await writerPromise;
+    const blockedResourcePromise = manager.acquireSet({
+        projectKey: 'project:a',
+        resourceKeys: ['asset:z'],
+        requiresProjectWriter: false,
+    });
+    let blockedResourceAcquired = false;
+    void blockedResourcePromise.then(() => {
+        blockedResourceAcquired = true;
+    });
+    await Promise.resolve();
+    assert.equal(blockedResourceAcquired, false);
+    assert.equal(otherProjectWriter.projectWriter, true);
+    writer.release();
+    const blockedResource = await blockedResourcePromise;
+    blockedResource.release();
+    otherProjectWriter.release();
+});
+
+test('resource lock manager should remove cancelled and timed out waiters', async (): Promise<void> => {
+    const manager = new ResourceLockManager();
+    const active = await manager.acquireSet({
+        projectKey: 'project:a',
+        resourceKeys: ['asset:a'],
+        requiresProjectWriter: false,
+    });
+    const abortController = new AbortController();
+    const cancelledPromise = manager.acquireSet(
+        { projectKey: 'project:a', resourceKeys: ['asset:a'], requiresProjectWriter: false },
+        { signal: abortController.signal },
+    );
+    abortController.abort();
+
+    await assert.rejects(cancelledPromise, /resource_lock_cancelled/u);
+    await assert.rejects(
+        manager.acquireSet(
+            { projectKey: 'project:a', resourceKeys: ['asset:a'], requiresProjectWriter: false },
+            { timeoutMs: 1 },
+        ),
+        /resource_lock_timeout/u,
+    );
+    active.release();
+    const subsequent = await manager.acquireSet({
+        projectKey: 'project:a',
+        resourceKeys: ['asset:a'],
+        requiresProjectWriter: false,
+    });
+    assert.equal(subsequent.release(), true);
 });
 
 test('runtime facade execution should dispatch asset queries through the asset runtime service', async (): Promise<void> => {

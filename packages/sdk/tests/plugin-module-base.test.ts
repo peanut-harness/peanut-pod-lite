@@ -1,9 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { IPluginManifest } from '@peanut/pod-protocol';
+import type { IPluginManifest, ITaskRequest } from '@peanut/pod-protocol';
 
 import { PluginModuleBase } from '../src/plugin-module-base.js';
+import type {
+    IPluginManagedTaskApi,
+    IPluginTaskExecutorContext,
+    PluginManagedTaskRequest,
+    PluginTaskExecutor,
+} from '../src/index.js';
 
 /**
  * @description 最小测试插件模块，仅用于作者面基类契约冒烟。
@@ -54,4 +60,30 @@ test('PluginModuleBase default deactivate and dispose hooks resolve', async () =
         await module.deactivate('host_shutdown');
         await module.dispose();
     });
+});
+
+test('managed task SDK contracts inject owner outside enqueue input and preserve explicit wait', async () => {
+    const request: PluginManagedTaskRequest = {
+        requestId: 'sdk-managed-task',
+        scope: 'asset',
+        priority: 'normal',
+        kind: 'asset.copy',
+    };
+    const executor: PluginTaskExecutor = async (
+        injectedRequest: Readonly<ITaskRequest>,
+        context: IPluginTaskExecutorContext,
+    ): Promise<unknown> => ({
+        pluginId: injectedRequest.pluginId,
+        connectionId: context.owner.connectionId,
+    });
+    const api: IPluginManagedTaskApi = {
+        registerExecutor: () => (): void => {},
+        enqueue: async () => ({ taskId: 'sdk-managed-task', status: 'queued' }),
+        wait: async () => null,
+    };
+
+    assert.equal('pluginId' in request, false);
+    assert.equal(typeof executor, 'function');
+    assert.equal((await api.enqueue(request)).status, 'queued');
+    assert.equal(await api.wait('sdk-managed-task'), null);
 });

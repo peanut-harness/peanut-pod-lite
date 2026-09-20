@@ -25,6 +25,15 @@ export interface ICoreCocosMcpExecutionContext {
 export interface ICoreCocosMcpExecutionRequest {
     readonly operation: CoreCocosMcpPublicOperation;
     readonly input: Readonly<Record<string, unknown>>;
+    readonly invocation?: {
+        readonly connectionId: string;
+        readonly callerPluginId?: string;
+        readonly signal?: AbortSignal;
+        readonly reportProgress?: (progress: { readonly progress: number; readonly total?: number; readonly message?: string }) => void;
+        readonly risk?: 'read' | 'write' | 'destructive';
+        readonly resourceIds?: readonly string[];
+        readonly hasLocalApproval?: boolean;
+    };
 }
 
 /**
@@ -88,7 +97,12 @@ export class CoreCocosMcpExecutionDispatcher {
      * @param context 宿主解析的连接和资源范围。
      * @returns 实际适配器的执行结果。
      */
-    public async execute(operation: unknown, input: unknown, context: ICoreCocosMcpExecutionContext | null = null): Promise<unknown> {
+    public async execute(
+        operation: unknown,
+        input: unknown,
+        context: ICoreCocosMcpExecutionContext | null = null,
+        invocation?: ICoreCocosMcpExecutionRequest['invocation'],
+    ): Promise<unknown> {
         const definition = this.definitions.findByOperation(operation);
         if (definition == null) {
             throw new Error('core_cocos_mcp_execution_operation_not_public');
@@ -105,7 +119,7 @@ export class CoreCocosMcpExecutionDispatcher {
         }
         WriteResourceAuthorization.assertSafePaths(definition.operation, input);
         this.requireApproval(definition, input, context, CoreCocosMcpExecutionDispatcher.resolveRisk(definition, input));
-        return adapter.execute({ operation: definition.operation, input });
+        return adapter.execute({ operation: definition.operation, input, ...(invocation == null ? {} : { invocation }) });
     }
 
     /**

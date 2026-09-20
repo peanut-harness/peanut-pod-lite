@@ -24,6 +24,7 @@ const HUB_CAPABILITY_PLUGIN_ID = 'peanut.editor-mcp';
 const RUNTIME_DIR_NAME = 'runtime';
 
 let coreModule = null;
+let coreTaskApi = null;
 let proModule = null;
 let toolHandlers = new Map();
 let hubCapabilityDisposers = [];
@@ -134,6 +135,8 @@ function toHubCapabilityDefinition(definition) {
         ...(definition.outputSchema != null ? { outputSchema: definition.outputSchema } : {}),
         readOnly,
         risk,
+        executionModel: definition.executionModel === 'managed_task' ? 'managed_task' : 'inline',
+        ...(definition.lane != null ? { lane: definition.lane } : {}),
         ...(definition.aiHandling != null ? { aiHandling: definition.aiHandling } : {}),
     });
 }
@@ -340,6 +343,11 @@ async function activateCore(packageStore) {
     coreArtifact = resolvePackageArtifactIdentity(verified);
     toolHandlers = new Map();
     coreModule = loadVerifiedModule(verified, CORE_PLUGIN_ID);
+    const pluginManager = getPluginManagerKernel();
+    if (pluginManager == null) {
+        throw new Error('plugin_manager_kernel_unavailable');
+    }
+    coreTaskApi = pluginManager.createHostTaskApi(HUB_CAPABILITY_PLUGIN_ID, requireProjectPath());
     await coreModule.register?.({ logger: createLogger(CORE_PLUGIN_ID) });
     // Supply EditorMcp gateways through grantedRuntime. Lite policy still excludes
     // paid operations, while Pro remains optional through services.
@@ -350,6 +358,7 @@ async function activateCore(packageStore) {
         mcp: createRegistry(),
         logger: createLogger(CORE_PLUGIN_ID),
         connectionId: 'creator-local',
+        tasks: coreTaskApi,
     });
     return verified.manifest.version;
 }
@@ -480,8 +489,14 @@ async function deactivateModules() {
     } catch (error) {
         deactivationErrors.push(`core:${normalizeError(error)}`);
     } finally {
+        try {
+            await getPluginManagerKernel()?.deactivateHostTaskApi?.(HUB_CAPABILITY_PLUGIN_ID);
+        } catch (error) {
+            deactivationErrors.push(`core-tasks:${normalizeError(error)}`);
+        }
         disposeHubCapabilityRegistrations();
         coreModule = null;
+        coreTaskApi = null;
         coreArtifact = null;
         toolHandlers = new Map();
         serviceRegistry.clear();
@@ -800,9 +815,56 @@ const methods = {
         if (entry === undefined) {
             throw new Error(`peanut_cocos_mcp_core_tool_unknown:${name}`);
         }
+        const registry = getPluginManagerKernel()?.getMcpCapabilityRegistry?.();
+        if (registry?.getRegisteredProviderPluginId?.(name) === HUB_CAPABILITY_PLUGIN_ID) {
+            const result = await registry.invokeFromHost(name, input, invocation);
+            if (isRecord(result) && typeof result.taskId === 'string') {
+                getPluginManagerKernel()?.getMcpTaskControl?.().attachCapability(
+                    result.taskId,
+                    name,
+                    requireConnectionId(invocation),
+                );
+            }
+            return result;
+        }
         return entry.handler(input, invocation);
     },
+    /** @description 查询当前 Bridge 连接拥有的任务。 */
+    async queryTaskStatus(taskId, invocation = {}) {
+        return requireTaskControl().getStatus(taskId, requireConnectionId(invocation));
+    },
+    /** @description 取消当前 Bridge 连接拥有的任务。 */
+    async cancelTask(taskId, invocation = {}) {
+        return requireTaskControl().cancel(taskId, requireConnectionId(invocation));
+    },
+    /** @description 查询当前 Bridge 连接拥有的安全证据索引。 */
+    async queryTaskEvidence(taskId, invocation = {}) {
+        return requireTaskControl().getEvidence(taskId, requireConnectionId(invocation));
+    },
 };
+
+function requireTaskControl() {
+    if (!hostStatus.ready) {
+        throw new Error('peanut_cocos_mcp_core_host_not_ready');
+    }
+    const pluginManager = getPluginManagerKernel();
+    if (pluginManager == null) {
+        throw new Error('plugin_manager_kernel_unavailable');
+    }
+    return pluginManager.getMcpTaskControl();
+}
+
+function requireConnectionId(invocation) {
+    const connectionId = invocation?.connectionId;
+    if (typeof connectionId !== 'string' || connectionId.trim().length === 0) {
+        throw new Error('cocos_mcp_connection_id_invalid');
+    }
+    return connectionId.trim();
+}
+
+function isRecord(value) {
+    return typeof value === 'object' && value != null && !Array.isArray(value);
+}
 
 function requireReadyAccount() {
     if (!hostStatus.ready || accountController == null) {

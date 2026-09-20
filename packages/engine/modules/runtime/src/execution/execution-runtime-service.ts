@@ -1,7 +1,8 @@
-import type { ITaskBatchReceipt, ITaskCancelResult, ITaskReceipt, ITaskRequest, ITaskResult, ITaskSnapshot, ITaskTrace, TaskStatus } from '@peanut/pod-protocol';
+import type { ITaskBatchReceipt, ITaskCancelResult, ITaskEvidenceEntry, ITaskEvidenceIndex, ITaskOwner, ITaskReceipt, ITaskRequest, ITaskResult, ITaskSnapshot, ITaskStatusSummary, ITaskTrace, TaskStatus } from '@peanut/pod-protocol';
 
 import { BatchCommitCoordinator } from './commit/batch-commit-coordinator.js';
 import type { ITaskCommitOutcome } from './commit/runtime-task-commit-dispatcher.js';
+import { TaskControlPlane } from './control/task-control-plane.js';
 import type { IAcceptedTask } from './ingress/task-ingress.js';
 import { TaskIngress } from './ingress/task-ingress.js';
 import { TaskLedger } from './ledger/task-ledger.js';
@@ -9,6 +10,8 @@ import { ResourceLockManager } from './locks/resource-lock-manager.js';
 import type { ITaskMergeGroup } from './merge/task-merger.js';
 import { TaskMerger } from './merge/task-merger.js';
 import { TaskScheduler } from './scheduler/task-scheduler.js';
+import type { ITaskExecutor } from './registry/task-executor-registry.js';
+import { TaskExecutorRegistry } from './registry/task-executor-registry.js';
 import { TimeoutAndCancelController } from './timeout/timeout-and-cancel-controller.js';
 import { TracePipeline } from './trace/trace-pipeline.js';
 import { WorkerPool } from './workers/worker-pool.js';
@@ -97,7 +100,9 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
     private readonly _scheduler: TaskScheduler;
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
-    private readonly _ledger: TaskLedger;
+    private readonly _controlPlane: TaskControlPlane;
+    /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
+    private readonly _taskExecutorRegistry: TaskExecutorRegistry;
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
     private readonly _workerPool: WorkerPool;
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
@@ -106,10 +111,6 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
     private readonly _resourceLockManager: ResourceLockManager;
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
     private readonly _batchCommitCoordinator: BatchCommitCoordinator;
-    /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
-    private readonly _tracePipeline: TracePipeline;
-    /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
-    private readonly _timeoutAndCancelController: TimeoutAndCancelController;
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
     private readonly _planningGroupSnapshots = new Map<string, IExecutionGroupSnapshot>();
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
@@ -138,6 +139,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
      * @param batchCommitCoordinator 批提交协调器
      * @param tracePipeline Trace 管线
      * @param timeoutAndCancelController 超时与取消控制器
+     * @param taskExecutorRegistry 受管任务 executor 注册表
      */
     public constructor(
         ingress: TaskIngress,
@@ -149,16 +151,16 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         batchCommitCoordinator: BatchCommitCoordinator,
         tracePipeline: TracePipeline,
         timeoutAndCancelController: TimeoutAndCancelController = new TimeoutAndCancelController(),
+        taskExecutorRegistry: TaskExecutorRegistry = new TaskExecutorRegistry(),
     ) {
         this._ingress = ingress;
         this._scheduler = scheduler;
-        this._ledger = ledger;
+        this._controlPlane = new TaskControlPlane(ledger, timeoutAndCancelController, tracePipeline);
+        this._taskExecutorRegistry = taskExecutorRegistry;
         this._workerPool = workerPool;
         this._taskMerger = taskMerger;
         this._resourceLockManager = resourceLockManager;
         this._batchCommitCoordinator = batchCommitCoordinator;
-        this._tracePipeline = tracePipeline;
-        this._timeoutAndCancelController = timeoutAndCancelController;
     }
 
     /**
@@ -167,8 +169,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
      * @returns Promise 返回任务受理回执
      */
     public async submit(request: ITaskRequest): Promise<ITaskReceipt> {
-        // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-        const taskBatchReceipt = await this.submitBatch([request]);
+        const taskBatchReceipt = await this._submitBatch([{ request }]);
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         const firstReceipt = taskBatchReceipt.receipts[0];
         if (firstReceipt == null) {
@@ -177,24 +178,60 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         return firstReceipt;
     }
 
+    /** @description 提交一个由宿主固定 owner 的受管任务。 */
+    public async submitOwned(request: ITaskRequest, owner: ITaskOwner): Promise<ITaskReceipt> {
+        const taskBatchReceipt = await this._submitBatch([{ request, owner }], false);
+        const firstReceipt = taskBatchReceipt.receipts[0];
+        if (firstReceipt == null) {
+            throw new Error('Expected at least one task receipt after owned submit processing.');
+        }
+        return firstReceipt;
+    }
+
+    /** @description 返回宿主受理时固定的任务 owner。 */
+    public getOwner(taskId: string): ITaskOwner | null {
+        return this._controlPlane.getOwner(taskId);
+    }
+
     /**
      * @description 批量提交多个任务请求。
      * @param requests 外部任务请求列表
      * @returns Promise 返回批量受理回执
      */
     public async submitBatch(requests: readonly ITaskRequest[]): Promise<ITaskBatchReceipt> {
+        return this._submitBatch(requests.map((request) => ({ request })));
+    }
+
+    /** @description 执行带可选 owner 的统一批量提交。 */
+    private async _submitBatch(
+        entries: readonly { readonly request: ITaskRequest; readonly owner?: ITaskOwner }[],
+        waitForCommit: boolean = true,
+    ): Promise<ITaskBatchReceipt> {
         // 保存当前流程收集的有序结果，供后续步骤统一处理。
-        const acceptedTasks = requests.map((request) => {
-            return this._ingress.accept(request);
+        const admissions = entries.map((entry) => {
+            const acceptedTask = this._ingress.accept(entry.request);
+            if (entry.owner == null || entry.request.idempotencyKey == null) {
+                return { acceptedTask, owner: entry.owner, taskId: acceptedTask.taskId, reused: false };
+            }
+            const claim = this._controlPlane.claimIdempotency(
+                entry.owner,
+                entry.request.idempotencyKey,
+                this._workDigest(entry.request),
+                acceptedTask.taskId,
+            );
+            return { acceptedTask, owner: entry.owner, taskId: claim.taskId, reused: claim.reused };
         });
+        const acceptedTasks = admissions.filter((admission) => !admission.reused).map((admission) => admission.acceptedTask);
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-        for (const acceptedTask of acceptedTasks) {
-            this._timeoutAndCancelController.register(acceptedTask.taskId, acceptedTask.request.timeoutMs);
+        for (const admission of admissions) {
+            if (!admission.reused) {
+                this._controlPlane.register(admission.taskId, admission.acceptedTask.request.timeoutMs, admission.owner);
+            }
         }
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-        const receipts: ITaskReceipt[] = acceptedTasks.map((acceptedTask) => {
-            return this._scheduler.schedule(acceptedTask);
-        });
+        for (const acceptedTask of acceptedTasks) {
+            this._scheduler.schedule(acceptedTask);
+        }
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         const taskGroups = await this._taskMerger.merge(acceptedTasks);
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
@@ -208,15 +245,16 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
             .filter((plannedTaskGroupContext): plannedTaskGroupContext is IPlannedTaskGroupContext => {
                 return plannedTaskGroupContext != null;
             }),
+            waitForCommit,
         );
 
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-        const finalReceipts = receipts.map((receipt) => {
+        const finalReceipts = admissions.map((admission) => {
             // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-            const taskSnapshot = this._ledger.query(receipt.taskId);
+            const taskSnapshot = this._controlPlane.query(admission.taskId);
             return {
-                taskId: receipt.taskId,
-                status: taskSnapshot?.status ?? receipt.status,
+                taskId: admission.taskId,
+                status: taskSnapshot?.status ?? 'queued',
             };
         });
 
@@ -226,13 +264,50 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         };
     }
 
+    /** @description 生成幂等绑定使用的稳定工作摘要，不包含请求标识、幂等键或超时等待偏好。 */
+    private _workDigest(request: ITaskRequest): string {
+        return this._stableSerialize({
+            pluginId: request.pluginId,
+            scope: request.scope,
+            priority: request.priority,
+            kind: request.kind,
+            payload: request.payload ?? null,
+            mergePolicy: request.mergePolicy ?? null,
+            requiresConfirm: request.requiresConfirm ?? false,
+        });
+    }
+
+    /** @description 对 JSON 兼容值递归排序对象键。 */
+    private _stableSerialize(value: unknown): string {
+        if (Array.isArray(value)) {
+            return `[${value.map((item) => this._stableSerialize(item)).join(',')}]`;
+        }
+        if (value != null && typeof value === 'object') {
+            return `{${Object.entries(value as Record<string, unknown>)
+                .sort(([left], [right]) => left.localeCompare(right))
+                .map(([key, item]) => `${JSON.stringify(key)}:${this._stableSerialize(item)}`)
+                .join(',')}}`;
+        }
+        return JSON.stringify(value) ?? 'null';
+    }
+
+    /** @description 为提供插件注册 kind executor。 */
+    public registerExecutor(pluginId: string, kind: string, executor: ITaskExecutor): () => void {
+        return this._taskExecutorRegistry.register(pluginId, kind, executor);
+    }
+
+    /** @description 记录经过 allow-list 筛选的任务证据。 */
+    public recordEvidence(taskId: string, evidence: ITaskEvidenceEntry): void {
+        this._controlPlane.recordEvidence(taskId, evidence);
+    }
+
     /**
      * @description 查询指定任务的当前快照。
      * @param taskId 任务标识
      * @returns Promise 命中时返回任务快照，否则返回 `null`
      */
     public async query(taskId: string): Promise<ITaskSnapshot | null> {
-        return this._ledger.query(taskId);
+        return this._controlPlane.query(taskId);
     }
 
     /**
@@ -242,40 +317,30 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
      */
     public async cancel(taskId: string): Promise<ITaskCancelResult> {
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-        const snapshot = this._ledger.query(taskId);
-        if (snapshot == null) {
-            return {
-                taskId,
-                cancelled: false,
-                reason: 'task_not_found',
-            };
+        const cancelResult = this._controlPlane.cancel(taskId);
+        if (cancelResult.cancelled) {
+            this._scheduler.remove(taskId);
         }
+        return cancelResult;
+    }
 
-        if (snapshot.status === 'succeeded' || snapshot.status === 'failed' || snapshot.status === 'cancelled') {
-            return {
-                taskId,
-                cancelled: false,
-                reason: `task_already_${snapshot.status}`,
-            };
+    /** @description 仅向完全匹配的 owner 返回安全状态摘要。 */
+    public async getOwnedStatus(taskId: string, owner: ITaskOwner): Promise<ITaskStatusSummary | null> {
+        return this._controlPlane.getStatusSummary(taskId, owner);
+    }
+
+    /** @description 仅允许完全匹配的 owner 取消任务。 */
+    public async cancelOwned(taskId: string, owner: ITaskOwner): Promise<ITaskCancelResult> {
+        const cancelResult = this._controlPlane.cancelOwned(taskId, owner);
+        if (cancelResult.cancelled) {
+            this._scheduler.remove(taskId);
         }
+        return cancelResult;
+    }
 
-        // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-        const cancelResult = this._timeoutAndCancelController.cancel(taskId);
-        if (!cancelResult.cancelled) {
-            return {
-                taskId,
-                cancelled: false,
-                reason: cancelResult.reason,
-            };
-        }
-
-        this._scheduler.remove(taskId);
-        this._ledger.updateStatus(taskId, 'cancelled');
-        this._timeoutAndCancelController.finalize(taskId);
-        return {
-            taskId,
-            cancelled: true,
-        };
+    /** @description 仅向完全匹配的 owner 返回 allow-list 证据。 */
+    public async getOwnedEvidence(taskId: string, owner: ITaskOwner): Promise<ITaskEvidenceIndex | null> {
+        return this._controlPlane.getEvidence(taskId, owner);
     }
 
     /**
@@ -284,7 +349,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
      * @returns Promise 命中时返回任务结果，否则返回 `null`
      */
     public async getResult(taskId: string): Promise<ITaskResult | null> {
-        return this._ledger.getResult(taskId);
+        return this._controlPlane.getResult(taskId);
     }
 
     /**
@@ -380,7 +445,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         );
         // 保存当前流程收集的有序结果，供后续步骤统一处理。
         const activeGroupTasks = groupTasks.filter((acceptedTask) => {
-            return !this._timeoutAndCancelController.isCancelled(acceptedTask.taskId) && !this._timeoutAndCancelController.isTimedOut(acceptedTask.taskId);
+            return !this._controlPlane.isCancelled(acceptedTask.taskId) && !this._controlPlane.isTimedOut(acceptedTask.taskId);
         });
         await this._finalizeInactiveTasks(groupTasks, activeGroupTasks, 'planning');
         if (activeGroupTasks.length === 0) {
@@ -407,10 +472,10 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
 
         for (const taskId of effectiveTaskGroup.taskIds) {
-            this._ledger.updateStatus(taskId, 'planning');
+            this._controlPlane.updateStatus(taskId, 'planning');
         }
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-        let taskTrace = this._tracePipeline.create(canonicalTask.taskId, canonicalTask.request.kind);
+        let taskTrace = this._controlPlane.createTrace(canonicalTask.taskId, canonicalTask.request.kind);
         this._planningGroupSnapshots.set(
             effectiveTaskGroup.groupId,
             this._toPlanningExecutionGroupSnapshot(effectiveTaskGroup, canonicalTask.request.kind, activeGroupTasks),
@@ -431,7 +496,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         const workerPlanSummary = await this._workerPool.plan(effectiveTaskGroup.groupId, activeGroupTasks, effectiveTaskGroup.mergePolicy);
         await this._finalizeInactiveTasks(activeGroupTasks, this._filterStillActiveTasks(activeGroupTasks), 'planning');
-        taskTrace = this._tracePipeline.append(
+        taskTrace = this._controlPlane.appendTrace(
             taskTrace,
             'planning',
             'Plan tasks',
@@ -473,7 +538,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
 
         for (const taskId of commitTaskGroup.taskIds) {
-            this._ledger.updateStatus(taskId, 'waiting_commit');
+            this._controlPlane.updateStatus(taskId, 'waiting_commit');
         }
         this._upsertExecutionDiagnosticGroupRecord(
             commitTaskGroup.groupId,
@@ -516,7 +581,8 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         );
 
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-        const acquired = this._resourceLockManager.acquire(commitTaskGroup.lockKey);
+        const executorManagedConcurrency = this._hasExecutorManagedConcurrency(commitReadyTasks);
+        const acquired = executorManagedConcurrency || this._resourceLockManager.acquire(commitTaskGroup.lockKey);
         if (!acquired) {
             await this._failGroup(commitTaskGroup, kind, 'resource_lock_unavailable');
             this._activeCommitGroupSnapshot = null;
@@ -526,8 +592,8 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
 
         for (const taskId of commitTaskGroup.taskIds) {
-            this._timeoutAndCancelController.enterCommitWindow(taskId);
-            this._ledger.updateStatus(taskId, 'running');
+            this._controlPlane.enterCommitWindow(taskId);
+            this._controlPlane.updateStatus(taskId, 'running');
             this._scheduler.remove(taskId);
         }
 
@@ -535,14 +601,14 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
             // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
             const batchCommitSummary = await this._batchCommitCoordinator.commit(commitTaskGroup, commitReadyTasks, workerPlanSummary);
             // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-            const completedTaskTrace = this._tracePipeline.append(
+            const completedTaskTrace = this._controlPlane.appendTrace(
                 taskTrace,
                 'commit',
                 'Commit task group',
                 'completed',
                 `Applied ${commitTaskGroup.mergePolicy} group with ${batchCommitSummary.outcomes.length} outcome(s).`,
             );
-            this._completeGroup(commitTaskGroup, kind, this._tracePipeline.finish(completedTaskTrace), batchCommitSummary.outcomes);
+            this._completeGroup(commitTaskGroup, kind, this._controlPlane.finishTrace(completedTaskTrace), batchCommitSummary.outcomes);
         } catch (/* 保存当前流程捕获的异常或诊断信息，供后续处理或返回。 */ error) {
             // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
             const errorMessage = error instanceof Error ? error.message : 'unknown_execution_error';
@@ -550,9 +616,11 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         } finally {
             // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
             for (const taskId of commitTaskGroup.taskIds) {
-                this._timeoutAndCancelController.finalize(taskId);
+                this._controlPlane.finalize(taskId);
             }
-            this._resourceLockManager.release(commitTaskGroup.lockKey);
+            if (!executorManagedConcurrency) {
+                this._resourceLockManager.release(commitTaskGroup.lockKey);
+            }
             this._activeCommitGroupSnapshot = null;
         }
     }
@@ -590,8 +658,8 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
                 changes: this._buildResultChanges(taskGroup, outcome),
                 trace: taskTrace.taskId === taskId ? taskTrace : this._buildDerivedTrace(taskTrace, taskId),
             };
-            this._ledger.setResult(taskResult);
-            this._timeoutAndCancelController.finalize(taskId);
+            this._controlPlane.setResult(taskResult);
+            this._controlPlane.finalize(taskId);
         }
         this._settleExecutionDiagnosticGroup(taskGroup.groupId);
     }
@@ -601,10 +669,10 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         for (const taskId of taskGroup.taskIds) {
             // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-            const taskTrace = this._tracePipeline.finish(
-                this._tracePipeline.append(this._tracePipeline.create(taskId, kind), 'commit', 'Commit task group', 'failed', reason),
+            const taskTrace = this._controlPlane.finishTrace(
+                this._controlPlane.appendTrace(this._controlPlane.createTrace(taskId, kind), 'commit', 'Commit task group', 'failed', reason),
             );
-            this._ledger.setResult({
+            this._controlPlane.setResult({
                 taskId,
                 ok: false,
                 status: 'failed',
@@ -615,7 +683,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
                     message: reason,
                 },
             });
-            this._timeoutAndCancelController.finalize(taskId);
+            this._controlPlane.finalize(taskId);
         }
         this._settleExecutionDiagnosticGroup(taskGroup.groupId);
     }
@@ -652,7 +720,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
     /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */
     private _filterStillActiveTasks(tasks: readonly IAcceptedTask[]): readonly IAcceptedTask[] {
         return tasks.filter((acceptedTask) => {
-            return !this._timeoutAndCancelController.isCancelled(acceptedTask.taskId) && !this._timeoutAndCancelController.isTimedOut(acceptedTask.taskId);
+            return !this._controlPlane.isCancelled(acceptedTask.taskId) && !this._controlPlane.isTimedOut(acceptedTask.taskId);
         });
     }
 
@@ -674,16 +742,16 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
                 continue;
             }
 
-            if (this._timeoutAndCancelController.isCancelled(task.taskId)) {
-                this._ledger.updateStatus(task.taskId, 'cancelled');
-                this._ledger.setResult({
+            if (this._controlPlane.isCancelled(task.taskId)) {
+                this._controlPlane.updateStatus(task.taskId, 'cancelled');
+                this._controlPlane.setResult({
                     taskId: task.taskId,
                     ok: false,
                     status: 'cancelled',
                     changes: [],
-                    trace: this._tracePipeline.finish(
-                        this._tracePipeline.append(
-                            this._tracePipeline.create(task.taskId, task.request.kind),
+                    trace: this._controlPlane.finishTrace(
+                        this._controlPlane.appendTrace(
+                            this._controlPlane.createTrace(task.taskId, task.request.kind),
                             phase,
                             'Task cancelled before commit',
                             'skipped',
@@ -698,15 +766,15 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
                 continue;
             }
 
-            if (this._timeoutAndCancelController.isTimedOut(task.taskId)) {
-                this._ledger.setResult({
+            if (this._controlPlane.isTimedOut(task.taskId)) {
+                this._controlPlane.setResult({
                     taskId: task.taskId,
                     ok: false,
                     status: 'failed',
                     changes: [],
-                    trace: this._tracePipeline.finish(
-                        this._tracePipeline.append(
-                            this._tracePipeline.create(task.taskId, task.request.kind),
+                    trace: this._controlPlane.finishTrace(
+                        this._controlPlane.appendTrace(
+                            this._controlPlane.createTrace(task.taskId, task.request.kind),
                             phase,
                             'Task timed out before commit',
                             'failed',
@@ -739,7 +807,10 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
     }
 
     /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */
-    private async _enqueuePlannedTaskGroups(plannedTaskGroupContexts: readonly IPlannedTaskGroupContext[]): Promise<void> {
+    private async _enqueuePlannedTaskGroups(
+        plannedTaskGroupContexts: readonly IPlannedTaskGroupContext[],
+        waitForCommit: boolean = true,
+    ): Promise<void> {
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         const waitPromises = plannedTaskGroupContexts.map((plannedTaskGroupContext) => {
             return new Promise<void>((resolve, reject) => {
@@ -752,7 +823,11 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         });
 
         void this._drainCommitQueue();
-        await Promise.all(waitPromises);
+        if (waitForCommit) {
+            await Promise.all(waitPromises);
+        } else {
+            void Promise.all(waitPromises).catch(() => {});
+        }
     }
 
     /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */
@@ -768,6 +843,14 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
                 const nextQueuedCommitGroup = this._dequeueNextCommitGroup();
                 if (nextQueuedCommitGroup == null) {
                     break;
+                }
+
+                if (this._hasExecutorManagedConcurrency(nextQueuedCommitGroup.plannedTaskGroupContext.commitReadyTasks)) {
+                    void this._commitPlannedGroup(nextQueuedCommitGroup.plannedTaskGroupContext).then(
+                        () => nextQueuedCommitGroup.resolve(),
+                        (error: unknown) => nextQueuedCommitGroup.reject(error),
+                    );
+                    continue;
                 }
 
                 try {
@@ -786,6 +869,19 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
                 this._consecutiveCommitCount = 0;
             }
         }
+    }
+
+    /** @description 判断任务组是否由同一显式 executor 自行管理资源并发。 */
+    private _hasExecutorManagedConcurrency(tasks: readonly IAcceptedTask[]): boolean {
+        if (tasks.length === 0) {
+            return false;
+        }
+        return tasks.every((task) => {
+            if (!this._taskExecutorRegistry.has(task.request.pluginId, task.request.kind)) {
+                return false;
+            }
+            return this._taskExecutorRegistry.resolve(task.request.pluginId, task.request.kind).concurrency === 'executor_managed';
+        });
     }
 
     /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */
@@ -1057,9 +1153,9 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
     /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */
     private _toExecutionDiagnosticTaskSnapshot(taskId: string): IExecutionDiagnosticTaskSnapshot {
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-        const taskSnapshot = this._ledger.query(taskId);
+        const taskSnapshot = this._controlPlane.query(taskId);
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-        const taskResult = this._ledger.getResult(taskId);
+        const taskResult = this._controlPlane.getResult(taskId);
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         const resultData = typeof taskResult?.data === 'object' && taskResult.data != null ? taskResult.data as Record<string, unknown> : null;
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。

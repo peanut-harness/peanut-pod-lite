@@ -85,4 +85,15 @@ export class TaskLedger {
     public getResult(taskId: string): ITaskResult | null {
         return this._results.get(taskId) ?? null;
     }
+
+    /**
+     * @description 删除超过保留期的任务快照与结果。
+     * @param taskId 任务标识。
+     * @returns 任一记录被删除时返回 true。
+     */
+    public delete(taskId: string): boolean {
+        const snapshotDeleted = this._snapshots.delete(taskId);
+        const resultDeleted = this._results.delete(taskId);
+        return snapshotDeleted || resultDeleted;
+    }
 }

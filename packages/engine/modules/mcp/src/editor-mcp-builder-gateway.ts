@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import type {
     ContractPayload,
     EditorMcpThinLayerAvailability,
@@ -13,6 +12,7 @@ import { EditorMcpBuilderCompletion } from './editor-mcp-builder-completion.js';
 import { EditorMcpThinLayerAvailabilityMapper } from './editor-mcp-thin-layer-availability.js';
 import type { IEditorMcpThinLayerAvailabilityInput } from './editor-mcp-thin-layer-availability.js';
 import { EditorMcpLumen24Bridge } from './editor-mcp-lumen-24-bridge.js';
+import { CompatibleUuid } from '@peanut/pod-engine/assets';
 import { EditorMcpBuilderPostBuildHookRegistry } from './editor-mcp-builder-post-build-hooks.js';
 
 /**
@@ -163,7 +163,7 @@ export class EditorMcpBuilderGateway {
         const platform = input.platform.trim();
         const options = input.options ?? {};
         const taskOptions = await this._resolveBuildOptions(platform, options);
-        const taskId = randomUUID();
+        const taskId = CompatibleUuid.create();
         taskOptions.taskId = taskId;
         const startedAt = Date.now();
         // 只提交一次；传输异常不能证明任务未创建，禁止盲目换接口重复构建。

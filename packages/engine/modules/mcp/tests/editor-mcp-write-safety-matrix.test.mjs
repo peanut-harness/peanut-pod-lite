@@ -698,6 +698,10 @@ test('matrix: scene.open hard-blocks db:// args to open-scene', async () => {
 
 test('matrix: flat tools expose one tool per operation with correct readOnly/risk', async () => {
     const { definitions } = await activateRouter();
+    const catalog = [...definitions.values()];
+    assert.equal(catalog.length, 83);
+    assert.equal(catalog.filter((definition) => definition.readOnly).length, 38);
+    assert.equal(catalog.filter((definition) => !definition.readOnly).length, 45);
     const version = definitions.get('peanut.editor-mcp.editor-query-version');
     assert.ok(version, 'editor-query-version');
     assert.equal(version.readOnly, true);
@@ -706,6 +710,7 @@ test('matrix: flat tools expose one tool per operation with correct readOnly/ris
     const refresh = definitions.get('peanut.editor-mcp.asset-catalog-refresh');
     assert.ok(refresh, 'asset-catalog-refresh');
     assert.equal(refresh.readOnly, false);
+    assert.equal(refresh.executionModel, 'managed_task');
     assert.equal(refresh.risk, 'write');
     assert.equal(refresh.lane, 'lumen-offline');
     assert.deepEqual(refresh.aiHandling.successSignals, [
@@ -716,11 +721,14 @@ test('matrix: flat tools expose one tool per operation with correct readOnly/ris
     assert.equal(refresh.aiHandling.failureField, 'failure');
     assert.equal(refresh.aiHandling.unknownStateAction, 'query_before_retry');
     assert.equal(refresh.aiHandling.blindRetryAllowed, false);
-    assert.deepEqual(refresh.outputSchema.required, ['taskId', 'taskStatus', 'postflight']);
+    assert.deepEqual(refresh.outputSchema.required, ['taskId', 'taskStatus']);
     assert.equal(refresh.outputSchema.additionalProperties, true);
     assert.deepEqual(refresh.outputSchema.properties.postflight.required, ['verified']);
     assert.match(refresh.description['en-US'], /Never retry a write blindly/u);
     assert.deepEqual(version.aiHandling.successSignals, ['response.ok=true']);
+    assert.equal(version.executionModel, undefined);
+    assert.equal(catalog.filter((definition) => definition.executionModel === 'managed_task').length, 45);
+    assert.deepEqual(refresh.inputSchema.properties.execution.properties.mode.enum, ['sync', 'async']);
     const nodeRm = definitions.get('peanut.editor-mcp.lumen-node-rm');
     assert.ok(nodeRm, 'lumen-node-rm');
     assert.equal(nodeRm.risk, 'destructive');

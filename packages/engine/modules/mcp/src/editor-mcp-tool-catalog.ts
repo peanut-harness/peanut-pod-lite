@@ -65,14 +65,16 @@ export class EditorMcpToolCatalog {
             if (inputSchema == null) {
                 throw new Error(`editor_mcp_tool_schema_missing:${descriptor.operation}`);
             }
+            const effectiveInputSchema = descriptor.readOnly ? inputSchema : this._withExecutionControl(inputSchema);
             return {
                 name: this.toolName(descriptor.operation),
                 description: this._descriptionWithAiContract(descriptor.description, descriptor.readOnly),
                 category: 'cocos',
-                inputSchema,
+                inputSchema: effectiveInputSchema,
                 ...(descriptor.readOnly ? {} : { outputSchema: this._writeOutputSchema() }),
                 readOnly: descriptor.readOnly,
                 risk: descriptor.risk,
+                ...(descriptor.readOnly ? {} : { executionModel: 'managed_task' as const }),
                 lane: descriptor.lane,
                 aiHandling: this._aiHandling(descriptor.readOnly),
             };
@@ -129,15 +131,30 @@ export class EditorMcpToolCatalog {
             type: 'object',
             properties: {
                 taskId: this._string('稳定任务标识。'),
-                taskStatus: this._enum(['succeeded'], '同步写任务只有完成后才返回 succeeded。'),
+                taskStatus: this._enum(['queued', 'succeeded'], '异步受理返回 queued，默认同步成功返回 succeeded。'),
                 postflight: this._object(
                     { verified: this._boolean('project.log 增量验收是否通过。') },
                     ['verified'],
                     true,
                 ),
             },
-            required: ['taskId', 'taskStatus', 'postflight'],
+            required: ['taskId', 'taskStatus'],
             additionalProperties: true,
+        };
+    }
+
+    /** @description 为写工具 schema 统一追加 execution 控制对象。 */
+    private _withExecutionControl(schema: IMcpJsonSchema): IMcpJsonSchema {
+        return {
+            ...schema,
+            properties: {
+                ...(schema.properties ?? {}),
+                execution: this._object({
+                    mode: this._enum(['sync', 'async'], '默认 sync；仅显式 async 才提前返回 queued。'),
+                    idempotencyKey: this._string('同 owner、工程和 capability 范围内的幂等键。'),
+                    timeoutMs: this._integer('受控超时毫秒数，范围 1–1800000。'),
+                }),
+            },
         };
     }
 

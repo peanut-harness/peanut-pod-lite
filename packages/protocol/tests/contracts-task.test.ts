@@ -4,6 +4,9 @@ import test from 'node:test';
 import type {
     IPluginError,
     ITaskCancelResult,
+    ITaskEvidenceIndex,
+    ITaskExecutionControl,
+    ITaskOwner,
     ITaskReceipt,
     ITaskRequest,
     ITaskResult,
@@ -104,4 +107,37 @@ test('task contracts should preserve task identity across request, snapshot, tra
     assert.equal(result.data?.scannedNodes, 12);
     assert.equal(result.error?.recoverable, true);
     assert.equal(cancelResult.reason, 'already_completed');
+});
+
+test('managed task controls keep owner, status, and evidence free of raw invocation input', (): void => {
+    const execution: ITaskExecutionControl = {
+        mode: 'async',
+        idempotencyKey: 'contracts-managed-task',
+        timeoutMs: 15_000,
+    };
+    const owner: ITaskOwner = {
+        pluginId: 'contracts.task.plugin',
+        connectionId: 'bridge:contracts',
+        projectKey: 'project:contracts',
+        capability: 'peanut.editor-mcp.asset-copy',
+    };
+    const evidence: ITaskEvidenceIndex = {
+        taskId: 'contracts-managed-task',
+        retainedUntil: '2026-07-12T00:00:00.000Z',
+        entries: [
+            {
+                id: 'postflight',
+                kind: 'postflight',
+                status: 'completed',
+                summary: 'AssetDB and project log checks passed.',
+                digest: 'sha256:contracts',
+                recordedAt: '2026-07-11T00:00:02.000Z',
+            },
+        ],
+    };
+
+    assert.equal(execution.mode, 'async');
+    assert.equal(owner.connectionId, 'bridge:contracts');
+    assert.equal(evidence.entries[0]?.kind, 'postflight');
+    assert.equal('payload' in evidence, false);
 });

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- 新增 `inline | managed_task` capability 执行模型、显式 MCP 执行控制，以及任务 owner、状态、失败和证据 DTO；全部为可选字段或新增 root export，不收紧既有调用契约
 - 新增 `IMcpFailureDetails`、失败分类/状态/推荐动作联合类型与 `IMcpAiHandlingGuidance`；MCP Hub 可在保留旧 `error` 字段的同时追加结构化 `failure`，属于向后兼容扩展
 - 补充 `README.md`，明确 `@peanut/pod-protocol` 的职责、子域边界和消费方式
 - 在 `package.json` 中增加 `exports`、`sideEffects` 和测试文件清单

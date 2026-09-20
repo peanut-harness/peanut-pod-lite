@@ -20,11 +20,11 @@
 
 `specs/creator-profiles/creator-profiles.json` 是兼容状态的唯一真相源。`npm run generate` 从该文件生成 protocol 中的类型化画像目录，`npm run generate:check` 阻止规范与运行时代码漂移。宿主读取实际 Creator 版本和工程声明版本，解析为不可变 `ICreatorContext` 后再装配运行时。
 
-当前画像：2.4 与 3.0–3.5 为 experimental，3.6–3.7 为 unsupported，3.8.7 有 full 实机证据。只有宿主版本和项目声明版本都精确为 3.8.7 时允许写入；项目版本缺失、无法解析或不匹配时一律只读。
+当前画像：2.4 与 3.0–3.5 为 experimental，3.6–3.7 为 unsupported，3.8.3 与 3.8.7 有 full 实机证据。只有宿主版本和项目声明版本都精确为已验证的 3.8.3 或 3.8.7 时允许写入；其它 3.8 补丁版本、项目版本缺失、无法解析或不匹配时一律只读。
 
 `CreatorOperationAvailabilityMatrix` 将 83 项公开操作与可信 Creator 上下文组合为 `available`、`read_only`、`write` 或 `refused`，矩阵测试覆盖四个版本画像；unsupported 全拒绝，写操作仅在具备精确实机证据时进入 `write`。
 
-`Creator38MigrationWorkstreamCatalog` 只负责把同一份 83 项可信目录划分为五个互斥验收域：Editor/Scene/Prefab 21、Asset read 15、Asset write 12、Preview/Builder/Reference 9、Lumen 26。它不复制 schema、风险或审批规则，也不把 Node parity 测试当成 Creator 3.8.7 实机证据。
+`Creator38MigrationWorkstreamCatalog` 只负责把同一份 83 项可信目录划分为五个互斥验收域：Editor/Scene/Prefab 21、Asset read 15、Asset write 12、Preview/Builder/Reference 9、Lumen 26。它不复制 schema、风险或审批规则，也不把 Node parity 测试当成 Creator 3.8.x 任一补丁版本的实机证据。
 
 当前目录与矩阵测试的分类口径为 38 项读、45 项写/破坏性，与 README 一致。旧迁移台账的 36/47 是历史口径，不作为本仓验收基线；分类以当前 capability catalog 和 `creator-operation-availability-matrix.test.mts` 为准，不能仅凭总数 83 判定分类一致。
 

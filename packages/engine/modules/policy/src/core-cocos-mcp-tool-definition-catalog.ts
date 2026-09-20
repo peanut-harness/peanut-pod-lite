@@ -34,6 +34,8 @@ export interface ICoreCocosMcpToolDefinition {
     readonly outputSchema?: ICoreMcpJsonSchema;
     readonly readOnly: boolean;
     readonly risk: McpExecutionRisk;
+    /** @description 工具执行模型；写工具由宿主管理任务执行。 */
+    readonly executionModel: 'inline' | 'managed_task';
     /** @description 写操作执行前必须消费本地审批租约。 */
     readonly requiresLocalApproval: boolean;
     /**
@@ -74,6 +76,7 @@ export class CoreCocosMcpToolDefinitionCatalog {
                     inputSchema,
                     readOnly: true,
                     risk: 'read',
+                    executionModel: 'inline',
                     requiresLocalApproval: false,
                     aiHandling: this.createAiHandling(true),
                 }),
@@ -93,6 +96,7 @@ export class CoreCocosMcpToolDefinitionCatalog {
                 outputSchema: this.createWriteOutputSchema(),
                 readOnly: false,
                 risk: capability.risk,
+                executionModel: 'managed_task',
                 requiresLocalApproval: true,
                 aiHandling: this.createAiHandling(false),
             }));
@@ -158,8 +162,8 @@ export class CoreCocosMcpToolDefinitionCatalog {
                 taskId: Object.freeze({ type: 'string', description: 'Stable resource-operation task id.' }),
                 taskStatus: Object.freeze({
                     type: 'string',
-                    enum: Object.freeze(['succeeded']),
-                    description: 'Synchronous writes return only after the task succeeds.',
+                    enum: Object.freeze(['queued', 'succeeded']),
+                    description: 'Async admission returns queued; synchronous writes return succeeded.',
                 }),
                 postflight: Object.freeze({
                     type: 'object',
@@ -171,7 +175,7 @@ export class CoreCocosMcpToolDefinitionCatalog {
                     description: 'Incremental project.log verification; verified must be true.',
                 }),
             }),
-            required: Object.freeze(['taskId', 'taskStatus', 'postflight']),
+            required: Object.freeze(['taskId', 'taskStatus']),
             additionalProperties: true,
         });
     }

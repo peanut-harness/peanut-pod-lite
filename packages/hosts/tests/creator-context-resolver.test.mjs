@@ -11,6 +11,7 @@ test('resolves the four Creator compatibility profiles', () => {
 });
 
 test('only exact host and project evidence enables writes', () => {
+    assert.equal(CreatorContextResolver.resolve('3.8.3', '3.8.3').writesAllowed, true);
     assert.equal(CreatorContextResolver.resolve('3.8.7', '3.8.7').writesAllowed, true);
     assert.equal(CreatorContextResolver.resolve('3.8.7').writesAllowed, false);
     assert.equal(CreatorContextResolver.resolve('3.8.6', '3.8.6').writesAllowed, false);

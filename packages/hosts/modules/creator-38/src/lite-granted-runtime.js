@@ -1,6 +1,6 @@
 'use strict';
 
-const { randomUUID } = require('node:crypto');
+const { randomBytes } = require('crypto');
 const { existsSync, mkdirSync, renameSync, rmSync } = require('node:fs');
 const { join } = require('node:path');
 
@@ -83,7 +83,12 @@ async function writeAssetSilently(relativePath, content) {
         return request('asset-db', 'query-asset-info', dbUrl);
     }
     const absolutePath = resolveAssetDiskPath(dbUrl);
-    const recoveryDirectory = join(getEditor().Project.path, 'temp', '.peanut-lite-asset-recovery', randomUUID());
+    const recoveryDirectory = join(
+        getEditor().Project.path,
+        'temp',
+        '.peanut-lite-asset-recovery',
+        randomBytes(16).toString('hex'),
+    );
     const orphanPaths = [absolutePath, `${absolutePath}.meta`].filter((candidate) => existsSync(candidate));
     const backups = orphanPaths.map((orphanPath) => ({
         originalPath: orphanPath,

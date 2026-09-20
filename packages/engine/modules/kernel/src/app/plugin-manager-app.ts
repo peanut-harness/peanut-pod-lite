@@ -29,6 +29,7 @@ import { PluginFailureIncidentStore } from '../hotplug/plugin-failure-incident-s
 import { PluginLeaseStore } from '../hotplug/plugin-lease-store.js';
 import { PluginLoader } from '../loader/plugin-loader.js';
 import { McpCapabilityRegistry } from '../mcp/mcp-capability-registry.js';
+import { McpTaskControl } from '../mcp/mcp-task-control.js';
 import type { IMcpHubControl } from '../mcp/mcp-hub-control.js';
 import type { IPluginPackageModuleResolver } from '../loader/node-plugin-package-module-resolver.js';
 import { BrowserPanelBridgeBootstrap, type IPanelBridgeBrowserWindow } from '../panels/browser-panel-bridge-bootstrap.js';
@@ -42,7 +43,7 @@ import { PluginRegistry } from '../registry/plugin-registry.js';
 import { DefaultPluginLogger } from '../shared/default-plugin-logger.js';
 import { PluginEventBus } from '../shared/plugin-event-bus.js';
 import { PluginFileStorage, UnavailablePluginFileStorage } from '../shared/plugin-file-storage.js';
-import type { IDesignSourceCapabilityDescriptor, IPluginActivateContext, IPluginModule, IPluginRegistrationInput, IPluginRegisterContext } from '../shared/plugin-manager-contracts.js';
+import type { IDesignSourceCapabilityDescriptor, IPluginActivateContext, IPluginModule, IPluginRegistrationInput, IPluginRegisterContext, IPluginTaskApi } from '../shared/plugin-manager-contracts.js';
 import type { IPluginUpgradeDiagnostics } from '../shared/plugin-upgrade-diagnostics.js';
 import { PluginUpgradeDiagnosticsTracker, type IMutablePluginUpgradeDiagnostics } from '../shared/plugin-upgrade-diagnostics-tracker.js';
 import { PluginStorage } from '../shared/plugin-storage.js';
@@ -93,6 +94,10 @@ export class PluginManagerApp {
     private readonly _pluginServiceRegistry = new PluginServiceRegistry();
     /** @description 保存当前活动插件公开的 MCP capability。 */
     private readonly _mcpCapabilityRegistry: McpCapabilityRegistry;
+    /** @description 连接隔离的 MCP 受管任务控制器。 */
+    private readonly _mcpTaskControl: McpTaskControl;
+    /** @description 保存当前活动插件的受管任务 API。 */
+    private readonly _pluginTaskApis = new Map<string, PluginTaskApi>();
     /** @description 由编辑器宿主注入的 MCP Hub 面板控制器。 */
     private _mcpHubControl: IMcpHubControl | null = null;
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
@@ -105,6 +110,8 @@ export class PluginManagerApp {
     private readonly _manifestDesignSources = new Map<string, IDesignSourceCapabilityDescriptor>();
     /** @description 可选宿主受保护密钥提供器；缺失时向插件提供 fail-closed 端口。 */
     private readonly _protectedKeyProvider: IPluginProtectedKeyProvider | null;
+    /** @description 当前宿主工程的稳定任务键。 */
+    private readonly _taskProjectKey: string | null;
 
     /**
      * @description 创建一个新的插件管理器主入口。
@@ -135,9 +142,18 @@ export class PluginManagerApp {
         });
         this._packaging = packaging ?? new PackagingApp();
         const projectPath = diagnosticProjectPath ?? this._packaging.getProjectPluginFileStore()?.getLayout().projectPath;
+        this._taskProjectKey = projectPath ?? null;
         this._diagnosticReporter = new PluginDiagnosticReporter(projectPath);
         this._mcpCapabilityRegistry = new McpCapabilityRegistry((pluginId, error, context) => {
             this._diagnosticReporter.record({ pluginId, source: 'mcp_capability', error, context });
+        });
+        this._mcpTaskControl = new McpTaskControl(this._runtime.execution, (capability, connectionId) => {
+            const pluginId = this._mcpCapabilityRegistry.getRegisteredProviderPluginId(capability);
+            if (pluginId == null) {
+                return null;
+            }
+            const runtimeMeta = this._pluginRegistry.getRuntimeMeta(pluginId);
+            return { pluginId, connectionId, projectKey: this._taskProjectKey ?? runtimeMeta?.installPath ?? `plugin:${pluginId}`, capability };
         });
         this._panelBridgeGateway = new PanelBridgeGateway((input) => {
             this._diagnosticReporter.record(input);
@@ -250,6 +266,33 @@ export class PluginManagerApp {
         return this._mcpCapabilityRegistry;
     }
 
+    /** @description 为宿主直接加载但仍由 Kernel 控制的 MCP 插件创建任务 API。 */
+    public createHostTaskApi(pluginId: string, projectKey: string = this._taskProjectKey ?? `plugin:${pluginId}`): IPluginTaskApi {
+        if (this._pluginTaskApis.has(pluginId)) {
+            throw new Error(`plugin_task_api_already_active:${pluginId}`);
+        }
+        const taskApi = new PluginTaskApi(pluginId, this._runtime, projectKey,
+            (invocation) => this._mcpCapabilityRegistry.resolveInvocationOwner(pluginId, invocation),
+        );
+        this._pluginTaskApis.set(pluginId, taskApi);
+        return taskApi;
+    }
+
+    /** @description 停用并移除宿主直接加载 MCP 插件的任务 API。 */
+    public async deactivateHostTaskApi(pluginId: string): Promise<void> {
+        const taskApi = this._pluginTaskApis.get(pluginId);
+        if (taskApi == null) {
+            return;
+        }
+        this._pluginTaskApis.delete(pluginId);
+        await taskApi.deactivate();
+    }
+
+    /** @description 返回连接隔离的 MCP 任务控制器。 */
+    public getMcpTaskControl(): McpTaskControl {
+        return this._mcpTaskControl;
+    }
+
     /**
      * @description 设置当前 kernel 可供内置面板调用的 MCP Hub 控制器。
      * @param control 编辑器宿主的 MCP Hub 控制边界；未配置时传入 `null`。
@@ -299,6 +342,7 @@ export class PluginManagerApp {
             await this._pluginLoader.activate(pluginId, pluginActivateContext);
             this._clearFailureState(pluginId);
         } catch (/* 保存当前流程捕获的异常或诊断信息，供后续处理或返回。 */ error) {
+            await this._deactivateTaskApi(pluginId);
             this._pluginServiceRegistry.revokeProvider(pluginId);
             this._mcpCapabilityRegistry.revokePlugin(pluginId);
             // 保存当前流程收集的有序结果，供后续步骤统一处理。
@@ -319,6 +363,7 @@ export class PluginManagerApp {
         const previousState = this._pluginRegistry.getRuntimeRecord(pluginId)?.state ?? null;
         // 保存当前流程收集的有序结果，供后续步骤统一处理。
         const cleanupStepResults = await this._hotplugController.runDeactivate(pluginId, reason, async (): Promise<void> => {
+            await this._deactivateTaskApi(pluginId);
             await this._pluginLoader.deactivate(pluginId, reason);
             this._pluginServiceRegistry.revokeProvider(pluginId);
             this._mcpCapabilityRegistry.revokePlugin(pluginId);
@@ -336,6 +381,7 @@ export class PluginManagerApp {
         const previousState = this._pluginRegistry.getRuntimeRecord(pluginId)?.state ?? null;
         // 保存当前流程收集的有序结果，供后续步骤统一处理。
         const cleanupStepResults = await this._hotplugController.runDispose(pluginId, async (): Promise<void> => {
+            await this._deactivateTaskApi(pluginId);
             await this._pluginLoader.dispose(pluginId);
             this._pluginServiceRegistry.revokeProvider(pluginId);
             this._mcpCapabilityRegistry.revokePlugin(pluginId);
@@ -1046,6 +1092,13 @@ export class PluginManagerApp {
 
     /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */
     private _createActivateContext(pluginRuntimeMeta: ReturnType<PluginRegistry['getRuntimeMeta']> extends infer T ? NonNullable<T> : never, grantedPermissionSet: IGrantedPermissionSet): IPluginActivateContext {
+        const taskApi = new PluginTaskApi(
+            pluginRuntimeMeta.id,
+            this._runtime,
+            this._taskProjectKey ?? pluginRuntimeMeta.installPath,
+            (invocation) => this._mcpCapabilityRegistry.resolveInvocationOwner(pluginRuntimeMeta.id, invocation),
+        );
+        this._pluginTaskApis.set(pluginRuntimeMeta.id, taskApi);
         return {
             plugin: pluginRuntimeMeta,
             permissions: grantedPermissionSet,
@@ -1068,7 +1121,7 @@ export class PluginManagerApp {
                     return this._mcpCapabilityRegistry.invokeForPlugin(pluginRuntimeMeta.id, name, input);
                 },
             },
-            tasks: new PluginTaskApi(pluginRuntimeMeta.id, this._runtime),
+            tasks: taskApi,
             events: new PluginEventBus((error, context) => {
                 this._diagnosticReporter.record({ pluginId: pluginRuntimeMeta.id, source: 'event_listener', error, context });
             }),
@@ -1322,6 +1375,7 @@ export class PluginManagerApp {
         const cleanupStepResults = await this._hotplugController.runDispose(
             pluginId,
             async (): Promise<void> => {
+                await this._deactivateTaskApi(pluginId);
                 await this._pluginLoader.dispose(pluginId);
                 this._pluginServiceRegistry.revokeProvider(pluginId);
             },
@@ -1351,6 +1405,7 @@ export class PluginManagerApp {
         const previousState = this._pluginRegistry.getRuntimeRecord(pluginId)?.state ?? null;
         // 保存当前流程收集的有序结果，供后续步骤统一处理。
         const cleanupStepResults = await this._hotplugController.runDispose(pluginId, async (): Promise<void> => {
+            await this._deactivateTaskApi(pluginId);
             await this._pluginLoader.dispose(pluginId);
             this._pluginServiceRegistry.revokeProvider(pluginId);
         });
@@ -1366,6 +1421,7 @@ export class PluginManagerApp {
             pluginId,
             reason,
             async (): Promise<void> => {
+                await this._deactivateTaskApi(pluginId);
                 await this._pluginLoader.deactivate(pluginId, reason);
                 this._pluginServiceRegistry.revokeProvider(pluginId);
             },
@@ -1380,6 +1436,7 @@ export class PluginManagerApp {
         const previousState = this._pluginRegistry.getRuntimeRecord(pluginId)?.state ?? null;
         // 保存当前流程收集的有序结果，供后续步骤统一处理。
         const cleanupStepResults = await this._hotplugController.runDeactivate(pluginId, reason, async (): Promise<void> => {
+            await this._deactivateTaskApi(pluginId);
             await this._pluginLoader.deactivate(pluginId, reason);
             this._pluginServiceRegistry.revokeProvider(pluginId);
         });
@@ -1392,6 +1449,16 @@ export class PluginManagerApp {
         const pluginStorage = this._pluginStorageStore.get(pluginId) ?? new PluginStorage();
         this._pluginStorageStore.set(pluginId, pluginStorage);
         return pluginStorage;
+    }
+
+    /** @description 停用插件受管任务 API 并撤销其 executor。 */
+    private async _deactivateTaskApi(pluginId: string): Promise<void> {
+        const taskApi = this._pluginTaskApis.get(pluginId);
+        if (taskApi == null) {
+            return;
+        }
+        await taskApi.deactivate();
+        this._pluginTaskApis.delete(pluginId);
     }
 
     /** @description 为当前插件创建仅能访问自身范围的文件存储客户端。 */

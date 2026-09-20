@@ -14,7 +14,7 @@ const fixtureUrl = new URL(
 );
 const fixture = JSON.parse(await readFile(fixtureUrl, 'utf8'));
 const operationScope = /^(preview|builder|reference|lumen)\./u;
-const excludedControlProperties = new Set(['approvalId', 'proPlan']);
+const excludedControlProperties = new Set(['approvalId', 'execution', 'proPlan']);
 
 function normalizeSchema(schema) {
     const normalized = { type: schema.type };
@@ -56,7 +56,7 @@ test('Preview/Builder/Reference/Lumen Lite definitions preserve the normalized l
     );
     assert.deepEqual(fixture.normalization, {
         ignoredSchemaFields: ['description'],
-        excludedControlProperties: ['approvalId', 'proPlan'],
+        excludedControlProperties: ['approvalId', 'execution', 'proPlan'],
     });
 
     const expected = [...fixture.definitions].sort(byOperation);

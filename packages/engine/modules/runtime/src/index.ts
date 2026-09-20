@@ -84,8 +84,24 @@ export type {
   IExecutionRuntimeService,
 } from "./execution/execution-runtime-service.js";
 export { ExecutionRuntimeService } from "./execution/execution-runtime-service.js";
+export {
+  BuiltInRuntimeTaskExecutors,
+  RUNTIME_BUILTIN_EXECUTOR_PLUGIN_ID,
+} from "./execution/commit/builtin-runtime-task-executors.js";
+export type { ITaskExecutor } from "./execution/registry/task-executor-registry.js";
+export { TaskExecutorRegistry } from "./execution/registry/task-executor-registry.js";
+export type {
+  ITaskControlPlaneOptions,
+  ITaskIdempotencyClaim,
+} from "./execution/control/task-control-plane.js";
+export { TaskControlPlane } from "./execution/control/task-control-plane.js";
 export { TaskIngress } from "./execution/ingress/task-ingress.js";
 export { TaskLedger } from "./execution/ledger/task-ledger.js";
+export type {
+  IResourceLockAcquireOptions,
+  IResourceLockLease,
+  IResourceLockRequest,
+} from "./execution/locks/resource-lock-manager.js";
 export { ResourceLockManager } from "./execution/locks/resource-lock-manager.js";
 export type { ITaskMergeGroup } from "./execution/merge/task-merger.js";
 export { TaskMerger } from "./execution/merge/task-merger.js";

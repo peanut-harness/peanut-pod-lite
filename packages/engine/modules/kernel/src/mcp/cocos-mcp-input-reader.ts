@@ -114,6 +114,14 @@ export class CocosMcpInputReader {
         return value;
     }
 
+    /** @description 读取受管任务标识，不对其内部命名格式作业务推断。 */
+    public readTaskId(value: unknown): string {
+        if (typeof value !== 'string' || value.length === 0 || value.length > 512 || /[\u0000-\u001f\u007f]/u.test(value)) {
+            throw new Error('cocos_mcp_task_id_invalid');
+        }
+        return value;
+    }
+
     /**
      * @description 解析调用风险；覆盖导入视为 destructive。
      * @param definition capability 定义

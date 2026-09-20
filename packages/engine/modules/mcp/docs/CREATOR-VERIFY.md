@@ -1,6 +1,6 @@
 # Creator 实机验收
 
-本手册验证 Creator 3.8.7 中的 Lite 宿主、`peanut.editor-mcp` 与 Lumen。离线测试只能证明协议和实现行为，不能替代编辑器实机验收。
+本手册验证 Creator 3.8.x 中的 Lite 宿主、`peanut.editor-mcp` 与 Lumen。当前已完成 3.8.3 与 3.8.7 的实机证据；未列入精确画像的补丁版本仍只读。离线测试只能证明协议和实现行为，不能替代编辑器实机验收。
 
 ## 1. 构建与安装
 
@@ -22,7 +22,7 @@ npm run pack
 - `list-tools` 返回 83 个 Lite operation，且不包含 Pro operation。
 - `query-status.artifacts`、`host-status.json.artifacts` 与 `smoke-results.json.artifacts` 完全一致；记录宿主 `mainDigest`、Lite `packageDigest`/`packedAt`，有 Pro 时同时记录 Pro package digest。
 - `project.log` 出现本轮 `lite_host_ready`，之后没有新增启动错误。
-- 宿主版本与工程版本均为 `3.8.7`；缺失或不一致时写入保持关闭。
+- 宿主版本与工程版本均为已验证的 `3.8.3` 或 `3.8.7`；缺失、不一致或其它 3.8 补丁版本时写入保持关闭。
 
 任一条件失败都停止写入验收，不通过截图推断状态。
 
@@ -37,7 +37,7 @@ npm run pack
 
 结果必须来自 MCP 响应和本轮 `project.log` 增量；报告缺少产物摘要或摘要与待验 release 不一致时，本轮证据无效。
 
-完整验收按 `Creator38MigrationWorkstreamCatalog` 的固定分母记录，不得只报告 83 项总数：Editor/Scene/Prefab 21、Asset read 15、Asset write 12、Preview/Builder/Reference 9、Lumen 26。每项证据至少包含 operation、输入 fixture、MCP 结果、日志增量和清理结果；Node parity 测试只证明冻结契约，不替代本节的 Creator 3.8.7 证据。
+完整验收按 `Creator38MigrationWorkstreamCatalog` 的固定分母记录，不得只报告 83 项总数：Editor/Scene/Prefab 21、Asset read 15、Asset write 12、Preview/Builder/Reference 9、Lumen 26。每项证据至少包含 operation、输入 fixture、MCP 结果、日志增量和清理结果；Node parity 测试只证明冻结契约，不替代本节的 Creator 3.8.x 精确补丁版本证据。
 
 ## 4. 静默资源写入
 
@@ -81,5 +81,6 @@ node packages/engine/modules/lumen/scripts/diff-cc-dts-components.mjs <cc.d.ts-o
 - 启动 smoke 的 20 个空参只读调用与 18 个参数化只读 fixture 全部通过，即 38/38 个业务只读 operation 已具备实机证据。
 - 本地审批入口完成签发和消费；`asset.writeText` 验证无租约拒绝、租约写入、AssetDB settle、原内容与 `.meta` 哈希恢复。
 - 本轮日志增量没有 error 或 warning，三份状态/报告中的宿主和 CPM 产物身份一致。
+- 2026-09-20，Creator 3.8.3 项目 `billiards-practice-clean` 的当前 pack 验收完成：修复旧 Node 的 `node:` builtin、`Object.hasOwn` 与 `crypto.randomUUID` 兼容性后，Host/Core 加载成功；`asset.writeText` 经 Hub 写租约完成 AssetDB settle 与 postflight 校验，随后 destructive 删除验证无残留。
 
 这不是 Wave 1 完成声明。剩余分母是 44 个写/破坏性 operation，必须继续按第 4、5 节逐项记录副作用、读取验证和清理结果。

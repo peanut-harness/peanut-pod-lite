@@ -2,7 +2,6 @@
  * @description 静默资产生命周期与 import / waitReady 编排（从 action-router peel）。
  */
 import { existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
-import { randomUUID } from 'node:crypto';
 import { dirname, join } from 'node:path';
 
 import type {
@@ -21,6 +20,7 @@ import type {
     IAssetWaitReadyMcpInput,
     IAssetWriteTextMcpInput,
 } from '@peanut/pod-protocol';
+import { CompatibleUuid } from '@peanut/pod-engine/assets';
 import type { IGrantedRuntimeClientSet } from '@peanut/pod-sdk';
 import {
     FileAssetDependencyIndex,
@@ -522,7 +522,7 @@ export class EditorMcpSilentAssetGateway {
                         ? null
                         : await message.request<Record<string, unknown> | null>('asset-db', 'query-asset-info', dbUrl);
                 if (message != null && existing == null) {
-                    const recoveryDirectory = join(projectRoot, 'temp', '.peanut-write-text-recovery', randomUUID());
+                    const recoveryDirectory = join(projectRoot, 'temp', '.peanut-write-text-recovery', CompatibleUuid.create());
                     const orphanPaths = [absolutePath, `${absolutePath}.meta`].filter((candidate) => existsSync(candidate));
                     const backups = orphanPaths.map((orphanPath) => ({
                         originalPath: orphanPath,

@@ -7,6 +7,7 @@ import type { IExecutionDiagnosticsSnapshot } from '@peanut/pod-engine/runtime';
 import { BuiltinPluginManagerPanelHarness } from '../src/integration/builtin-plugin-manager-panel-harness';
 import type { IPluginFailureDetailPayload, IPluginManagerSnapshotPayload } from '../src/panels/plugin-manager-panel-contracts';
 import { PluginManagerPanelUiController } from '../src/panels/plugin-manager-panel-ui';
+import type { IMcpHubControl } from '../src/mcp/mcp-hub-control';
 
 function createExecutionDiagnosticsSnapshot(): IExecutionDiagnosticsSnapshot {
     return {
@@ -155,6 +156,51 @@ function createExecutionDiagnosticsSnapshot(): IExecutionDiagnosticsSnapshot {
         updatedAt: '2026-07-12T00:00:05.000Z',
     };
 }
+
+test('builtin plugin-manager panel should expose only trusted managed task audit fields', async (): Promise<void> => {
+    const harness = new BuiltinPluginManagerPanelHarness('3.8.7');
+    const control: IMcpHubControl = {
+        getStatus: () => ({
+            isAvailable: true,
+            isEnabled: true,
+            port: 3210,
+            preferredPort: 3210,
+            catalogRevision: 1,
+            capabilities: [],
+            disabledPluginIds: [],
+            writeEnabledPluginIds: ['peanut.example'],
+            directWriteEnabled: false,
+            recentCalls: [],
+        }),
+        listPendingPlans: () => [],
+        listRecentCalls: () => [{
+            id: 'audit-safe',
+            name: 'peanut.example.controlled-write',
+            category: 'cocos',
+            risk: 'write',
+            status: 'succeeded',
+            requestedAt: 1,
+            completedAt: 2,
+            durationMs: 1,
+            errorCode: null,
+            taskId: 'task-safe',
+            taskStatus: 'succeeded',
+        }],
+        setEnabled: async () => {},
+        setPluginEnabled: async () => {},
+        setDirectWriteEnabled: async () => {},
+        setPluginExposure: async () => {},
+        approvePlan: () => false,
+        rejectPlan: () => false,
+    };
+    const summary = await harness.runMcpTaskSummaryFlow(control);
+
+    assert.equal(summary?.taskId, 'task-safe');
+    assert.equal(summary?.taskStatus, 'succeeded');
+    assert.deepEqual(Object.keys(summary ?? {}).sort(), [
+        'category', 'completedAt', 'durationMs', 'errorCode', 'id', 'name', 'requestedAt', 'risk', 'status', 'taskId', 'taskStatus',
+    ]);
+});
 
 function createRuntimeRecord(pluginId: string): IPluginRuntimeRecord {
     return {

@@ -105,6 +105,24 @@ test('MCP capability registry should reject unscoped names and inconsistent risk
             blindRetryAllowed: false,
         },
     }, async (): Promise<unknown> => null), /mcp_capability_ai_handling_invalid/);
+    assert.throws(() => registry.register('peanut.example', {
+        name: 'peanut.example.invalid-execution-model',
+        description: '执行模型无效。',
+        category: 'workflow',
+        inputSchema: { type: 'object' },
+        readOnly: false,
+        risk: 'write',
+        executionModel: 'background' as never,
+    }, async (): Promise<unknown> => null), /mcp_capability_execution_model_invalid/);
+    assert.throws(() => registry.register('peanut.example', {
+        name: 'peanut.example.managed-read',
+        description: '只读能力不得声明受管写任务。',
+        category: 'workflow',
+        inputSchema: { type: 'object' },
+        readOnly: true,
+        risk: 'read',
+        executionModel: 'managed_task',
+    }, async (): Promise<unknown> => null), /mcp_capability_execution_model_invalid/);
 });
 
 test('control-flow refusal must not report diagnostic / still rejects invoke', async (): Promise<void> => {

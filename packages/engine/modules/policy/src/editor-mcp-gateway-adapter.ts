@@ -9,6 +9,7 @@ import type { CoreCocosMcpPublicOperation } from './core-cocos-mcp-tool-name-res
 export type EditorMcpGatewayExecute = (
     operation: CoreCocosMcpPublicOperation,
     input: Readonly<Record<string, unknown>>,
+    invocation?: ICoreCocosMcpExecutionRequest['invocation'],
 ) => Promise<unknown>;
 
 /**
@@ -61,6 +62,6 @@ export class EditorMcpGatewayAdapter implements ICoreCocosMcpExecutionAdapter {
         if (isProExclusiveCocosOperation(request.operation)) {
             throw new Error(`core_cocos_mcp_execution_operation_not_public:${request.operation}`);
         }
-        return this.executeOperation(request.operation, request.input);
+        return this.executeOperation(request.operation, request.input, request.invocation);
     }
 }

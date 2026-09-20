@@ -15,8 +15,10 @@ import type {
     PluginId,
     McpCapabilityRisk,
     McpCapabilityCategory,
+    McpCapabilityExecutionModel,
     PluginState,
     PluginVersion,
+    TaskStatus,
 } from '@peanut/pod-protocol';
 import type { IExecutionDiagnosticsSnapshot } from '@peanut/pod-engine/runtime';
 
@@ -502,6 +504,8 @@ export interface IPluginManagerMcpCapabilityPayload extends ContractPayload {
     readonly readOnly: boolean;
     /** @description capability 风险等级。 */
     readonly risk: McpCapabilityRisk;
+    /** @description capability 的执行模型；未声明时为 inline。 */
+    readonly executionModel: McpCapabilityExecutionModel;
 }
 
 /**
@@ -540,6 +544,10 @@ export interface IPluginManagerMcpRecentCallPayload extends ContractPayload {
     readonly durationMs: number | null;
     /** @description 安全错误码；不透传 capability 原始错误。 */
     readonly errorCode: string | null;
+    /** @description 关联受管任务标识；inline 调用为 `null`。 */
+    readonly taskId: string | null;
+    /** @description 关联受管任务安全状态；inline 调用为 `null`。 */
+    readonly taskStatus: TaskStatus | null;
 }
 
 /**

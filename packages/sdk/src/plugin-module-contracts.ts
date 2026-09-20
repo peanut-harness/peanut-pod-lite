@@ -15,6 +15,8 @@ import type {
   IPluginRuntimeMeta,
   ITaskBatchReceipt,
   ITaskCancelResult,
+  ITaskEvidenceEntry,
+  ITaskOwner,
   ITaskReceipt,
   ITaskRequest,
   ITaskResult,
@@ -24,6 +26,64 @@ import type {
   PluginId,
   TaskId,
 } from "@peanut/pod-protocol";
+
+/**
+ * @description 由宿主补充插件身份的受管任务入队请求。
+ */
+export type PluginManagedTaskRequest = Omit<ITaskRequest, "pluginId">;
+
+/**
+ * @description 受管任务 executor 的宿主注入上下文。
+ */
+export interface IPluginTaskExecutorContext {
+  /** @description 任务受理时固定的 owner，不能由业务输入覆盖。 */
+  readonly owner: ITaskOwner;
+  /** @description 可中止步骤使用的受控信号，不强制中断不可逆 commit。 */
+  readonly signal: AbortSignal;
+  /** @description 记录经过 allow-list 筛选的任务证据。 */
+  recordEvidence(evidence: ITaskEvidenceEntry): void;
+}
+
+/**
+ * @description 插件注册的受管任务 executor。
+ */
+export type PluginTaskExecutor = (
+  request: Readonly<ITaskRequest>,
+  context: IPluginTaskExecutorContext,
+) => Promise<unknown>;
+
+/** @description 插件 executor 的宿主调度声明。 */
+export interface IPluginTaskExecutorOptions {
+  /** @description executor 是否自行使用资源锁管理并发。 */
+  readonly concurrency?: "runtime_serial" | "executor_managed";
+}
+
+/**
+ * @description 新受管任务控制面 API；旧任务 API 继续保持原有方法。
+ */
+export interface IPluginManagedTaskApi {
+  /**
+   * @description 为当前插件注册 task kind executor；停用时宿主自动撤销。
+   * @param kind 当前插件命名空间内的稳定任务种类。
+   * @param executor 由宿主注入 owner 后调用的任务执行器。
+   * @returns 可供插件提前撤销 executor 的清理函数。
+   */
+  registerExecutor(kind: string, executor: PluginTaskExecutor, options?: IPluginTaskExecutorOptions): () => void;
+
+  /**
+   * @description 显式将任务送入受管控制面；插件身份由宿主注入。
+   * @param request 不允许携带 pluginId 或 owner 的任务请求。
+   * @returns 任务受理回执。
+   */
+  enqueue(request: PluginManagedTaskRequest, invocation?: IMcpCapabilityInvocation): Promise<ITaskReceipt>;
+
+  /**
+   * @description 等待任务进入终态并读取结果。
+   * @param taskId 当前插件拥有的任务标识。
+   * @returns 终态任务结果；任务不存在或不属于当前插件时返回 null。
+   */
+  wait<TData = ContractPayload>(taskId: TaskId): Promise<ITaskResult<TData> | null>;
+}
 
 /**
  * @description MCP capability 处理器；由业务插件在激活期注册。
@@ -789,6 +849,11 @@ export interface IPluginFileStorageApi {
  * @description 插件任务辅助接口。
  */
 export interface IPluginTaskApi {
+  /**
+   * @description 新受管任务 API；旧宿主可省略，调用方必须先检测可用性。
+   */
+  readonly managed?: IPluginManagedTaskApi;
+
   /**
    * @description 提交一个插件任务请求。
    * @param request 任务请求；其中 `pluginId` 将被忽略并替换为当前插件标识

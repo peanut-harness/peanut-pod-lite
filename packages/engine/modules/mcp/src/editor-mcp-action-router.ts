@@ -11,10 +11,10 @@ import type {
     LocalizedText,
 } from '@peanut/pod-protocol';
 import { McpControlFlowRefusal } from '@peanut/pod-engine/kernel';
-import { ProjectLogPostflightMonitor } from '@peanut/pod-engine/runtime';
+import { ProjectLogPostflightMonitor, ResourceLockManager } from '@peanut/pod-engine/runtime';
 import { EditorMcpExecutionLaneResolver, ProductLineMcpPolicy } from '@peanut/pod-protocol';
 import type { IGrantedRuntimeClientSet } from '@peanut/pod-sdk';
-import { AssetCatalogFastLookupApi, type IAssetCatalogFastLookup } from '@peanut/pod-engine/assets';
+import { AssetCatalogFastLookupApi, CompatibleUuid, type IAssetCatalogFastLookup } from '@peanut/pod-engine/assets';
 
 import { EditorMcpAssetDiagnostics } from './editor-mcp-asset-diagnostics.js';
 import { EditorMcpAssetDbTransaction } from './editor-mcp-asset-db-transaction.js';
@@ -30,12 +30,14 @@ import { EditorMcpSceneGateway } from './editor-mcp-scene-gateway.js';
 import { EditorMcpPrefabOfflineGateway } from './editor-mcp-prefab-offline-gateway.js';
 import { CAPABILITIES, type EditorMcpCapabilitySeed } from './editor-mcp-capability-catalog.js';
 import { ResourceOperationPlanner } from './resource-operation-planner.js';
-import { ResourceOperationTaskQueue } from './resource-operation-task-queue.js';
+import { ResourceOperationTaskExecutor } from './resource-operation-task-executor.js';
 
 /**
  * @description 显式校验外部 MCP 输入，并通过受限 runtime grant 与插件服务执行 action。
  */
 export class EditorMcpActionRouter {
+    /** @description 跨 Router 共享的原子资源锁管理器。 */
+    private static readonly _sharedResourceLockManager = new ResourceLockManager();
     /** @description 由当前实例持有的授权 runtime client 集合。 */
     private readonly _runtime: IGrantedRuntimeClientSet;
     /** @description 资产目录 MCP 快查接口。 */
@@ -63,7 +65,7 @@ export class EditorMcpActionRouter {
     /**
      * @description 跨 Router 共享的项目级资源调度器。
      */
-    private readonly _taskQueue: ResourceOperationTaskQueue;
+    private readonly _resourceTaskExecutor: ResourceOperationTaskExecutor;
     /**
      * @description 写 operation 资源闭包规划器。
      */
@@ -74,17 +76,16 @@ export class EditorMcpActionRouter {
      * @param runtime 由插件宿主裁剪并可撤销的 runtime client 集合
      * @param catalogLookup 资产目录快查接口；测试可注入替代实现
      * @param lumenGateway 可选 lumen 网关；测试可注入替代实现
-     * @param taskQueue 可选项目级资源调度器；默认跨 Router 共享
+     * @param resourceLockManager 可选项目级原子资源锁管理器；默认跨 Router 共享
      */
     public constructor(
         runtime: IGrantedRuntimeClientSet,
         catalogLookup: IAssetCatalogFastLookup = new AssetCatalogFastLookupApi(),
         lumenGateway?: EditorMcpLumenGateway,
-        taskQueue: ResourceOperationTaskQueue = ResourceOperationTaskQueue.shared(),
+        resourceLockManager: ResourceLockManager = EditorMcpActionRouter._sharedResourceLockManager,
     ) {
         this._runtime = runtime;
         this._catalogLookup = catalogLookup;
-        this._taskQueue = taskQueue;
         this._taskPlanner = new ResourceOperationPlanner();
         this._diagnostics = new EditorMcpAssetDiagnostics();
         this._preview = new EditorMcpPreviewGateway(runtime, async () => {
@@ -133,6 +134,11 @@ export class EditorMcpActionRouter {
             diagnostics: this._diagnostics,
             sceneGateway: this._sceneGateway,
             isRecord: (value: unknown): value is Record<string, unknown> => this._isRecord(value),
+        });
+        this._resourceTaskExecutor = new ResourceOperationTaskExecutor({
+            plan: async (operation, input) => this.planManagedResourceOperation(operation as EditorMcpOperationId, input),
+            execute: async (operation, input) => this.executeManagedResourceOperation(operation as EditorMcpOperationId, input),
+            lockManager: resourceLockManager,
         });
     }
 
@@ -253,32 +259,75 @@ export class EditorMcpActionRouter {
         if (planned.risk === 'destructive' && this._readConfirmDestructive(request.input) !== true) {
             McpControlFlowRefusal.reject('editor_mcp_destructive_confirmation_required');
         }
-        const projectRoot = await this._requireProjectPath();
-        const taskPlan = this._taskPlanner.plan(projectRoot, request.operation, request.input);
-        const postflightMonitor = new ProjectLogPostflightMonitor();
-        const logCheckpoint = postflightMonitor.checkpoint(projectRoot);
-        const task = await this._taskQueue.run(taskPlan, async () => {
-            const result = await this._executeDirect(request);
-            const postflight = postflightMonitor.readDelta(logCheckpoint);
-            if (!postflight.logChecked || postflight.newErrorCount > 0 || postflight.newWarningCount > 0) {
-                throw new Error(
-                    `editor_mcp_project_log_postflight_failed:errors=${postflight.newErrorCount}:warnings=${postflight.newWarningCount}`,
-                );
-            }
-            return {
-                ...result,
-                data: this._isRecord(result.data)
-                    ? { ...result.data, taskPostflight: postflight }
-                    : { value: result.data, taskPostflight: postflight },
-            };
+        const taskId = CompatibleUuid.create();
+        const projectKey = await this._requireProjectPath();
+        const taskResult = await this._resourceTaskExecutor.execute({
+            requestId: taskId,
+            pluginId: 'peanut.editor-mcp',
+            scope: 'project',
+            priority: 'normal',
+            kind: ResourceOperationTaskExecutor.KIND,
+            payload: { operation: request.operation, input: request.input ?? {} },
+            ...(request.execution?.timeoutMs == null ? {} : { timeoutMs: request.execution.timeoutMs }),
+        }, {
+            owner: {
+                pluginId: 'peanut.editor-mcp',
+                connectionId: 'internal:editor-mcp-router',
+                projectKey,
+                capability: request.operation,
+            },
+            signal: new AbortController().signal,
+            recordEvidence: () => undefined,
         });
-        if (task.result == null) {
-            throw new Error(`editor_mcp_task_result_missing:${task.taskId}`);
+        if (!this._isRecord(taskResult) || typeof taskResult.operation !== 'string' || !('data' in taskResult)) {
+            throw new Error(`editor_mcp_task_result_invalid:${taskId}`);
         }
         return {
-            ...task.result,
-            taskId: task.taskId,
+            ...taskResult,
+            operation: taskResult.operation as EditorMcpOperationId,
+            data: taskResult.data,
+            taskId,
             taskStatus: 'succeeded',
+        };
+    }
+
+    /** @description 为受管 executor 规划完整资源闭包。 */
+    public async planManagedResourceOperation(
+        operation: EditorMcpOperationId,
+        input: Readonly<Record<string, unknown>>,
+    ): Promise<ReturnType<ResourceOperationPlanner['plan']>> {
+        return this._taskPlanner.plan(await this._requireProjectPath(), operation, input);
+    }
+
+    /** @description 在 executor 已取得资源锁后执行原业务 worker 与唯一项目日志 postflight。 */
+    public async executeManagedResourceOperation(
+        operation: EditorMcpOperationId,
+        input: Readonly<Record<string, unknown>>,
+    ): Promise<IEditorMcpActionResult> {
+        const request: IEditorMcpOperationRequest = { operation, input };
+        this._validateOperationInput(request);
+        const planned = this.plan(request);
+        if (planned.readOnly) {
+            throw new Error(`editor_mcp_managed_operation_read_only:${operation}`);
+        }
+        if (planned.risk === 'destructive' && this._readConfirmDestructive(input) !== true) {
+            McpControlFlowRefusal.reject('editor_mcp_destructive_confirmation_required');
+        }
+        const projectRoot = await this._requireProjectPath();
+        const postflightMonitor = new ProjectLogPostflightMonitor();
+        const logCheckpoint = postflightMonitor.checkpoint(projectRoot);
+        const result = await this._executeDirect(request);
+        const postflight = postflightMonitor.readDelta(logCheckpoint);
+        if (!postflight.logChecked || postflight.newErrorCount > 0 || postflight.newWarningCount > 0) {
+            throw new Error(
+                `editor_mcp_project_log_postflight_failed:errors=${postflight.newErrorCount}:warnings=${postflight.newWarningCount}`,
+            );
+        }
+        return {
+            ...result,
+            data: this._isRecord(result.data)
+                ? { ...result.data, taskPostflight: postflight }
+                : { value: result.data, taskPostflight: postflight },
         };
     }
 

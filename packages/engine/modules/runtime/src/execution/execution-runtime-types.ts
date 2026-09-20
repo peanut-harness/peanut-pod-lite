@@ -1,6 +1,7 @@
-import type { ITaskBatchReceipt, ITaskCancelResult, ITaskReceipt, ITaskRequest, ITaskResult, ITaskSnapshot, ITaskTrace, TaskStatus } from '@peanut/pod-protocol';
+import type { ITaskBatchReceipt, ITaskCancelResult, ITaskEvidenceEntry, ITaskEvidenceIndex, ITaskOwner, ITaskReceipt, ITaskRequest, ITaskResult, ITaskSnapshot, ITaskStatusSummary, ITaskTrace, TaskStatus } from '@peanut/pod-protocol';
 
 import type { ITaskMergeGroup } from './merge/task-merger.js';
+import type { ITaskExecutor } from './registry/task-executor-registry.js';
 
 /**
  * @description 执行组当前调度阶段。
@@ -258,6 +259,12 @@ export interface IExecutionRuntimeService {
      */
     submit(request: ITaskRequest): Promise<ITaskReceipt>;
 
+    /** @description 提交一个由宿主固定 owner 的受管任务。 */
+    submitOwned(request: ITaskRequest, owner: ITaskOwner): Promise<ITaskReceipt>;
+
+    /** @description 返回宿主已固定的任务 owner；仅供受信执行边界使用。 */
+    getOwner(taskId: string): ITaskOwner | null;
+
     /**
      * @description 批量提交多个任务请求。
      * @param requests 外部任务请求列表
@@ -286,6 +293,21 @@ export interface IExecutionRuntimeService {
      */
     cancel(taskId: string): Promise<ITaskCancelResult>;
 
+    /** @description 仅向匹配 owner 返回任务安全状态摘要。 */
+    getOwnedStatus(taskId: string, owner: ITaskOwner): Promise<ITaskStatusSummary | null>;
+
+    /** @description 仅允许匹配 owner 取消任务。 */
+    cancelOwned(taskId: string, owner: ITaskOwner): Promise<ITaskCancelResult>;
+
+    /** @description 仅向匹配 owner 返回 allow-list 任务证据。 */
+    getOwnedEvidence(taskId: string, owner: ITaskOwner): Promise<ITaskEvidenceIndex | null>;
+
+    /** @description 为提供插件注册 kind executor。 */
+    registerExecutor(pluginId: string, kind: string, executor: ITaskExecutor): () => void;
+
+    /** @description 记录经过 allow-list 筛选的任务证据。 */
+    recordEvidence(taskId: string, evidence: ITaskEvidenceEntry): void;
+
     /**
      * @description 返回当前执行调度队列与提交窗口的观测快照。
      * @returns Promise 返回当前执行队列快照
@@ -298,4 +320,3 @@ export interface IExecutionRuntimeService {
      */
     inspectDiagnostics(): Promise<IExecutionDiagnosticsSnapshot>;
 }
-

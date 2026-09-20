@@ -32,6 +32,17 @@ await build({
         '@peanut/pod-sdk': resolve(repositoryRoot, 'packages/sdk/dist/index.js'),
         '@peanut/pod-engine/assets': resolve(repositoryRoot, 'packages/engine/modules/assets/dist/index.js'),
     },
+    plugins: [
+        {
+            name: 'creator-38-node-builtin-compatibility',
+            setup(buildApi) {
+                buildApi.onResolve({ filter: /^node:/ }, (args) => ({
+                    path: args.path.slice('node:'.length),
+                    external: true,
+                }));
+            },
+        },
+    ],
     // Creator Electron provides electron; keep it external.
     external: ['electron', 'canvas'],
 });

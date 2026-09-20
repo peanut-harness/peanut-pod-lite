@@ -7,6 +7,7 @@
     ],
     "excludedControlProperties": [
       "approvalId",
+      "execution",
       "proPlan"
     ]
   },

@@ -1,11 +1,13 @@
-import type { EditorMcpActionId, IEditorMcpActionPlan, IEditorMcpActionResult, IEditorMcpCapabilityDescriptor } from '@peanut/pod-protocol';
+import type { EditorMcpActionId, EditorMcpOperationId, IEditorMcpActionPlan, IEditorMcpActionResult, IEditorMcpCapabilityDescriptor } from '@peanut/pod-protocol';
 import { AssetCatalogFastLookupApi, type IAssetCatalogFastLookup } from '@peanut/pod-engine/assets';
 import { PluginModuleBase } from '@peanut/pod-sdk';
-import type { IPluginActivateContext, IPluginRegisterContext, PluginDeactivateReason } from '@peanut/pod-sdk';
+import type { IMcpCapabilityInvocation, IPluginActivateContext, IPluginManagedTaskApi, IPluginRegisterContext, PluginDeactivateReason } from '@peanut/pod-sdk';
 
 import { EditorMcpActionRouter } from './editor-mcp-action-router.js';
 import { EditorMcpLumenGateway } from './editor-mcp-lumen-gateway.js';
+import { EditorMcpExecutionCodec } from './editor-mcp-execution-codec.js';
 import { EditorMcpToolCatalog } from './editor-mcp-tool-catalog.js';
+import { ResourceOperationTaskExecutor } from './resource-operation-task-executor.js';
 
 /**
  * @description Editor MCP 插件模块，负责保存受宿主生命周期约束的 action router。
@@ -21,6 +23,10 @@ export class EditorMcpPluginModule extends PluginModuleBase {
     private readonly _lumenGateway: EditorMcpLumenGateway | null;
     /** @description operation 与一级工具名、schema 的目录。 */
     private readonly _toolCatalog = new EditorMcpToolCatalog();
+    /** @description flat tool 统一执行控制 codec。 */
+    private readonly _executionCodec = new EditorMcpExecutionCodec();
+    /** @description 当前激活期任务请求序列。 */
+    private _taskSequence = 0;
 
     /** @description 供插件治理与打包校验使用的运行时清单。 */
     public readonly manifest = {
@@ -73,12 +79,24 @@ export class EditorMcpPluginModule extends PluginModuleBase {
      */
     public override async activate(context: IPluginActivateContext): Promise<void> {
         this._router = new EditorMcpActionRouter(context.runtime, this._catalogLookup, this._lumenGateway ?? undefined);
+        const managedTasks = context.tasks?.managed ?? null;
+        if (managedTasks != null) {
+            const resourceExecutor = new ResourceOperationTaskExecutor({
+                plan: async (operation, input) => this._requireRouter().planManagedResourceOperation(operation as EditorMcpOperationId, input),
+                execute: async (operation, input) => this._requireRouter().executeManagedResourceOperation(operation as EditorMcpOperationId, input),
+            });
+            managedTasks.registerExecutor(
+                ResourceOperationTaskExecutor.KIND,
+                async (request, executorContext): Promise<unknown> => resourceExecutor.execute(request, executorContext),
+                { concurrency: 'executor_managed' },
+            );
+        }
         if (context.mcp != null) {
             const definitions = this._toolCatalog.buildDefinitions(this._router.listCapabilities());
             for (const definition of definitions) {
                 this._mcpCapabilityDisposers.push(
-                    context.mcp.register(definition, async (input): Promise<unknown> => {
-                        return this._invokeMcpCapability(definition.name, input);
+                    context.mcp.register(definition, async (input, invocation): Promise<unknown> => {
+                        return this._invokeMcpCapability(definition.name, input, invocation, managedTasks);
                     }),
                 );
             }
@@ -128,6 +146,8 @@ export class EditorMcpPluginModule extends PluginModuleBase {
     private async _invokeMcpCapability(
         name: string,
         input: unknown,
+        invocation: IMcpCapabilityInvocation,
+        managedTasks: IPluginManagedTaskApi | null,
     ): Promise<unknown> {
         const router = this._requireRouter();
         const operation = this._toolCatalog.operationForToolName(name);
@@ -135,10 +155,12 @@ export class EditorMcpPluginModule extends PluginModuleBase {
             throw new Error(`editor_mcp_capability_unsupported:${name}`);
         }
         try {
-            const result = await router.dispatch('cocos.call', {
-                operation,
-                input: input ?? undefined,
-            });
+            const decoded = this._executionCodec.decode(this._isRecord(input) ? input : {});
+            const requestInput = decoded.input;
+            const plan = router.plan({ operation, input: requestInput });
+            const result = plan.readOnly || managedTasks == null
+                ? await router.dispatch('cocos.call', { operation, input: requestInput })
+                : await this._executeManagedCapability(operation, requestInput, invocation, managedTasks, decoded.execution);
             if (!this._isActionResult(result)) {
                 throw new Error('editor_mcp_capability_result_invalid');
             }
@@ -165,6 +187,44 @@ export class EditorMcpPluginModule extends PluginModuleBase {
         } catch (error: unknown) {
             throw this._asHostCompatibleClientRejection(error);
         }
+    }
+
+    /** @description 通过注册 executor 执行写 operation，并保持默认同步返回。 */
+    private async _executeManagedCapability(
+        operation: EditorMcpOperationId,
+        input: Readonly<Record<string, unknown>>,
+        invocation: IMcpCapabilityInvocation,
+        managedTasks: IPluginManagedTaskApi,
+        execution: Readonly<{ readonly mode?: 'sync' | 'async'; readonly idempotencyKey?: string; readonly timeoutMs?: number }>,
+    ): Promise<IEditorMcpActionResult> {
+        this._taskSequence += 1;
+        const receipt = await managedTasks.enqueue({
+            requestId: `editor-mcp:${operation}:${this._taskSequence}`,
+            scope: 'project',
+            priority: 'normal',
+            kind: ResourceOperationTaskExecutor.KIND,
+            payload: { operation, input },
+            mergePolicy: 'none',
+            ...(execution.idempotencyKey == null ? {} : { idempotencyKey: execution.idempotencyKey }),
+            ...(execution.timeoutMs == null ? {} : { timeoutMs: execution.timeoutMs }),
+        }, invocation);
+        if (execution.mode === 'async') {
+            return { operation, data: null, taskId: receipt.taskId, taskStatus: 'queued' };
+        }
+        const taskResult = await managedTasks.wait<Record<string, unknown>>(receipt.taskId);
+        if (taskResult == null || !taskResult.ok || taskResult.status !== 'succeeded') {
+            throw new Error(taskResult?.error?.code ?? 'editor_mcp_managed_task_failed');
+        }
+        const data = taskResult.data;
+        if (data == null || typeof data.operation !== 'string' || !('data' in data)) {
+            throw new Error('editor_mcp_managed_task_result_invalid');
+        }
+        return {
+            operation: data.operation as EditorMcpOperationId,
+            data: data.data,
+            taskId: receipt.taskId,
+            taskStatus: 'succeeded',
+        };
     }
 
     /**

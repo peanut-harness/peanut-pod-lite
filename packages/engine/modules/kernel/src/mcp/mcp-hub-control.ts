@@ -5,8 +5,10 @@ import type {
     IMcpJsonSchema,
     LocalizedText,
     McpCapabilityCategory,
+    McpCapabilityExecutionModel,
     McpCapabilityExecutionLane,
     McpCapabilityRisk,
+    TaskStatus,
 } from '@peanut/pod-protocol';
 
 import type { McpPluginExposureMode } from './mcp-capability-registry.js';
@@ -20,46 +22,88 @@ export type McpHubCallStatus = 'pending_approval' | 'approved' | 'succeeded' | '
  * @description 面板可展示的 MCP 调用审计摘要；不会包含输入、输出、token 或 bridge 连接标识。
  */
 export interface IMcpHubRecentCall extends ContractPayload {
-    /** @description 仅用于面板渲染的审计记录标识，不可用于执行操作。 */
+    /**
+     * @description 仅用于面板渲染的审计记录标识，不可用于执行操作。
+     */
     readonly id: string;
-    /** @description 被请求的 capability 名称。 */
+    /**
+     * @description 被请求的 capability 名称。
+     */
     readonly name: string;
-    /** @description capability 的工作台分类。 */
+    /**
+     * @description capability 的工作台分类。
+     */
     readonly category: McpCapabilityCategory;
-    /** @description capability 的风险等级。 */
+    /**
+     * @description capability 的风险等级。
+     */
     readonly risk: McpCapabilityRisk;
-    /** @description 调用或写操作计划的当前阶段。 */
+    /**
+     * @description 调用或写操作计划的当前阶段。
+     */
     readonly status: McpHubCallStatus;
-    /** @description Hub 接收请求的 Unix 时间戳，单位毫秒。 */
+    /**
+     * @description Hub 接收请求的 Unix 时间戳，单位毫秒。
+     */
     readonly requestedAt: number;
-    /** @description 终态产生的 Unix 时间戳；仍在等待时为 `null`。 */
+    /**
+     * @description 终态产生的 Unix 时间戳；仍在等待时为 `null`。
+     */
     readonly completedAt: number | null;
-    /** @description 已完成调用的执行耗时，单位毫秒；未完成时为 `null`。 */
+    /**
+     * @description 已完成调用的执行耗时，单位毫秒；未完成时为 `null`。
+     */
     readonly durationMs: number | null;
-    /** @description 失败时的安全错误码；不会泄露 capability 原始错误。 */
+    /**
+     * @description 失败时的安全错误码；不会泄露 capability 原始错误。
+     */
     readonly errorCode: string | null;
+    /**
+     * @description 受管任务标识；inline 调用或尚未入队时为 `null`。
+     */
+    readonly taskId: string | null;
+    /**
+     * @description 受管任务状态；inline 调用或尚未入队时为 `null`。
+     */
+    readonly taskStatus: TaskStatus | null;
 }
 
 /**
  * @description 供编辑器面板显示的 MCP capability 摘要。
  */
 export interface IMcpHubCapabilitySummary extends ContractPayload {
-    /** @description 对外公开的全局工具名称。 */
+    /**
+     * @description 对外公开的全局工具名称。
+     */
     readonly name: string;
-    /** @description 工具的人类可读用途。 */
+    /**
+     * @description 工具的人类可读用途。
+     */
     readonly description: LocalizedText;
-    /** @description capability 的工作台分类。 */
+    /**
+     * @description capability 的工作台分类。
+     */
     readonly category: McpCapabilityCategory;
-    /** @description 经 registry 校验的输入 schema。 */
+    /**
+     * @description 经 registry 校验的输入 schema。
+     */
     readonly inputSchema: IMcpJsonSchema;
     /**
      * @description 写操作成功返回值的最小 schema。
      */
     readonly outputSchema?: IMcpJsonSchema;
-    /** @description 工具是否不会修改项目状态。 */
+    /**
+     * @description 工具是否不会修改项目状态。
+     */
     readonly readOnly: boolean;
-    /** @description 工具对应的风险等级。 */
+    /**
+     * @description 工具对应的风险等级。
+     */
     readonly risk: McpCapabilityRisk;
+    /**
+     * @description capability 的执行模型；未声明时保持 inline。
+     */
+    readonly executionModel: McpCapabilityExecutionModel;
     /**
      * @description 可选执行车道（editor-mcp 会填）：lumen-offline / editor-ui / preview。
      */
@@ -74,31 +118,45 @@ export interface IMcpHubCapabilitySummary extends ContractPayload {
  * @description 供编辑器面板显示的 MCP Hub 当前状态。
  */
 export interface IMcpHubStatus extends ContractPayload {
-    /** @description 当前宿主是否配置了 MCP Hub。 */
+    /**
+     * @description 当前宿主是否配置了 MCP Hub。
+     */
     readonly isAvailable: boolean;
-    /** @description 当前项目是否启用了 MCP Hub。 */
+    /**
+     * @description 当前项目是否启用了 MCP Hub。
+     */
     readonly isEnabled: boolean;
-    /** @description 当前 loopback 监听端口；未启动时为 `null`。 */
+    /**
+     * @description 当前 loopback 监听端口；未启动时为 `null`。
+     */
     readonly port: number | null;
     /**
      * @description 本项目偏好的 loopback 端口；仅存于项目 settings，用于重启粘滞，不得跨项目共享。
      */
     readonly preferredPort: number | null;
-    /** @description 当前 capability catalog 版本。 */
+    /**
+     * @description 当前 capability catalog 版本。
+     */
     readonly catalogRevision: number;
-    /** @description 当前已分享给外部 MCP 客户端的工具。 */
+    /**
+     * @description 当前已分享给外部 MCP 客户端的工具。
+     */
     readonly capabilities: readonly IMcpHubCapabilitySummary[];
     /**
      * @description 已保持运行但不向 MCP Hub 公开能力的插件标识。
      */
     readonly disabledPluginIds: readonly string[];
-    /** @description 已显式允许公开写 capability 的插件标识；其他未关闭插件仅公开只读 capability。 */
+    /**
+     * @description 已显式允许公开写 capability 的插件标识；其他未关闭插件仅公开只读 capability。
+     */
     readonly writeEnabledPluginIds: readonly string[];
     /**
      * @description 测试用直写开关；为 true 时写 capability 可跳过 plan 审批直接执行。
      */
     readonly directWriteEnabled: boolean;
-    /** @description 当前编辑器会话内最近的 MCP 调用审计记录。 */
+    /**
+     * @description 当前编辑器会话内最近的 MCP 调用审计记录。
+     */
     readonly recentCalls: readonly IMcpHubRecentCall[];
 }
 
@@ -106,13 +164,21 @@ export interface IMcpHubStatus extends ContractPayload {
  * @description 等待编辑器用户审批的 MCP 写操作计划摘要。
  */
 export interface IMcpHubPendingPlan extends ContractPayload {
-    /** @description 一次性计划标识。 */
+    /**
+     * @description 一次性计划标识。
+     */
     readonly id: string;
-    /** @description 要执行的 capability 名称。 */
+    /**
+     * @description 要执行的 capability 名称。
+     */
     readonly name: string;
-    /** @description capability 对应的风险等级。 */
+    /**
+     * @description capability 对应的风险等级。
+     */
     readonly risk: McpCapabilityRisk;
-    /** @description 用户审批失效的 Unix 时间戳，单位毫秒。 */
+    /**
+     * @description 用户审批失效的 Unix 时间戳，单位毫秒。
+     */
     readonly expiresAt: number;
 }
 
@@ -197,6 +263,7 @@ export function summarizeMcpHubCapability(definition: IMcpCapabilityDefinition):
         ...(definition.outputSchema != null ? { outputSchema: definition.outputSchema } : {}),
         readOnly: definition.readOnly,
         risk: definition.risk,
+        executionModel: definition.executionModel ?? 'inline',
         ...(definition.lane != null ? { lane: definition.lane } : {}),
         ...(definition.aiHandling != null ? { aiHandling: definition.aiHandling } : {}),
     };

@@ -3,10 +3,12 @@ export type {
     IMcpCapabilityDefinition,
     IMcpAiHandlingGuidance,
     IMcpFailureDetails,
+    IMcpExecutionControl,
     IMcpJsonSchema,
     McpCapabilityRisk,
     McpCapabilityCategory,
     McpCapabilityExecutionLane,
+    McpCapabilityExecutionModel,
     McpFailureCategory,
     McpFailureRecommendedAction,
     McpFailureState,
@@ -59,6 +61,20 @@ export type {
     TaskStatus,
     TaskTraceStatus,
 } from './task/task-contracts.js';
+export type {
+    ITaskEvidenceEntry,
+    ITaskEvidenceIndex,
+    ITaskExecutionControl,
+    ITaskFailureSummary,
+    ITaskOwner,
+    ITaskStatusSummary,
+    TaskEvidenceKind,
+    TaskEvidenceStatus,
+    TaskExecutionMode,
+    TaskFailureCategory,
+    TaskFailureRecommendedAction,
+    TaskProjectState,
+} from './task/task-control-contracts.js';
 export type { CreatorPhase, ICreatorVersionInfo } from './cocos/creator-version.js';
 export {
     CREATOR_PROFILE_DEFINITIONS,

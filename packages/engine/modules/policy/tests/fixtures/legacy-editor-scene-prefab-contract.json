@@ -2,7 +2,7 @@
   "source": "peanut-agents/products/cocos/editor/plugins/integrations/editor-mcp",
   "normalization": {
     "ignoredSchemaFields": ["description"],
-    "excludedControlProperties": ["approvalId", "proPlan"]
+    "excludedControlProperties": ["approvalId", "execution", "proPlan"]
   },
   "definitions": [
     {

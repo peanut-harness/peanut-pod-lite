@@ -30,6 +30,11 @@ import { CreatorHostState } from "./shared/host-state.js";
 import { VersionResolver } from "./version/version-resolver.js";
 import { BatchCommitCoordinator } from "../execution/commit/batch-commit-coordinator.js";
 import { RuntimeTaskCommitDispatcher } from "../execution/commit/runtime-task-commit-dispatcher.js";
+import {
+  BuiltInRuntimeTaskExecutors,
+  RUNTIME_BUILTIN_EXECUTOR_PLUGIN_ID,
+} from "../execution/commit/builtin-runtime-task-executors.js";
+import { TaskExecutorRegistry } from "../execution/registry/task-executor-registry.js";
 
 /**
  * @description Runtime 门面可选装配参数。
@@ -156,6 +161,8 @@ export class RuntimeFacade implements ICocosRuntime {
       this._adapterRegistry,
       this.version,
     );
+    const taskExecutorRegistry = new TaskExecutorRegistry();
+    BuiltInRuntimeTaskExecutors.register(taskExecutorRegistry, this.asset, this.scene);
     this.execution = new ExecutionRuntimeService(
       new TaskIngress(),
       taskScheduler,
@@ -164,11 +171,16 @@ export class RuntimeFacade implements ICocosRuntime {
       new TaskMerger(),
       new ResourceLockManager(),
       new BatchCommitCoordinator(
-        new RuntimeTaskCommitDispatcher(this.asset, this.scene),
+        new RuntimeTaskCommitDispatcher(taskExecutorRegistry, (task) => {
+          return taskExecutorRegistry.has(task.request.pluginId, task.request.kind)
+            ? task.request.pluginId
+            : RUNTIME_BUILTIN_EXECUTOR_PLUGIN_ID;
+        }),
         taskSnapshotInspector,
       ),
       new TracePipeline(),
       new TimeoutAndCancelController(),
+      taskExecutorRegistry,
     );
 
     const phase = this.version.getCurrentVersion().phase;

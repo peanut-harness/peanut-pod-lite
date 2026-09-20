@@ -7,7 +7,7 @@ import { CoreCocosMcpToolDefinitionCatalog } from '../dist/index.js';
 const fixtureUrl = new URL('./fixtures/legacy-editor-scene-prefab-contract.json', import.meta.url);
 const fixture = JSON.parse(await readFile(fixtureUrl, 'utf8'));
 const operationScope = /^(editor|scene|prefab)\./u;
-const excludedControlProperties = new Set(['approvalId', 'proPlan']);
+const excludedControlProperties = new Set(['approvalId', 'execution', 'proPlan']);
 
 function normalizeSchema(schema) {
     const normalized = { type: schema.type };
@@ -42,7 +42,7 @@ test('Editor/Scene/Prefab Lite definitions preserve the normalized legacy contra
     assert.equal(fixture.source, 'peanut-agents/products/cocos/editor/plugins/integrations/editor-mcp');
     assert.deepEqual(fixture.normalization, {
         ignoredSchemaFields: ['description'],
-        excludedControlProperties: ['approvalId', 'proPlan'],
+        excludedControlProperties: ['approvalId', 'execution', 'proPlan'],
     });
 
     const expected = [...fixture.definitions].sort(byOperation);

@@ -35,7 +35,10 @@ export class CoreMcpInputValidator {
                     return false;
                 }
                 return Object.entries(value).every(([key, child]) => {
-                    const property = schema.properties != null && Object.prototype.hasOwnProperty.call(schema.properties, key) ? schema.properties[key] : null;
+                    const property =
+                        schema.properties != null && Object.prototype.hasOwnProperty.call(schema.properties, key)
+                            ? schema.properties[key]
+                            : null;
                     return property == null
                         ? schema.additionalProperties !== false && this.isJson(child, depth + 1, budget)
                         : this.matches(property, child, depth + 1, budget);

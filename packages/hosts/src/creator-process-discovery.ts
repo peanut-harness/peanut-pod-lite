@@ -1,4 +1,4 @@
-import { posix, win32 } from 'node:path';
+import { posix, win32 } from 'path';
 
 const CREATOR_BINARY_ENVIRONMENT_KEYS = Object.freeze([
     'COCOS_CREATOR_APP',

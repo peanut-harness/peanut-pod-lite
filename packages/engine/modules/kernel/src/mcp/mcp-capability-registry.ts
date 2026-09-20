@@ -6,15 +6,23 @@ import { McpFailurePresenter } from './mcp-failure-presenter.js';
 
 export type { IMcpCapabilityInvocation, IMcpCapabilityProgress, McpCapabilityHandler } from '@peanut/pod-sdk';
 
-/** @description 插件 MCP capability 面向外部 Hub 的公开级别。 */
+/**
+ * @description 插件 MCP capability 面向外部 Hub 的公开级别。
+ */
 export type McpPluginExposureMode = 'disabled' | 'read_only' | 'all';
 
 interface IMcpCapabilityRegistration {
-    /** @description capability 所属插件。 */
+    /**
+     * @description capability 所属插件。
+     */
     readonly pluginId: string;
-    /** @description 对外公开的稳定定义。 */
+    /**
+     * @description 对外公开的稳定定义。
+     */
     readonly definition: IMcpCapabilityDefinition;
-    /** @description 通过宿主边界执行的处理函数。 */
+    /**
+     * @description 通过宿主边界执行的处理函数。
+     */
     readonly handler: McpCapabilityHandler;
 }
 
@@ -23,18 +31,30 @@ interface IMcpCapabilityRegistration {
  */
 export class McpCapabilityRegistry {
     private readonly _reporter?: (pluginId: string, error: unknown, context: Record<string, unknown>) => void;
-    /** @description 按全局工具名称保存活动注册。 */
+    /**
+     * @description 按全局工具名称保存活动注册。
+     */
     private readonly _registrations = new Map<string, IMcpCapabilityRegistration>();
+    /**
+     * @description 当前 handler 调用期间由宿主签发的 invocation 身份。
+     */
+    private readonly _invocationOwners = new WeakMap<IMcpCapabilityInvocation, { readonly pluginId: string; readonly capability: string }>();
     /**
      * @description 已保持运行但不向 MCP Hub 公开能力的插件标识。
      */
     private readonly _disabledPluginIds = new Set<string>();
-    /** @description 已允许公开写 capability 的插件标识；未显式允许时仅公开只读 capability。 */
+    /**
+     * @description 已允许公开写 capability 的插件标识；未显式允许时仅公开只读 capability。
+     */
     private readonly _writeEnabledPluginIds = new Set<string>();
-    /** @description 每次目录变化时递增，用于 bridge 刷新工具列表。 */
+    /**
+     * @description 每次目录变化时递增，用于 bridge 刷新工具列表。
+     */
     private _revision = 0;
 
-    /** @param reporter MCP capability 异常诊断回调。 */
+    /**
+     * @param reporter MCP capability 异常诊断回调。
+     */
     public constructor(reporter?: (pluginId: string, error: unknown, context: Record<string, unknown>) => void) { this._reporter = reporter; }
 
     /**
@@ -139,7 +159,9 @@ export class McpCapabilityRegistry {
         return this._writeEnabledPluginIds.has(pluginId) ? 'all' : 'read_only';
     }
 
-    /** @description 返回已显式允许公开写 capability 的插件标识。 */
+    /**
+     * @description 返回已显式允许公开写 capability 的插件标识。
+     */
     public getWriteEnabledPluginIds(): readonly string[] {
         return [...this._writeEnabledPluginIds].sort((left, right) => left.localeCompare(right));
     }
@@ -177,6 +199,34 @@ export class McpCapabilityRegistry {
     }
 
     /**
+     * @description 返回公开 capability 的提供插件标识，供宿主绑定任务 owner。
+     */
+    public getProviderPluginId(name: string): string | null {
+        const registration = this._registrations.get(name);
+        return registration == null || !this._isRegistrationExposed(registration) ? null : registration.pluginId;
+    }
+
+    /**
+     * @description 返回已注册 capability 的提供插件，不受 Hub 公开级别影响。
+     */
+    public getRegisteredProviderPluginId(name: string): string | null {
+        return this._registrations.get(name)?.pluginId ?? null;
+    }
+
+    /**
+     * @description 校验 invocation 对象确由当前插件 handler 的宿主调用签发。
+     */
+    public resolveInvocationOwner(
+        pluginId: string,
+        invocation: IMcpCapabilityInvocation,
+    ): { readonly connectionId: string; readonly capability: string } | null {
+        const owner = this._invocationOwners.get(invocation);
+        return owner?.pluginId === pluginId
+            ? { connectionId: invocation.connectionId, capability: owner.capability }
+            : null;
+    }
+
+    /**
      * @description 校验未受信输入是否满足 Hub 当前公开的 capability 的参数 schema。
      * @param name 全局工具名称。
      * @param input 未受信的 MCP 输入。
@@ -196,6 +246,18 @@ export class McpCapabilityRegistry {
      */
     public async invoke(name: string, input: unknown, invocation: IMcpCapabilityInvocation): Promise<unknown> {
         const registration = this._requireExposedRegistration(name);
+        this._assertInputMatches(registration, name, input);
+        return this._runHandler(registration, name, input, invocation);
+    }
+
+    /**
+     * @description Creator 宿主直连 Bridge 调用，保留 invocation 身份但不改变 Hub 公开策略。
+     */
+    public async invokeFromHost(name: string, input: unknown, invocation: IMcpCapabilityInvocation): Promise<unknown> {
+        const registration = this._registrations.get(name);
+        if (registration == null) {
+            throw new Error(`mcp_capability_unregistered:${name}`);
+        }
         this._assertInputMatches(registration, name, input);
         return this._runHandler(registration, name, input, invocation);
     }
@@ -261,6 +323,7 @@ export class McpCapabilityRegistry {
         invocation: IMcpCapabilityInvocation,
     ): Promise<unknown> {
         let output: unknown;
+        this._invocationOwners.set(invocation, { pluginId: registration.pluginId, capability: name });
         try {
             output = await registration.handler(this._asHandlerInput(input), invocation);
         } catch (error) {
@@ -273,6 +336,8 @@ export class McpCapabilityRegistry {
                 });
             }
             throw error;
+        } finally {
+            this._invocationOwners.delete(invocation);
         }
         if (registration.definition.outputSchema != null && !this._matchesSchema(output, registration.definition.outputSchema)) {
             throw new Error(`mcp_capability_output_invalid:${name}`);
@@ -296,13 +361,21 @@ export class McpCapabilityRegistry {
         return record;
     }
 
-    /** @description 验证注册定义不会扩大插件或 Host 的能力边界。 */
+    /**
+     * @description 验证注册定义不会扩大插件或 Host 的能力边界。
+     */
     private _assertDefinition(pluginId: string, definition: IMcpCapabilityDefinition): void {
         if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)+$/.test(pluginId) || !definition.name.startsWith(`${pluginId}.`)) {
             throw new Error('mcp_capability_name_not_plugin_scoped');
         }
         if (!isValidLocalizedText(definition.description) || !['cocos', 'atom', 'workflow'].includes(definition.category) || definition.risk === 'read' !== definition.readOnly) {
             throw new Error(`mcp_capability_definition_invalid:${definition.name}`);
+        }
+        if (
+            definition.executionModel != null && !['inline', 'managed_task'].includes(definition.executionModel) ||
+            definition.executionModel === 'managed_task' && definition.readOnly
+        ) {
+            throw new Error(`mcp_capability_execution_model_invalid:${definition.name}`);
         }
         if (!this._isSchema(definition.inputSchema) || definition.outputSchema != null && !this._isSchema(definition.outputSchema)) {
             throw new Error(`mcp_capability_schema_invalid:${definition.name}`);
@@ -321,13 +394,17 @@ export class McpCapabilityRegistry {
         }
     }
 
-    /** @description 判断活动注册是否符合所属插件当前公开级别。 */
+    /**
+     * @description 判断活动注册是否符合所属插件当前公开级别。
+     */
     private _isRegistrationExposed(registration: IMcpCapabilityRegistration): boolean {
         const exposure = this.getPluginExposure(registration.pluginId);
         return exposure === 'all' || exposure === 'read_only' && registration.definition.readOnly;
     }
 
-    /** @description 验证公开 JSON Schema 仅使用受支持的安全子集。 */
+    /**
+     * @description 验证公开 JSON Schema 仅使用受支持的安全子集。
+     */
     private _isSchema(value: unknown): value is IMcpCapabilityDefinition['inputSchema'] {
         if (typeof value !== 'object' || value == null || Array.isArray(value)) {
             return false;
@@ -356,7 +433,9 @@ export class McpCapabilityRegistry {
             && guidance.blindRetryAllowed === false;
     }
 
-    /** @description 按受支持的 JSON Schema 子集收窄外部输入。 */
+    /**
+     * @description 按受支持的 JSON Schema 子集收窄外部输入。
+     */
     private _matchesSchema(value: unknown, schema: IMcpCapabilityDefinition['inputSchema']): boolean {
         if (schema.type === 'object') {
             if (typeof value !== 'object' || value == null || Array.isArray(value)) {

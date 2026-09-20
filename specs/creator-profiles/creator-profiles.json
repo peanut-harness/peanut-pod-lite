@@ -34,8 +34,8 @@
       "maxVersionExclusive": "3.9.0",
       "hostFamily": "creator-3x",
       "defaultSupport": "experimental",
-      "verifiedVersions": ["3.8.7"],
-      "writeEnabledVersions": ["3.8.7"]
+      "verifiedVersions": ["3.8.3", "3.8.7"],
+      "writeEnabledVersions": ["3.8.3", "3.8.7"]
     }
   ]
 }

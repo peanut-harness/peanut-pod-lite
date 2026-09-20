@@ -123,13 +123,17 @@ test('gateway mock registers all 83 Lite public tools and never preview.capture 
         string,
         (input: Readonly<Record<string, unknown>>, invocation?: { connectionId?: string; resourceIds?: readonly string[] }) => Promise<unknown>
     >();
-    const executed: Array<{ operation: string; input: Readonly<Record<string, unknown>> }> = [];
+    const executed: Array<{
+        operation: string;
+        input: Readonly<Record<string, unknown>>;
+        invocation: { connectionId?: string; resourceIds?: readonly string[] } | undefined;
+    }> = [];
     await plugin.register({ logger });
     await plugin.activate({
         logger,
         runtime: createReadRuntime(),
-        executeOperation: async (operation, input) => {
-            executed.push({ operation, input });
+        executeOperation: async (operation, input, invocation) => {
+            executed.push({ operation, input, invocation });
             return { operation, input };
         },
         approvalLeases: new McpApprovalLeaseStore(),
@@ -157,7 +161,9 @@ test('gateway mock registers all 83 Lite public tools and never preview.capture 
     assert.equal([...registered.values()].filter((item) => !item.readOnly).length, 45);
     const versionTool = [...registered.entries()].find(([, item]) => item.operation === 'editor.queryVersion');
     assert.notEqual(versionTool, undefined);
-    assert.deepEqual(await handlers.get(versionTool![0])!({}), { operation: 'editor.queryVersion', input: {} });
+    const invocation = { connectionId: 'a'.repeat(32), resourceIds: [] };
+    assert.deepEqual(await handlers.get(versionTool![0])!({}, invocation), { operation: 'editor.queryVersion', input: {} });
+    assert.equal(executed[0]?.invocation, invocation);
     await plugin.deactivate();
     assert.equal(registered.size, 0);
     plugin.dispose();

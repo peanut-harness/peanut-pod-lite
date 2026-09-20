@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomBytes } from 'crypto';
 import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -190,7 +190,12 @@ export class EditorApiHostAssetBridgeProvider implements IEditorApiAssetBridgePr
             throw new Error('cocos_editor_asset_path_invalid');
         }
         const absolutePath = join(projectPath, ...segments);
-        const recoveryDirectory = join(projectPath, 'temp', '.@peanut/pod-engine/runtime-asset-recovery', randomUUID());
+        const recoveryDirectory = join(
+            projectPath,
+            'temp',
+            '.@peanut/pod-engine/runtime-asset-recovery',
+            randomBytes(16).toString('hex'),
+        );
         const orphanPaths = [absolutePath, `${absolutePath}.meta`].filter((candidate) => existsSync(candidate));
         const backups = orphanPaths.map((orphanPath) => ({
             originalPath: orphanPath,

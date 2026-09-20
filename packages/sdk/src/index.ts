@@ -31,6 +31,8 @@ export type {
     IPluginFileStorageApi,
     IPluginLogger,
     IPluginMcpApi,
+    IPluginManagedTaskApi,
+    IPluginTaskExecutorOptions,
     IPluginModule,
     IPluginNetworkClient,
     IPluginNetworkRequest,
@@ -43,10 +45,13 @@ export type {
     IPluginServiceApi,
     IPluginStorageApi,
     IPluginTaskApi,
+    IPluginTaskExecutorContext,
     IProjectReadClient,
     ISceneClient,
     ISelectionClient,
     McpCapabilityHandler,
+    PluginManagedTaskRequest,
+    PluginTaskExecutor,
 } from './plugin-module-contracts.js';
 
 export type { PluginDeactivateReason } from '@peanut/pod-protocol';

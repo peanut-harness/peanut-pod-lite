@@ -3,7 +3,7 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, rmSync, wri
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'http';
 import { join, resolve } from 'path';
 
-import type { IMcpCapabilityCatalog, IMcpCapabilityDefinition, McpCapabilityRisk } from '@peanut/pod-protocol';
+import type { IMcpCapabilityCatalog, IMcpCapabilityDefinition, McpCapabilityRisk, TaskStatus } from '@peanut/pod-protocol';
 import { ProjectLogPostflightMonitor, ProjectLogPostflightRepairer } from '@peanut/pod-engine/runtime';
 
 import type { PluginManagerApp } from '../app/plugin-manager-app.js';
@@ -104,6 +104,8 @@ interface IMcpHubRecentCallRecord extends IMcpHubRecentCall {
     completedAt: number | null;
     durationMs: number | null;
     errorCode: string | null;
+    taskId: string | null;
+    taskStatus: TaskStatus | null;
 }
 
 interface IMcpHubInvocationOptions {
@@ -489,6 +491,36 @@ export class CocosMcpHub implements IMcpHubControl {
             return { directWriteEnabled: this._directWriteEnabled };
         }
         const connectionId = this._inputReader.readConnectionId(payload.connectionId);
+        if (action === 'task.status') {
+            const taskId = this._inputReader.readTaskId(payload.taskId);
+            const status = await this._requirePluginManager().getMcpTaskControl().getStatus(taskId, connectionId);
+            if (status == null) {
+                throw new Error('cocos_mcp_task_unavailable');
+            }
+            this._updateRecentCallFromTaskStatus(status.taskId, status.status);
+            return status;
+        }
+        if (action === 'task.cancel') {
+            const taskId = this._inputReader.readTaskId(payload.taskId);
+            const result = await this._requirePluginManager().getMcpTaskControl().cancel(taskId, connectionId);
+            if (result.reason === 'task_unavailable') {
+                throw new Error('cocos_mcp_task_unavailable');
+            }
+            if (result.cancelled) {
+                this._updateRecentCallFromTaskStatus(taskId, 'cancelled');
+            }
+            return result;
+        }
+        if (action === 'task.evidence') {
+            const evidence = await this._requirePluginManager().getMcpTaskControl().getEvidence(
+                this._inputReader.readTaskId(payload.taskId),
+                connectionId,
+            );
+            if (evidence == null) {
+                throw new Error('cocos_mcp_task_unavailable');
+            }
+            return evidence;
+        }
         if (action === 'cancel') {
             this._cancelInvocation(connectionId, this._inputReader.readInvocationId(payload.invocationId));
             return {};
@@ -611,7 +643,7 @@ export class CocosMcpHub implements IMcpHubControl {
                 resourceIds,
                 hasLocalApproval,
             });
-            this._completeRecentCall(recentCall.id, 'succeeded');
+            this._completeRecentCallFromResult(recentCall.id, definition, result, connectionId);
             return result;
         } catch (error) {
             this._completeRecentCall(recentCall.id, 'failed', this._inputReader.toSafeErrorCode(error));
@@ -688,7 +720,7 @@ export class CocosMcpHub implements IMcpHubControl {
                     hasLocalApproval: true,
                 },
             );
-            this._completeRecentCall(plan.auditId, 'succeeded');
+            this._completeRecentCallFromResult(plan.auditId, definition, result, connectionId);
             return result;
         } catch (error) {
             this._completeRecentCall(plan.auditId, 'failed', this._inputReader.toSafeErrorCode(error));
@@ -720,8 +752,12 @@ export class CocosMcpHub implements IMcpHubControl {
         },
     ): Promise<unknown> {
         const registry = this._requirePluginManager().getMcpCapabilityRegistry();
-        if (definition.readOnly) {
-            return registry.invoke(name, input, { connectionId, ...invocation, risk, ...authorization });
+        if (definition.readOnly || definition.executionModel === 'managed_task') {
+            const result = await registry.invoke(name, input, { connectionId, ...invocation, risk, ...authorization });
+            if (definition.executionModel === 'managed_task') {
+                this._readManagedTaskReceipt(result);
+            }
+            return result;
         }
         await this._acquireWriteSlot();
         try {
@@ -1161,6 +1197,8 @@ export class CocosMcpHub implements IMcpHubControl {
             completedAt: null,
             durationMs: null,
             errorCode: null,
+            taskId: null,
+            taskStatus: null,
         };
         this._recentCalls.unshift(record);
         if (this._recentCalls.length > MAX_RECENT_CALLS) {
@@ -1192,6 +1230,63 @@ export class CocosMcpHub implements IMcpHubControl {
         record.completedAt = completedAt;
         record.durationMs = completedAt - record.requestedAt;
         record.errorCode = errorCode;
+    }
+
+    /** @description 按 capability 执行模型完成调用审计，并关联受管任务回执。 */
+    private _completeRecentCallFromResult(
+        auditId: string,
+        definition: IMcpCapabilityDefinition,
+        result: unknown,
+        connectionId: string,
+    ): void {
+        if (definition.executionModel !== 'managed_task') {
+            this._completeRecentCall(auditId, 'succeeded');
+            return;
+        }
+        const receipt = this._readManagedTaskReceipt(result);
+        this._requirePluginManager().getMcpTaskControl().attachCapability(receipt.taskId, definition.name, connectionId);
+        const record = this._recentCalls.find((candidate) => candidate.id === auditId);
+        if (record == null || record.completedAt != null) {
+            return;
+        }
+        record.taskId = receipt.taskId;
+        record.taskStatus = receipt.taskStatus;
+        if (receipt.taskStatus === 'queued') {
+            record.status = 'approved';
+            return;
+        }
+        this._completeRecentCall(auditId, 'succeeded');
+    }
+
+    /** @description 用 owner-safe 查询或取消结果更新关联调用审计，不保存任务业务数据。 */
+    private _updateRecentCallFromTaskStatus(taskId: string, taskStatus: TaskStatus): void {
+        const record = this._recentCalls.find((candidate) => candidate.taskId === taskId);
+        if (record == null) {
+            return;
+        }
+        record.taskStatus = taskStatus;
+        if (taskStatus === 'succeeded') {
+            this._completeRecentCall(record.id, 'succeeded');
+        } else if (taskStatus === 'failed' || taskStatus === 'cancelled') {
+            this._completeRecentCall(record.id, 'failed', taskStatus === 'cancelled' ? 'task_cancelled' : 'task_failed');
+        } else if (record.completedAt == null) {
+            record.status = 'approved';
+        }
+    }
+
+    /** @description 校验受管 capability 的成功返回值包含稳定任务回执。 */
+    private _readManagedTaskReceipt(result: unknown): { readonly taskId: string; readonly taskStatus: 'queued' | 'succeeded' } {
+        if (result == null || typeof result !== 'object' || Array.isArray(result)) {
+            throw new Error('cocos_mcp_managed_task_receipt_invalid');
+        }
+        const record = result as Record<string, unknown>;
+        if (
+            typeof record.taskId !== 'string' || record.taskId.length === 0 ||
+            record.taskStatus !== 'queued' && record.taskStatus !== 'succeeded'
+        ) {
+            throw new Error('cocos_mcp_managed_task_receipt_invalid');
+        }
+        return { taskId: record.taskId, taskStatus: record.taskStatus };
     }
 
 

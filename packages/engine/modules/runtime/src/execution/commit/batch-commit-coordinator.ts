@@ -120,12 +120,12 @@ export class BatchCommitCoordinator {
             return this._buildDedupeOutcomes(taskGroup, tasks);
         }
 
-        if (taskGroup.mergePolicy === 'batch_commit' && this._areAllTasksOfKind(tasks, 'asset.refresh')) {
-            return this._annotateOutcomes(await (this._dispatcher?.dispatchBatchRefresh(tasks, batchId) ?? []), planSummary, replanned);
-        }
-
-        if (taskGroup.mergePolicy === 'coalesce' && this._areAllTasksOfKind(tasks, 'scene.patch')) {
-            return this._annotateOutcomes(await (this._dispatcher?.dispatchCoalescedScenePatch(tasks, batchId) ?? []), planSummary, replanned);
+        if (tasks.length > 1 && (taskGroup.mergePolicy === 'batch_commit' || taskGroup.mergePolicy === 'coalesce')) {
+            return this._annotateOutcomes(
+                await (this._dispatcher?.dispatchBatch(tasks, batchId, taskGroup.mergePolicy) ?? []),
+                planSummary,
+                replanned,
+            );
         }
 
         return this._annotateOutcomes(await Promise.all(
@@ -168,13 +168,6 @@ export class BatchCommitCoordinator {
                 ...canonicalOutcome,
                 taskId: task.taskId,
             };
-        });
-    }
-
-    /** @description 封装当前职责中的一个处理步骤，并协调所需校验、状态与依赖调用。 */
-    private _areAllTasksOfKind(tasks: readonly IAcceptedTask[], kind: string): boolean {
-        return tasks.every((task) => {
-            return task.request.kind === kind;
         });
     }
 

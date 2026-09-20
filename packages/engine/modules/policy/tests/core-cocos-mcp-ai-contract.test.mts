@@ -25,8 +25,10 @@ test('Core tool catalog publishes deterministic AI handling rules', () => {
     assert.equal(write.aiHandling.failureField, 'failure');
     assert.equal(write.aiHandling.unknownStateAction, 'query_before_retry');
     assert.equal(write.aiHandling.blindRetryAllowed, false);
-    assert.deepEqual(write.outputSchema?.required, ['taskId', 'taskStatus', 'postflight']);
-    assert.deepEqual(write.outputSchema?.properties?.taskStatus.enum, ['succeeded']);
+    assert.equal(read.executionModel, 'inline');
+    assert.equal(write.executionModel, 'managed_task');
+    assert.deepEqual(write.outputSchema?.required, ['taskId', 'taskStatus']);
+    assert.deepEqual(write.outputSchema?.properties?.taskStatus.enum, ['queued', 'succeeded']);
     assert.deepEqual(write.outputSchema?.properties?.postflight.required, ['verified']);
     assert.match(write.description, /Never retry a write blindly/u);
 });

@@ -1,5 +1,5 @@
 import { createEditorMcpExecuteOperation } from '@peanut/pod-engine/mcp';
-import type { IGrantedRuntimeClientSet, IPluginServiceApi } from '@peanut/pod-sdk';
+import type { IGrantedRuntimeClientSet, IPluginServiceApi, IPluginTaskApi } from '@peanut/pod-sdk';
 
 import {
     CoreCocosCreatorReadAdapter,
@@ -19,9 +19,13 @@ import {
  * @description MCP 调用时由宿主注入的连接与资源范围。
  */
 export interface ICoreCocosMcpInvocation {
-    /** @description 经宿主认证的本地连接标识。 */
+    /**
+     * @description 经宿主认证的本地连接标识。
+     */
     readonly connectionId?: string;
-    /** @description 由实际操作参数解析出的规范化资源范围。 */
+    /**
+     * @description 由实际操作参数解析出的规范化资源范围。
+     */
     readonly resourceIds?: readonly string[];
 }
 
@@ -90,6 +94,10 @@ export interface ICoreCocosCreatorHostActivateContext {
      * @description 写入调用缺省连接标识。
      */
     readonly connectionId?: string;
+    /**
+     * @description Kernel 为 Creator 宿主直接加载路径提供的统一任务 API。
+     */
+    readonly tasks?: IPluginTaskApi;
 }
 
 /**
@@ -119,6 +127,10 @@ export class CoreCocosCreatorHostPluginModule {
      * @description 当前激活使用的审批租约存储。
      */
     private approvalLeases: McpApprovalLeaseStore | null = null;
+    /**
+     * @description 当前网关注册的 executor 清理函数。
+     */
+    private disposeGateway: (() => void) | null = null;
 
     /**
      * @description 满足 Creator 插件宿主注册阶段协议；工具仅在激活时注册。
@@ -138,6 +150,10 @@ export class CoreCocosCreatorHostPluginModule {
         this.dispose();
         this.approvalLeases = context.approvalLeases ?? new McpApprovalLeaseStore();
         const executeOperation = resolveGatewayExecute(context);
+        const disposableGateway = executeOperation as (EditorMcpGatewayExecute & { dispose?: () => void }) | null;
+        this.disposeGateway = typeof disposableGateway?.dispose === 'function'
+            ? () => disposableGateway.dispose?.()
+            : null;
         const adapter =
             executeOperation != null
                 ? new EditorMcpGatewayAdapter(executeOperation)
@@ -152,7 +168,8 @@ export class CoreCocosCreatorHostPluginModule {
                         const executionContext = definition.requiresLocalApproval
                             ? resolveWriteExecutionContext(definition.operation, input, context, invocation)
                             : null;
-                        return dispatcher.execute(definition.operation, input, executionContext);
+                        const trustedInvocation = toTrustedInvocation(invocation);
+                        return dispatcher.execute(definition.operation, input, executionContext, trustedInvocation);
                     }),
                 );
             }
@@ -187,6 +204,8 @@ export class CoreCocosCreatorHostPluginModule {
         for (const dispose of this.disposers.splice(0)) {
             dispose();
         }
+        this.disposeGateway?.();
+        this.disposeGateway = null;
         this.approvalLeases = null;
     }
 }
@@ -211,15 +230,26 @@ function resolveGatewayExecute(context: ICoreCocosCreatorHostActivateContext): E
             return candidate;
         }
         if (typeof candidate.execute === 'function') {
-            return (operation, input) => candidate.execute(operation, input);
+            return (operation, input, invocation) => candidate.execute(operation, input, invocation);
         }
     }
     // Use the full EditorMcp router when the host supplies grants and services.
     // Paid operations remain refused by Lite policy.
     if (context.grantedRuntime != null && context.services != null) {
-        return createEditorMcpExecuteOperation(context.grantedRuntime);
+        return createEditorMcpExecuteOperation(context.grantedRuntime, context.tasks?.managed ?? null);
     }
     return null;
+}
+
+/**
+ * @description 保留由宿主签发的 invocation 对象身份，仅过滤缺少连接标识的旧调用。
+ */
+function toTrustedInvocation(
+    invocation: ICoreCocosMcpInvocation | undefined,
+): Parameters<EditorMcpGatewayExecute>[2] {
+    return typeof invocation?.connectionId === 'string' && invocation.connectionId.trim().length > 0
+        ? invocation as NonNullable<Parameters<EditorMcpGatewayExecute>[2]>
+        : undefined;
 }
 
 /**
@@ -274,4 +304,3 @@ function resolveWriteExecutionContext(
     const resources = resolveAuthorizedResources(operation, input, invocation?.resourceIds);
     return { connectionId, resources };
 }
-

@@ -5,6 +5,7 @@ import type {
     ICleanupStepResult,
     ICreatorVersionInfo,
     IMcpCapabilityDefinition,
+    IMcpExecutionControl,
     IMcpFailureDetails,
     IPanelBridgeRequest,
     IPluginFailureExport,
@@ -35,6 +36,7 @@ test('contracts root exports should compose MCP failure and AI handling guidance
         inputSchema: { type: 'object', additionalProperties: false },
         readOnly: false,
         risk: 'write',
+        executionModel: 'managed_task',
         aiHandling: {
             schemaVersion: 1,
             successSignals: ['response.ok=true', 'result.taskStatus=succeeded'],
@@ -45,7 +47,19 @@ test('contracts root exports should compose MCP failure and AI handling guidance
     };
 
     assert.equal(failure.recommendedAction, 'query_state_before_retry');
+    assert.equal(definition.executionModel, 'managed_task');
     assert.equal(definition.aiHandling?.blindRetryAllowed, false);
+});
+
+test('contracts root exports should compose explicit MCP execution controls', (): void => {
+    const execution: IMcpExecutionControl = {
+        mode: 'async',
+        idempotencyKey: 'asset-copy:contracts',
+        timeoutMs: 30_000,
+    };
+
+    assert.equal(execution.mode, 'async');
+    assert.equal(execution.timeoutMs, 30_000);
 });
 
 test('contracts root exports should support composing manifest, task, panel, and install DTOs', (): void => {

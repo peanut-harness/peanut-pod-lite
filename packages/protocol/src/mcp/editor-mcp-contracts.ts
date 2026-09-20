@@ -1,5 +1,6 @@
 import type { ContractPayload } from '../shared/common-contracts.js';
 import type { LocalizedText } from '../plugin/plugin-contracts.js';
+import type { IMcpExecutionControl } from './mcp-capability-contracts.js';
 
 /**
  * @description Editor MCP MVP 支持的稳定 action 标识。
@@ -1120,6 +1121,8 @@ export interface IEditorMcpOperationRequest extends ContractPayload {
     readonly operation: EditorMcpOperationId;
     /** @description 操作参数；不需要参数时可以省略。 */
     readonly input?: ContractPayload;
+    /** @description 可选执行控制；异步模式必须显式请求。 */
+    readonly execution?: IMcpExecutionControl;
 }
 
 /**
@@ -1175,5 +1178,5 @@ export interface IEditorMcpActionResult extends ContractPayload {
     /**
      * @description 写操作任务完成状态；同步调用成功时为 succeeded。
      */
-    readonly taskStatus?: 'succeeded';
+    readonly taskStatus?: 'queued' | 'succeeded';
 }

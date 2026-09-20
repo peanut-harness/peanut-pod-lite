@@ -7,11 +7,14 @@ import { createBuiltinPluginManagerPanelRegistration } from '../builtin/builtin-
 import { HotplugFailurePluginModule } from './hotplug-failure-plugin-module.js';
 import { UpgradeablePanelPluginModule } from './upgradeable-panel-plugin-module.js';
 import type { IPluginManagerBuiltinPanelRegistration } from '../host/plugin-manager-builtin-panel-registration.js';
+import type { IMcpHubControl } from '../mcp/mcp-hub-control.js';
 import type {
     IPluginFailureDetailPayload,
     IPluginFailureExportPayload,
     IPluginFailureListItemPayload,
     IPluginManagerKernelReloadPayload,
+    IPluginManagerMcpRecentCallPayload,
+    IPluginManagerSnapshotPayload,
     IPluginManagerSettingsSnapshotPayload,
     IRetryCleanupPayload,
 } from '../panels/plugin-manager-panel-contracts.js';
@@ -742,6 +745,20 @@ export class BuiltinPluginManagerPanelHarness {
             afterRemovePackagePaths,
             afterRemountPackagePaths,
         };
+    }
+
+    /** @description 通过受信面板快照投影 MCP 任务摘要。 */
+    public async runMcpTaskSummaryFlow(control: IMcpHubControl): Promise<IPluginManagerMcpRecentCallPayload | null> {
+        this._pluginManager.setMcpHubControl(control);
+        const registration = await this._activateBuiltinPluginManagerPanel();
+        const panelBridgeClient = this._pluginManager.createPanelBridgeClient(registration.pluginId, registration.panelId);
+        const response = await panelBridgeClient.request<{}, IPluginManagerSnapshotPayload>({
+            id: 'plugin-manager-mcp-task-summary',
+            event: 'pluginManager.snapshot',
+            expectsResponse: true,
+            payload: {},
+        });
+        return response.payload?.mcpHub.recentCalls[0] ?? null;
     }
 
     /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */

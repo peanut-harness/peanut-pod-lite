@@ -96,7 +96,7 @@ export const CREATOR_PROFILE_DEFINITIONS: readonly ICreatorProfileDefinition[] =
         maxVersionExclusive: '3.9.0',
         hostFamily: 'creator-3x',
         defaultSupport: 'experimental',
-        verifiedVersions: Object.freeze(["3.8.7"]),
-        writeEnabledVersions: Object.freeze(["3.8.7"]),
+        verifiedVersions: Object.freeze(["3.8.3","3.8.7"]),
+        writeEnabledVersions: Object.freeze(["3.8.3","3.8.7"]),
     }),
 ]);

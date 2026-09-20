@@ -86,7 +86,20 @@ test('legacy AssetDB business schemas and the Lite approval overlay stay frozen'
             schemaContract(definition.inputSchema),
             {
                 required: expected.required,
-                properties: { ...expected.properties, ...contract.writeControlProperties },
+                properties: {
+                    ...expected.properties,
+                    ...contract.writeControlProperties,
+                    execution: {
+                        type: 'object',
+                        required: [],
+                        additionalProperties: false,
+                        properties: {
+                            mode: { type: 'string', enum: ['sync', 'async'] },
+                            idempotencyKey: 'string',
+                            timeoutMs: 'integer',
+                        },
+                    },
+                },
             },
             operation,
         );
