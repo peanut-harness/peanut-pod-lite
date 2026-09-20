@@ -118,7 +118,7 @@ export class CreatorProcessDiscovery {
      */
     private static _normalizeProjectPath(value: string, platform: NodeJS.Platform): string {
         const pathApi = platform === 'win32' ? win32 : posix;
-        const normalizedPath = pathApi.resolve(value).replaceAll('\\', '/').replace(/\/$/u, '');
+        const normalizedPath = pathApi.resolve(value).replace(/\\/gu, '/').replace(/\/$/u, '');
         return platform === 'win32' ? normalizedPath.toLowerCase() : normalizedPath;
     }
 }

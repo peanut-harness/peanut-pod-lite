@@ -20,6 +20,7 @@ Cocos Creator 编辑器产品。公开 83 项免费操作（38 读、45 写/破�
 - 3.6–3.7：unsupported。
 - `specs/creator-profiles/creator-profiles.json` 生成 protocol 画像目录，规范与运行时不能双写。
 - 3.8.7：host/project 版本都存在且一致时 full，可写；其它 3.8 补丁版本只读。
+- Creator 3.8 宿主发布物以 3.8.3 的 Electron 13 / Node 14 为最低加载基线：bundle 移除 `node:` 前缀、拒绝新运行时 API，并在缺失时安装 `AbortController` polyfill；这只保证宿主和只读 Hub 可加载，不等于授予 3.8.3 写能力。
 - 未知、缺失或不一致版本全部 fail-closed。
 - Creator 3.8.7 迁移验收按五个互斥域固定分母：Editor/Scene/Prefab 21、Asset read 15、Asset write 12、Preview/Builder/Reference 9、Lumen 26；legacy schema/readOnly/risk parity fixture 已覆盖全部 83 项，但不替代 Creator 实机证据。
 - Creator 3.8 实机报告同时记录宿主入口 SHA-256、Lite CPM package digest/packedAt 与可选 Pro package digest；`query-status`、`host-status.json`、`smoke-results.json` 三方身份必须一致，旧报告不能冒充当前 release。

@@ -131,7 +131,7 @@ class CpmPackageStore {
                     Array.isArray(version) ||
                     !this.isVersion(version.version) ||
                     version.installPath !== expectedPath ||
-                    Object.hasOwn(version, 'packagePath') ||
+                    Object.prototype.hasOwnProperty.call(version, 'packagePath') ||
                     versions.has(version.version)
                 ) {
                     throw new Error('peanut_cpm_installed_index_invalid');

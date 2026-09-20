@@ -3,10 +3,16 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
+import {
+    assertCreator383BundleCompatibility,
+    stripNodeBuiltinProtocol,
+} from '../../../../../scripts/creator-electron-bundle-normalize.mjs';
+
 const extensionRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repositoryRoot = resolve(extensionRoot, '../../../..');
 const manifest = JSON.parse(await readFile(resolve(extensionRoot, 'package.json'), 'utf8'));
 const outputDirectory = resolve(extensionRoot, 'release', `${manifest.name}-${manifest.version}`);
+const mainBundlePath = resolve(outputDirectory, 'dist/main.js');
 await rm(outputDirectory, { recursive: true, force: true });
 await mkdir(resolve(outputDirectory, 'dist'), { recursive: true });
 await build({
@@ -14,8 +20,8 @@ await build({
     entryPoints: [resolve(extensionRoot, 'src/main.js')],
     format: 'cjs',
     platform: 'node',
-    target: 'node16',
-    outfile: resolve(outputDirectory, 'dist/main.js'),
+    target: 'node14',
+    outfile: mainBundlePath,
     legalComments: 'none',
     alias: {
         '@peanut/pod-hosts': resolve(repositoryRoot, 'packages/hosts/dist/index.js'),
@@ -29,6 +35,12 @@ await build({
     // Creator Electron provides electron; keep it external.
     external: ['electron', 'canvas'],
 });
+const bundledMain = await readFile(mainBundlePath, 'utf8');
+const normalizedMain = stripNodeBuiltinProtocol(bundledMain);
+assertCreator383BundleCompatibility(normalizedMain);
+if (normalizedMain !== bundledMain) {
+    await writeFile(mainBundlePath, normalizedMain, 'utf8');
+}
 await writeFile(resolve(outputDirectory, 'dist/scene.js'), "'use strict';\nmodule.exports = {};\n", 'utf8');
 await cp(resolve(extensionRoot, 'package.json'), resolve(outputDirectory, 'package.json'));
 await cp(resolve(extensionRoot, 'panel'), resolve(outputDirectory, 'panel'), { recursive: true });

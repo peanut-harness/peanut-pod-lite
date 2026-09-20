@@ -6,7 +6,10 @@ import { fileURLToPath } from 'node:url';
 
 import { build } from 'esbuild';
 
-import { stripNodeBuiltinProtocol } from '../../../../../scripts/creator-electron-bundle-normalize.mjs';
+import {
+    assertCreator383BundleCompatibility,
+    stripNodeBuiltinProtocol,
+} from '../../../../../scripts/creator-electron-bundle-normalize.mjs';
 
 const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const packagesRoot = resolve(pluginRoot, '..');
@@ -66,6 +69,7 @@ await build({
 
 const bundled = await readFile(bundlePath, 'utf8');
 const normalized = stripNodeBuiltinProtocol(bundled);
+assertCreator383BundleCompatibility(normalized);
 if (normalized !== bundled) {
     await writeFile(bundlePath, normalized, 'utf8');
 }

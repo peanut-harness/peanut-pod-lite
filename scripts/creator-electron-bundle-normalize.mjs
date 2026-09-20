@@ -15,3 +15,17 @@ export function stripNodeBuiltinProtocol(source) {
         .replace(/\bimport\(\s*(['"])node:/g, 'import($1')
         .replace(/\bfrom\s+(['"])node:/g, 'from $1');
 }
+
+const CREATOR_383_UNSUPPORTED_RUNTIME = /Object\.hasOwn|\.replaceAll\(|\.at\(\s*-1\s*\)|AbortSignal\.timeout/u;
+
+/**
+ * @description 拒绝 Creator 3.8.3（Electron 13 / Node 14）主进程缺失的运行时 API。
+ * @param {string} source 已归一化 bundle
+ * @returns {void}
+ */
+export function assertCreator383BundleCompatibility(source) {
+    const match = source.match(CREATOR_383_UNSUPPORTED_RUNTIME);
+    if (match != null) {
+        throw new Error(`creator_383_bundle_runtime_unsupported:${match[0]}`);
+    }
+}
