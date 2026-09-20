@@ -344,9 +344,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         const cancelResult = this._controlPlane.cancel(taskId);
         if (cancelResult.cancelled) {
             this._taskAbortControllers.get(taskId)?.abort();
-            if (this._scheduler.remove(taskId)) {
-                this._taskAbortControllers.delete(taskId);
-            }
+            this._scheduler.remove(taskId);
         }
         return cancelResult;
     }
@@ -361,9 +359,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         const cancelResult = this._controlPlane.cancelOwned(taskId, owner);
         if (cancelResult.cancelled) {
             this._taskAbortControllers.get(taskId)?.abort();
-            if (this._scheduler.remove(taskId)) {
-                this._taskAbortControllers.delete(taskId);
-            }
+            this._scheduler.remove(taskId);
         }
         return cancelResult;
     }
