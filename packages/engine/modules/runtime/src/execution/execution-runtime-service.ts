@@ -119,6 +119,8 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
     private readonly _recentExecutionDiagnosticGroupIds: string[] = [];
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
     private readonly _pendingCommitQueue: IQueuedCommitGroup[] = [];
+    /** @description executor-managed 任务在资源等待阶段使用的取消控制器。 */
+    private readonly _taskAbortControllers = new Map<string, AbortController>();
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
     private _activeCommitGroupSnapshot: IExecutionGroupSnapshot | null = null;
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
@@ -193,6 +195,27 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         return this._controlPlane.getOwner(taskId);
     }
 
+    /** @description 返回 executor 等待阶段使用的任务取消信号。 */
+    public getTaskAbortSignal(taskId: string): AbortSignal {
+        const controller = this._taskAbortControllers.get(taskId);
+        if (controller == null) {
+            throw new Error(`task_abort_signal_unavailable:${taskId}`);
+        }
+        return controller.signal;
+    }
+
+    /** @description executor 完成资源等待后原子进入不可逆 commit 窗口。 */
+    public enterTaskCommitWindow(taskId: string): boolean {
+        if (this._controlPlane.isCancelled(taskId) || this._controlPlane.isTimedOut(taskId)) {
+            return false;
+        }
+        const entered = this._controlPlane.enterCommitWindow(taskId);
+        if (entered) {
+            this._controlPlane.updateStatus(taskId, 'running');
+        }
+        return entered;
+    }
+
     /**
      * @description 批量提交多个任务请求。
      * @param requests 外部任务请求列表
@@ -226,6 +249,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         for (const admission of admissions) {
             if (!admission.reused) {
                 this._controlPlane.register(admission.taskId, admission.acceptedTask.request.timeoutMs, admission.owner);
+                this._taskAbortControllers.set(admission.taskId, new AbortController());
             }
         }
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
@@ -319,7 +343,10 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         const cancelResult = this._controlPlane.cancel(taskId);
         if (cancelResult.cancelled) {
-            this._scheduler.remove(taskId);
+            this._taskAbortControllers.get(taskId)?.abort();
+            if (this._scheduler.remove(taskId)) {
+                this._taskAbortControllers.delete(taskId);
+            }
         }
         return cancelResult;
     }
@@ -333,7 +360,10 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
     public async cancelOwned(taskId: string, owner: ITaskOwner): Promise<ITaskCancelResult> {
         const cancelResult = this._controlPlane.cancelOwned(taskId, owner);
         if (cancelResult.cancelled) {
-            this._scheduler.remove(taskId);
+            this._taskAbortControllers.get(taskId)?.abort();
+            if (this._scheduler.remove(taskId)) {
+                this._taskAbortControllers.delete(taskId);
+            }
         }
         return cancelResult;
     }
@@ -592,8 +622,10 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
 
         for (const taskId of commitTaskGroup.taskIds) {
-            this._controlPlane.enterCommitWindow(taskId);
-            this._controlPlane.updateStatus(taskId, 'running');
+            if (!executorManagedConcurrency) {
+                this._controlPlane.enterCommitWindow(taskId);
+                this._controlPlane.updateStatus(taskId, 'running');
+            }
             this._scheduler.remove(taskId);
         }
 
@@ -660,6 +692,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
             };
             this._controlPlane.setResult(taskResult);
             this._controlPlane.finalize(taskId);
+            this._taskAbortControllers.delete(taskId);
         }
         this._settleExecutionDiagnosticGroup(taskGroup.groupId);
     }
@@ -668,6 +701,11 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
     private async _failGroup(taskGroup: ITaskMergeGroup, kind: string, reason: string): Promise<void> {
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         for (const taskId of taskGroup.taskIds) {
+            if (this._controlPlane.isCancelled(taskId)) {
+                this._controlPlane.finalize(taskId);
+                this._taskAbortControllers.delete(taskId);
+                continue;
+            }
             // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
             const taskTrace = this._controlPlane.finishTrace(
                 this._controlPlane.appendTrace(this._controlPlane.createTrace(taskId, kind), 'commit', 'Commit task group', 'failed', reason),
@@ -684,6 +722,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
                 },
             });
             this._controlPlane.finalize(taskId);
+            this._taskAbortControllers.delete(taskId);
         }
         this._settleExecutionDiagnosticGroup(taskGroup.groupId);
     }

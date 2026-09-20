@@ -28,6 +28,7 @@ function context() {
             capability: 'peanut.editor-mcp.lumen-set-props',
         },
         signal: new AbortController().signal,
+        enterCommitWindow: () => true,
         recordEvidence: () => {},
     };
 }

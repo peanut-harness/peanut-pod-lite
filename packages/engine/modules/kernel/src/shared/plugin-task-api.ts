@@ -170,7 +170,8 @@ export class PluginTaskApi implements IPluginTaskApi {
                 const owner = this._runtime.execution.getOwner(task.taskId) ?? this._owner(kind);
                 const data = await executor(task.request, {
                     owner,
-                    signal: new AbortController().signal,
+                    signal: this._runtime.execution.getTaskAbortSignal(task.taskId),
+                    enterCommitWindow: (): boolean => this._runtime.execution.enterTaskCommitWindow(task.taskId),
                     recordEvidence: (evidence): void => {
                         this._runtime.execution.recordEvidence(task.taskId, evidence);
                     },

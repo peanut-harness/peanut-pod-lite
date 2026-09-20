@@ -265,6 +265,12 @@ export interface IExecutionRuntimeService {
     /** @description 返回宿主已固定的任务 owner；仅供受信执行边界使用。 */
     getOwner(taskId: string): ITaskOwner | null;
 
+    /** @description 返回 executor 等待阶段使用的任务取消信号。 */
+    getTaskAbortSignal(taskId: string): AbortSignal;
+
+    /** @description executor 完成资源等待后进入不可逆 commit 窗口。 */
+    enterTaskCommitWindow(taskId: string): boolean;
+
     /**
      * @description 批量提交多个任务请求。
      * @param requests 外部任务请求列表

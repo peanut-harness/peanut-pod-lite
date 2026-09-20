@@ -73,6 +73,16 @@ node packages/engine/modules/lumen/scripts/diff-cc-dts-components.mjs <cc.d.ts-o
 - 删除本轮临时资源后刷新 AssetDB，再确认日志没有新增错误或警告。
 - 保留可复现的 QA 工程资产与自动化用例，不在本仓保存机器相关日志、轮询快照或绝对路径转储。
 
+受管任务矩阵使用同一脚本覆盖每个精确补丁版本：
+
+```bash
+npm exec -- tsx packages/hosts/modules/creator-38/scripts/verify-managed-task-live.mts \
+  --project <project-path> \
+  --output <qa-evidence-path>
+```
+
+脚本通过当前会话描述符验证同资源 FIFO、不同资源并行、跨连接取消拒绝、owner 在 commit 前取消、取消目标与 AssetDB 注册探针零残留、成功任务恰好一次 postflight、Host/Core 产物身份一致和增量日志零 error/warn。输出只保存结构化安全摘要，不保存 Hub token。
+
 ## 7. 当前迁移证据
 
 2026-09-17，提交 `743ebb9` 的 Creator 3.8.7 阶段验收已完成：
@@ -82,5 +92,6 @@ node packages/engine/modules/lumen/scripts/diff-cc-dts-components.mjs <cc.d.ts-o
 - 本地审批入口完成签发和消费；`asset.writeText` 验证无租约拒绝、租约写入、AssetDB settle、原内容与 `.meta` 哈希恢复。
 - 本轮日志增量没有 error 或 warning，三份状态/报告中的宿主和 CPM 产物身份一致。
 - 2026-09-20，Creator 3.8.3 项目 `billiards-practice-clean` 的当前 pack 验收完成：修复旧 Node 的 `node:` builtin、`Object.hasOwn` 与 `crypto.randomUUID` 兼容性后，Host/Core 加载成功；`asset.writeText` 经 Hub 写租约完成 AssetDB settle 与 postflight 校验，随后 destructive 删除验证无残留。
+- 2026-09-21，修复 executor-managed 任务过早进入 commit 窗口后，同一候选 pack 在 Creator 3.8.3 与 3.8.7 逐版本通过受管任务矩阵：Host digest 均为 `5312e5db4c4287fc5f51294eb9758f828e36cb52df61428733405827c0b96e6b`，Core package digest 均为 `d5c5b010351c73586af7bad29cea352cc34f4c182e753d1572020a82407ee6bf`；两个版本均完成 5 个同资源 blocker、FIFO 最终值、两项不同资源并行、跨连接取消不可枚举、owner 取消与零残留，9 个成功任务各只有一条 postflight 证据，增量日志零 error/warn。结构化报告摘要分别为 `b56554090ebcd48a3fb2cd61105e44d152efb46a9afdce6e26b111a4e94e2e4a`（3.8.3）与 `7395057fd472f594d92c0c69e7e0d0f91983cf301bd7aa15db25a546b97151f3`（3.8.7）。
 
 这不是 Wave 1 完成声明。剩余分母是 44 个写/破坏性 operation，必须继续按第 4、5 节逐项记录副作用、读取验证和清理结果。

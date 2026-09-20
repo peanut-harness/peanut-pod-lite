@@ -61,6 +61,9 @@ export class ResourceOperationTaskExecutor {
             signal: context.signal,
         });
         try {
+            if (!context.enterCommitWindow()) {
+                throw new Error('editor_mcp_task_cancelled_before_commit');
+            }
             const result = await this._options.execute(payload.operation, payload.input);
             context.recordEvidence({
                 id: 'postflight',

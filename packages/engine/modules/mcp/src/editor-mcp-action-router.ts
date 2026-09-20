@@ -277,6 +277,7 @@ export class EditorMcpActionRouter {
                 capability: request.operation,
             },
             signal: new AbortController().signal,
+            enterCommitWindow: () => true,
             recordEvidence: () => undefined,
         });
         if (!this._isRecord(taskResult) || typeof taskResult.operation !== 'string' || !('data' in taskResult)) {

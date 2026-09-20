@@ -40,6 +40,8 @@ export interface IPluginTaskExecutorContext {
   readonly owner: ITaskOwner;
   /** @description 可中止步骤使用的受控信号，不强制中断不可逆 commit。 */
   readonly signal: AbortSignal;
+  /** @description 资源等待完成后进入不可逆 commit；任务已取消或超时时返回 false。 */
+  enterCommitWindow(): boolean;
   /** @description 记录经过 allow-list 筛选的任务证据。 */
   recordEvidence(evidence: ITaskEvidenceEntry): void;
 }
