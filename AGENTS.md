@@ -3,7 +3,7 @@
 
 Hub 安装器维护；Agent 共用。
 
-- 新目标仅一次 `node ../../peanut-hub/tools/knowledge/rag.mjs query --brief [--repo <id>] "<任务>"`（默认 2 条，不足才 3 条）；续轮不重复加载。
+- 新目标仅一次 `node ../peanut-hub/tools/knowledge/rag.mjs query --brief [--repo <id>] "<任务>"`（默认 2 条，不足才 3 条）；续轮不重复加载。
 - 写入先建 worktree；改代码更新知识卡，执行同工具的 `build` 与 `check-sync --brief --repo <id>`（失败才展开，跨仓才全量）。事实未变用 `attest`；提交 `sync.json`，不提交 `.rag/`。
 - 编辑代码读语言 README；跨仓或边界不清才读项目边界。Hub `standards/` 唯一权威，并遵守 `code-design.md` 与 `context-efficiency.md`。
 - 行为/契约变更先写 OpenSpec；并行任务须独立无重叠。
