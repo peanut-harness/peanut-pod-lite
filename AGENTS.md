@@ -1,10 +1,10 @@
 <!-- peanut-hub:standards:start -->
 # Peanut 共享规范入口
 
-本区块由 Hub 安装器写入。Grok / Codex / Cursor / Claude 共用这一份 `AGENTS.md`，不要再生成 `CLAUDE.md`、`.cursorrules` 或其它厂商副本。
+Hub 安装器维护；所有 Agent 共用。
 
-- 先 `node ../peanut-hub/tools/knowledge/rag.mjs query "<任务>"`，只用命中（默认 3 条）。禁止通读 knowledge。
-- 改代码后更新对应卡片并 `node ../peanut-hub/tools/knowledge/rag.mjs build`；`check-sync` 必须通过。事实未变则 `attest <repo-id> "<原因>"`（写入 Hub `knowledge/sync.json`，须提交）。不要提交 `.rag/`。
-- 确认语言后再读 Hub `standards/languages/<语言>/README.md`。共享规范只以 Hub `standards/` 为权威。
-- Hub 路径不可读则先恢复，不要猜规则。不要覆盖其他任务改动；交付前在实际工程跑只读检查。
+- 新目标仅一次 `node ../peanut-hub-wt-context-entry-v4/tools/knowledge/rag.mjs query --brief [--repo <id>] "<任务>"`（默认 2 条，不足才 3 条）；续轮不重复加载。
+- 写入先建专用 worktree；改代码更新知识卡，执行同工具的 `build` 与 `check-sync --brief --repo <id>`（失败才展开，跨仓才全量）。事实未变用 `attest`；提交 `sync.json`，不提交 `.rag/`。
+- 编辑代码读语言 README；跨仓或边界不清才读项目边界。Hub `standards/` 唯一权威，并遵守 `code-design.md` 与 `context-efficiency.md`。
+- 限定仓库搜索、输出和验证，不覆盖他人改动。排障只用筛选后的文本日志、堆栈和命令行，禁截图与读图；Hub 不可读先恢复。
 <!-- peanut-hub:standards:end -->
