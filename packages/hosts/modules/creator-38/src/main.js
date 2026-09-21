@@ -125,6 +125,7 @@ function toHubCapabilityDefinition(definition) {
     if ((risk === 'read') !== readOnly) {
         throw new Error(`peanut_cocos_mcp_core_hub_risk_mismatch:${definition.name}`);
     }
+    const throughput = toHubThroughputProfile(definition, readOnly);
     return Object.freeze({
         name: definition.name,
         description: typeof definition.description === 'string' && definition.description.trim().length > 0
@@ -138,6 +139,40 @@ function toHubCapabilityDefinition(definition) {
         executionModel: definition.executionModel === 'managed_task' ? 'managed_task' : 'inline',
         ...(definition.lane != null ? { lane: definition.lane } : {}),
         ...(definition.aiHandling != null ? { aiHandling: definition.aiHandling } : {}),
+        ...(throughput == null ? {} : { throughput }),
+    });
+}
+
+function toHubThroughputProfile(definition, readOnly) {
+    const profile = definition.throughput;
+    if (profile == null) {
+        return null;
+    }
+    const costClasses = new Set(['control', 'read_light', 'read_heavy', 'prepare', 'writer']);
+    if (typeof profile !== 'object' || !costClasses.has(profile.costClass) || profile.operation !== definition.operation) {
+        throw new Error(`peanut_cocos_mcp_core_throughput_invalid:${definition.name}`);
+    }
+    if (readOnly) {
+        if (profile.read == null || profile.write != null) {
+            throw new Error(`peanut_cocos_mcp_core_read_throughput_invalid:${definition.name}`);
+        }
+        return Object.freeze({
+            operationId: definition.operation,
+            costClass: profile.costClass,
+            readCoalescing: profile.read.coalescing,
+            readCache: profile.read.cache,
+            readConsistency: profile.read.consistency,
+        });
+    }
+    if (profile.write == null || profile.read != null) {
+        throw new Error(`peanut_cocos_mcp_core_write_throughput_invalid:${definition.name}`);
+    }
+    return Object.freeze({
+        operationId: definition.operation,
+        costClass: profile.costClass,
+        prepareEligible: profile.write.prepareEligible === true,
+        explicitBatchEligible: profile.write.explicitBatchEligible === true,
+        automaticBatchEligible: profile.write.automaticBatchEligible === true,
     });
 }
 
