@@ -118,8 +118,8 @@ const report = {
         retainedTaskIds,
     })).digest('hex'),
 };
-assertThroughputSoakReport(report, { requireAcceptanceDurations: !allowShort });
 writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`);
+assertThroughputSoakReport(report, { requireAcceptanceDurations: !allowShort });
 console.log(JSON.stringify({
     outputPath,
     creatorVersion: report.project.creatorVersion,
@@ -131,19 +131,24 @@ console.log(JSON.stringify({
 
 async function compareSequentialAndBatch(resourceCount: number) {
     const resources = Array.from({ length: resourceCount }, (_, index) => `${root}/comparison-${index}.json`);
-    const sequentialStartedAt = performance.now();
-    for (const [index, path] of resources.entries()) {
-        const receipt = await approvedWrite(path, { phase: 'sequential', index });
-        await waitForTask(receipt.taskId);
+    let sequentialMs = 0;
+    let batchedMs = 0;
+    for (let trial = 0; trial < 3; trial += 1) {
+        const sequentialStartedAt = performance.now();
+        for (const [index, path] of resources.entries()) {
+            const receipt = await approvedWrite(path, { phase: 'sequential', trial, index });
+            await waitForTask(receipt.taskId);
+        }
+        sequentialMs += performance.now() - sequentialStartedAt;
+        const batchStartedAt = performance.now();
+        for (let start = 0; start < resources.length; start += 25) {
+            await submitBatch(resources.slice(start, start + 25), `comparison-${trial}-${start / 25}`);
+        }
+        batchedMs += performance.now() - batchStartedAt;
     }
-    const sequentialMs = performance.now() - sequentialStartedAt;
-    const batchStartedAt = performance.now();
-    for (let start = 0; start < resources.length; start += 25) {
-        await submitBatch(resources.slice(start, start + 25), `comparison-${start / 25}`);
-    }
-    const batchedMs = performance.now() - batchStartedAt;
     return {
         resourceCount,
+        trials: 3,
         sequentialMs: round(sequentialMs),
         batchedMs: round(batchedMs),
         throughputRatio: round(sequentialMs / batchedMs),
@@ -193,23 +198,31 @@ async function runOverloadPhase(durationMs: number) {
         } catch (error) {
             if (error instanceof ThroughputSoakRequestError && error.failureCategory === 'overloaded') {
                 counts.overloadRejected += 1;
-                await delay(Math.max(25, Math.min(error.retryAfterMs, 5_000)) + Math.floor(Math.random() * 25));
-                try {
-                    await submitBatch(paths, `overload-${cycle}-retry`);
-                    counts.retrySucceeded += 1;
-                } catch (retryError) {
-                    if (retryError instanceof ThroughputSoakRequestError && retryError.failureCategory === 'overloaded') {
-                        counts.overloadRejected += 1;
-                    } else {
-                        throw retryError;
-                    }
-                }
+                await retryOverloadedBatch(paths, cycle, error.retryAfterMs);
             } else {
                 throw error;
             }
         }
         cycle += 1;
         await delay(Math.max(0, PHASE_CYCLE_TARGET_MS - (Date.now() - cycleStartedAt)));
+    }
+}
+
+async function retryOverloadedBatch(paths: string[], cycle: number, retryAfterMs: number) {
+    let backoffMs = Math.max(1_000, Math.min(retryAfterMs, 5_000));
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+        await delay(backoffMs + Math.floor(Math.random() * 25));
+        try {
+            await submitBatch(paths, `overload-${cycle}-retry-${attempt}`);
+            counts.retrySucceeded += 1;
+            return;
+        } catch (error) {
+            if (!(error instanceof ThroughputSoakRequestError) || error.failureCategory !== 'overloaded') {
+                throw error;
+            }
+            counts.overloadRejected += 1;
+            backoffMs = Math.min(backoffMs * 2, 16_000);
+        }
     }
 }
 
