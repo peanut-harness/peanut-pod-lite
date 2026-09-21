@@ -19,7 +19,7 @@
     "scripts": {
         "build": "tsc -p tsconfig.json",
         "typecheck": "tsc -p tsconfig.json --noEmit",
-        "test": "tsx --test --tsconfig tsconfig.json tests/runtime-smoke.test.ts tests/execution-runtime.test.ts tests/panel-host-runtime.test.ts tests/editor-resource-guard.test.ts",
+        "test": "tsx --test --tsconfig tsconfig.json tests/runtime-smoke.test.ts tests/execution-runtime.test.ts tests/throughput-baseline.test.ts tests/throughput-admission.test.ts tests/throughput-health-metrics.test.ts tests/project-revision-clock.test.ts tests/revision-aware-read-coordinator.test.ts tests/throughput-read-stress.test.ts tests/bounded-lifecycle.test.ts tests/panel-host-runtime.test.ts tests/editor-resource-guard.test.ts",
         "smoke": "tsx --tsconfig tsconfig.json src/integration/run-runtime-smoke.ts"
     },
     "devDependencies": {

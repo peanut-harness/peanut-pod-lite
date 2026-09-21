@@ -59,7 +59,11 @@ export class RuntimeTaskCommitDispatcher {
         if (executor.executeBatch != null) {
             return executor.executeBatch(tasks, batchId, mergePolicy);
         }
-        return Promise.all(tasks.map(async (task) => executor.execute(task)));
+        const outcomes: ITaskCommitOutcome[] = [];
+        for (const task of tasks) {
+            outcomes.push(await executor.execute(task));
+        }
+        return outcomes;
     }
 
     /** @description 解析任务 executor。 */

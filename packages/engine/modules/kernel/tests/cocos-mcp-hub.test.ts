@@ -590,6 +590,8 @@ test('Cocos MCP Hub should execute write tools directly when directWriteEnabled 
         await hub.setPluginExposure('peanut.example', 'all');
         await hub.setDirectWriteEnabled(true);
         await hub.start();
+        const revisionBeforeWrite = hub.getProjectRevisionSnapshot();
+        assert.equal(revisionBeforeWrite.revision, 0);
         const descriptor = JSON.parse(readFileSync(join(projectPath, '.peanut-ai', 'cocos-mcp.json'), 'utf8')) as Record<string, unknown>;
         const response = await fetch(`http://127.0.0.1:${descriptor.port as number}/mcp`, {
             method: 'POST',
@@ -610,6 +612,9 @@ test('Cocos MCP Hub should execute write tools directly when directWriteEnabled 
         assert.equal(postflight.logChecked, true);
         assert.equal(postflight.verified, true);
         assert.equal(hub.getStatus().directWriteEnabled, true);
+        assert.equal(hub.getProjectRevisionSnapshot().revision, 2);
+        assert.equal(hub.getProjectRevisionSnapshot(revisionBeforeWrite.revision).stale, true);
+        assert.equal(hub.notifyExternalProjectChange().revision, 3);
     } finally {
         await hub.stop();
         rmSync(projectPath, { recursive: true, force: true });
@@ -793,6 +798,168 @@ test('Cocos MCP Hub should bypass inline write slots and duplicate postflight fo
         assert.equal(recentCalls.every((call) => call.completedAt != null), true);
     } finally {
         releaseFirstWrite?.();
+        await hub.stop();
+        rmSync(projectPath, { recursive: true, force: true });
+    }
+});
+
+test('Cocos MCP Hub coalesces profiled reads after the prior writer barrier', async (): Promise<void> => {
+    const projectPath = mkdtempSync(join(tmpdir(), 'peanut-cocos-mcp-hub-read-barrier-'));
+    const pluginManager = new PluginManagerApp(new RuntimeFacade('3.8.7'));
+    let releaseWrite: (() => void) | null = null;
+    let markWriteStarted: (() => void) | null = null;
+    const writeGate = new Promise<void>((resolve) => { releaseWrite = resolve; });
+    const writeStarted = new Promise<void>((resolve) => { markWriteStarted = resolve; });
+    let readExecutions = 0;
+    const registry = pluginManager.getMcpCapabilityRegistry();
+    registry.register('peanut.example', {
+        name: 'peanut.example.barrier-write',
+        description: '屏障写入。',
+        category: 'cocos',
+        inputSchema: { type: 'object', additionalProperties: false },
+        readOnly: false,
+        risk: 'write',
+        throughput: { costClass: 'writer', prepareEligible: false, explicitBatchEligible: false, automaticBatchEligible: false },
+    }, async (): Promise<unknown> => {
+        markWriteStarted?.();
+        await writeGate;
+        return { applied: true };
+    });
+    registry.register('peanut.example', {
+        name: 'peanut.example.barrier-read',
+        description: '屏障读取。',
+        category: 'cocos',
+        inputSchema: { type: 'object', properties: { key: { type: 'string' } }, required: ['key'], additionalProperties: false },
+        readOnly: true,
+        risk: 'read',
+        throughput: {
+            costClass: 'read_light',
+            readCoalescing: 'project',
+            readCache: 'none',
+            readConsistency: 'writer_barrier',
+        },
+    }, async (): Promise<unknown> => ({ execution: ++readExecutions }));
+    const hub = new CocosMcpHub(() => pluginManager, { projectPath });
+
+    try {
+        await hub.setPluginExposure('peanut.example', 'all');
+        await hub.setDirectWriteEnabled(true);
+        await hub.start();
+        const descriptor = JSON.parse(readFileSync(join(projectPath, '.peanut-ai', 'cocos-mcp.json'), 'utf8')) as Record<string, unknown>;
+        const invoke = async (name: string, input: Record<string, unknown>, connectionId: string): Promise<Record<string, unknown>> => {
+            const response = await fetch(`http://127.0.0.1:${descriptor.port as number}/mcp`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json', 'x-peanut-mcp-token': descriptor.token as string },
+                body: JSON.stringify({ action: 'call', name, input, connectionId }),
+            });
+            return (await response.json()) as Record<string, unknown>;
+        };
+        const write = invoke('peanut.example.barrier-write', {}, '1'.repeat(32));
+        await writeStarted;
+        const readA = invoke('peanut.example.barrier-read', { key: 'same' }, '2'.repeat(32));
+        const readB = invoke('peanut.example.barrier-read', { key: 'same' }, '3'.repeat(32));
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        assert.equal(readExecutions, 0);
+        releaseWrite?.();
+        const [, resultA, resultB] = await Promise.all([write, readA, readB]);
+        assert.equal(readExecutions, 1);
+        assert.deepEqual(resultA.result, { execution: 1 });
+        assert.deepEqual(resultB.result, { execution: 1 });
+        assert.equal(hub.getThroughputHealthSnapshot().coalescedReads, 1);
+    } finally {
+        releaseWrite?.();
+        await hub.stop();
+        rmSync(projectPath, { recursive: true, force: true });
+    }
+});
+
+test('Cocos MCP Hub rejects overload before invoking capability work and returns retry guidance', async (): Promise<void> => {
+    const projectPath = mkdtempSync(join(tmpdir(), 'peanut-cocos-mcp-hub-overload-'));
+    const pluginManager = new PluginManagerApp(new RuntimeFacade('3.8.7'));
+    let invocationCount = 0;
+    let releaseFirst: (() => void) | null = null;
+    let markFirstStarted: (() => void) | null = null;
+    const firstGate = new Promise<void>((resolveGate) => {
+        releaseFirst = resolveGate;
+    });
+    const firstStarted = new Promise<void>((resolveStarted) => {
+        markFirstStarted = resolveStarted;
+    });
+    pluginManager.getMcpCapabilityRegistry().register(
+        'peanut.example',
+        {
+            name: 'peanut.example.heavy-read',
+            description: '执行受限重型读取。',
+            category: 'cocos',
+            inputSchema: {
+                type: 'object',
+                properties: { id: { type: 'string' } },
+                required: ['id'],
+                additionalProperties: false,
+            },
+            readOnly: true,
+            risk: 'read',
+            throughput: { costClass: 'read_heavy', readCoalescing: 'none', readCache: 'none', readConsistency: 'writer_barrier' },
+        },
+        async (input): Promise<unknown> => {
+            invocationCount += 1;
+            if (input.id === 'first') {
+                markFirstStarted?.();
+                await firstGate;
+            }
+            return { id: input.id };
+        },
+    );
+    const hub = new CocosMcpHub(() => pluginManager, {
+        projectPath,
+        throughputAdmissionLimits: {
+            maxConnectionInFlight: 1,
+            maxConnectionQueued: 1,
+            maxProjectQueued: 1,
+            maxControlQueued: 1,
+            concurrency: { control: 1, read_light: 1, read_heavy: 1, prepare: 1, writer: 1 },
+        },
+    });
+
+    try {
+        await hub.setPluginExposure('peanut.example', 'all');
+        await hub.start();
+        const descriptor = JSON.parse(readFileSync(join(projectPath, '.peanut-ai', 'cocos-mcp.json'), 'utf8')) as Record<string, unknown>;
+        const call = async (id: string): Promise<Record<string, unknown>> => {
+            const response = await fetch(`http://127.0.0.1:${descriptor.port as number}/mcp`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json', 'x-peanut-mcp-token': descriptor.token as string },
+                body: JSON.stringify({
+                    action: 'call',
+                    name: 'peanut.example.heavy-read',
+                    input: { id },
+                    connectionId: 'a'.repeat(32),
+                }),
+            });
+            return (await response.json()) as Record<string, unknown>;
+        };
+        const first = call('first');
+        await firstStarted;
+        const second = call('second');
+        await new Promise((resolveDelay) => setTimeout(resolveDelay, 10));
+        const rejected = await call('third');
+        assert.equal(rejected.ok, false);
+        const failure = rejected.failure as Record<string, unknown>;
+        assert.equal(failure.code, 'throughput_overloaded');
+        assert.equal(failure.category, 'overloaded');
+        assert.equal(failure.state, 'not_started');
+        assert.equal(failure.recommendedAction, 'retry_with_backoff');
+        assert.equal(typeof failure.retryAfterMs, 'number');
+        assert.deepEqual(failure.queue, { connectionInFlight: 1, connectionQueued: 1, saturated: true });
+        assert.equal(invocationCount, 1);
+
+        releaseFirst?.();
+        const [firstResult, secondResult] = await Promise.all([first, second]);
+        assert.equal(firstResult.ok, true);
+        assert.equal(secondResult.ok, true);
+        assert.equal(invocationCount, 2);
+    } finally {
+        releaseFirst?.();
         await hub.stop();
         rmSync(projectPath, { recursive: true, force: true });
     }
@@ -1012,5 +1179,178 @@ test('Cocos MCP Hub should fall back when preferred port is occupied by another 
         await hubA.stop();
         rmSync(projectPathA, { recursive: true, force: true });
         rmSync(projectPathB, { recursive: true, force: true });
+    }
+});
+
+test('Cocos MCP Hub explicit batches preserve item task ids and isolate batch ownership', async (): Promise<void> => {
+    const projectPath = mkdtempSync(join(tmpdir(), 'peanut-cocos-mcp-hub-batch-'));
+    const runtime = new RuntimeFacade('3.8.7');
+    const pluginManager = new PluginManagerApp(runtime, undefined, undefined, undefined, projectPath);
+    pluginManager.createHostTaskApi('peanut.example', projectPath);
+    let executionCount = 0;
+    runtime.execution.registerExecutor('peanut.example', 'editor-mcp.resource-operation', {
+        execute: async (task) => {
+            executionCount += 1;
+            return {
+                taskId: task.taskId,
+                kind: task.request.kind,
+                data: { projectState: 'may_have_changed' },
+                changes: [],
+            };
+        },
+    });
+    pluginManager.getMcpCapabilityRegistry().register(
+        'peanut.example',
+        {
+            name: 'peanut.example.batch-write',
+            description: '批次写入。',
+            category: 'cocos',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    resources: { type: 'array', items: { type: 'string' }, minItems: 1 },
+                    value: { type: 'string' },
+                },
+                required: ['resources', 'value'],
+                additionalProperties: false,
+            },
+            readOnly: false,
+            risk: 'write',
+            executionModel: 'managed_task',
+            throughput: {
+                costClass: 'writer',
+                operationId: 'lumen.compSet',
+                prepareEligible: true,
+                explicitBatchEligible: true,
+                automaticBatchEligible: false,
+            },
+        },
+        async (): Promise<unknown> => {
+            throw new Error('batch_should_not_invoke_single_handler');
+        },
+    );
+    const hub = new CocosMcpHub(() => pluginManager, { projectPath });
+
+    try {
+        await hub.setPluginExposure('peanut.example', 'all');
+        await hub.setDirectWriteEnabled(true);
+        await hub.start();
+        const descriptor = JSON.parse(readFileSync(join(projectPath, '.peanut-ai', 'cocos-mcp.json'), 'utf8')) as Record<string, unknown>;
+        const endpoint = `http://127.0.0.1:${descriptor.port as number}/mcp`;
+        const request = async (body: Record<string, unknown>): Promise<Record<string, unknown>> => {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json', 'x-peanut-mcp-token': descriptor.token as string },
+                body: JSON.stringify(body),
+            });
+            return (await response.json()) as Record<string, unknown>;
+        };
+        const owner = 'a'.repeat(32);
+        const other = 'b'.repeat(32);
+        const revisionBefore = hub.getProjectRevisionSnapshot().revision;
+        const submitted = await request({
+            action: 'batch.submit',
+            connectionId: owner,
+            batch: {
+                requestId: 'batch-request',
+                items: [
+                    {
+                        itemId: 'first',
+                        operation: 'peanut.example.batch-write',
+                        input: { resources: ['db://assets/a'], value: 'a' },
+                    },
+                    {
+                        itemId: 'second',
+                        operation: 'peanut.example.batch-write',
+                        input: { resources: ['db://assets/b'], value: 'b' },
+                    },
+                ],
+            },
+        });
+        assert.equal(submitted.ok, true);
+        const receipt = submitted.result as {
+            batchId: string;
+            items: Array<{ itemId: string; taskId: string }>;
+        };
+        assert.match(receipt.batchId, /^batch:/u);
+        assert.deepEqual(receipt.items.map((item) => item.itemId), ['first', 'second']);
+        assert.equal(new Set(receipt.items.map((item) => item.taskId)).size, 2);
+
+        const nonOwner = await request({ action: 'batch.status', connectionId: other, batchId: receipt.batchId });
+        assert.equal(nonOwner.error, 'cocos_mcp_batch_unavailable');
+        let ownerStatus: Record<string, unknown> | null = null;
+        for (let attempt = 0; attempt < 20; attempt += 1) {
+            const response = await request({ action: 'batch.status', connectionId: owner, batchId: receipt.batchId });
+            assert.equal(response.ok, true, JSON.stringify(response));
+            ownerStatus = response.result as Record<string, unknown>;
+            if (ownerStatus?.stage === 'terminal') {
+                break;
+            }
+            await new Promise((resolveDelay) => setTimeout(resolveDelay, 5));
+        }
+        assert.equal(ownerStatus?.stage, 'terminal');
+        assert.equal(ownerStatus?.status, 'succeeded');
+        assert.equal(ownerStatus?.completed, 2);
+        assert.equal(executionCount, 2);
+        const revisionAfter = hub.getProjectRevisionSnapshot().revision;
+        assert.equal(revisionAfter > revisionBefore, true);
+
+        for (const [expectedError, items] of [
+            ['cocos_mcp_batch_dependency_cycle', [
+                {
+                    itemId: 'a',
+                    operation: 'peanut.example.batch-write',
+                    input: { resources: ['db://assets/a'], value: 'a' },
+                    dependsOn: ['b'],
+                },
+                {
+                    itemId: 'b',
+                    operation: 'peanut.example.batch-write',
+                    input: { resources: ['db://assets/b'], value: 'b' },
+                    dependsOn: ['a'],
+                },
+            ]],
+            ['task_idempotency_conflict', [
+                {
+                    itemId: 'a',
+                    operation: 'peanut.example.batch-write',
+                    input: { resources: ['db://assets/a'], value: 'a' },
+                    idempotencyKey: 'duplicate',
+                },
+                {
+                    itemId: 'b',
+                    operation: 'peanut.example.batch-write',
+                    input: { resources: ['db://assets/b'], value: 'b' },
+                    idempotencyKey: 'duplicate',
+                },
+            ]],
+            ['cocos_mcp_batch_resource_conflict:b', [
+                {
+                    itemId: 'a',
+                    operation: 'peanut.example.batch-write',
+                    input: { resources: ['db://assets/shared'], value: 'a' },
+                },
+                {
+                    itemId: 'b',
+                    operation: 'peanut.example.batch-write',
+                    input: { resources: ['db://assets/shared'], value: 'b' },
+                },
+            ]],
+        ] as const) {
+            const rejected = await request({
+                action: 'batch.submit',
+                connectionId: owner,
+                batch: { requestId: `rejected-${expectedError}`, items },
+            });
+            assert.equal(rejected.error, expectedError);
+            if (executionCount !== 2) {
+                throw new Error(`batch_rejection_executed_work:${expectedError}:${executionCount}`);
+            }
+        }
+        assert.equal(hub.getProjectRevisionSnapshot().revision >= revisionAfter, true);
+    } finally {
+        await hub.stop();
+        runtime.execution.dispose();
+        rmSync(projectPath, { recursive: true, force: true });
     }
 });

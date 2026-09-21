@@ -6,6 +6,7 @@ import type {
     IMcpJsonSchema,
     LocalizedText,
 } from '@peanut/pod-protocol';
+import { CoreCocosMcpOperationThroughputProfileCatalog } from '@peanut/pod-engine/policy';
 
 const TOOL_NAME_PREFIX = 'peanut.editor-mcp.';
 
@@ -15,6 +16,8 @@ const TOOL_NAME_PREFIX = 'peanut.editor-mcp.';
  * 供 AI 直接按工具调用，避免把 operation 藏进 payload 造成的路由拼错与「搜不到」。
  */
 export class EditorMcpToolCatalog {
+    /** @description 83 项公开 operation 的权威吞吐画像。 */
+    private readonly _throughputProfiles = new CoreCocosMcpOperationThroughputProfileCatalog();
     /** @description operation 到其一级工具 inputSchema 的映射；键集合即权威 operation 全集。 */
     private readonly _schemas: ReadonlyMap<EditorMcpOperationId, IMcpJsonSchema>;
     /** @description 一级工具名到 operation 的反向映射，用于分发时解析。 */
@@ -54,6 +57,11 @@ export class EditorMcpToolCatalog {
         return this._operationByToolName.get(name) ?? null;
     }
 
+    /** @description 返回 operation 是否位于严格自动微批 allow-list。 */
+    public isAutomaticBatchEligible(operation: EditorMcpOperationId): boolean {
+        return this._throughputProfiles.find(operation)?.write?.automaticBatchEligible === true;
+    }
+
     /**
      * @description 依据 router 公开的能力描述，构建每个 operation 的一级工具定义。
      * @param descriptors router 的稳定能力描述列表（提供 readOnly / risk / description 单一事实）。
@@ -66,6 +74,10 @@ export class EditorMcpToolCatalog {
                 throw new Error(`editor_mcp_tool_schema_missing:${descriptor.operation}`);
             }
             const effectiveInputSchema = descriptor.readOnly ? inputSchema : this._withExecutionControl(inputSchema);
+            const throughput = this._throughputProfiles.find(descriptor.operation);
+            if (throughput == null) {
+                throw new Error(`editor_mcp_throughput_profile_missing:${descriptor.operation}`);
+            }
             return {
                 name: this.toolName(descriptor.operation),
                 description: this._descriptionWithAiContract(descriptor.description, descriptor.readOnly),
@@ -77,6 +89,20 @@ export class EditorMcpToolCatalog {
                 ...(descriptor.readOnly ? {} : { executionModel: 'managed_task' as const }),
                 lane: descriptor.lane,
                 aiHandling: this._aiHandling(descriptor.readOnly),
+                throughput: {
+                    operationId: descriptor.operation,
+                    costClass: throughput.costClass,
+                    ...(throughput.read == null ? {} : {
+                        readCoalescing: throughput.read.coalescing,
+                        readCache: throughput.read.cache,
+                        readConsistency: throughput.read.consistency,
+                    }),
+                    ...(throughput.write == null ? {} : {
+                        prepareEligible: throughput.write.prepareEligible,
+                        explicitBatchEligible: throughput.write.explicitBatchEligible,
+                        automaticBatchEligible: throughput.write.automaticBatchEligible,
+                    }),
+                },
             };
         });
     }

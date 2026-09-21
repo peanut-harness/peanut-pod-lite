@@ -2,7 +2,7 @@ import type { ITaskBatchReceipt, ITaskCancelResult, ITaskEvidenceEntry, ITaskEvi
 
 import { BatchCommitCoordinator } from './commit/batch-commit-coordinator.js';
 import type { ITaskCommitOutcome } from './commit/runtime-task-commit-dispatcher.js';
-import { TaskControlPlane } from './control/task-control-plane.js';
+import { TaskControlPlane, type ITaskReclaimedEvent, type ITaskTerminalEvent } from './control/task-control-plane.js';
 import type { IAcceptedTask } from './ingress/task-ingress.js';
 import { TaskIngress } from './ingress/task-ingress.js';
 import { TaskLedger } from './ledger/task-ledger.js';
@@ -121,6 +121,12 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
     private readonly _pendingCommitQueue: IQueuedCommitGroup[] = [];
     /** @description executor-managed 任务在资源等待阶段使用的取消控制器。 */
     private readonly _taskAbortControllers = new Map<string, AbortController>();
+    /** @description 当前 Runtime 实例内批次回执的单调序号。 */
+    private _batchReceiptSequence = 0;
+    /** @description 撤销 Runtime 内部任务回收监听。 */
+    private readonly _removeTaskReclaimedListener: () => void;
+    /** @description 当前执行服务是否已释放。 */
+    private _disposed = false;
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
     private _activeCommitGroupSnapshot: IExecutionGroupSnapshot | null = null;
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
@@ -158,11 +164,38 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         this._ingress = ingress;
         this._scheduler = scheduler;
         this._controlPlane = new TaskControlPlane(ledger, timeoutAndCancelController, tracePipeline);
+        this._removeTaskReclaimedListener = this._controlPlane.onReclaimed((event) => {
+            this._taskAbortControllers.delete(event.taskId);
+        });
         this._taskExecutorRegistry = taskExecutorRegistry;
         this._workerPool = workerPool;
         this._taskMerger = taskMerger;
         this._resourceLockManager = resourceLockManager;
         this._batchCommitCoordinator = batchCommitCoordinator;
+    }
+
+    /** @description 订阅任务及关联状态完成回收的事件。 */
+    public onTaskReclaimed(listener: (event: ITaskReclaimedEvent) => void): () => void {
+        return this._controlPlane.onReclaimed(listener);
+    }
+
+    /** @description 订阅任务进入终态的事件。 */
+    public onTaskTerminal(listener: (event: ITaskTerminalEvent) => void): () => void {
+        return this._controlPlane.onTerminal(listener);
+    }
+
+    /** @description 释放周期回收、订阅和仍在等待阶段的取消控制器。 */
+    public dispose(): void {
+        if (this._disposed) {
+            return;
+        }
+        this._disposed = true;
+        this._removeTaskReclaimedListener();
+        for (const controller of this._taskAbortControllers.values()) {
+            controller.abort();
+        }
+        this._taskAbortControllers.clear();
+        this._controlPlane.dispose();
     }
 
     /**
@@ -188,6 +221,13 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
             throw new Error('Expected at least one task receipt after owned submit processing.');
         }
         return firstReceipt;
+    }
+
+    /** @description 原子受理一个由宿主逐项固定 owner 的任务批次。 */
+    public async submitOwnedBatch(
+        entries: readonly { readonly request: ITaskRequest; readonly owner: ITaskOwner }[],
+    ): Promise<ITaskBatchReceipt> {
+        return this._submitBatch(entries, false);
     }
 
     /** @description 返回宿主受理时固定的任务 owner。 */
@@ -283,7 +323,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         });
 
         return {
-            batchId: `batch:${Date.now()}`,
+            batchId: `batch:${Date.now()}:${++this._batchReceiptSequence}`,
             receipts: finalReceipts,
         };
     }
@@ -638,9 +678,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
             );
             this._completeGroup(commitTaskGroup, kind, this._controlPlane.finishTrace(completedTaskTrace), batchCommitSummary.outcomes);
         } catch (/* 保存当前流程捕获的异常或诊断信息，供后续处理或返回。 */ error) {
-            // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-            const errorMessage = error instanceof Error ? error.message : 'unknown_execution_error';
-            await this._failGroup(commitTaskGroup, kind, errorMessage);
+            await this._failGroup(commitTaskGroup, kind, error);
         } finally {
             // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
             for (const taskId of commitTaskGroup.taskIds) {
@@ -694,7 +732,13 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
     }
 
     /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */
-    private async _failGroup(taskGroup: ITaskMergeGroup, kind: string, reason: string): Promise<void> {
+    private async _failGroup(taskGroup: ITaskMergeGroup, kind: string, failure: unknown): Promise<void> {
+        const reason = typeof failure === 'string'
+            ? failure
+            : failure instanceof Error
+              ? failure.message
+              : 'unknown_execution_error';
+        const projectState = this._readFailureProjectState(failure);
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         for (const taskId of taskGroup.taskIds) {
             if (this._controlPlane.isCancelled(taskId)) {
@@ -710,6 +754,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
                 taskId,
                 ok: false,
                 status: 'failed',
+                data: { projectState },
                 changes: [],
                 trace: taskTrace,
                 error: {
@@ -721,6 +766,22 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
             this._taskAbortControllers.delete(taskId);
         }
         this._settleExecutionDiagnosticGroup(taskGroup.groupId);
+    }
+
+    private _readFailureProjectState(
+        failure: unknown,
+    ): 'not_started' | 'unchanged' | 'rolled_back' | 'may_have_changed' | 'unknown' {
+        if (failure == null || typeof failure !== 'object') {
+            return 'unknown';
+        }
+        const value = (failure as { readonly projectState?: unknown }).projectState;
+        return value === 'not_started'
+            || value === 'unchanged'
+            || value === 'rolled_back'
+            || value === 'may_have_changed'
+            || value === 'unknown'
+            ? value
+            : 'unknown';
     }
 
     /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */

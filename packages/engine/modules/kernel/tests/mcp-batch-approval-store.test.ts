@@ -107,3 +107,39 @@ test('McpBatchApprovalStore assets/ and db://assets/ interop', (): void => {
         true,
     );
 });
+
+test('McpBatchApprovalStore validates a batch atomically before renewing leases', (): void => {
+    const store = new McpBatchApprovalStore();
+    const valid = store.issue({
+        connectionId: 'conn-1',
+        resources: ['assets/a'],
+        operations: ['asset.writeText'],
+        maxRisk: 'write',
+    });
+    const invalid = store.issue({
+        connectionId: 'conn-1',
+        resources: ['assets/b'],
+        operations: ['asset.writeText'],
+        maxRisk: 'write',
+    });
+    assert.equal(store.tryConsumeAll([
+        {
+            token: valid.token,
+            request: {
+                connectionId: 'conn-1',
+                operation: 'asset.writeText',
+                resources: ['assets/a'],
+                risk: 'write',
+            },
+        },
+        {
+            token: invalid.token,
+            request: {
+                connectionId: 'conn-1',
+                operation: 'asset.writeText',
+                resources: ['assets/not-b'],
+                risk: 'write',
+            },
+        },
+    ]), false);
+});

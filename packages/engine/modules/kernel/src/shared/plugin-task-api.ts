@@ -13,6 +13,7 @@ import type { IMcpCapabilityInvocation } from '@peanut/pod-sdk';
 
 import type {
     IPluginManagedTaskApi,
+    IPluginTaskExecutorContext,
     IPluginTaskExecutorOptions,
     IPluginTaskApi,
     PluginManagedTaskRequest,
@@ -52,6 +53,8 @@ export class PluginTaskApi implements IPluginTaskApi {
      * @description 当前插件创建的任务标识。
      */
     private readonly _taskIds = new Set<string>();
+    /** @description 撤销 Runtime 任务回收订阅。 */
+    private readonly _removeTaskReclaimedListener: () => void;
     /**
      * @description 当前任务 API 是否仍接受新任务。
      */
@@ -73,9 +76,13 @@ export class PluginTaskApi implements IPluginTaskApi {
         this._runtime = runtime;
         this._projectKey = projectKey;
         this._resolveInvocationOwner = resolveInvocationOwner;
+        this._removeTaskReclaimedListener = runtime.execution.onTaskReclaimed((event) => {
+            this._taskIds.delete(event.taskId);
+        });
         this.managed = {
             registerExecutor: (kind, executor, options): (() => void) => this._registerExecutor(kind, executor, options),
             enqueue: async (request, invocation): Promise<ITaskReceipt> => this._enqueue(request, invocation),
+            enqueueBatch: async (requests, invocations): Promise<ITaskBatchReceipt> => this._enqueueBatch(requests, invocations),
             wait: async <TData = ContractPayload>(taskId: string): Promise<ITaskResult<TData> | null> => {
                 return this._wait<TData>(taskId);
             },
@@ -102,6 +109,36 @@ export class PluginTaskApi implements IPluginTaskApi {
         );
         for (const taskReceipt of receipt.receipts) {
             this._taskIds.add(taskReceipt.taskId);
+        }
+        return receipt;
+    }
+
+    /** @description 宿主预检后逐项固定 MCP capability owner 并受理同一批次。 */
+    public async enqueueHostBatch(
+        requests: readonly Omit<ITaskRequest, 'pluginId'>[],
+        owners: readonly { readonly connectionId: string; readonly capability: string }[],
+    ): Promise<ITaskBatchReceipt> {
+        this._assertActive();
+        if (requests.length === 0 || requests.length !== owners.length) {
+            throw new Error('plugin_task_host_batch_invalid');
+        }
+        const receipt = await this._runtime.execution.submitOwnedBatch(requests.map((request, index) => {
+            const owner = owners[index];
+            if (owner == null) {
+                throw new Error('plugin_task_host_batch_owner_missing');
+            }
+            return {
+                request: { ...request, pluginId: this._pluginId },
+                owner: {
+                    pluginId: this._pluginId,
+                    connectionId: owner.connectionId,
+                    projectKey: this._projectKey,
+                    capability: owner.capability,
+                },
+            };
+        }));
+        for (const item of receipt.receipts) {
+            this._taskIds.add(item.taskId);
         }
         return receipt;
     }
@@ -154,6 +191,8 @@ export class PluginTaskApi implements IPluginTaskApi {
                 await this._runtime.execution.cancel(taskId);
             }
         }
+        this._taskIds.clear();
+        this._removeTaskReclaimedListener();
     }
 
     /**
@@ -161,6 +200,7 @@ export class PluginTaskApi implements IPluginTaskApi {
      */
     private _registerExecutor(kind: string, executor: PluginTaskExecutor, options?: IPluginTaskExecutorOptions): () => void {
         this._assertActive();
+        const batchExecutor = options?.executeBatch;
         const runtimeExecutor: ITaskExecutor = {
             concurrency: options?.concurrency ?? 'runtime_serial',
             execute: async (task) => {
@@ -183,6 +223,39 @@ export class PluginTaskApi implements IPluginTaskApi {
                     changes: [],
                 };
             },
+            ...(batchExecutor == null ? {} : {
+                executeBatch: async (tasks, batchId, mergePolicy) => {
+                    if (!this._active) {
+                        throw new Error(`plugin_task_executor_inactive:${this._pluginId}:${kind}`);
+                    }
+                    const contexts = tasks.map((task) => {
+                        const owner = this._runtime.execution.getOwner(task.taskId) ?? this._owner(kind);
+                        return {
+                            owner,
+                            signal: this._runtime.execution.getTaskAbortSignal(task.taskId),
+                            enterCommitWindow: (): boolean => this._runtime.execution.enterTaskCommitWindow(task.taskId),
+                            recordEvidence: (evidence: Parameters<IPluginTaskExecutorContext['recordEvidence']>[0]): void => {
+                                this._runtime.execution.recordEvidence(task.taskId, evidence);
+                            },
+                        };
+                    });
+                    const values = await batchExecutor(
+                        tasks.map((task) => task.request),
+                        contexts,
+                        batchId,
+                        mergePolicy,
+                    );
+                    if (values.length !== tasks.length) {
+                        throw new Error('plugin_task_batch_result_count_mismatch');
+                    }
+                    return tasks.map((task, index) => ({
+                        taskId: task.taskId,
+                        kind: task.request.kind,
+                        data: this._toData(values[index]),
+                        changes: [],
+                    }));
+                },
+            }),
         };
         const revoke = this._runtime.execution.registerExecutor(this._pluginId, kind, runtimeExecutor);
         let active = true;
@@ -219,6 +292,40 @@ export class PluginTaskApi implements IPluginTaskApi {
                 },
         );
         this._taskIds.add(receipt.taskId);
+        return receipt;
+    }
+
+    /** @description 在创建任何任务前解析并固定批内全部 owner。 */
+    private async _enqueueBatch(
+        requests: readonly PluginManagedTaskRequest[],
+        invocations: readonly IMcpCapabilityInvocation[] = [],
+    ): Promise<ITaskBatchReceipt> {
+        this._assertActive();
+        if (requests.length === 0 || (invocations.length !== 0 && invocations.length !== requests.length)) {
+            throw new Error('plugin_task_batch_invalid');
+        }
+        const entries = requests.map((request, index) => {
+            const invocation = invocations[index];
+            const invocationOwner = invocation == null ? null : this._resolveInvocationOwner?.(invocation) ?? null;
+            if (invocation != null && invocationOwner == null) {
+                throw new Error('plugin_task_invocation_untrusted');
+            }
+            return {
+                request: { ...request, pluginId: this._pluginId },
+                owner: invocationOwner == null
+                    ? this._owner(request.kind)
+                    : {
+                        pluginId: this._pluginId,
+                        connectionId: invocationOwner.connectionId,
+                        projectKey: this._projectKey,
+                        capability: invocationOwner.capability,
+                    },
+            };
+        });
+        const receipt = await this._runtime.execution.submitOwnedBatch(entries);
+        for (const item of receipt.receipts) {
+            this._taskIds.add(item.taskId);
+        }
         return receipt;
     }
 

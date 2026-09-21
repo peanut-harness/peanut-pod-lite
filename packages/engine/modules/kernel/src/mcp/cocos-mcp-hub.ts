@@ -3,13 +3,30 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, rmSync, wri
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'http';
 import { join, resolve } from 'path';
 
-import type { IMcpCapabilityCatalog, IMcpCapabilityDefinition, McpCapabilityRisk, TaskStatus } from '@peanut/pod-protocol';
-import { ProjectLogPostflightMonitor, ProjectLogPostflightRepairer } from '@peanut/pod-engine/runtime';
+import type {
+    IMcpCapabilityCatalog,
+    IMcpCapabilityDefinition,
+    IThroughputHealthSnapshot,
+    McpCapabilityRisk,
+    TaskStatus,
+    ThroughputCostClass,
+} from '@peanut/pod-protocol';
+import { ThroughputContractValidator } from '@peanut/pod-protocol';
+import {
+    ProjectLogPostflightMonitor,
+    ProjectLogPostflightRepairer,
+    ProjectRevisionClock,
+    ProjectWriterBarrier,
+    RevisionAwareReadCoordinator,
+    ThroughputAdmissionController,
+    type IProjectWriterBarrierLease,
+    type IThroughputAdmissionLimits,
+} from '@peanut/pod-engine/runtime';
 
 import type { PluginManagerApp } from '../app/plugin-manager-app.js';
 import { toHex } from '../shared/random-hex.js';
 import type { IMcpCapabilityProgress, McpPluginExposureMode } from './mcp-capability-registry.js';
-import { McpBatchApprovalStore } from './mcp-batch-approval-store.js';
+import { McpBatchCoordinator, type IMcpApprovalLeaseMirror } from './mcp-batch-coordinator.js';
 import {
     summarizeMcpHubCapability,
     type IMcpHubControl,
@@ -46,20 +63,13 @@ export interface ICocosMcpHubOptions {
      * @description 全局并发写 capability 上限（保护 AssetDB）；默认 16，范围 1–32。
      */
     readonly maxConcurrentWrites?: number;
+    /** @description 可选吞吐准入边界覆盖；生产默认始终保持有界。 */
+    readonly throughputAdmissionLimits?: Partial<IThroughputAdmissionLimits>;
     /**
      * @description 可选：将 Hub approvalToken 顺带写入 Lite McpApprovalLeaseStore（同 connection/resources/ops/risk）。
      * 不自动免审；仅镜像租约。返回 Lite token（通常与 Hub token 相同）。
      */
-    readonly mirrorLocalApprovalLease?: (request: {
-        readonly connectionId: string;
-        readonly resources: readonly string[];
-        readonly operations?: readonly string[];
-        readonly maxRisk?: 'write' | 'destructive';
-        readonly idleLeaseMs?: number;
-        readonly maxHoldMs?: number;
-        readonly sessionBound?: boolean;
-        readonly preferredToken?: string;
-    }) => { readonly token: string; readonly expiresAt: number; readonly idleLeaseMs?: number; readonly maxHoldMs?: number } | null;
+    readonly mirrorLocalApprovalLease?: IMcpApprovalLeaseMirror;
 }
 
 interface IMcpHubSettingsRecord {
@@ -160,18 +170,29 @@ export class CocosMcpHub implements IMcpHubControl {
     private readonly _writeEnabledPluginIds: Set<string>;
     /** @description 测试开关：写操作是否可跳过 plan 直接执行。 */
     private _directWriteEnabled: boolean;
-    /** @description 批次 approvalToken 与资源空闲租约。 */
-    private readonly _batchApprovals = new McpBatchApprovalStore();
-    /**
-     * @description 晚绑定的 Lite 本地租约镜像（coreModule 就绪后由 host 注入；可选）。
-     */
-    private _localApprovalLeaseMirror: ICocosMcpHubOptions['mirrorLocalApprovalLease'] | null = null;
+    /** @description 显式批次、审批租约与 batch writer 生命周期协调器。 */
+    private readonly _batchCoordinator: McpBatchCoordinator;
     /** @description 当前在飞的写 capability 数量。 */
     private _writeInFlight = 0;
     /** @description 等待写槽位的回调队列。 */
     private readonly _writeSlotWaiters: Array<() => void> = [];
     /** @description 全局写并发上限。 */
     private readonly _maxConcurrentWrites: number;
+    /** @description 业务执行前的连接/工程/成本类有界准入。 */
+    private readonly _throughputAdmission: ThroughputAdmissionController;
+    /** @description 当前工程的单调一致性 revision。 */
+    private readonly _projectRevision: ProjectRevisionClock;
+    /** @description revision 绑定的短窗读合并与 LRU 快照缓存。 */
+    private readonly _readCoordinator: RevisionAwareReadCoordinator;
+    /** @description 强一致读取等待已接纳 writer 的工程屏障。 */
+    private readonly _writerBarrier = new ProjectWriterBarrier();
+    /** @description 等待受管任务终态后再次推进 revision 的任务。 */
+    private readonly _pendingRevisionTasks = new Map<string, {
+        readonly refreshBoundary: boolean;
+        readonly barrierLease: IProjectWriterBarrierLease;
+    }>();
+    /** @description Runtime 任务终态订阅撤销器。 */
+    private _removeTaskTerminalListener: (() => void) | null = null;
 
     /**
      * @description 创建一个新的 Cocos MCP Hub。
@@ -184,7 +205,6 @@ export class CocosMcpHub implements IMcpHubControl {
         }
         this._pluginManagerProvider = pluginManagerProvider;
         this._options = options;
-        this._localApprovalLeaseMirror = options.mirrorLocalApprovalLease ?? null;
         this._descriptorPath = join(resolve(options.projectPath), '.peanut-ai', 'cocos-mcp.json');
         this._settingsPath = join(resolve(options.projectPath), '.peanut-ai', 'cocos-mcp-settings.json');
         const settings = this._readSettings();
@@ -194,6 +214,21 @@ export class CocosMcpHub implements IMcpHubControl {
         this._writeEnabledPluginIds = new Set(settings.writeEnabledPluginIds);
         this._directWriteEnabled = settings.directWriteEnabled;
         this._maxConcurrentWrites = this._readMaxConcurrentWrites(options.maxConcurrentWrites);
+        this._throughputAdmission = new ThroughputAdmissionController(options.throughputAdmissionLimits);
+        this._projectRevision = new ProjectRevisionClock(resolve(options.projectPath));
+        this._readCoordinator = new RevisionAwareReadCoordinator(this._projectRevision, {
+            metrics: this._throughputAdmission.getMetricsRecorder(),
+        });
+        this._batchCoordinator = new McpBatchCoordinator({
+            projectPath: options.projectPath,
+            pluginManagerProvider,
+            inputReader: this._inputReader,
+            admission: this._throughputAdmission,
+            revision: this._projectRevision,
+            writerBarrier: this._writerBarrier,
+            ensureTaskSubscription: () => this._ensureTaskRevisionSubscription(),
+            ...(options.mirrorLocalApprovalLease == null ? {} : { mirrorApprovalLease: options.mirrorLocalApprovalLease }),
+        });
     }
 
     /**
@@ -247,6 +282,14 @@ export class CocosMcpHub implements IMcpHubControl {
             this._completeRecentCall(plan.auditId, 'rejected', 'cocos_mcp_hub_disabled');
         }
         this._plans.clear();
+        this._removeTaskTerminalListener?.();
+        this._removeTaskTerminalListener = null;
+        for (const pending of this._pendingRevisionTasks.values()) {
+            pending.barrierLease.release();
+        }
+        this._pendingRevisionTasks.clear();
+        this._batchCoordinator.dispose();
+        this._readCoordinator.dispose();
         if (server != null) {
             await new Promise<void>((resolveStop, rejectStop) =>
                 server.close((error) => (error == null ? resolveStop() : rejectStop(error))),
@@ -306,6 +349,21 @@ export class CocosMcpHub implements IMcpHubControl {
      */
     public listRecentCalls(): readonly IMcpHubRecentCall[] {
         return this._recentCalls.map((record) => ({ ...record }));
+    }
+
+    /** @description 返回仅供宿主诊断面板读取的脱敏吞吐健康快照。 */
+    public getThroughputHealthSnapshot(): IThroughputHealthSnapshot {
+        return this._throughputAdmission.getHealthSnapshot();
+    }
+
+    /** @description 返回受信宿主使用的当前工程 revision。 */
+    public getProjectRevisionSnapshot(observedRevision?: number): ReturnType<ProjectRevisionClock['snapshot']> {
+        return this._projectRevision.snapshot(observedRevision);
+    }
+
+    /** @description 接收 Creator watcher/Bridge 的外部变更失效信号。 */
+    public notifyExternalProjectChange(): ReturnType<ProjectRevisionClock['snapshot']> {
+        return this._projectRevision.externalChange();
     }
 
     /**
@@ -492,34 +550,64 @@ export class CocosMcpHub implements IMcpHubControl {
         }
         const connectionId = this._inputReader.readConnectionId(payload.connectionId);
         if (action === 'task.status') {
-            const taskId = this._inputReader.readTaskId(payload.taskId);
-            const status = await this._requirePluginManager().getMcpTaskControl().getStatus(taskId, connectionId);
-            if (status == null) {
-                throw new Error('cocos_mcp_task_unavailable');
-            }
-            this._updateRecentCallFromTaskStatus(status.taskId, status.status);
-            return status;
+            return this._withControlAdmission(connectionId, invocation, async (): Promise<unknown> => {
+                const taskId = this._inputReader.readTaskId(payload.taskId);
+                const status = await this._requirePluginManager().getMcpTaskControl().getStatus(taskId, connectionId);
+                if (status == null) {
+                    throw new Error('cocos_mcp_task_unavailable');
+                }
+                this._updateRecentCallFromTaskStatus(status.taskId, status.status);
+                return status;
+            });
         }
         if (action === 'task.cancel') {
-            const taskId = this._inputReader.readTaskId(payload.taskId);
-            const result = await this._requirePluginManager().getMcpTaskControl().cancel(taskId, connectionId);
-            if (result.reason === 'task_unavailable') {
-                throw new Error('cocos_mcp_task_unavailable');
-            }
-            if (result.cancelled) {
-                this._updateRecentCallFromTaskStatus(taskId, 'cancelled');
-            }
-            return result;
+            return this._withControlAdmission(connectionId, invocation, async (): Promise<unknown> => {
+                const taskId = this._inputReader.readTaskId(payload.taskId);
+                const result = await this._requirePluginManager().getMcpTaskControl().cancel(taskId, connectionId);
+                if (result.reason === 'task_unavailable') {
+                    throw new Error('cocos_mcp_task_unavailable');
+                }
+                if (result.cancelled) {
+                    this._updateRecentCallFromTaskStatus(taskId, 'cancelled');
+                }
+                return result;
+            });
         }
         if (action === 'task.evidence') {
-            const evidence = await this._requirePluginManager().getMcpTaskControl().getEvidence(
-                this._inputReader.readTaskId(payload.taskId),
-                connectionId,
-            );
-            if (evidence == null) {
-                throw new Error('cocos_mcp_task_unavailable');
-            }
-            return evidence;
+            return this._withControlAdmission(connectionId, invocation, async (): Promise<unknown> => {
+                const evidence = await this._requirePluginManager().getMcpTaskControl().getEvidence(
+                    this._inputReader.readTaskId(payload.taskId),
+                    connectionId,
+                );
+                if (evidence == null) {
+                    throw new Error('cocos_mcp_task_unavailable');
+                }
+                return evidence;
+            });
+        }
+        if (action === 'batch.submit') {
+            return this._withInvocation(connectionId, this._inputReader.readOptionalInvocationId(payload.invocationId), invocation,
+                async (activeInvocation): Promise<unknown> => this._submitExplicitBatch(
+                    ThroughputContractValidator.parseBatchRequest(payload.batch), connectionId, activeInvocation,
+                ));
+        }
+        if (action === 'batch.status') {
+            return this._withControlAdmission(connectionId, invocation, async (): Promise<unknown> => {
+                const status = await this._batchCoordinator.getStatus(payload.batchId, connectionId);
+                if (status == null) {
+                    throw new Error('cocos_mcp_batch_unavailable');
+                }
+                return status;
+            });
+        }
+        if (action === 'batch.cancel') {
+            return this._withControlAdmission(connectionId, invocation, async (): Promise<unknown> => {
+                const status = await this._batchCoordinator.cancel(payload.batchId, connectionId);
+                if (status == null) {
+                    throw new Error('cocos_mcp_batch_unavailable');
+                }
+                return status;
+            });
         }
         if (action === 'cancel') {
             this._cancelInvocation(connectionId, this._inputReader.readInvocationId(payload.invocationId));
@@ -543,7 +631,7 @@ export class CocosMcpHub implements IMcpHubControl {
             return this._issueApprovalToken(connectionId, payload);
         }
         if (action === 'revokeApprovalToken') {
-            return { revoked: this._batchApprovals.revoke(this._inputReader.readApprovalToken(payload.approvalToken)) };
+            return { revoked: this._batchCoordinator.revokeApproval(this._inputReader.readApprovalToken(payload.approvalToken)) };
         }
         throw new Error('cocos_mcp_hub_action_invalid');
     }
@@ -618,36 +706,46 @@ export class CocosMcpHub implements IMcpHubControl {
         }
         const risk = this._inputReader.resolveCallRisk(definition, input);
         const resourceIds = this._inputReader.readOptionalResources(input);
-        let hasLocalApproval = false;
-        if (!definition.readOnly && !this._directWriteEnabled) {
-            const approvalToken = this._inputReader.readOptionalApprovalToken(input);
-            if (
-                approvalToken == null ||
-                !this._batchApprovals.tryConsume(approvalToken, {
-                    connectionId,
-                    operation: name,
-                    resources: resourceIds,
-                    risk,
-                })
-            ) {
-                return this._createPlan(name, input, connectionId);
-            }
-            hasLocalApproval = true;
-        }
-        if (risk === 'destructive' && this._inputReader.readConfirmDestructive(input) !== true) {
-            McpControlFlowRefusal.reject('cocos_mcp_destructive_confirmation_required');
-        }
-        const recentCall = this._createRecentCall(definition, 'approved');
+        const admissionLease = await this._throughputAdmission.acquire({
+            connectionId,
+            projectKey: resolve(this._options.projectPath),
+            costClass: this._resolveThroughputCostClass(definition),
+            ...(invocation.signal == null ? {} : { signal: invocation.signal }),
+        });
         try {
-            const result = await this._invokeWithPostflight(definition, name, input, connectionId, invocation, risk, {
-                resourceIds,
-                hasLocalApproval,
-            });
-            this._completeRecentCallFromResult(recentCall.id, definition, result, connectionId);
-            return result;
-        } catch (error) {
-            this._completeRecentCall(recentCall.id, 'failed', this._inputReader.toSafeErrorCode(error));
-            throw error;
+            let hasLocalApproval = false;
+            if (!definition.readOnly && !this._directWriteEnabled) {
+                const approvalToken = this._inputReader.readOptionalApprovalToken(input);
+                if (
+                    approvalToken == null ||
+                    !this._batchCoordinator.tryConsumeApproval(approvalToken, {
+                        connectionId,
+                        operation: name,
+                        resources: resourceIds,
+                        risk,
+                    })
+                ) {
+                    return this._createPlan(name, input, connectionId);
+                }
+                hasLocalApproval = true;
+            }
+            if (risk === 'destructive' && this._inputReader.readConfirmDestructive(input) !== true) {
+                McpControlFlowRefusal.reject('cocos_mcp_destructive_confirmation_required');
+            }
+            const recentCall = this._createRecentCall(definition, 'approved');
+            try {
+                const result = await this._invokeWithPostflight(definition, name, input, connectionId, invocation, risk, {
+                    resourceIds,
+                    hasLocalApproval,
+                });
+                this._completeRecentCallFromResult(recentCall.id, definition, result, connectionId);
+                return result;
+            } catch (error) {
+                this._completeRecentCall(recentCall.id, 'failed', this._inputReader.toSafeErrorCode(error));
+                throw error;
+            }
+        } finally {
+            admissionLease.release();
         }
     }
 
@@ -702,12 +800,18 @@ export class CocosMcpHub implements IMcpHubControl {
             this._completeRecentCall(plan.auditId, 'failed', 'cocos_mcp_plan_catalog_changed');
             throw new Error('cocos_mcp_plan_catalog_changed');
         }
-        this._plans.delete(planId);
+        const definition = this._requirePluginManager().getMcpCapabilityRegistry().getDefinition(plan.name);
+        if (definition == null) {
+            throw new Error(`mcp_capability_unavailable:${plan.name}`);
+        }
+        const admissionLease = await this._throughputAdmission.acquire({
+            connectionId,
+            projectKey: resolve(this._options.projectPath),
+            costClass: this._resolveThroughputCostClass(definition),
+            ...(invocation.signal == null ? {} : { signal: invocation.signal }),
+        });
         try {
-            const definition = this._requirePluginManager().getMcpCapabilityRegistry().getDefinition(plan.name);
-            if (definition == null) {
-                throw new Error(`mcp_capability_unavailable:${plan.name}`);
-            }
+            this._plans.delete(planId);
             const result = await this._invokeWithPostflight(
                 definition,
                 plan.name,
@@ -725,7 +829,51 @@ export class CocosMcpHub implements IMcpHubControl {
         } catch (error) {
             this._completeRecentCall(plan.auditId, 'failed', this._inputReader.toSafeErrorCode(error));
             throw error;
+        } finally {
+            admissionLease.release();
         }
+    }
+
+    /** @description 使用控制面保留容量执行 owner-safe 查询与取消。 */
+    private async _withControlAdmission(
+        connectionId: string,
+        invocation: IMcpHubInvocationOptions,
+        execute: () => Promise<unknown>,
+    ): Promise<unknown> {
+        const lease = await this._throughputAdmission.acquire({
+            connectionId,
+            projectKey: resolve(this._options.projectPath),
+            costClass: 'control',
+            ...(invocation.signal == null ? {} : { signal: invocation.signal }),
+        });
+        try {
+            return await execute();
+        } finally {
+            lease.release();
+        }
+    }
+
+    /** @description 在创建任何 task 前完成显式批次的目录、DAG、审批与容量预检。 */
+    private async _submitExplicitBatch(
+        request: Parameters<McpBatchCoordinator['submit']>[0],
+        connectionId: string,
+        invocation: IMcpHubInvocationOptions,
+    ): Promise<unknown> {
+        return this._batchCoordinator.submit(request, connectionId, invocation.signal, this._directWriteEnabled);
+    }
+
+    /** @description 从 capability 画像选择 admission 成本类，未知定义保持保守。 */
+    private _resolveThroughputCostClass(definition: IMcpCapabilityDefinition): ThroughputCostClass {
+        if (definition.readOnly) {
+            return definition.throughput?.costClass ?? 'read_heavy';
+        }
+        if (definition.executionModel === 'managed_task') {
+            if (definition.throughput == null) {
+                return 'prepare';
+            }
+            return definition.throughput.prepareEligible === true ? 'prepare' : 'writer';
+        }
+        return 'writer';
     }
 
     /**
@@ -752,14 +900,48 @@ export class CocosMcpHub implements IMcpHubControl {
         },
     ): Promise<unknown> {
         const registry = this._requirePluginManager().getMcpCapabilityRegistry();
-        if (definition.readOnly || definition.executionModel === 'managed_task') {
-            const result = await registry.invoke(name, input, { connectionId, ...invocation, risk, ...authorization });
-            if (definition.executionModel === 'managed_task') {
-                this._readManagedTaskReceipt(result);
+        if (definition.readOnly) {
+            if (definition.throughput?.readConsistency === 'writer_barrier' || definition.throughput == null) {
+                await this._writerBarrier.waitForPriorWriters();
             }
-            return result;
+            const providerId = registry.getRegisteredProviderPluginId(name) ?? 'unknown-provider';
+            const authorityKey = `${providerId}:${registry.getPluginExposure(providerId)}`;
+            const coordinated = await this._readCoordinator.execute({
+                operation: name,
+                input,
+                authorityKey,
+                capabilityVersion: String(this._getCatalog().revision),
+                allowCoalescing: definition.throughput?.readCoalescing === 'project',
+                cacheTtlMs: definition.throughput?.readCache === 'revision_lru' ? 250 : 0,
+                retryOnRevisionChange: definition.throughput?.readCoalescing === 'project',
+            }, () => registry.invoke(name, input, { connectionId, ...invocation, risk, ...authorization }));
+            return coordinated.value;
+        }
+        const barrierLease = this._writerBarrier.admitWriter();
+        this._projectRevision.beginWrite();
+        if (definition.executionModel === 'managed_task') {
+            this._ensureTaskRevisionSubscription();
+            try {
+                const result = await registry.invoke(name, input, { connectionId, ...invocation, risk, ...authorization });
+                const receipt = this._readManagedTaskReceipt(result);
+                if (receipt.taskStatus === 'succeeded') {
+                    this._finishProjectWrite(this._isRefreshBoundary(name));
+                    barrierLease.release();
+                } else {
+                    this._pendingRevisionTasks.set(receipt.taskId, {
+                        refreshBoundary: this._isRefreshBoundary(name),
+                        barrierLease,
+                    });
+                }
+                return result;
+            } catch (error) {
+                this._projectRevision.finishWrite();
+                barrierLease.release();
+                throw error;
+            }
         }
         await this._acquireWriteSlot();
+        let succeeded = false;
         try {
             const projectRoot = resolve(this._options.projectPath);
             const monitor = new ProjectLogPostflightMonitor();
@@ -771,12 +953,45 @@ export class CocosMcpHub implements IMcpHubControl {
                 postflight = await repairer.repairOnceIfNeeded(projectRoot, postflight);
             }
             if (result != null && typeof result === 'object' && !Array.isArray(result)) {
+                succeeded = true;
                 return { ...(result as Record<string, unknown>), postflight };
             }
+            succeeded = true;
             return { data: result, postflight };
         } finally {
             this._releaseWriteSlot();
+            this._finishProjectWrite(succeeded && this._isRefreshBoundary(name));
+            barrierLease.release();
         }
+    }
+
+    /** @description 在受管写创建前订阅终态，保证实际 commit 后旧读再次失效。 */
+    private _ensureTaskRevisionSubscription(): void {
+        if (this._removeTaskTerminalListener != null) {
+            return;
+        }
+        this._removeTaskTerminalListener = this._requirePluginManager().onTaskTerminal((event) => {
+            const pending = this._pendingRevisionTasks.get(event.taskId);
+            if (pending != null) {
+                this._pendingRevisionTasks.delete(event.taskId);
+                this._finishProjectWrite(pending.refreshBoundary);
+                pending.barrierLease.release();
+            }
+            this._batchCoordinator.handleTaskTerminal(event.taskId);
+        });
+    }
+
+    /** @description 完成保守写失效；刷新类成功调用额外记录 settle 边界。 */
+    private _finishProjectWrite(refreshSettled: boolean): void {
+        this._projectRevision.finishWrite();
+        if (refreshSettled) {
+            this._projectRevision.refreshSettled();
+        }
+    }
+
+    /** @description 识别当前公开目录中的 AssetDB/preview 刷新边界。 */
+    private _isRefreshBoundary(name: string): boolean {
+        return name === 'asset.catalog.refresh' || name === 'lumen.refresh' || name === 'lumen.commit' || name === 'preview.refresh';
     }
 
     /**
@@ -859,32 +1074,13 @@ export class CocosMcpHub implements IMcpHubControl {
         this._updateRecentCallStatus(plan.auditId, 'approved');
         const definition = this._requirePluginManager().getMcpCapabilityRegistry().getDefinition(plan.name);
         const maxRisk = definition?.risk === 'destructive' ? 'destructive' : 'write';
-        const issued = this._batchApprovals.issue({
-            connectionId: plan.connectionId,
-            resources,
-            operations: [plan.name],
-            maxRisk,
-            sessionBound: options?.sessionBound === true,
-            ...(options?.idleLeaseMs == null ? {} : { idleLeaseMs: options.idleLeaseMs }),
-            ...(options?.maxHoldMs == null ? {} : { maxHoldMs: options.maxHoldMs }),
-        });
-        const approvalId = this._mirrorLocalApprovalLease(
+        return this._batchCoordinator.issueApproval(
             plan.connectionId,
             resources,
             [plan.name],
             maxRisk,
-            issued.token,
-            issued.idleLeaseMs,
-            issued.maxHoldMs,
-            options?.sessionBound === true,
+            options,
         );
-        return {
-            approvalToken: issued.token,
-            approvalId: approvalId ?? issued.token,
-            expiresAt: issued.expiresAt,
-            idleLeaseMs: issued.idleLeaseMs,
-            liteMirrored: approvalId != null,
-        };
     }
 
     /**
@@ -1327,116 +1523,15 @@ export class CocosMcpHub implements IMcpHubControl {
         }
         return this.getStatus();
     }
-
-
-    /**
-     * @description 晚绑定 Lite 本地审批租约镜像（不自动免审；仅双写租约存储）。
-     * @param mirror 镜像函数；传 null 清除。
-     */
-    public setLocalApprovalLeaseMirror(
-        mirror: ICocosMcpHubOptions['mirrorLocalApprovalLease'] | null,
-    ): void {
-        this._localApprovalLeaseMirror = mirror;
+    /** @description 晚绑定 Lite 本地审批租约镜像。 */
+    public setLocalApprovalLeaseMirror(mirror: ICocosMcpHubOptions['mirrorLocalApprovalLease'] | null): void {
+        this._batchCoordinator.setApprovalMirror(mirror ?? null);
     }
-
-
-    /**
-     * @description 将 Hub 已签发 token 顺带写入 Lite 本地租约存储（若已绑定镜像）。
-     * @param connectionId 连接。
-     * @param resources 资源。
-     * @param operations 操作白名单。
-     * @param maxRisk 风险。
-     * @param hubToken Hub BatchStore token（作为 preferredToken）。
-     * @param idleLeaseMs 可选空闲租约。
-     * @param maxHoldMs 可选最长持有。
-     * @returns Lite token；未绑定或失败时返回 null。
-     */
-    private _mirrorLocalApprovalLease(
-        connectionId: string,
-        resources: readonly string[],
-        operations: readonly string[] | undefined,
-        maxRisk: 'write' | 'destructive',
-        hubToken: string,
-        idleLeaseMs?: number,
-        maxHoldMs?: number,
-        sessionBound?: boolean,
-    ): string | null {
-        const mirror = this._localApprovalLeaseMirror ?? this._options.mirrorLocalApprovalLease;
-        if (mirror == null) {
-            return null;
-        }
-        try {
-            const issued = mirror({
-                connectionId,
-                resources,
-                operations,
-                maxRisk,
-                preferredToken: hubToken,
-                // Prefer resolved durations from BatchStore so sessionBound (5m/30m) stays in sync.
-                ...(idleLeaseMs == null ? {} : { idleLeaseMs }),
-                ...(maxHoldMs == null ? {} : { maxHoldMs }),
-                ...(sessionBound === true && idleLeaseMs == null && maxHoldMs == null
-                    ? { sessionBound: true }
-                    : {}),
-            });
-            return issued != null && typeof issued.token === 'string' && issued.token.length > 0
-                ? issued.token
-                : null;
-        } catch {
-            return null;
-        }
-    }
-
     private _issueApprovalToken(
         connectionId: string,
         payload: Record<string, unknown>,
     ): { readonly approvalToken: string; readonly approvalId: string; readonly expiresAt: number; readonly idleLeaseMs: number; readonly liteMirrored: boolean } {
-        if (!Array.isArray(payload.resources)) {
-            throw new Error('cocos_mcp_approval_resources_required');
-        }
-        const resources = payload.resources.filter(
-            (item): item is string => typeof item === 'string' && item.trim().length > 0,
-        );
-        const operations = Array.isArray(payload.operations)
-            ? payload.operations.filter(
-                  (item): item is string => typeof item === 'string' && item.trim().length > 0,
-              )
-            : undefined;
-        const idleLeaseMs =
-            typeof payload.idleLeaseMs === 'number' && Number.isFinite(payload.idleLeaseMs)
-                ? payload.idleLeaseMs
-                : undefined;
-        const maxHoldMs =
-            typeof payload.maxHoldMs === 'number' && Number.isFinite(payload.maxHoldMs)
-                ? payload.maxHoldMs
-                : undefined;
-        const maxRisk = payload.maxRisk === 'destructive' ? 'destructive' : 'write';
-        const issued = this._batchApprovals.issue({
-            connectionId,
-            resources,
-            operations,
-            maxRisk,
-            sessionBound: payload.sessionBound === true,
-            ...(idleLeaseMs == null ? {} : { idleLeaseMs }),
-            ...(maxHoldMs == null ? {} : { maxHoldMs }),
-        });
-        const approvalId = this._mirrorLocalApprovalLease(
-            connectionId,
-            resources,
-            operations,
-            maxRisk,
-            issued.token,
-            issued.idleLeaseMs,
-            issued.maxHoldMs,
-            payload.sessionBound === true,
-        );
-        return {
-            approvalToken: issued.token,
-            approvalId: approvalId ?? issued.token,
-            expiresAt: issued.expiresAt,
-            idleLeaseMs: issued.idleLeaseMs,
-            liteMirrored: approvalId != null,
-        };
+        return this._batchCoordinator.issueApprovalFromPayload(connectionId, payload);
     }
 
 

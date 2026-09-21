@@ -19,7 +19,7 @@ import type {
     PluginFailurePhase,
 } from '@peanut/pod-protocol';
 import { PackagingApp, type IInstalledPackageRecord, type IInstalledPackageSnapshot, type IPluginFileStorageSummary, type IPackageSnapshot, type PluginConfig, type PluginSettingsScope, type ProjectPluginFileStore } from '@peanut/pod-engine/installation';
-import type { ICocosRuntime, IExecutionDiagnosticsSnapshot } from '@peanut/pod-engine/runtime';
+import type { ICocosRuntime, IExecutionDiagnosticsSnapshot, ITaskTerminalEvent } from '@peanut/pod-engine/runtime';
 
 import { ContributionRegistry } from '../contributions/contribution-registry.js';
 import { RuntimeGrantFactory } from '../grants/runtime-grant-factory.js';
@@ -276,6 +276,24 @@ export class PluginManagerApp {
         );
         this._pluginTaskApis.set(pluginId, taskApi);
         return taskApi;
+    }
+
+    /** @description 返回活动插件的受管任务入口，仅供宿主级批次协调使用。 */
+    public getManagedTaskApi(pluginId: string): IPluginTaskApi['managed'] | null {
+        return this._pluginTaskApis.get(pluginId)?.managed ?? null;
+    }
+
+    /** @description 受理 Hub 已预检的同插件 MCP 写批次。 */
+    public async enqueueMcpHostBatch(
+        pluginId: string,
+        requests: Parameters<PluginTaskApi['enqueueHostBatch']>[0],
+        owners: Parameters<PluginTaskApi['enqueueHostBatch']>[1],
+    ): Promise<Awaited<ReturnType<PluginTaskApi['enqueueHostBatch']>>> {
+        const taskApi = this._pluginTaskApis.get(pluginId);
+        if (taskApi == null) {
+            throw new Error(`plugin_task_api_unavailable:${pluginId}`);
+        }
+        return taskApi.enqueueHostBatch(requests, owners);
     }
 
     /** @description 停用并移除宿主直接加载 MCP 插件的任务 API。 */
@@ -856,6 +874,7 @@ export class PluginManagerApp {
             }
             await this.disposePlugin(runtimeRecord.pluginId);
         }
+        this._mcpTaskControl.dispose();
     }
 
     /**
@@ -931,6 +950,11 @@ export class PluginManagerApp {
      */
     public async inspectExecutionDiagnostics(): Promise<IExecutionDiagnosticsSnapshot> {
         return this._runtime.execution.inspectDiagnostics();
+    }
+
+    /** @description 订阅 Runtime 受管任务终态。 */
+    public onTaskTerminal(listener: (event: ITaskTerminalEvent) => void): () => void {
+        return this._runtime.execution.onTaskTerminal?.(listener) ?? (() => undefined);
     }
 
     /**
@@ -1445,12 +1469,10 @@ export class PluginManagerApp {
 
     /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */
     private _getOrCreateStorage(pluginId: string): PluginStorage {
-        // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         const pluginStorage = this._pluginStorageStore.get(pluginId) ?? new PluginStorage();
         this._pluginStorageStore.set(pluginId, pluginStorage);
         return pluginStorage;
     }
-
     /** @description 停用插件受管任务 API 并撤销其 executor。 */
     private async _deactivateTaskApi(pluginId: string): Promise<void> {
         const taskApi = this._pluginTaskApis.get(pluginId);
@@ -1460,7 +1482,6 @@ export class PluginManagerApp {
         await taskApi.deactivate();
         this._pluginTaskApis.delete(pluginId);
     }
-
     /** @description 为当前插件创建仅能访问自身范围的文件存储客户端。 */
     private _createPluginFileStorage(pluginId: string, grantedPermissionSet: IGrantedPermissionSet): PluginFileStorage | UnavailablePluginFileStorage {
         const fileStore = this._packaging.getProjectPluginFileStore();
@@ -1468,20 +1489,16 @@ export class PluginManagerApp {
             ? new UnavailablePluginFileStorage()
             : new PluginFileStorage(pluginId, fileStore, grantedPermissionSet.permissions.fs?.spaces ?? []);
     }
-
     /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */
     private _createRuntimeModuleForPackage(packagePath: string): IPluginModule | null {
-        // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         const moduleFactory = this._packageRuntimeModuleFactories.get(packagePath);
         if (moduleFactory == null) {
             return null;
         }
         return moduleFactory();
     }
-
     /** @description 优先使用测试模块工厂；未注册时从真实目录包的 manifest main 解析生命周期模块。 */
     private async _resolveRuntimeModuleForPackage(packagePath: string, installPath: string): Promise<IPluginModule | null> {
-        // 保存手工注册的模块实例，兼容现有集成测试与 builtin harness。
         const factoryModule = this._createRuntimeModuleForPackage(packagePath);
         if (factoryModule != null) {
             return factoryModule;
@@ -1489,26 +1506,20 @@ export class PluginManagerApp {
         if (this._pluginPackageModuleResolver == null) {
             return null;
         }
-        // 保存经统一包装检查读取的 manifest，避免模块解析器自行处理不可信 JSON。
         const inspection = await this._packaging.inspect(packagePath);
         if (inspection.manifest == null) {
             throw new Error(`Cannot resolve plugin module because manifest is missing: ${packagePath}`);
         }
         return this._pluginPackageModuleResolver.resolve(installPath, inspection.manifest);
     }
-
-
     /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */
     private async _captureUpgradePostState(
         upgradeDiagnostics: IMutablePluginUpgradeDiagnostics,
         pluginId: string,
         previousPanelSessions: readonly ReturnType<PanelManager['snapshotPluginSessions']>[number][],
     ): Promise<void> {
-        // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         const runtimeRecord = this._pluginRegistry.getRuntimeRecord(pluginId);
-        // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         const installedPackageSnapshot = this._packaging.getInstalledPackageSnapshot(pluginId);
-        // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         const restoredPanelSessionCount = await this._countRestoredPanelSessions(previousPanelSessions);
 
         upgradeDiagnostics.currentRuntimeVersion = runtimeRecord?.version ?? null;
@@ -1521,19 +1532,11 @@ export class PluginManagerApp {
     private async _countRestoredPanelSessions(
         previousPanelSessions: readonly ReturnType<PanelManager['snapshotPluginSessions']>[number][],
     ): Promise<number> {
-        // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         const restorablePanelIds = [...new Set(previousPanelSessions
-            .filter((panelSession) => {
-                return panelSession.isOpen || panelSession.restoreOnActivate;
-            })
-            .map((panelSession) => {
-                return panelSession.panelId;
-            }))];
-        // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
+            .filter((panelSession) => panelSession.isOpen || panelSession.restoreOnActivate)
+            .map((panelSession) => panelSession.panelId))];
         let restoredPanelSessionCount = 0;
-        // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         for (const panelId of restorablePanelIds) {
-            // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
             const panelSession = await this._runtime.panelHost.getSession(panelId);
             if (panelSession?.isOpen === true) {
                 restoredPanelSessionCount += 1;
@@ -1541,5 +1544,4 @@ export class PluginManagerApp {
         }
         return restoredPanelSessionCount;
     }
-
 }

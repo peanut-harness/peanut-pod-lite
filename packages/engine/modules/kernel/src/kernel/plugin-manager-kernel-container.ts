@@ -295,6 +295,7 @@ export class PluginManagerKernelContainer {
     public async dispose(): Promise<void> {
         this.unwatch();
         await this.stop('host_shutdown');
+        this._runtime.execution.dispose();
     }
 
     /** @description 封装当前职责中的一个处理步骤，并协调所需校验、状态与依赖调用。 */

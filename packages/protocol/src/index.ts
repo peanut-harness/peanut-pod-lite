@@ -5,6 +5,7 @@ export type {
     IMcpFailureDetails,
     IMcpExecutionControl,
     IMcpJsonSchema,
+    IMcpCapabilityThroughputProfile,
     McpCapabilityRisk,
     McpCapabilityCategory,
     McpCapabilityExecutionLane,
@@ -75,6 +76,25 @@ export type {
     TaskFailureRecommendedAction,
     TaskProjectState,
 } from './task/task-control-contracts.js';
+export {
+    THROUGHPUT_CONTRACT_LIMITS,
+    ThroughputContractValidator,
+    type IProjectRevisionSnapshot,
+    type IThroughputBatchItemOutcome,
+    type IThroughputBatchItemReceipt,
+    type IThroughputBatchItemRequest,
+    type IThroughputBatchReceipt,
+    type IThroughputBatchRequest,
+    type IThroughputBatchStatusSummary,
+    type IThroughputCostClassMetrics,
+    type IThroughputHealthSnapshot,
+    type IThroughputOverloadFailure,
+    type IThroughputQueueSummary,
+    type ThroughputBatchStage,
+    type ThroughputBatchStatus,
+    type ThroughputCostClass,
+    type ThroughputProjectState,
+} from './task/throughput-contracts.js';
 export type { CreatorPhase, ICreatorVersionInfo } from './cocos/creator-version.js';
 export {
     CREATOR_PROFILE_DEFINITIONS,

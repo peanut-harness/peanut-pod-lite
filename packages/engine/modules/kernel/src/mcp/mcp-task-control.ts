@@ -22,6 +22,8 @@ export class McpTaskControl {
      * @description capability 与连接到可信 owner 的宿主解析器。
      */
     private readonly _resolveOwner: ((capability: string, connectionId: string) => ITaskOwner | null) | null;
+    /** @description 撤销 Runtime 任务回收订阅。 */
+    private readonly _removeTaskReclaimedListener: () => void;
 
     /**
      * @param execution Runtime 执行服务。 @param resolveOwner 宿主 owner 解析器。
@@ -32,6 +34,15 @@ export class McpTaskControl {
     ) {
         this._execution = execution;
         this._resolveOwner = resolveOwner;
+        this._removeTaskReclaimedListener = execution.onTaskReclaimed((event) => {
+            this._owners.delete(event.taskId);
+        });
+    }
+
+    /** @description 撤销回收订阅并丢弃当前 Hub 外层 owner 索引。 */
+    public dispose(): void {
+        this._removeTaskReclaimedListener();
+        this._owners.clear();
     }
 
     /**

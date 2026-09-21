@@ -170,6 +170,15 @@ export class TimeoutAndCancelController {
         return this._toSnapshot(taskState);
     }
 
+    /**
+     * @description 删除已经超过控制面保留期的任务状态。
+     * @param taskId 任务标识
+     * @returns 存在并删除记录时返回 `true`
+     */
+    public delete(taskId: string): boolean {
+        return this._taskStates.delete(taskId);
+    }
+
     /** @description 封装当前职责中的一个处理步骤，并协调所需校验、状态与依赖调用。 */
     private _toSnapshot(taskState: ITaskControlStateMutable): ITaskControlState {
         return {

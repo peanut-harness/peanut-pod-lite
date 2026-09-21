@@ -21,7 +21,7 @@
     "scripts": {
         "build": "tsc -p tsconfig.json",
         "typecheck": "tsc -p tsconfig.json --noEmit",
-        "test": "tsx --test --tsconfig tsconfig.json tests/contracts-smoke.test.ts tests/contracts-shared.test.ts tests/contracts-panel.test.ts tests/contracts-task.test.ts tests/creator-phase.test.ts tests/creator-profile-catalog.test.ts"
+        "test": "tsx --test --tsconfig tsconfig.json tests/contracts-smoke.test.ts tests/contracts-shared.test.ts tests/contracts-panel.test.ts tests/contracts-task.test.ts tests/contracts-throughput.test.ts tests/creator-phase.test.ts tests/creator-profile-catalog.test.ts"
     },
     "devDependencies": {
         "@types/node": "^24.0.0",

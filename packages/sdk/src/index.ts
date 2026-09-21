@@ -51,6 +51,7 @@ export type {
     ISelectionClient,
     McpCapabilityHandler,
     PluginManagedTaskRequest,
+    PluginTaskBatchExecutor,
     PluginTaskExecutor,
 } from './plugin-module-contracts.js';
 

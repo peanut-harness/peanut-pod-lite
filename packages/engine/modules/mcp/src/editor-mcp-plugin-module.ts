@@ -8,6 +8,7 @@ import { EditorMcpLumenGateway } from './editor-mcp-lumen-gateway.js';
 import { EditorMcpExecutionCodec } from './editor-mcp-execution-codec.js';
 import { EditorMcpToolCatalog } from './editor-mcp-tool-catalog.js';
 import { ResourceOperationTaskExecutor } from './resource-operation-task-executor.js';
+import { AutomaticMicroBatcher } from './automatic-micro-batcher.js';
 
 /**
  * @description Editor MCP 插件模块，负责保存受宿主生命周期约束的 action router。
@@ -27,6 +28,8 @@ export class EditorMcpPluginModule extends PluginModuleBase {
     private readonly _executionCodec = new EditorMcpExecutionCodec();
     /** @description 当前激活期任务请求序列。 */
     private _taskSequence = 0;
+    private readonly _automaticMicroBatchEnabled: boolean;
+    private _microBatcher: AutomaticMicroBatcher | null = null;
 
     /** @description 供插件治理与打包校验使用的运行时清单。 */
     public readonly manifest = {
@@ -57,10 +60,12 @@ export class EditorMcpPluginModule extends PluginModuleBase {
     public constructor(
         catalogLookup: IAssetCatalogFastLookup = new AssetCatalogFastLookupApi(),
         lumenGateway: EditorMcpLumenGateway | null = null,
+        automaticMicroBatchEnabled = false,
     ) {
         super();
         this._catalogLookup = catalogLookup;
         this._lumenGateway = lumenGateway;
+        this._automaticMicroBatchEnabled = automaticMicroBatchEnabled;
     }
 
     /**
@@ -80,6 +85,9 @@ export class EditorMcpPluginModule extends PluginModuleBase {
     public override async activate(context: IPluginActivateContext): Promise<void> {
         this._router = new EditorMcpActionRouter(context.runtime, this._catalogLookup, this._lumenGateway ?? undefined);
         const managedTasks = context.tasks?.managed ?? null;
+        this._microBatcher = this._automaticMicroBatchEnabled && managedTasks != null
+            ? new AutomaticMicroBatcher(managedTasks)
+            : null;
         if (managedTasks != null) {
             const resourceExecutor = new ResourceOperationTaskExecutor({
                 plan: async (operation, input) => this._requireRouter().planManagedResourceOperation(operation as EditorMcpOperationId, input),
@@ -93,7 +101,11 @@ export class EditorMcpPluginModule extends PluginModuleBase {
             managedTasks.registerExecutor(
                 ResourceOperationTaskExecutor.KIND,
                 async (request, executorContext): Promise<unknown> => resourceExecutor.execute(request, executorContext),
-                { concurrency: 'executor_managed' },
+                {
+                    concurrency: 'executor_managed',
+                    executeBatch: async (requests, contexts, batchId): Promise<readonly unknown[]> =>
+                        resourceExecutor.executeBatch(requests, contexts, batchId),
+                },
             );
         }
         if (context.mcp != null) {
@@ -129,6 +141,8 @@ export class EditorMcpPluginModule extends PluginModuleBase {
      */
     public override async deactivate(_reason: PluginDeactivateReason): Promise<void> {
         this._disposeMcpCapabilities();
+        this._microBatcher?.dispose();
+        this._microBatcher = null;
         this._router = null;
     }
 
@@ -138,6 +152,8 @@ export class EditorMcpPluginModule extends PluginModuleBase {
      */
     public override async dispose(): Promise<void> {
         this._disposeMcpCapabilities();
+        this._microBatcher?.dispose();
+        this._microBatcher = null;
         this._router = null;
     }
 
@@ -203,16 +219,21 @@ export class EditorMcpPluginModule extends PluginModuleBase {
         execution: Readonly<{ readonly mode?: 'sync' | 'async'; readonly idempotencyKey?: string; readonly timeoutMs?: number }>,
     ): Promise<IEditorMcpActionResult> {
         this._taskSequence += 1;
-        const receipt = await managedTasks.enqueue({
+        const request = {
             requestId: `editor-mcp:${operation}:${this._taskSequence}`,
             scope: 'project',
             priority: 'normal',
             kind: ResourceOperationTaskExecutor.KIND,
             payload: { operation, input },
-            mergePolicy: 'none',
+            mergePolicy: this._microBatcher != null && this._toolCatalog.isAutomaticBatchEligible(operation)
+                ? 'batch_commit'
+                : 'none',
             ...(execution.idempotencyKey == null ? {} : { idempotencyKey: execution.idempotencyKey }),
             ...(execution.timeoutMs == null ? {} : { timeoutMs: execution.timeoutMs }),
-        }, invocation);
+        } as const;
+        const receipt = this._microBatcher != null && this._toolCatalog.isAutomaticBatchEligible(operation)
+            ? await this._microBatcher.enqueue(operation, request, invocation)
+            : await managedTasks.enqueue(request, invocation);
         if (execution.mode === 'async') {
             return { operation, data: null, taskId: receipt.taskId, taskStatus: 'queued' };
         }

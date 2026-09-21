@@ -104,6 +104,8 @@ export class McpFailurePresenter {
                 ? { taskStatus: record.taskStatus }
                 : {}),
             ...(typeof record.operation === 'string' ? { operation: record.operation } : {}),
+            ...(typeof record.retryAfterMs === 'number' ? { retryAfterMs: record.retryAfterMs } : {}),
+            ...(McpFailurePresenter._isQueueSummary(record.queue) ? { queue: record.queue } : {}),
         });
     }
 
@@ -127,6 +129,15 @@ export class McpFailurePresenter {
      * @returns 不依赖动态输入的失败分类。
      */
     private static _classify(code: string): IMcpFailureClassification {
+        if (code.includes('throughput_overloaded') || code.includes('retention_capacity_exceeded')) {
+            return McpFailurePresenter._details(
+                'overloaded',
+                'The request was not started because the bounded project queue has no capacity.',
+                true,
+                'not_started',
+                'retry_with_backoff',
+            );
+        }
         if (code.includes('approval_required')) {
             return McpFailurePresenter._details(
                 'approval_required',
@@ -248,6 +259,7 @@ export class McpFailurePresenter {
             'timeout',
             'cancelled',
             'unavailable',
+            'overloaded',
             'execution_failed',
         ].includes(typeof value === 'string' ? value : '');
     }
@@ -274,8 +286,22 @@ export class McpFailurePresenter {
             'query_state_before_retry',
             'retry_same_request',
             'restore_service',
+            'retry_with_backoff',
             'inspect_project_log',
             'stop',
         ].includes(typeof value === 'string' ? value : '');
+    }
+
+    /** @description 判断值是否为仅含当前连接计数的安全队列摘要。 */
+    private static _isQueueSummary(value: unknown): value is NonNullable<IMcpFailureDetails['queue']> {
+        if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+            return false;
+        }
+        const record = value as Record<string, unknown>;
+        return Number.isSafeInteger(record.connectionInFlight)
+            && (record.connectionInFlight as number) >= 0
+            && Number.isSafeInteger(record.connectionQueued)
+            && (record.connectionQueued as number) >= 0
+            && typeof record.saturated === 'boolean';
     }
 }

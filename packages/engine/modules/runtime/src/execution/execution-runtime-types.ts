@@ -2,6 +2,7 @@ import type { ITaskBatchReceipt, ITaskCancelResult, ITaskEvidenceEntry, ITaskEvi
 
 import type { ITaskMergeGroup } from './merge/task-merger.js';
 import type { ITaskExecutor } from './registry/task-executor-registry.js';
+import type { ITaskReclaimedEvent, ITaskTerminalEvent } from './control/task-control-plane.js';
 
 /**
  * @description 执行组当前调度阶段。
@@ -252,6 +253,19 @@ export interface IExecutionDiagnosticsSnapshot extends Record<string, unknown> {
  * @description Runtime 执行服务接口。
  */
 export interface IExecutionRuntimeService {
+    /** @description 订阅任务进入终态的事件。 */
+    onTaskTerminal?(listener: (event: ITaskTerminalEvent) => void): () => void;
+
+    /**
+     * @description 订阅任务及关联状态完成回收的事件。
+     */
+    onTaskReclaimed(listener: (event: ITaskReclaimedEvent) => void): () => void;
+
+    /**
+     * @description 释放周期回收与运行中取消控制资源。
+     */
+    dispose(): void;
+
     /**
      * @description 提交一个新的任务请求。
      * @param request 外部任务请求
@@ -261,6 +275,9 @@ export interface IExecutionRuntimeService {
 
     /** @description 提交一个由宿主固定 owner 的受管任务。 */
     submitOwned(request: ITaskRequest, owner: ITaskOwner): Promise<ITaskReceipt>;
+
+    /** @description 原子受理一个由宿主逐项固定 owner 的任务批次。 */
+    submitOwnedBatch(entries: readonly { readonly request: ITaskRequest; readonly owner: ITaskOwner }[]): Promise<ITaskBatchReceipt>;
 
     /** @description 返回宿主已固定的任务 owner；仅供受信执行边界使用。 */
     getOwner(taskId: string): ITaskOwner | null;

@@ -9,7 +9,7 @@ export type TaskExecutionMode = 'sync' | 'async';
 /**
  * @description 任务失败后项目状态的保守判定。
  */
-export type TaskProjectState = 'not_started' | 'unchanged' | 'may_have_changed' | 'unknown';
+export type TaskProjectState = 'not_started' | 'unchanged' | 'rolled_back' | 'may_have_changed' | 'unknown';
 
 /**
  * @description 受管任务失败的稳定分类。
@@ -23,6 +23,7 @@ export type TaskFailureCategory =
     | 'timeout'
     | 'cancelled'
     | 'unavailable'
+    | 'overloaded'
     | 'idempotency_conflict'
     | 'execution_failed';
 
@@ -36,6 +37,7 @@ export type TaskFailureRecommendedAction =
     | 'query_state_before_retry'
     | 'retry_same_request'
     | 'restore_service'
+    | 'retry_with_backoff'
     | 'inspect_project_log'
     | 'stop';
 

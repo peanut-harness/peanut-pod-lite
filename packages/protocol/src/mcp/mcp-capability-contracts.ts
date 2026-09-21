@@ -17,6 +17,19 @@ export type McpCapabilityExecutionModel = 'inline' | 'managed_task';
  */
 export type McpCapabilityExecutionLane = 'lumen-offline' | 'editor-ui' | 'preview';
 
+/** @description MCP capability 的有界吞吐执行画像。 */
+export interface IMcpCapabilityThroughputProfile extends ContractPayload {
+    /** @description 宿主批次适配使用的稳定业务 operation；普通第三方 capability 可省略。 */
+    readonly operationId?: string;
+    readonly costClass: 'control' | 'read_light' | 'read_heavy' | 'prepare' | 'writer';
+    readonly readCoalescing?: 'none' | 'project';
+    readonly readCache?: 'none' | 'revision_lru';
+    readonly readConsistency?: 'revision_validated' | 'writer_barrier';
+    readonly prepareEligible?: boolean;
+    readonly explicitBatchEligible?: boolean;
+    readonly automaticBatchEligible?: boolean;
+}
+
 /**
  * @description MCP capability 在编辑器工作台中的稳定分类。
  */
@@ -39,6 +52,7 @@ export type McpFailureCategory =
     | 'timeout'
     | 'cancelled'
     | 'unavailable'
+    | 'overloaded'
     | 'execution_failed';
 
 /**
@@ -56,6 +70,7 @@ export type McpFailureRecommendedAction =
     | 'query_state_before_retry'
     | 'retry_same_request'
     | 'restore_service'
+    | 'retry_with_backoff'
     | 'inspect_project_log'
     | 'stop';
 
@@ -103,6 +118,18 @@ export interface IMcpFailureDetails extends ContractPayload {
      * @description 失败对应的稳定内部 operation。
      */
     readonly operation?: string;
+    /**
+     * @description overload 时建议的有界退避时间，单位毫秒。
+     */
+    readonly retryAfterMs?: number;
+    /**
+     * @description 仅包含当前连接计数的安全队列摘要。
+     */
+    readonly queue?: {
+        readonly connectionInFlight: number;
+        readonly connectionQueued: number;
+        readonly saturated: boolean;
+    };
 }
 
 /**
@@ -209,6 +236,10 @@ export interface IMcpCapabilityDefinition extends ContractPayload {
      * @description 面向 AI 调用方的成功判据与失败处理规则。
      */
     readonly aiHandling?: IMcpAiHandlingGuidance;
+    /**
+     * @description 可选的 admission/read/batch 画像；省略时宿主采用保守默认值。
+     */
+    readonly throughput?: IMcpCapabilityThroughputProfile;
 }
 
 /**

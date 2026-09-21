@@ -4,6 +4,7 @@ import { CoreCocosNativeWriteToolSchemaCatalog } from './core-cocos-native-write
 import { CoreCocosMcpReadToolSchemaCatalog, type ICoreMcpJsonSchema } from './core-cocos-mcp-read-tool-schema-catalog.js';
 import { CoreCocosMcpToolNameResolver, type CoreCocosMcpPublicOperation } from './core-cocos-mcp-tool-name-resolver.js';
 import type { McpExecutionRisk } from './mcp-approval-lease-store.js';
+import { CoreCocosMcpOperationThroughputProfileCatalog, type ICoreCocosMcpOperationThroughputProfile } from './core-cocos-mcp-operation-throughput-profile-catalog.js';
 
 /**
  * @description Core 工具目录公开的 JSON schema；保持 policy 包无运行时依赖。
@@ -42,6 +43,8 @@ export interface ICoreCocosMcpToolDefinition {
      * @description AI 判定成功、处理失败与重试的机器可读规则。
      */
     readonly aiHandling: ICoreCocosMcpAiHandlingGuidance;
+    /** @description admission/read/batch 使用的权威吞吐画像。 */
+    readonly throughput: ICoreCocosMcpOperationThroughputProfile;
 }
 
 /**
@@ -61,6 +64,7 @@ export class CoreCocosMcpToolDefinitionCatalog {
         const readSchemas = new CoreCocosMcpReadToolSchemaCatalog();
         const writeSchemas = new CoreCocosNativeWriteToolSchemaCatalog();
         const definitions = new Map<CoreCocosMcpPublicOperation, ICoreCocosMcpToolDefinition>();
+        const throughputProfiles = new CoreCocosMcpOperationThroughputProfileCatalog();
         for (const capability of CoreCocosMcpCapabilityCatalog.list()) {
             const name = this.toolNameResolver.toolName(capability.operation);
             const inputSchema = readSchemas.find(capability.operation);
@@ -79,6 +83,7 @@ export class CoreCocosMcpToolDefinitionCatalog {
                     executionModel: 'inline',
                     requiresLocalApproval: false,
                     aiHandling: this.createAiHandling(true),
+                    throughput: throughputProfiles.find(capability.operation) as ICoreCocosMcpOperationThroughputProfile,
                 }),
             );
         }
@@ -99,6 +104,7 @@ export class CoreCocosMcpToolDefinitionCatalog {
                 executionModel: 'managed_task',
                 requiresLocalApproval: true,
                 aiHandling: this.createAiHandling(false),
+                throughput: throughputProfiles.find(capability.operation) as ICoreCocosMcpOperationThroughputProfile,
             }));
         }
         this.definitions = definitions;

@@ -261,3 +261,167 @@ test('resource executor records exactly one authoritative postflight on success 
         assert.equal(postflight[0]?.status, shouldFail ? 'failed' : 'completed');
     }
 });
+
+test('resource batch bounds prepare concurrency and records one batch postflight', async () => {
+    let activePlans = 0;
+    let maxActivePlans = 0;
+    const committed = [];
+    const evidence = [];
+    const instance = new ResourceOperationTaskExecutor({
+        plan: async (_operation, input) => {
+            activePlans += 1;
+            maxActivePlans = Math.max(maxActivePlans, activePlans);
+            await new Promise((resolve) => setTimeout(resolve, 5));
+            activePlans -= 1;
+            return {
+                projectKey: '/p',
+                operation: 'lumen.setProps',
+                resourceKeys: [`asset:${input.id}`],
+                requiresProjectWriter: true,
+            };
+        },
+        execute: async (_operation, input) => {
+            committed.push(input.id);
+            return { id: input.id };
+        },
+    });
+    const requests = Array.from({ length: 6 }, (_, index) =>
+        request(`batch-${index}`, { id: `item-${index}`, project: '/p', resource: `asset:${index}`, writer: true }));
+    const contexts = requests.map((_, index) => ({
+        ...context(),
+        recordEvidence: (entry) => evidence.push({ index, ...entry }),
+    }));
+
+    const results = await instance.executeBatch(requests, contexts, 'batch:bounded');
+
+    assert.equal(maxActivePlans, 4);
+    assert.deepEqual(committed, requests.map((_, index) => `item-${index}`));
+    assert.deepEqual(results, requests.map((_, index) => ({ id: `item-${index}` })));
+    assert.equal(evidence.filter((entry) => entry.id === 'batch-postflight').length, 1);
+});
+
+test('resource batch holds its union resource set through the full commit window', async () => {
+    const started = [];
+    const firstGate = gate();
+    const lockManager = new ResourceLockManager();
+    const batch = executor(started, new Map([['first', firstGate]]), lockManager);
+    const competing = executor(started, new Map(), lockManager);
+    const batchPromise = batch.executeBatch([
+        request('first', { id: 'first', project: '/p', resource: 'asset:a', writer: true }),
+        request('second', { id: 'second', project: '/p', resource: 'asset:b', writer: true }),
+    ], [context(), context()], 'batch:union');
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const competingPromise = competing.execute(
+        request('competing', { id: 'competing', project: '/p', resource: 'asset:b', writer: true }),
+        context(),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    assert.deepEqual(started, ['first']);
+    firstGate.release();
+    await batchPromise;
+    await competingPromise;
+    assert.deepEqual(started, ['first', 'second', 'competing']);
+});
+
+test('resource batch reports conservative project state across failure boundaries', async () => {
+    const unchanged = new ResourceOperationTaskExecutor({
+        plan: async () => {
+            throw new Error('prepare_failed');
+        },
+        execute: async () => ({ ok: true }),
+    });
+    await assert.rejects(
+        unchanged.executeBatch(
+            [request('prepare', { id: 'prepare', project: '/p', resource: 'asset:a' })],
+            [context()],
+            'batch:prepare',
+        ),
+        (error) => error instanceof Error && error.message === 'prepare_failed' && error.projectState === 'unchanged',
+    );
+
+    const mayHaveChanged = new ResourceOperationTaskExecutor({
+        plan: async () => ({
+            projectKey: '/p',
+            operation: 'asset.writeText',
+            resourceKeys: ['asset:a'],
+            requiresProjectWriter: true,
+        }),
+        execute: async () => {
+            throw new Error('commit_failed');
+        },
+    });
+    await assert.rejects(
+        mayHaveChanged.executeBatch(
+            [request('commit', { id: 'commit', project: '/p', resource: 'asset:a' })],
+            [context()],
+            'batch:commit',
+        ),
+        (error) => error instanceof Error && error.message === 'commit_failed' && error.projectState === 'may_have_changed',
+    );
+
+    const rolledBack = new ResourceOperationTaskExecutor({
+        plan: async () => ({
+            projectKey: '/p',
+            operation: 'asset.writeText',
+            resourceKeys: ['asset:a'],
+            requiresProjectWriter: true,
+        }),
+        execute: async () => {
+            throw Object.assign(new Error('commit_rolled_back'), { projectState: 'rolled_back' });
+        },
+    });
+    await assert.rejects(
+        rolledBack.executeBatch(
+            [request('rollback', { id: 'rollback', project: '/p', resource: 'asset:a' })],
+            [context()],
+            'batch:rollback',
+        ),
+        (error) => error instanceof Error && error.message === 'commit_rolled_back' && error.projectState === 'rolled_back',
+    );
+
+    const cancelled = executor([], new Map());
+    await assert.rejects(
+        cancelled.executeBatch(
+            [request('cancelled', { id: 'cancelled', project: '/p', resource: 'asset:a' })],
+            [{ ...context(), enterCommitWindow: () => false }],
+            'batch:cancelled',
+        ),
+        (error) => error instanceof Error
+            && error.message === 'editor_mcp_batch_cancelled_before_commit'
+            && error.projectState === 'unchanged',
+    );
+});
+
+test('resource batch yields to control work at the 200ms safe item boundary', async () => {
+    const committed = [];
+    let observedCommittedCount = -1;
+    const instance = new ResourceOperationTaskExecutor({
+        plan: async (_operation, input) => ({
+            projectKey: '/p',
+            operation: 'asset.writeText',
+            resourceKeys: [`asset:${input.id}`],
+            requiresProjectWriter: true,
+        }),
+        execute: async (_operation, input) => {
+            committed.push(input.id);
+            if (input.id === 'first') {
+                const deadline = Date.now() + 205;
+                while (Date.now() < deadline) {
+                    // 模拟不可中断的同步 Creator 提交片段。
+                }
+            }
+            return { id: input.id };
+        },
+    });
+    setTimeout(() => {
+        observedCommittedCount = committed.length;
+    }, 0);
+
+    await instance.executeBatch([
+        request('first', { id: 'first', project: '/p', resource: 'asset:a', writer: true }),
+        request('second', { id: 'second', project: '/p', resource: 'asset:b', writer: true }),
+    ], [context(), context()], 'batch:yield');
+
+    assert.equal(observedCommittedCount, 1);
+    assert.deepEqual(committed, ['first', 'second']);
+});

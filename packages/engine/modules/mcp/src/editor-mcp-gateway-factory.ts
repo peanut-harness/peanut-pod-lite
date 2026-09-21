@@ -4,6 +4,8 @@ import type { IGrantedRuntimeClientSet, IMcpCapabilityInvocation, IPluginManaged
 import { EditorMcpActionRouter } from './editor-mcp-action-router.js';
 import { EditorMcpExecutionCodec } from './editor-mcp-execution-codec.js';
 import { ResourceOperationTaskExecutor } from './resource-operation-task-executor.js';
+import { AutomaticMicroBatcher } from './automatic-micro-batcher.js';
+import { EditorMcpToolCatalog } from './editor-mcp-tool-catalog.js';
 
 /**
  * @description Lite 宿主注入的网关执行函数。
@@ -38,9 +40,14 @@ export function createEditorMcpActionRouter(runtime: IGrantedRuntimeClientSet): 
 export function createEditorMcpExecuteOperation(
     runtime: IGrantedRuntimeClientSet,
     managedTasks: IPluginManagedTaskApi | null = null,
+    options: { readonly automaticMicroBatchEnabled?: boolean } = {},
 ): EditorMcpExecuteOperation {
     const router = createEditorMcpActionRouter(runtime);
     const executionCodec = new EditorMcpExecutionCodec();
+    const toolCatalog = new EditorMcpToolCatalog();
+    const microBatcher = options.automaticMicroBatchEnabled === true && managedTasks != null
+        ? new AutomaticMicroBatcher(managedTasks)
+        : null;
     const resourceExecutor = new ResourceOperationTaskExecutor({
         plan: async (operation, input) => router.planManagedResourceOperation(operation as EditorMcpOperationId, input),
         execute: async (operation, input, executorContext) =>
@@ -54,7 +61,11 @@ export function createEditorMcpExecuteOperation(
     const disposeExecutor = managedTasks?.registerExecutor(
         ResourceOperationTaskExecutor.KIND,
         async (request, context): Promise<unknown> => resourceExecutor.execute(request, context),
-        { concurrency: 'executor_managed' },
+        {
+            concurrency: 'executor_managed',
+            executeBatch: async (requests, contexts, batchId): Promise<readonly unknown[]> =>
+                resourceExecutor.executeBatch(requests, contexts, batchId),
+        },
     ) ?? (() => undefined);
 
     const execute = async (
@@ -81,9 +92,15 @@ export function createEditorMcpExecuteOperation(
             decoded.execution,
             invocation,
             taskSequence,
+            microBatcher != null && toolCatalog.isAutomaticBatchEligible(operation) ? microBatcher : null,
         ));
     };
-    return Object.assign(execute, { dispose: disposeExecutor });
+    return Object.assign(execute, {
+        dispose: (): void => {
+            microBatcher?.dispose();
+            disposeExecutor();
+        },
+    });
 }
 
 /**
@@ -96,17 +113,21 @@ async function executeManaged(
     execution: IMcpExecutionControl,
     invocation: IMcpCapabilityInvocation | undefined,
     sequence: number,
+    microBatcher: AutomaticMicroBatcher | null,
 ): Promise<IEditorMcpActionResult> {
-    const receipt = await managedTasks.enqueue({
+    const request = {
         requestId: `editor-mcp-host:${operation}:${sequence}`,
         scope: 'project',
         priority: 'normal',
         kind: ResourceOperationTaskExecutor.KIND,
         payload: { operation, input },
-        mergePolicy: 'none',
+        mergePolicy: microBatcher == null ? 'none' : 'batch_commit',
         ...(execution.idempotencyKey == null ? {} : { idempotencyKey: execution.idempotencyKey }),
         ...(execution.timeoutMs == null ? {} : { timeoutMs: execution.timeoutMs }),
-    }, invocation);
+    } as const;
+    const receipt = microBatcher != null && invocation != null
+        ? await microBatcher.enqueue(operation, request, invocation)
+        : await managedTasks.enqueue(request, invocation);
     if (execution.mode === 'async') {
         return { operation, data: null, taskId: receipt.taskId, taskStatus: 'queued' };
     }

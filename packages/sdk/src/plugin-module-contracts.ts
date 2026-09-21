@@ -25,6 +25,7 @@ import type {
   PluginDeactivateReason,
   PluginId,
   TaskId,
+  TaskMergePolicy,
 } from "@peanut/pod-protocol";
 
 /**
@@ -36,13 +37,21 @@ export type PluginManagedTaskRequest = Omit<ITaskRequest, "pluginId">;
  * @description 受管任务 executor 的宿主注入上下文。
  */
 export interface IPluginTaskExecutorContext {
-  /** @description 任务受理时固定的 owner，不能由业务输入覆盖。 */
+  /**
+   * @description 任务受理时固定的 owner，不能由业务输入覆盖。
+   */
   readonly owner: ITaskOwner;
-  /** @description 可中止步骤使用的受控信号，不强制中断不可逆 commit。 */
+  /**
+   * @description 可中止步骤使用的受控信号，不强制中断不可逆 commit。
+   */
   readonly signal: AbortSignal;
-  /** @description 资源等待完成后进入不可逆 commit；任务已取消或超时时返回 false。 */
+  /**
+   * @description 资源等待完成后进入不可逆 commit；任务已取消或超时时返回 false。
+   */
   enterCommitWindow(): boolean;
-  /** @description 记录经过 allow-list 筛选的任务证据。 */
+  /**
+   * @description 记录经过 allow-list 筛选的任务证据。
+   */
   recordEvidence(evidence: ITaskEvidenceEntry): void;
 }
 
@@ -54,10 +63,28 @@ export type PluginTaskExecutor = (
   context: IPluginTaskExecutorContext,
 ) => Promise<unknown>;
 
-/** @description 插件 executor 的宿主调度声明。 */
+/**
+ * @description 同一 Runtime 提交窗口内的插件批次 executor。
+ */
+export type PluginTaskBatchExecutor = (
+  requests: readonly Readonly<ITaskRequest>[],
+  contexts: readonly IPluginTaskExecutorContext[],
+  batchId: string,
+  mergePolicy: TaskMergePolicy,
+) => Promise<readonly unknown[]>;
+
+/**
+ * @description 插件 executor 的宿主调度声明。
+ */
 export interface IPluginTaskExecutorOptions {
-  /** @description executor 是否自行使用资源锁管理并发。 */
+  /**
+   * @description executor 是否自行使用资源锁管理并发。
+   */
   readonly concurrency?: "runtime_serial" | "executor_managed";
+  /**
+   * @description 可选批次执行入口；缺失时 Runtime 保守地逐项顺序执行。
+   */
+  readonly executeBatch?: PluginTaskBatchExecutor;
 }
 
 /**
@@ -78,6 +105,14 @@ export interface IPluginManagedTaskApi {
    * @returns 任务受理回执。
    */
   enqueue(request: PluginManagedTaskRequest, invocation?: IMcpCapabilityInvocation): Promise<ITaskReceipt>;
+
+  /**
+   * @description 在所有宿主预检完成后原子受理一个 owner-safe 批次。
+   */
+  enqueueBatch(
+    requests: readonly PluginManagedTaskRequest[],
+    invocations?: readonly IMcpCapabilityInvocation[],
+  ): Promise<ITaskBatchReceipt>;
 
   /**
    * @description 等待任务进入终态并读取结果。
@@ -102,11 +137,17 @@ export type McpCapabilityHandler = (
  * @description capability 向 MCP Client 报告的单次执行进度。
  */
 export interface IMcpCapabilityProgress {
-  /** @description 已完成的工作量，必须为非负有限数。 */
+  /**
+   * @description 已完成的工作量，必须为非负有限数。
+   */
   readonly progress: number;
-  /** @description 总工作量；省略时 Client 仅展示当前进度。 */
+  /**
+   * @description 总工作量；省略时 Client 仅展示当前进度。
+   */
   readonly total?: number;
-  /** @description 可安全展示给 Client 的阶段说明。 */
+  /**
+   * @description 可安全展示给 Client 的阶段说明。
+   */
   readonly message?: string;
 }
 
@@ -114,19 +155,33 @@ export interface IMcpCapabilityProgress {
  * @description 子插件能力执行上下文，由统一 Hub 注入调用关联信息。
  */
 export interface IMcpCapabilityInvocation {
-  /** @description 当前 MCP bridge 连接的瞬时标识；插件互调为 `plugin:` + 调用方插件 id。 */
+  /**
+   * @description 当前 MCP bridge 连接的瞬时标识；插件互调为 `plugin:` + 调用方插件 id。
+   */
   readonly connectionId: string;
-  /** @description 插件互调时由宿主注入的调用方插件 id；Hub 调用不填。 */
+  /**
+   * @description 插件互调时由宿主注入的调用方插件 id；Hub 调用不填。
+   */
   readonly callerPluginId?: string;
-  /** @description bridge 或 Hub 已取消当前调用时触发的信号。 */
+  /**
+   * @description bridge 或 Hub 已取消当前调用时触发的信号。
+   */
   readonly signal?: AbortSignal;
-  /** @description 向已声明 progressToken 的 MCP Client 发送执行进度。 */
+  /**
+   * @description 向已声明 progressToken 的 MCP Client 发送执行进度。
+   */
   readonly reportProgress?: (progress: IMcpCapabilityProgress) => void;
-  /** @description Hub 根据已注册 capability 与已校验输入计算的真实风险；插件互调时不提供。 */
+  /**
+   * @description Hub 根据已注册 capability 与已校验输入计算的真实风险；插件互调时不提供。
+   */
   readonly risk?: "read" | "write" | "destructive";
-  /** @description Hub 从已校验输入提取的本机资源标识；仅在 Hub 调用时提供。 */
+  /**
+   * @description Hub 从已校验输入提取的本机资源标识；仅在 Hub 调用时提供。
+   */
   readonly resourceIds?: readonly string[];
-  /** @description 写/破坏性调用是否已由 Hub 的本地审批租约覆盖；仅在 Hub 调用时提供。 */
+  /**
+   * @description 写/破坏性调用是否已由 Hub 的本地审批租约覆盖；仅在 Hub 调用时提供。
+   */
   readonly hasLocalApproval?: boolean;
 }
 
@@ -169,15 +224,25 @@ export interface IAssetReadClient {
  * @description 批量资源查询返回的单个资源快照（归一化后，含子资源 UUID）。
  */
 export interface IAssetReadAssetSnapshot {
-  /** @description 资源 UUID（子资源形如 imageUuid 加 @f9941 后缀）。 */
+  /**
+   * @description 资源 UUID（子资源形如 imageUuid 加 @f9941 后缀）。
+   */
   readonly uuid: string;
-  /** @description 项目相对路径（assets 开头）。 */
+  /**
+   * @description 项目相对路径（assets 开头）。
+   */
   readonly path: string;
-  /** @description importer 名。 */
+  /**
+   * @description importer 名。
+   */
   readonly importer: string;
-  /** @description 显示或文件名。 */
+  /**
+   * @description 显示或文件名。
+   */
   readonly name: string;
-  /** @description 子资源；键为 class id（如 f9941），值为子资源快照。 */
+  /**
+   * @description 子资源；键为 class id（如 f9941），值为子资源快照。
+   */
   readonly subAssets?: Readonly<Record<string, IAssetReadAssetSubSnapshot>>;
 }
 
@@ -185,11 +250,17 @@ export interface IAssetReadAssetSnapshot {
  * @description 批量资源查询返回的子资源快照。
  */
 export interface IAssetReadAssetSubSnapshot {
-  /** @description 子资源 UUID（如 imageUuid 加 @f9941 后缀）。 */
+  /**
+   * @description 子资源 UUID（如 imageUuid 加 @f9941 后缀）。
+   */
   readonly uuid: string;
-  /** @description 子资源 importer 名。 */
+  /**
+   * @description 子资源 importer 名。
+   */
   readonly importer: string;
-  /** @description 子资源显示名（如 spriteFrame）。 */
+  /**
+   * @description 子资源显示名（如 spriteFrame）。
+   */
   readonly name: string;
 }
 
@@ -310,7 +381,9 @@ export interface IAssetWriteClient {
     relativePath: string,
     prefab: readonly Record<string, unknown>[],
   ): Promise<unknown>;
-  /** @description 写入受支持的图片、JSON 或字体资源；路径必须由宿主校验为项目相对 assets 路径。 */
+  /**
+   * @description 写入受支持的图片、JSON 或字体资源；路径必须由宿主校验为项目相对 assets 路径。
+   */
   writeBinary(
     relativePath: string,
     content: Uint8Array,
@@ -329,9 +402,13 @@ export interface IAssetWriteClient {
   refresh(relativePath: string): Promise<unknown | null>;
 }
 
-/** @description 插件可用的受限资源删除客户端。 */
+/**
+ * @description 插件可用的受限资源删除客户端。
+ */
 export interface IAssetDeleteClient {
-  /** @description 删除已验证的项目相对资源路径。 */
+  /**
+   * @description 删除已验证的项目相对资源路径。
+   */
   deleteAsset(relativePath: string): Promise<void>;
 }
 
@@ -424,9 +501,13 @@ export interface IProjectReadClient {
  * @description 宿主 Canvas 能力返回的只读图像句柄。
  */
 export interface ICanvasImage {
-  /** @description 图像像素宽度。 */
+  /**
+   * @description 图像像素宽度。
+   */
   readonly width: number;
-  /** @description 图像像素高度。 */
+  /**
+   * @description 图像像素高度。
+   */
   readonly height: number;
 }
 
@@ -434,11 +515,17 @@ export interface ICanvasImage {
  * @description Canvas 像素缓冲区的受控视图。
  */
 export interface ICanvasImageData {
-  /** @description 像素缓冲区宽度。 */
+  /**
+   * @description 像素缓冲区宽度。
+   */
   readonly width: number;
-  /** @description 像素缓冲区高度。 */
+  /**
+   * @description 像素缓冲区高度。
+   */
   readonly height: number;
-  /** @description RGBA 像素数据。 */
+  /**
+   * @description RGBA 像素数据。
+   */
   readonly data: Uint8ClampedArray;
 }
 
@@ -475,9 +562,13 @@ export interface ICanvasContext2D {
  * @description 宿主 Canvas 能力返回的可编码画布句柄。
  */
 export interface ICanvasSurface {
-  /** @description 画布像素宽度。 */
+  /**
+   * @description 画布像素宽度。
+   */
   readonly width: number;
-  /** @description 画布像素高度。 */
+  /**
+   * @description 画布像素高度。
+   */
   readonly height: number;
   /**
    * @description 获取唯一支持的 2D 绘制上下文。
@@ -521,38 +612,64 @@ export interface ICanvasService {
  * @description 插件激活期可用的受控原生 capability 集合。
  */
 export interface INativeCapabilityClientSet {
-  /** @description Canvas 1.x 原生绘制能力；未授权或不可用时为 `undefined`。 */
+  /**
+   * @description Canvas 1.x 原生绘制能力；未授权或不可用时为 `undefined`。
+   */
   readonly canvas?: ICanvasService;
 }
 
-/** @description 设计来源 capability 的稳定标识。 */
+/**
+ * @description 设计来源 capability 的稳定标识。
+ */
 export type DesignSourceCapabilityId = string;
 
-/** @description 由宿主注册并注入插件的设计来源只读状态；不包含令牌、路径或客户端对象。 */
+/**
+ * @description 由宿主注册并注入插件的设计来源只读状态；不包含令牌、路径或客户端对象。
+ */
 export interface IDesignSourceCapabilityDescriptor {
-  /** @description 设计来源稳定标识。 */
+  /**
+   * @description 设计来源稳定标识。
+   */
   readonly id: DesignSourceCapabilityId;
-  /** @description 实现该 design-supporter 契约的安装包插件标识。 */
+  /**
+   * @description 实现该 design-supporter 契约的安装包插件标识。
+   */
   readonly providerPluginId?: string;
-  /** @description 工作台显示用名称；缺失时回退为 id。 */
+  /**
+   * @description 工作台显示用名称；缺失时回退为 id。
+   */
   readonly displayName?: string;
-  /** @description 当前宿主是否允许插件使用此来源。 */
+  /**
+   * @description 当前宿主是否允许插件使用此来源。
+   */
   readonly available: boolean;
-  /** @description 已解析 provider 的可选版本。 */
+  /**
+   * @description 已解析 provider 的可选版本。
+   */
   readonly version?: string;
-  /** @description 不可用时的稳定原因码。 */
+  /**
+   * @description 不可用时的稳定原因码。
+   */
   readonly reason?: string;
 }
 
-/** @description 受控网络请求输入；仅支持当前 Provider 所需的只读 GET 请求。 */
+/**
+ * @description 受控网络请求输入；仅支持当前 Provider 所需的只读 GET 请求。
+ */
 export interface IPluginNetworkRequest {
-  /** @description 目标绝对 URL，宿主按 manifest `network.domains` 校验。 */
+  /**
+   * @description 目标绝对 URL，宿主按 manifest `network.domains` 校验。
+   */
   readonly url: string;
-  /** @description 当前请求的临时 header；调用结束后宿主不保留。 */
+  /**
+   * @description 当前请求的临时 header；调用结束后宿主不保留。
+   */
   readonly headers?: Readonly<Record<string, string>>;
 }
 
-/** @description 受控网络响应最小视图。 */
+/**
+ * @description 受控网络响应最小视图。
+ */
 export interface IPluginNetworkResponse {
   readonly ok: boolean;
   readonly status: number;
@@ -560,7 +677,9 @@ export interface IPluginNetworkResponse {
   arrayBuffer(): Promise<ArrayBuffer>;
 }
 
-/** @description 宿主授权的只读网络 capability。 */
+/**
+ * @description 宿主授权的只读网络 capability。
+ */
 export interface IPluginNetworkClient {
   fetch(request: IPluginNetworkRequest): Promise<IPluginNetworkResponse>;
 }
@@ -583,11 +702,17 @@ export interface IGrantedRuntimeClientSet {
    * @description Asset 子域只读客户端。
    */
   readonly assetRead?: IAssetReadClient;
-  /** @description 本地资产目录快查客户端；随 assetDb.read 默认注入。 */
+  /**
+   * @description 本地资产目录快查客户端；随 assetDb.read 默认注入。
+   */
   readonly assetCatalog?: IAssetCatalogClient;
-  /** @description 资源写入客户端；未授权时为 `undefined`。 */
+  /**
+   * @description 资源写入客户端；未授权时为 `undefined`。
+   */
   readonly assetWrite?: IAssetWriteClient;
-  /** @description 资源删除客户端；仅在 AssetDB delete 被单独授权时可用。 */
+  /**
+   * @description 资源删除客户端；仅在 AssetDB delete 被单独授权时可用。
+   */
   readonly assetDelete?: IAssetDeleteClient;
 
   /**
@@ -605,10 +730,14 @@ export interface IGrantedRuntimeClientSet {
    */
   readonly projectRead?: IProjectReadClient;
 
-  /** @description 由宿主 capability registry 过滤后注入的设计来源状态。 */
+  /**
+   * @description 由宿主 capability registry 过滤后注入的设计来源状态。
+   */
   readonly designSources: readonly IDesignSourceCapabilityDescriptor[];
 
-  /** @description 只读网络 client；未声明或未授予 `network` 权限时为 `undefined`。 */
+  /**
+   * @description 只读网络 client；未声明或未授予 `network` 权限时为 `undefined`。
+   */
   readonly network?: IPluginNetworkClient;
 
   /**
@@ -776,15 +905,21 @@ export interface IPluginPanelApi {
   ): string;
 }
 
-/** @description 已激活插件之间的受管请求/响应服务 API。 */
+/**
+ * @description 已激活插件之间的受管请求/响应服务 API。
+ */
 export interface IPluginServiceApi {
-  /** @description 注册当前插件提供的服务；停用时宿主会自动撤销。 */
+  /**
+   * @description 注册当前插件提供的服务；停用时宿主会自动撤销。
+   */
   register(
     serviceId: string,
     handler: (callerPluginId: string, request: unknown) => Promise<unknown>,
   ): () => void;
 
-  /** @description 请求其他已激活插件公开的服务。 */
+  /**
+   * @description 请求其他已激活插件公开的服务。
+   */
   request<TResponse = unknown>(
     providerPluginId: string,
     serviceId: string,
@@ -816,32 +951,52 @@ export interface IPluginMcpApi {
   invoke(name: string, input: unknown): Promise<unknown>;
 }
 
-/** @description 插件受限文件存储 API；宿主会将调用方绑定到其自身缓存和配置范围。 */
+/**
+ * @description 插件受限文件存储 API；宿主会将调用方绑定到其自身缓存和配置范围。
+ */
 export interface IPluginFileStorageApi {
-  /** @description 返回 cache scope 内逻辑路径的宿主描述路径。 */
+  /**
+   * @description 返回 cache scope 内逻辑路径的宿主描述路径。
+   */
   describe(scope: "cache", relativePath?: string): Promise<string>;
-  /** @description 在 cache scope 内创建目录。 */
+  /**
+   * @description 在 cache scope 内创建目录。
+   */
   mkdir(scope: "cache", relativePath: string): Promise<void>;
-  /** @description 从 cache scope 内读取二进制文件。 */
+  /**
+   * @description 从 cache scope 内读取二进制文件。
+   */
   read(scope: "cache", relativePath: string): Promise<Uint8Array | null>;
-  /** @description 向 cache scope 内原子写入二进制文件。 */
+  /**
+   * @description 向 cache scope 内原子写入二进制文件。
+   */
   write(
     scope: "cache",
     relativePath: string,
     content: Uint8Array,
   ): Promise<void>;
-  /** @description 列出 cache scope 内条目。 */
+  /**
+   * @description 列出 cache scope 内条目。
+   */
   list(
     scope: "cache",
     relativePath?: string,
   ): Promise<readonly IPluginCacheEntry[]>;
-  /** @description 删除 cache scope 内文件或目录。 */
+  /**
+   * @description 删除 cache scope 内文件或目录。
+   */
   remove(scope: "cache", relativePath: string): Promise<boolean>;
-  /** @description 读取当前插件 local settings。 */
+  /**
+   * @description 读取当前插件 local settings。
+   */
   getLocalSettings(): Promise<Readonly<Record<string, unknown>>>;
-  /** @description 原子替换当前插件 local settings。 */
+  /**
+   * @description 原子替换当前插件 local settings。
+   */
   setLocalSettings(settings: Readonly<Record<string, unknown>>): Promise<void>;
-  /** @description 深层合并当前插件 local settings，`null` 删除字段。 */
+  /**
+   * @description 深层合并当前插件 local settings，`null` 删除字段。
+   */
   mergeLocalSettings(
     patch: Readonly<Record<string, unknown>>,
   ): Promise<Readonly<Record<string, unknown>>>;
@@ -988,10 +1143,14 @@ export interface IPluginActivateContext {
    */
   readonly panels: IPluginPanelApi;
 
-  /** @description 插件间服务调用能力。 */
+  /**
+   * @description 插件间服务调用能力。
+   */
   readonly services: IPluginServiceApi;
 
-  /** @description 统一 MCP capability 注册入口；不暴露监听端口或协议处理权。 */
+  /**
+   * @description 统一 MCP capability 注册入口；不暴露监听端口或协议处理权。
+   */
   readonly mcp: IPluginMcpApi;
 
   /**
@@ -1009,10 +1168,14 @@ export interface IPluginActivateContext {
    */
   readonly storage: IPluginStorageApi;
 
-  /** @description 宿主注入的受保护密钥接口；未提供时相关高级能力必须拒绝激活。 */
+  /**
+   * @description 宿主注入的受保护密钥接口；未提供时相关高级能力必须拒绝激活。
+   */
   readonly protectedKeys?: IPluginProtectedKeyApi;
 
-  /** @description 宿主管理的当前插件缓存与持久化 JSON 配置。 */
+  /**
+   * @description 宿主管理的当前插件缓存与持久化 JSON 配置。
+   */
   readonly files: IPluginFileStorageApi;
 }
 

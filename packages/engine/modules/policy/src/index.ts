@@ -26,6 +26,16 @@ export { CoreCocosMcpReadToolSchemaCatalog, type ICoreMcpJsonSchema } from './co
 export { CoreCocosNativeWriteToolSchemaCatalog } from './core-cocos-native-write-tool-schema-catalog.js';
 export { CoreCocosMcpToolDefinitionCatalog, type ICoreCocosMcpToolDefinition } from './core-cocos-mcp-tool-definition-catalog.js';
 export {
+    CoreCocosMcpOperationThroughputProfileCatalog,
+    type CoreCocosMcpThroughputCostClass,
+    type CoreCocosMcpReadCoalescing,
+    type CoreCocosMcpReadCacheMode,
+    type CoreCocosMcpReadConsistency,
+    type ICoreCocosMcpReadExecutionProfile,
+    type ICoreCocosMcpWriteExecutionProfile,
+    type ICoreCocosMcpOperationThroughputProfile,
+} from './core-cocos-mcp-operation-throughput-profile-catalog.js';
+export {
     CoreCocosMcpExecutionDispatcher,
     type ICoreCocosMcpExecutionAdapter,
     type ICoreCocosMcpExecutionRequest,

@@ -125,46 +125,46 @@ export class McpBatchApprovalStore {
      * @returns 是否允许跳过二次确认。
      */
     public tryConsume(token: string, request: IMcpApprovalConsumeRequest): boolean {
+        return this.tryConsumeAll([{ token, request }]);
+    }
+
+    /**
+     * @description 原子校验一组批次授权；任一项失败时不续期任何令牌。
+     */
+    public tryConsumeAll(
+        entries: readonly { readonly token: string; readonly request: IMcpApprovalConsumeRequest }[],
+    ): boolean {
         this.sweep();
-        if (typeof token !== 'string' || token.trim().length === 0) {
-            return false;
-        }
-        const record = this._tokens.get(token.trim());
-        if (record == null) {
-            return false;
-        }
         const now = Date.now();
-        if (now > record.expiresAt) {
-            this._tokens.delete(record.token);
-            return false;
-        }
-        if (now - record.lastUsedAt > record.idleLeaseMs) {
-            this._tokens.delete(record.token);
-            return false;
-        }
-        if (record.connectionId !== request.connectionId) {
-            return false;
-        }
-        if (request.risk === 'read') {
-            return true;
-        }
-        if (request.risk === 'destructive' && record.maxRisk !== 'destructive') {
-            return false;
-        }
-        if (record.operations.size > 0 && !record.operations.has(request.operation)) {
-            return false;
-        }
-        // fail-closed：写/破坏性消费无有效资源则拒（与 Lite 对齐；不再空集跳过）
-        const requested = this._normalizeResources(request.resources);
-        if (requested.size === 0) {
-            return false;
-        }
-        for (const resource of requested) {
-            if (!record.resources.has(resource)) {
+        const records: IMcpApprovalTokenRecord[] = [];
+        for (const { token, request } of entries) {
+            if (typeof token !== 'string' || token.trim().length === 0) {
                 return false;
             }
+            const record = this._tokens.get(token.trim());
+            if (record == null || now > record.expiresAt || now - record.lastUsedAt > record.idleLeaseMs) {
+                return false;
+            }
+            if (record.connectionId !== request.connectionId) {
+                return false;
+            }
+            if (request.risk !== 'read') {
+                if (request.risk === 'destructive' && record.maxRisk !== 'destructive') {
+                    return false;
+                }
+                if (record.operations.size > 0 && !record.operations.has(request.operation)) {
+                    return false;
+                }
+                const requested = this._normalizeResources(request.resources);
+                if (requested.size === 0 || [...requested].some((resource) => !record.resources.has(resource))) {
+                    return false;
+                }
+            }
+            records.push(record);
         }
-        record.lastUsedAt = now;
+        for (const record of records) {
+            record.lastUsedAt = now;
+        }
         return true;
     }
 

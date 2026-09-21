@@ -13,3 +13,5 @@ SnowB, Figma/PSD and UI Prefab integrations are not native Core capabilities and
 `CoreCocosMcpExecutionDispatcher` is the host-neutral, fail-closed execution seam. A Creator host supplies adapters for the operations it implements; the dispatcher rejects unknown operations, duplicate registrations, missing adapters, and write requests without `approvalId` before a host call is made.
 
 `Creator38MigrationWorkstreamCatalog` partitions the same 83 trusted definitions into five non-overlapping acceptance workstreams. It is migration metadata only; it does not change ownership, availability, schema, risk, or approval behavior.
+
+`CoreCocosMcpOperationThroughputProfileCatalog` derives one fail-closed execution profile for every public operation. It preserves the authoritative 38-read/45-write split, classifies admission cost, and exposes conservative read coalescing/cache/consistency and write prepare/batch eligibility. Batch flags are allow-list hints only: callers must still validate owner, approval, resources, revision, and dependency order before assembling work.

@@ -85,6 +85,32 @@ export type {
 } from "./execution/execution-runtime-service.js";
 export { ExecutionRuntimeService } from "./execution/execution-runtime-service.js";
 export {
+  ThroughputAdmissionController,
+  type IThroughputAdmissionLease,
+  type IThroughputAdmissionLimits,
+  type IThroughputAdmissionRequest,
+  type IThroughputAdmissionSnapshot,
+} from "./execution/admission/throughput-admission-controller.js";
+export { ThroughputOverloadError } from "./execution/admission/throughput-overload-error.js";
+export {
+  ThroughputHealthMetrics,
+  type IThroughputHealthMetricsOptions,
+} from "./execution/metrics/throughput-health-metrics.js";
+export {
+  ProjectRevisionClock,
+  type ProjectRevisionBoundary,
+} from "./execution/revision/project-revision-clock.js";
+export {
+  RevisionAwareReadCoordinator,
+  type IRevisionAwareReadCoordinatorOptions,
+  type IRevisionAwareReadRequest,
+  type IRevisionAwareReadResult,
+} from "./execution/read/revision-aware-read-coordinator.js";
+export {
+  ProjectWriterBarrier,
+  type IProjectWriterBarrierLease,
+} from "./execution/read/project-writer-barrier.js";
+export {
   BuiltInRuntimeTaskExecutors,
   RUNTIME_BUILTIN_EXECUTOR_PLUGIN_ID,
 } from "./execution/commit/builtin-runtime-task-executors.js";
@@ -93,6 +119,9 @@ export { TaskExecutorRegistry } from "./execution/registry/task-executor-registr
 export type {
   ITaskControlPlaneOptions,
   ITaskIdempotencyClaim,
+  ITaskReclaimedEvent,
+  ITaskTerminalEvent,
+  TaskEvidenceScope,
 } from "./execution/control/task-control-plane.js";
 export { TaskControlPlane } from "./execution/control/task-control-plane.js";
 export { TaskIngress } from "./execution/ingress/task-ingress.js";
