@@ -10,6 +10,7 @@
 4. **启动 Creator 并等待宿主就绪。** 打开方式遵循 Hub `knowledge/cocos-creator-open.md`：3.x 用 `--project <abs> --nologin`；本工程已有 GUI 则 attach，不要再 spawn / 强杀；装宿主扩展后必须重启 Creator。只接受 `query-status` 返回 `ready: true`（gateway 接入后 `tools` 应为 83）且日志出现 `lite_host_ready`；未就绪时不得继续能力验收。
 5. **运行只读冒烟测试。** 验证 `editor.queryVersion`、`editor.queryProject`、`editor.querySelection`、`scene.getCurrent`、`scene.getHierarchy`、`builder.queryPlatforms`、`builder.querySchema`、`builder.queryDefaultConfig` 与 `preview.query`；失败时停止，不继续任何写入测试。
 6. **运行本地审批写入测试。** 先申请一次性审批租约，再执行一个可恢复的原生写操作；Core 不接受在线签名计划作为替代审批。
+7. **运行原子创建矩阵。** 对 3.8.3 与 3.8.7 分别执行 `verify-managed-task-live.mts`，要求同一候选 Host/Core 身份下 Prefab/Scene 首次创建、同目标竞争、commit 前取消、UUID/`.meta`、唯一 postflight、零探针残留和日志增量全部通过。其它 3.8 补丁不得借此自动开放写入。
 
 ## 构建候选与 CPM 安装
 
@@ -20,6 +21,16 @@ npm install
 npm run verify
 npm run pack
 ```
+
+候选安装完成并重启 Creator 后执行：
+
+```bash
+npm exec -- tsx packages/hosts/modules/creator-38/scripts/verify-managed-task-live.mts \
+  --project <creator-project> \
+  --output <qa-evidence-json>
+```
+
+报告必须是 `peanut.creator38.managed-task-live.v2`，不得包含 Hub token 或审批 token；两个精确版本的报告必须绑定同一 `query-status.artifacts`。
 
 禁止在内部 module 目录单独安装依赖；仓库只维护根 lockfile。可选宿主发布物位于 `packages/hosts/modules/creator-24/release/` 与 `packages/hosts/modules/creator-30-35/release/`。
 

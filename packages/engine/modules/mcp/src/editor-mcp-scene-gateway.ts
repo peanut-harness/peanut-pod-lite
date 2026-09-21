@@ -26,6 +26,11 @@ import {
 import { EditorMcpSceneInputReader } from "./editor-mcp-scene-input-reader.js";
 import { EditorMcpMessageDeadline } from "./editor-mcp-message-deadline.js";
 import { EditorMcpSceneAssetDbOpener } from "./editor-mcp-scene-asset-db-opener.js";
+import type {
+  EditorMcpAssetDbCreationCoordinator,
+  IEditorMcpAssetDbCreationLifecycle,
+} from "./editor-mcp-asset-db-creation-coordinator.js";
+import { EditorMcpPrefabCreationPublisher } from "./editor-mcp-prefab-creation-publisher.js";
 
 /** @description Creator 会弹确认框、卡住无头自动化的 scene 持久化消息。 */
 const CREATOR_SCENE_SAVE_MESSAGES = new Set<string>(SCENE_HOST_SAVE_MESSAGES);
@@ -65,6 +70,8 @@ export class EditorMcpSceneGateway {
    * @description AssetDB 场景打开兜底。
    */
   private readonly _assetDbOpener: EditorMcpSceneAssetDbOpener;
+  /** @description Router 共享的首次创建协调器。 */
+  private _creationCoordinator: EditorMcpAssetDbCreationCoordinator | null = null;
 
   /**
    * @description 构造场景网关。
@@ -78,6 +85,16 @@ export class EditorMcpSceneGateway {
     this._runtime = runtime;
     this._guard = guard;
     this._assetDbOpener = new EditorMcpSceneAssetDbOpener(runtime);
+  }
+
+  /**
+   * @description 注入 Prefab 首次创建协调器。
+   * @param coordinator 创建协调器。
+   */
+  public configureCreationCoordinator(
+    coordinator: EditorMcpAssetDbCreationCoordinator,
+  ): void {
+    this._creationCoordinator = coordinator;
   }
 
   /**
@@ -518,6 +535,7 @@ export class EditorMcpSceneGateway {
    */
   public async createFromNode(
     input: IPrefabCreateFromNodeMcpInput,
+    lifecycle?: IEditorMcpAssetDbCreationLifecycle,
   ): Promise<IEditorMcpSceneOpResult> {
     const prefabPath = this._toDbAssetsPath(input.prefabPath);
     if (
@@ -538,17 +556,23 @@ export class EditorMcpSceneGateway {
         data: { nodePath, prefabPath },
       });
     }
-    const created = await this._requestSceneFirst(
-      [
-        ["create-prefab", [nodeUuid, prefabPath]],
-        ["create-prefab", [{ uuid: nodeUuid, url: prefabPath }]],
-      ],
-      "prefab_create",
+    const { created, creation } = await new EditorMcpPrefabCreationPublisher().publish(
+      this._creationCoordinator,
+      prefabPath,
+      lifecycle,
+      () => this._requestSceneFirst(
+        [
+          ["create-prefab", [nodeUuid, prefabPath]],
+          ["create-prefab", [{ uuid: nodeUuid, url: prefabPath }]],
+        ],
+        "prefab_create",
+      ),
     );
-    if (!created.available) {
-      return created;
-    }
-    const asset = await this._waitForReadableAsset(prefabPath);
+    const asset = await this._waitForReadableAsset(prefabPath) ?? (creation == null ? null : {
+      uuid: creation.uuid,
+      importer: creation.resourceType,
+      subAssets: creation.subAssetUuids,
+    });
     if (asset == null) {
       return this._finalize({
         available: false,
@@ -574,6 +598,7 @@ export class EditorMcpSceneGateway {
         nodeUuid,
         prefabPath,
         asset,
+        ...(creation == null ? {} : { creation }),
         instancePath,
         instanceUuid,
       },

@@ -18,6 +18,10 @@ import { AssetCatalogFastLookupApi, CompatibleUuid, type IAssetCatalogFastLookup
 
 import { EditorMcpAssetDiagnostics } from './editor-mcp-asset-diagnostics.js';
 import { EditorMcpAssetDbTransaction } from './editor-mcp-asset-db-transaction.js';
+import {
+    EditorMcpAssetDbCreationCoordinator,
+    type IEditorMcpAssetDbCreationEvidence,
+} from './editor-mcp-asset-db-creation-coordinator.js';
 import { EditorMcpBuilderGateway } from './editor-mcp-builder-gateway.js';
 import { EditorMcpReferenceGateway } from './editor-mcp-reference-gateway.js';
 import { Lumen24McpBridge } from './editor-mcp-lumen-24-bridge.js';
@@ -36,31 +40,61 @@ import { ResourceOperationTaskExecutor } from './resource-operation-task-executo
  * @description 显式校验外部 MCP 输入，并通过受限 runtime grant 与插件服务执行 action。
  */
 export class EditorMcpActionRouter {
-    /** @description 跨 Router 共享的原子资源锁管理器。 */
+    /**
+     * @description 跨 Router 共享的原子资源锁管理器。
+     */
     private static readonly _sharedResourceLockManager = new ResourceLockManager();
-    /** @description 由当前实例持有的授权 runtime client 集合。 */
+    /**
+     * @description 由当前实例持有的授权 runtime client 集合。
+     */
     private readonly _runtime: IGrantedRuntimeClientSet;
-    /** @description 资产目录 MCP 快查接口。 */
+    /**
+     * @description 资产目录 MCP 快查接口。
+     */
     private readonly _catalogLookup: IAssetCatalogFastLookup;
-    /** @description 资产诊断与搜索。 */
+    /**
+     * @description 资产诊断与搜索。
+     */
     private readonly _diagnostics: EditorMcpAssetDiagnostics;
-    /** @description 预览网关。 */
+    /**
+     * @description 预览网关。
+     */
     private readonly _preview: EditorMcpPreviewGateway;
-    /** @description 构建网关。 */
+    /**
+     * @description 构建网关。
+     */
     private readonly _builder: EditorMcpBuilderGateway;
-    /** @description 场景参考图薄层（P1 MVP / refused stubs）。 */
+    /**
+     * @description 场景参考图薄层（P1 MVP / refused stubs）。
+     */
     private readonly _reference: EditorMcpReferenceGateway;
-    /** @description 场景 / Prefab 薄层网关。 */
+    /**
+     * @description 场景 / Prefab 薄层网关。
+     */
     private readonly _sceneGateway: EditorMcpSceneGateway;
-    /** @description lumen 资产文档网关。 */
+    /**
+     * @description lumen 资产文档网关。
+     */
     private readonly _lumen: EditorMcpLumenGateway;
-    /** @description 离线 Prefab 控制器绑定网关。 */
+    /**
+     * @description 当前 lumen 网关是否已接入首次创建协调器。
+     */
+    private _lumenCreationCoordinationEnabled = false;
+    /**
+     * @description 离线 Prefab 控制器绑定网关。
+     */
     private readonly _prefabOffline: EditorMcpPrefabOfflineGateway;
-    /** @description 静默资产 / import 编排。 */
+    /**
+     * @description 静默资产 / import 编排。
+     */
     private readonly _silentAssets: EditorMcpSilentAssetGateway;
-    /** @description lumen.commit 收口。 */
+    /**
+     * @description lumen.commit 收口。
+     */
     private readonly _lumenCommit: EditorMcpLumenCommitFacade;
-    /** @description 编辑器选区 / 打开 / 恢复。 */
+    /**
+     * @description 编辑器选区 / 打开 / 恢复。
+     */
     private readonly _editor: EditorMcpEditorGateway;
     /**
      * @description 跨 Router 共享的项目级资源调度器。
@@ -110,6 +144,21 @@ export class EditorMcpActionRouter {
             requireMessage: () => this._requireMessage(),
             refreshForCommit: async (paths) => this._lumen.refreshForCommit(paths),
         });
+        const creationCoordinator = new EditorMcpAssetDbCreationCoordinator({
+            requireProjectPath: async () => this._requireProjectPath(),
+            requireMessage: () => this._requireMessage(),
+            transaction: assetDbTransaction,
+        });
+        if (this._runtime.message != null) {
+            const configurableLumen = this._lumen as unknown as {
+                configureCreationCoordinator?: (coordinator: EditorMcpAssetDbCreationCoordinator) => void;
+            };
+            if (configurableLumen.configureCreationCoordinator != null) {
+                configurableLumen.configureCreationCoordinator(creationCoordinator);
+                this._lumenCreationCoordinationEnabled = true;
+            }
+            this._sceneGateway.configureCreationCoordinator(creationCoordinator);
+        }
         this._prefabOffline = new EditorMcpPrefabOfflineGateway();
         this._silentAssets = new EditorMcpSilentAssetGateway({
             requireProjectPath: async () => this._requireProjectPath(),
@@ -137,7 +186,8 @@ export class EditorMcpActionRouter {
         });
         this._resourceTaskExecutor = new ResourceOperationTaskExecutor({
             plan: async (operation, input) => this.planManagedResourceOperation(operation as EditorMcpOperationId, input),
-            execute: async (operation, input) => this.executeManagedResourceOperation(operation as EditorMcpOperationId, input),
+            execute: async (operation, input, context) =>
+                this.executeManagedResourceOperation(operation as EditorMcpOperationId, input, context),
             lockManager: resourceLockManager,
         });
     }
@@ -292,7 +342,9 @@ export class EditorMcpActionRouter {
         };
     }
 
-    /** @description 为受管 executor 规划完整资源闭包。 */
+    /**
+     * @description 为受管 executor 规划完整资源闭包。
+     */
     public async planManagedResourceOperation(
         operation: EditorMcpOperationId,
         input: Readonly<Record<string, unknown>>,
@@ -300,10 +352,13 @@ export class EditorMcpActionRouter {
         return this._taskPlanner.plan(await this._requireProjectPath(), operation, input);
     }
 
-    /** @description 在 executor 已取得资源锁后执行原业务 worker 与唯一项目日志 postflight。 */
+    /**
+     * @description 在 executor 已取得资源锁后执行原业务 worker 与唯一项目日志 postflight。
+     */
     public async executeManagedResourceOperation(
         operation: EditorMcpOperationId,
         input: Readonly<Record<string, unknown>>,
+        context?: import('@peanut/pod-sdk').IPluginTaskExecutorContext,
     ): Promise<IEditorMcpActionResult> {
         const request: IEditorMcpOperationRequest = { operation, input };
         this._validateOperationInput(request);
@@ -317,18 +372,28 @@ export class EditorMcpActionRouter {
         const projectRoot = await this._requireProjectPath();
         const postflightMonitor = new ProjectLogPostflightMonitor();
         const logCheckpoint = postflightMonitor.checkpoint(projectRoot);
-        const result = await this._executeDirect(request);
+        const result = await this._executeDirect(request, context);
+        const creation = this._readRequiredCreationEvidence(operation, input, result.data);
         const postflight = postflightMonitor.readDelta(logCheckpoint);
         if (!postflight.logChecked || postflight.newErrorCount > 0 || postflight.newWarningCount > 0) {
             throw new Error(
                 `editor_mcp_project_log_postflight_failed:errors=${postflight.newErrorCount}:warnings=${postflight.newWarningCount}`,
             );
         }
+        if (creation != null) {
+            context?.recordEvidence({
+                id: 'assetdb-creation',
+                kind: 'assetdb_settle',
+                status: 'completed',
+                summary: `Verified ${creation.resourceType} AssetDB identity; polls=${creation.polls}; meta=${creation.metaPresent}.`,
+                recordedAt: new Date().toISOString(),
+            });
+        }
         return {
             ...result,
             data: this._isRecord(result.data)
-                ? { ...result.data, taskPostflight: postflight }
-                : { value: result.data, taskPostflight: postflight },
+                ? { ...result.data, taskPostflight: postflight, ...(creation == null ? {} : { creation }) }
+                : { value: result.data, taskPostflight: postflight, ...(creation == null ? {} : { creation }) },
         };
     }
 
@@ -337,7 +402,10 @@ export class EditorMcpActionRouter {
      * @param request 已校验操作请求。
      * @returns 原有 MCP 执行结果。
      */
-    private async _executeDirect(request: IEditorMcpOperationRequest): Promise<IEditorMcpActionResult> {
+    private async _executeDirect(
+        request: IEditorMcpOperationRequest,
+        context?: import('@peanut/pod-sdk').IPluginTaskExecutorContext,
+    ): Promise<IEditorMcpActionResult> {
         this._validateOperationInput(request);
         const phase = this._runtime.version.getCurrentVersion().phase;
         if (ProductLineMcpPolicy.decide(phase, request.operation) === 'refuse') {
@@ -590,7 +658,10 @@ export class EditorMcpActionRouter {
             case 'prefab.createFromNode':
                 return {
                     operation: request.operation,
-                    data: await this._sceneGateway.createFromNode(this._sceneGateway.readCreateFromNodeInput(request.input)),
+                    data: await this._sceneGateway.createFromNode(
+                        this._sceneGateway.readCreateFromNodeInput(request.input),
+                        context,
+                    ),
                 };
             case 'prefab.apply':
                 return {
@@ -676,7 +747,7 @@ export class EditorMcpActionRouter {
                 }
                 if (EditorMcpLumenGateway.isLumenOperation(request.operation)) {
                     const lumenInput = this._stripHubControlFields(request.input);
-                    const data = await this._lumen.execute(request.operation, lumenInput);
+                    const data = await this._lumen.execute(request.operation, lumenInput, context);
                     if (EditorMcpLumenGateway.isWriteOperation(request.operation) && EditorMcpLumenGateway.readAutoCommit(request.input)) {
                         const paths = EditorMcpLumenGateway.readCommitPaths(data);
                         const commit = await this._lumenCommit._executeLumenCommit(paths.length === 0 ? lumenInput : { paths });
@@ -736,7 +807,9 @@ export class EditorMcpActionRouter {
         };
     }
 
-    /** @description 校验单项操作的输入约束。 */
+    /**
+     * @description 校验单项操作的输入约束。
+     */
     private _validateOperationInput(request: IEditorMcpOperationRequest): void {
         if (request.operation === 'editor.setSelection') {
             this._editor.readSetSelectionInput(request.input);
@@ -891,7 +964,9 @@ export class EditorMcpActionRouter {
         }
     }
 
-    /** @description 读取并校验资产目录快查输入。 */
+    /**
+     * @description 读取并校验资产目录快查输入。
+     */
     private _readCatalogLookupInput(input: ContractPayload | undefined): IAssetCatalogLookupMcpInput {
         if (input == null) {
             throw new Error('editor_mcp_catalog_lookup_input_required');
@@ -913,7 +988,9 @@ export class EditorMcpActionRouter {
         return { uuid, type, name, path, limit };
     }
 
-    /** @description 读取可选非空字符串字段。 */
+    /**
+     * @description 读取可选非空字符串字段。
+     */
     private _readOptionalNonEmptyString(value: unknown, fieldName: string): string | undefined {
         if (value == null) {
             return undefined;
@@ -924,7 +1001,9 @@ export class EditorMcpActionRouter {
         return value.trim();
     }
 
-    /** @description 读取可选 limit。 */
+    /**
+     * @description 读取可选 limit。
+     */
     private _readOptionalLimit(value: unknown): number | undefined {
         if (value == null) {
             return undefined;
@@ -1058,7 +1137,9 @@ export class EditorMcpActionRouter {
         return exact?.uuid ?? hits[0]?.uuid;
     }
 
-    /** @description 要求 message grant。 */
+    /**
+     * @description 要求 message grant。
+     */
     private _requireMessage() {
         if (this._runtime.message == null) {
             throw new Error('editor_mcp_message_grant_required');
@@ -1094,7 +1175,9 @@ export class EditorMcpActionRouter {
         return cleaned;
     }
 
-    /** @description 判断当前操作是否不会产生项目写入。 */
+    /**
+     * @description 判断当前操作是否不会产生项目写入。
+     */
     private _isReadOnlyOperation(operation: EditorMcpOperationId): boolean {
         const capability = CAPABILITIES.find((item) => item.operation === operation);
         if (capability != null) {
@@ -1116,7 +1199,9 @@ export class EditorMcpActionRouter {
         return this._isReadOnlyOperation(operation) ? 'read' : 'write';
     }
 
-    /** @description 判断当前操作所需的 runtime grant 是否可用。 */
+    /**
+     * @description 判断当前操作所需的 runtime grant 是否可用。
+     */
     private _isRuntimeGrantAvailable(operation: EditorMcpOperationId): boolean {
         switch (operation) {
             case 'editor.queryVersion':
@@ -1203,7 +1288,63 @@ export class EditorMcpActionRouter {
         }
     }
 
-    /** @description 返回当前项目绝对路径。 */
+    /**
+     * @description 对首次创建 operation 强制消费唯一 AssetDB 身份证据。
+     * @param operation operation。
+     * @param input 已校验输入。
+     * @param data worker 数据。
+     * @returns 已验证创建证据；非首次创建返回 null。
+     */
+    private _readRequiredCreationEvidence(
+        operation: EditorMcpOperationId,
+        input: Readonly<Record<string, unknown>>,
+        data: unknown,
+    ): IEditorMcpAssetDbCreationEvidence | null {
+        const scaffoldPath = typeof input.prefabRelativePath === 'string'
+            ? input.prefabRelativePath
+            : typeof input.assetRelativePath === 'string'
+                ? input.assetRelativePath
+                : '';
+        const creator2x = typeof input.cocosVersion === 'string' && Lumen24McpBridge.isCreator2x(input.cocosVersion);
+        const required = operation === 'prefab.createFromNode' || (
+            operation === 'lumen.scaffold' &&
+            input.reset !== true &&
+            !creator2x &&
+            this._runtime.message != null &&
+            this._lumenCreationCoordinationEnabled &&
+            /\.(?:prefab|scene)$/iu.test(scaffoldPath)
+        );
+        if (!required) {
+            return null;
+        }
+        const outer = this._isRecord(data) ? data : null;
+        const nested = outer != null && this._isRecord(outer.data) ? outer.data : null;
+        const value = outer?.creation ?? nested?.creation;
+        if (!this._isRecord(value)) {
+            throw new Error(`editor_mcp_asset_create_evidence_missing:${operation}`);
+        }
+        const cleanup = this._isRecord(value.cleanup) ? value.cleanup : null;
+        if (
+            value.phase !== 'verified' ||
+            (value.resourceType !== 'prefab' && value.resourceType !== 'scene') ||
+            typeof value.targetDbPath !== 'string' || !value.targetDbPath.startsWith('db://assets/') ||
+            typeof value.uuid !== 'string' || value.uuid.trim().length === 0 ||
+            value.metaPresent !== true ||
+            value.parentRegistered !== true ||
+            !Array.isArray(value.subAssetUuids) ||
+            typeof value.polls !== 'number' ||
+            typeof value.waitedMs !== 'number' ||
+            cleanup?.complete !== true ||
+            value.projectState !== 'changed'
+        ) {
+            throw new Error(`editor_mcp_asset_create_evidence_invalid:${operation}`);
+        }
+        return value as unknown as IEditorMcpAssetDbCreationEvidence;
+    }
+
+    /**
+     * @description 返回当前项目绝对路径。
+     */
     private async _requireProjectPath(): Promise<string> {
         const projectDirectory = await this._requireProjectRead().getProjectPath();
         if (typeof projectDirectory !== 'string' || projectDirectory.trim().length === 0) {
@@ -1220,31 +1361,41 @@ export class EditorMcpActionRouter {
         return this._runtime.assetCatalog ?? this._catalogLookup;
     }
 
-    /** @description 返回 asset read grant，缺失时抛出稳定错误。 */
+    /**
+     * @description 返回 asset read grant，缺失时抛出稳定错误。
+     */
     private _requireAssetRead() {
         if (this._runtime.assetRead == null) throw new Error('editor_mcp_asset_read_not_granted');
         return this._runtime.assetRead;
     }
 
-    /** @description 返回 scene grant，缺失时抛出稳定错误。 */
+    /**
+     * @description 返回 scene grant，缺失时抛出稳定错误。
+     */
     private _requireScene() {
         if (this._runtime.scene == null) throw new Error('editor_mcp_scene_read_not_granted');
         return this._runtime.scene;
     }
 
-    /** @description 返回 selection grant，缺失时抛出稳定错误。 */
+    /**
+     * @description 返回 selection grant，缺失时抛出稳定错误。
+     */
     private _requireSelection() {
         if (this._runtime.selection == null) throw new Error('editor_mcp_selection_read_not_granted');
         return this._runtime.selection;
     }
 
-    /** @description 返回 project grant，缺失时抛出稳定错误。 */
+    /**
+     * @description 返回 project grant，缺失时抛出稳定错误。
+     */
     private _requireProjectRead() {
         if (this._runtime.projectRead == null) throw new Error('editor_mcp_project_read_not_granted');
         return this._runtime.projectRead;
     }
 
-    /** @description 判断未知值是否为普通对象载荷。 */
+    /**
+     * @description 判断未知值是否为普通对象载荷。
+     */
     private _isRecord(value: unknown): value is ContractPayload {
         return typeof value === 'object' && value != null && !Array.isArray(value);
     }

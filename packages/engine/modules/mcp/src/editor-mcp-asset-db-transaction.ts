@@ -216,6 +216,21 @@ export class EditorMcpAssetDbTransaction {
     }
 
     /**
+     * @description 查询单个 AssetDB 资源的当前登记身份，供首次创建协调器复用。
+     * @param pathValue 工程相对路径或 `db://assets/...`。
+     * @param requireMeta 是否要求相邻 `.meta` 已存在。
+     * @returns 完成证据；尚未登记时返回 null。
+     */
+    public async queryRegistration(
+        pathValue: string,
+        requireMeta: boolean = true,
+    ): Promise<IEditorMcpAssetDbRegistrationEvidence | null> {
+        const projectRoot = await this._host.requireProjectPath();
+        const message = this._host.requireMessage();
+        return this._queryRegistration(message, projectRoot, this._normalizeDbPath(pathValue), requireMeta);
+    }
+
+    /**
      * @description 对尚未登记的磁盘资源，在所在目录创建短生命周期 AssetDB 资产，触发 Creator 正式登记目录与同目录资源。
      * @param message Creator 消息客户端。
      * @param projectRoot 当前工程根。

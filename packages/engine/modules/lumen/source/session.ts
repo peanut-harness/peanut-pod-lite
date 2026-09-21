@@ -41,6 +41,7 @@ import type {
     ILumenEditorRefreshResult,
     ILumenResolveQuery,
     ILumenScaffoldPrefabOptions,
+    ILumenSerializedHierarchyScaffold,
     ILumenSessionOptions,
     ILumenSetAssetPropertyOptions,
     ILumenSetComponentPropertyOptions,
@@ -52,44 +53,70 @@ import type {
  * @description 脚本属性自动发现并注册的结果。
  */
 export interface ILumenScriptPropertyEnsureResult {
-    /** @description Prefab `__type__` / schema ownerKey（compressedUuid）。 */
+    /**
+     * @description Prefab `__type__` / schema ownerKey（compressedUuid）。
+     */
     readonly ownerKey: string;
-    /** @description 项目相对脚本路径。 */
+    /**
+     * @description 项目相对脚本路径。
+     */
     readonly sourcePath: string;
-    /** @description 是否新注册（已存在则为 false）。 */
+    /**
+     * @description 是否新注册（已存在则为 false）。
+     */
     readonly registered: boolean;
-    /** @description 提取详情。 */
+    /**
+     * @description 提取详情。
+     */
     readonly extract: ILumenScriptPropertyExtractResult;
 }
 /**
  * @description lumen 会话：按阶段编排落盘、脚手架、编辑器刷新、catalog 与绑定。
  */
 export class LumenSession {
-    /** @description 解析后的项目根。 */
+    /**
+     * @description 解析后的项目根。
+     */
     private readonly _projectRoot: string;
 
-    /** @description default_prefab 模板根。 */
+    /**
+     * @description default_prefab 模板根。
+     */
     private readonly _templateRoot: string | null;
 
-    /** @description catalog 网关。 */
+    /**
+     * @description catalog 网关。
+     */
     private readonly _catalog: LumenCatalogGateway;
 
-    /** @description 编辑器刷新适配器。 */
+    /**
+     * @description 编辑器刷新适配器。
+     */
     private readonly _editorRefresh: ILumenEditorRefreshAdapter;
 
-    /** @description 会话绑定的 Creator 版本。 */
+    /**
+     * @description 会话绑定的 Creator 版本。
+     */
     private readonly _cocosVersion: LumenCocosVersion;
 
-    /** @description 按版本门控的属性表。 */
+    /**
+     * @description 按版本门控的属性表。
+     */
     private readonly _propertySchema: LumenComponentPropertySchema;
 
-    /** @description 当前阶段。 */
+    /**
+     * @description 当前阶段。
+     */
     private _phase: LumenPhase = 'idle';
 
-    /** @description 当前打开的 prefab / scene 文档。 */
+    /**
+     * @description 当前打开的 prefab / scene 文档。
+     */
     private _document: LumenPrefabDocument | null = null;
 
-    /** @description 当前打开的非层次资产文档。 */
+    /**
+     * @description 当前打开的非层次资产文档。
+     */
     private _standalone: ILumenStandaloneAssetDocument | null = null;
 
     /**
@@ -386,6 +413,53 @@ export class LumenSession {
         }
         this._phase = 'scaffolded';
         return relativePath;
+    }
+
+    /**
+     * @description 在内存中构造新的 Prefab / Scene 脚手架，不创建目录、主文件或 `.meta`。
+     * @param options 脚手架选项；目标必须尚不存在且不接受 reset。
+     * @returns 可交给 AssetDB 创建屏障的规范化内容。
+     */
+    public serializeHierarchyScaffold(options: ILumenScaffoldPrefabOptions): ILumenSerializedHierarchyScaffold {
+        const relativePath = normalize(options.prefabRelativePath).replace(/\\/g, '/');
+        const absolutePath = join(this._projectRoot, relativePath);
+        if (options.reset === true) {
+            throw new Error('lumen_serialized_scaffold_reset_unsupported');
+        }
+        if (existsSync(absolutePath) || existsSync(`${absolutePath}.meta`)) {
+            throw new Error(`lumen_scaffold_target_exists:${relativePath}`);
+        }
+        const kind = LumenHierarchyEntry.assetKindFromPath(relativePath);
+        if (kind !== 'prefab' && kind !== 'scene') {
+            throw new Error(`lumen_serialized_scaffold_hierarchy_required:${relativePath}`);
+        }
+        const rootName = options.rootName.trim();
+        const template = options.template ?? 'empty';
+        if (kind === 'scene') {
+            const templateNormalized = template.trim().replace(/\\/g, '/');
+            if (rootName.toLowerCase() === 'canvas' && /(^|\/)canvas$/iu.test(templateNormalized)) {
+                throw new Error(
+                    'lumen_scene_root_name_collides_with_canvas_template:use_rootName_like_scene_stem_not_Canvas',
+                );
+            }
+            this._adoptDocument(LumenPrefabDocument.createEmptyScene(relativePath, rootName));
+            this._seedSceneBaseline(`/${rootName}`);
+            if (template !== 'empty') {
+                this._document!.addChildFromTemplate(`/${rootName}`, this._resolveTemplatePath(template));
+            }
+        } else if (template === 'empty') {
+            this._adoptDocument(LumenPrefabDocument.createEmpty(relativePath, rootName));
+        } else {
+            this._adoptDocument(
+                LumenPrefabDocument.cloneFromTemplate(relativePath, this._resolveTemplatePath(template), rootName),
+            );
+        }
+        this._phase = 'scaffolded';
+        return Object.freeze({
+            relativePath,
+            kind,
+            content: `${JSON.stringify(this._requireHierarchy().entries, null, 2)}\n`,
+        });
     }
 
     /**

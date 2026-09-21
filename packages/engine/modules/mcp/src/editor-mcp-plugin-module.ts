@@ -83,7 +83,12 @@ export class EditorMcpPluginModule extends PluginModuleBase {
         if (managedTasks != null) {
             const resourceExecutor = new ResourceOperationTaskExecutor({
                 plan: async (operation, input) => this._requireRouter().planManagedResourceOperation(operation as EditorMcpOperationId, input),
-                execute: async (operation, input) => this._requireRouter().executeManagedResourceOperation(operation as EditorMcpOperationId, input),
+                execute: async (operation, input, executorContext) =>
+                    this._requireRouter().executeManagedResourceOperation(
+                        operation as EditorMcpOperationId,
+                        input,
+                        executorContext,
+                    ),
             });
             managedTasks.registerExecutor(
                 ResourceOperationTaskExecutor.KIND,

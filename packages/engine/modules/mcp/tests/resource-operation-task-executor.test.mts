@@ -179,4 +179,85 @@ test('planner preserves asset sidecars and offline lumen parallelism', () => {
     assert.deepEqual(offlinePlan.resourceKeys, ['resource:db://assets/ui/a.prefab']);
     assert.equal(offlinePlan.requiresProjectWriter, false);
     assert.equal(commitPlan.requiresProjectWriter, true);
+
+    const scaffoldPlan = planner.plan('D:/projects/game', 'lumen.scaffold', {
+        prefabRelativePath: 'assets/ui/NewPanel.prefab',
+        rootName: 'NewPanel',
+    });
+    assert.equal(scaffoldPlan.workerManagedCommitWindow, true);
+    assert.equal(scaffoldPlan.requiresProjectWriter, false);
+    assert.ok(scaffoldPlan.resourceKeys.includes('resource:db://assets/ui/NewPanel.prefab'));
+    assert.ok(scaffoldPlan.resourceKeys.includes('resource:db://assets/ui/NewPanel.prefab.meta'));
+    assert.ok(scaffoldPlan.resourceKeys.includes('directory:assets/ui'));
+    assert.ok(scaffoldPlan.resourceKeys.includes('resource:db://assets/ui.meta'));
+
+    const nativePrefabPlan = planner.plan('D:/projects/game', 'prefab.createFromNode', {
+        nodePath: 'Canvas/Panel',
+        prefabPath: 'db://assets/ui/NewPanel.prefab',
+    });
+    assert.equal(nativePrefabPlan.workerManagedCommitWindow, true);
+    assert.equal(nativePrefabPlan.requiresProjectWriter, true);
+    assert.ok(nativePrefabPlan.resourceKeys.includes('resource:db://assets/ui/NewPanel.prefab'));
+});
+
+test('resource executor lets first-creation worker enter commit only at publication', async () => {
+    let enterCalls = 0;
+    let workerObservedEnterCalls = -1;
+    const instance = new ResourceOperationTaskExecutor({
+        plan: async () => ({
+            projectKey: '/p',
+            operation: 'lumen.scaffold',
+            resourceKeys: ['resource:db://assets/New.prefab'],
+            requiresProjectWriter: false,
+            workerManagedCommitWindow: true,
+        }),
+        execute: async (_operation, _input, taskContext) => {
+            workerObservedEnterCalls = enterCalls;
+            assert.equal(taskContext.enterCommitWindow(), true);
+            return { ok: true };
+        },
+    });
+    const taskContext = {
+        ...context(),
+        enterCommitWindow: () => {
+            enterCalls += 1;
+            return true;
+        },
+    };
+    await instance.execute(request('create', { id: 'create', project: '/p', resource: 'asset:new' }), taskContext);
+    assert.equal(workerObservedEnterCalls, 0);
+    assert.equal(enterCalls, 1);
+});
+
+test('resource executor records exactly one authoritative postflight on success and worker failure', async () => {
+    for (const shouldFail of [false, true]) {
+        const evidence: Array<{ readonly id: string; readonly status: string }> = [];
+        const instance = new ResourceOperationTaskExecutor({
+            plan: async () => ({
+                projectKey: '/p',
+                operation: 'asset.writeText',
+                resourceKeys: ['resource:db://assets/a.txt'],
+                requiresProjectWriter: true,
+            }),
+            execute: async () => {
+                if (shouldFail) throw new Error('postflight_expected_failure');
+                return { ok: true };
+            },
+        });
+        const taskContext = {
+            ...context(),
+            recordEvidence: (entry: { readonly id: string; readonly status: string }) => evidence.push(entry),
+        };
+        if (shouldFail) {
+            await assert.rejects(
+                instance.execute(request('failure', { id: 'failure', project: '/p', resource: 'asset:a' }), taskContext),
+                /postflight_expected_failure/u,
+            );
+        } else {
+            await instance.execute(request('success', { id: 'success', project: '/p', resource: 'asset:a' }), taskContext);
+        }
+        const postflight = evidence.filter((entry) => entry.id === 'postflight');
+        assert.equal(postflight.length, 1);
+        assert.equal(postflight[0]?.status, shouldFail ? 'failed' : 'completed');
+    }
 });

@@ -39,7 +39,8 @@ export class ResourceOperationPlanner {
     ): IResourceOperationTaskPlan {
         const safeInput = input ?? {};
         const requiresProjectWriter = this._requiresProjectWriter(operation, safeInput);
-        const includeAssetSidecars = requiresProjectWriter || operation === 'lumen.scaffold';
+        const creationTarget = this._deriveCreationTarget(operation, safeInput);
+        const includeAssetSidecars = requiresProjectWriter || operation === 'lumen.scaffold' || creationTarget != null;
         const derivedResources = [
             ...extractWriteResources(operation, safeInput),
             ...this._deriveDestinationResources(operation, safeInput),
@@ -56,6 +57,9 @@ export class ResourceOperationPlanner {
         for (const uuidKey of closure.uuidKeys) {
             resourceKeys.add(`resource:${this._normalizeResource(uuidKey)}`);
         }
+        if (creationTarget != null) {
+            this._addCreationClosure(resourceKeys, creationTarget);
+        }
         if (resourceKeys.size === 0) {
             resourceKeys.add(PROJECT_FALLBACK_RESOURCE);
         }
@@ -65,7 +69,51 @@ export class ResourceOperationPlanner {
             resourceKeys: Object.freeze([...resourceKeys].sort()),
             requiresProjectWriter,
             closure,
+            ...(creationTarget == null ? {} : { workerManagedCommitWindow: true }),
         });
+    }
+
+    /**
+     * @description 识别必须走 AssetDB 首次创建屏障的 Prefab / Scene 目标。
+     * @param operation operation。
+     * @param input 已校验输入。
+     * @returns 创建目标或 null。
+     */
+    private _deriveCreationTarget(
+        operation: string,
+        input: Readonly<Record<string, unknown>>,
+    ): string | null {
+        if (operation === 'prefab.createFromNode') {
+            return this._readString(input.prefabPath);
+        }
+        if (operation !== 'lumen.scaffold' || input.reset === true) {
+            return null;
+        }
+        const target = this._readString(input.prefabRelativePath) ?? this._readString(input.assetRelativePath);
+        if (target == null || !/\.(?:prefab|scene)$/iu.test(target)) {
+            return null;
+        }
+        return target;
+    }
+
+    /**
+     * @description 将首次创建目标、主 sidecar、父目录和父目录 sidecar 纳入同一资源集合。
+     * @param into 资源集合。
+     * @param targetValue 创建目标。
+     */
+    private _addCreationClosure(into: Set<string>, targetValue: string): void {
+        const target = this._normalizeResource(targetValue);
+        if (!this._isAssetPath(target) || target === 'db://assets') {
+            return;
+        }
+        const assetPath = target.slice('db://'.length);
+        const parent = this._parentPath(assetPath) || 'assets';
+        into.add(`resource:${target}`);
+        into.add(`resource:${target}.meta`);
+        into.add(`directory:${parent}`);
+        if (parent !== 'assets') {
+            into.add(`resource:db://${parent}.meta`);
+        }
     }
 
     /**

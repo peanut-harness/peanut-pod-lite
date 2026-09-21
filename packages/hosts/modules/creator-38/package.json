@@ -10,7 +10,7 @@
         "build": "node scripts/pack-host.mjs",
         "typecheck": "node ../../../../tools/check-javascript-syntax.mjs src panel scripts",
         "pack": "node scripts/pack-host.mjs",
-        "test": "npm run pack && node --test tests/release-package.test.mjs tests/package-integrity.test.mts tests/optional-pro-host.test.mjs tests/account-upgrade.test.mjs tests/managed-task-bridge.test.mts"
+        "test": "npm run pack && node --test tests/release-package.test.mjs tests/package-integrity.test.mts tests/optional-pro-host.test.mjs tests/account-upgrade.test.mjs tests/managed-task-bridge.test.mts tests/managed-task-live-script.test.mts"
     },
     "devDependencies": {
         "esbuild": "^0.25.9"

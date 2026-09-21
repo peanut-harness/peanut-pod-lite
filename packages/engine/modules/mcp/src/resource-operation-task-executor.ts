@@ -15,7 +15,11 @@ export interface IResourceOperationTaskExecutorOptions {
     /**
      * @description 在锁内执行原业务 worker 与唯一 postflight。
      */
-    execute(operation: string, input: Readonly<Record<string, unknown>>): Promise<unknown>;
+    execute(
+        operation: string,
+        input: Readonly<Record<string, unknown>>,
+        context: IPluginTaskExecutorContext,
+    ): Promise<unknown>;
     /**
      * @description 可注入共享原子锁管理器。
      */
@@ -61,18 +65,29 @@ export class ResourceOperationTaskExecutor {
             signal: context.signal,
         });
         try {
-            if (!context.enterCommitWindow()) {
+            if (plan.workerManagedCommitWindow !== true && !context.enterCommitWindow()) {
                 throw new Error('editor_mcp_task_cancelled_before_commit');
             }
-            const result = await this._options.execute(payload.operation, payload.input);
-            context.recordEvidence({
-                id: 'postflight',
-                kind: 'postflight',
-                status: 'completed',
-                summary: 'Resource operation worker and postflight completed.',
-                recordedAt: new Date().toISOString(),
-            });
-            return result;
+            try {
+                const result = await this._options.execute(payload.operation, payload.input, context);
+                context.recordEvidence({
+                    id: 'postflight',
+                    kind: 'postflight',
+                    status: 'completed',
+                    summary: 'Resource operation worker and postflight completed.',
+                    recordedAt: new Date().toISOString(),
+                });
+                return result;
+            } catch (error: unknown) {
+                context.recordEvidence({
+                    id: 'postflight',
+                    kind: 'postflight',
+                    status: 'failed',
+                    summary: 'Resource operation worker or authoritative postflight failed.',
+                    recordedAt: new Date().toISOString(),
+                });
+                throw error;
+            }
         } finally {
             lease.release();
         }

@@ -24,10 +24,10 @@ MCP client
 ## 标准写入流程
 
 1. 用模板和 schema 查询确定输入边界。
-2. 用 scaffold、structure、node、component 或 asset operation 在内存中准备改动。
-3. 写 Prefab、Scene 或资源源文件时，集中提交本批次路径。
+2. 新建 Prefab/Scene 时用 `lumen.scaffold` 触发 AssetDB 原子创建；成功结果必须含 `creation.phase=verified`、真实 UUID 与 `.meta`，不得把普通 refresh 当作创建成功。
+3. 用 structure、node、component 或 asset operation 编辑已存在资源，并通过 `lumen.commit` 集中提交本批次更新路径。
 4. 对资源引用执行 UUID、子资源 UUID、脚本属性和 Prefab 绑定校验。
-5. 等待 AssetDB 稳定并刷新编辑器。
+5. 等待已有资源更新的 AssetDB settle；首次创建的 settle 已由 scaffold 唯一 postflight 完成，不重复触发。
 6. 重新读取落盘资源及 `.meta`，再检查本轮 `project.log` 增量。
 
 多个文件必须批量提交，避免每个文件单独触发 AssetDB 刷新。不得用 `scene.save`、外部文件复制或直接改缓存目录绕过 Lumen/MCP 写入边界。

@@ -13,6 +13,7 @@ export type {
     ILumenNodeSpec,
     ILumenResolveQuery,
     ILumenScaffoldPrefabOptions,
+    ILumenSerializedHierarchyScaffold,
     ILumenSessionOptions,
     ILumenSetAssetPropertyOptions,
     ILumenSetComponentPropertyOptions,

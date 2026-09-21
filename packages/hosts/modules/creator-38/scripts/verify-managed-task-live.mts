@@ -3,6 +3,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
+import { assertManagedTaskLiveReport, readCreatedIdentity } from './managed-task-live-evidence.mts';
+
 const projectPath = resolve(readArgument('--project'));
 const outputPath = resolve(readArgument('--output'));
 const descriptor = readJson(join(projectPath, '.peanut-ai', 'cocos-mcp.json'));
@@ -91,13 +93,106 @@ const parallelElapsedMs = Date.now() - parallelStartedAt;
 assert.equal(parallelAStatus.status, 'succeeded');
 assert.equal(parallelBStatus.status, 'succeeded');
 
+markStage('atomic-creation');
+const prefabPath = `${root}/Atomic.prefab`;
+const scenePath = `${root}/Atomic.scene`;
+const [prefabCreate, sceneCreate] = await Promise.all([
+    approvedOperation(owner, 'peanut.editor-mcp.lumen-scaffold', [prefabPath], {
+        prefabRelativePath: prefabPath,
+        rootName: 'AtomicPrefab',
+        template: 'empty',
+        execution: { mode: 'async' },
+    }),
+    approvedOperation(owner, 'peanut.editor-mcp.lumen-scaffold', [scenePath], {
+        prefabRelativePath: scenePath,
+        rootName: 'AtomicScene',
+        template: 'empty',
+        execution: { mode: 'async' },
+    }),
+]);
+const [prefabCreateStatus, sceneCreateStatus] = await Promise.all([
+    waitForTerminal(prefabCreate.taskId, owner),
+    waitForTerminal(sceneCreate.taskId, owner),
+]);
+assert.equal(prefabCreateStatus.status, 'succeeded');
+assert.equal(sceneCreateStatus.status, 'succeeded');
+const prefabIdentity = readCreatedIdentity(projectPath, prefabPath, 'prefab');
+const sceneIdentity = readCreatedIdentity(projectPath, scenePath, 'scene');
+
+const racePath = `${root}/Race.prefab`;
+const [raceFirst, raceSecond] = await Promise.all([
+    approvedOperation(owner, 'peanut.editor-mcp.lumen-scaffold', [racePath], {
+        prefabRelativePath: racePath,
+        rootName: 'RaceFirst',
+        template: 'empty',
+        execution: { mode: 'async' },
+    }),
+    approvedOperation(other, 'peanut.editor-mcp.lumen-scaffold', [racePath], {
+        prefabRelativePath: racePath,
+        rootName: 'RaceSecond',
+        template: 'empty',
+        execution: { mode: 'async' },
+    }),
+]);
+const [raceFirstStatus, raceSecondStatus] = await Promise.all([
+    waitForTerminal(raceFirst.taskId, owner),
+    waitForTerminal(raceSecond.taskId, other),
+]);
+const raceStatuses = [raceFirstStatus.status, raceSecondStatus.status].sort();
+assert.deepEqual(raceStatuses, ['failed', 'succeeded']);
+const raceIdentity = readCreatedIdentity(projectPath, racePath, 'prefab');
+
+const cancelCreateBlockerPath = `${root}/cancel-create-blocker.json`;
+const cancelCreateTarget = `${root}/Cancelled.prefab`;
+const createBlockers = [];
+for (let index = 0; index < 5; index += 1) {
+    createBlockers.push(await approvedWrite(owner, [cancelCreateBlockerPath], {
+        path: cancelCreateBlockerPath,
+        content: JSON.stringify({ runId, index, padding: 'c'.repeat(32 * 1024) }),
+        execution: { mode: 'async' },
+    }));
+}
+const cancelCreate = await approvedOperation(owner, 'peanut.editor-mcp.lumen-scaffold', [cancelCreateTarget], {
+    prefabRelativePath: cancelCreateTarget,
+    rootName: 'Cancelled',
+    template: 'empty',
+    execution: { mode: 'async' },
+});
+const cancelCreateResult = await request({ action: 'task.cancel', taskId: cancelCreate.taskId, connectionId: owner });
+const cancelCreateStatus = await waitForTerminal(cancelCreate.taskId, owner);
+const createBlockerStatuses = await Promise.all(createBlockers.map((blocker) => waitForTerminal(blocker.taskId, owner)));
+assert.equal(cancelCreateResult.cancelled, true);
+assert.equal(cancelCreateStatus.status, 'cancelled');
+assert.equal(existsSync(join(projectPath, cancelCreateTarget)), false);
+assert.equal(existsSync(join(projectPath, `${cancelCreateTarget}.meta`)), false);
+assert.ok(createBlockerStatuses.every((status) => status.status === 'succeeded'));
+
 markStage('evidence');
-const successfulTaskIds = [...blockers.map((blocker) => blocker.taskId), fifoFirst.taskId, fifoSecond.taskId, parallelA.taskId, parallelB.taskId];
+const creationTaskIds = [prefabCreate.taskId, sceneCreate.taskId, raceFirst.taskId, raceSecond.taskId];
+const successfulTaskIds = [
+    ...blockers.map((blocker) => blocker.taskId),
+    fifoFirst.taskId,
+    fifoSecond.taskId,
+    parallelA.taskId,
+    parallelB.taskId,
+    prefabCreate.taskId,
+    sceneCreate.taskId,
+    raceFirstStatus.status === 'succeeded' ? raceFirst.taskId : raceSecond.taskId,
+];
+const evidenceConnections = new Map([[raceSecond.taskId, other]]);
 const evidence = Object.fromEntries(await Promise.all(successfulTaskIds.map(async (taskId) => [
     taskId,
-    await request({ action: 'task.evidence', taskId, connectionId: owner }),
+    await request({ action: 'task.evidence', taskId, connectionId: evidenceConnections.get(taskId) ?? owner }),
 ])));
 for (const taskEvidence of Object.values(evidence)) {
+    assert.equal(taskEvidence.entries.filter((entry) => entry.kind === 'postflight').length, 1);
+}
+const creationEvidence = Object.fromEntries(await Promise.all(creationTaskIds.map(async (taskId) => [
+    taskId,
+    await request({ action: 'task.evidence', taskId, connectionId: taskId === raceSecond.taskId ? other : owner }),
+])));
+for (const taskEvidence of [creationEvidence[prefabCreate.taskId], creationEvidence[sceneCreate.taskId]]) {
+    assert.equal(taskEvidence.entries.filter((entry) => entry.kind === 'assetdb_settle').length, 1);
     assert.equal(taskEvidence.entries.filter((entry) => entry.kind === 'postflight').length, 1);
 }
 
@@ -108,7 +203,7 @@ const probeFiles = findProbeReferences(root);
 assert.deepEqual(probeFiles, []);
 
 const report = {
-    schema: 'peanut.creator38.managed-task-live.v1',
+    schema: 'peanut.creator38.managed-task-live.v2',
     startedAt,
     finishedAt: new Date().toISOString(),
     project: { name: projectPath.split('/').at(-1), creatorVersion: hostStatus.creatorContext.version.raw },
@@ -119,13 +214,31 @@ const report = {
         cancellation: { blockers: blockerStatuses, cancelled: cancelledStatus, nonOwnerError: nonOwnerCancel.error, ownerCancel, targetAbsent: true },
         fifo: { first: fifoFirstStatus, second: fifoSecondStatus, finalOrder: 'second' },
         parallel: { first: parallelAStatus, second: parallelBStatus, elapsedMs: parallelElapsedMs },
+        atomicCreation: {
+            prefab: { task: prefabCreateStatus, identity: prefabIdentity },
+            scene: { task: sceneCreateStatus, identity: sceneIdentity },
+            sameTargetRace: { first: raceFirstStatus, second: raceSecondStatus, identity: raceIdentity, noOverwrite: true },
+            preCommitCancellation: {
+                task: cancelCreateStatus,
+                cancel: cancelCreateResult,
+                blockers: createBlockerStatuses,
+                targetAbsent: true,
+            },
+        },
         postflight: { taskCount: successfulTaskIds.length, exactlyOnce: true },
         cleanup: { probeFiles, cancelledTargetAbsent: true },
         projectLog: { startOffset: logOffset, deltaBytes: Buffer.byteLength(logDelta), unexpectedLines: unexpectedLogLines },
     },
     evidence,
-    reportDigest: createHash('sha256').update(JSON.stringify({ runId, artifacts: hostStatus.artifacts, successfulTaskIds })).digest('hex'),
+    creationEvidence,
+    reportDigest: createHash('sha256').update(JSON.stringify({
+        runId,
+        artifacts: hostStatus.artifacts,
+        successfulTaskIds,
+        identities: [prefabIdentity, sceneIdentity, raceIdentity],
+    })).digest('hex'),
 };
+assertManagedTaskLiveReport(report);
 writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`);
 console.log(JSON.stringify({ outputPath, creatorVersion: report.project.creatorVersion, checks: report.checks, reportDigest: report.reportDigest }));
 
@@ -140,6 +253,22 @@ async function approvedWrite(connectionId, resources, input) {
     return request({
         action: 'call',
         name: 'peanut.editor-mcp.asset-write-text',
+        connectionId,
+        input: { ...input, resources, approvalToken: issued.approvalToken },
+    });
+}
+
+async function approvedOperation(connectionId, name, resources, input) {
+    const issued = await request({
+        action: 'issueApprovalToken',
+        connectionId,
+        resources,
+        operations: [name],
+        maxRisk: input.confirmDestructive === true ? 'destructive' : 'write',
+    });
+    return request({
+        action: 'call',
+        name,
         connectionId,
         input: { ...input, resources, approvalToken: issued.approvalToken },
     });
@@ -190,7 +319,9 @@ function findProbeReferences(relativeRoot) {
         for (const entry of requireDirectory(current)) {
             const path = join(current, entry.name);
             if (entry.isDirectory()) stack.push(path);
-            else if (entry.name.includes('peanut-assetdb-registration-probe')) found.push(path.slice(projectPath.length + 1));
+            else if (entry.name.includes('peanut-assetdb-registration-probe') || entry.name.includes('__peanut_assetdb_register_')) {
+                found.push(path.slice(projectPath.length + 1));
+            }
         }
     }
     return found.sort();

@@ -22,6 +22,10 @@ export interface IResourceOperationTaskPlan {
      * @description 用于任务诊断与后续审批绑定的资源闭包摘要。
      */
     readonly closure?: IResourceOperationClosureSummary;
+    /**
+     * @description 首次创建任务由 worker 在真正发布前开启 commit 窗口。
+     */
+    readonly workerManagedCommitWindow?: boolean;
 }
 
 /**

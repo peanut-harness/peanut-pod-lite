@@ -45,8 +45,14 @@ import {
 import { Lumen24McpBridge } from './editor-mcp-lumen-24-bridge.js';
 import { EditorMcpLumenInputCodec } from './editor-mcp-lumen-input-codec.js';
 import { executeLodRecalcBounds } from './editor-mcp-lod-recalc.js';
+import type {
+    EditorMcpAssetDbCreationCoordinator,
+    IEditorMcpAssetDbCreationLifecycle,
+} from './editor-mcp-asset-db-creation-coordinator.js';
 
-/** @description 会写盘并建议随后 `lumen.commit` 的操作。 */
+/**
+ * @description 会写盘并建议随后 `lumen.commit` 的操作。
+ */
 const LUMEN_WRITE_OPERATIONS: ReadonlySet<EditorMcpOperationId> = new Set([
     'lumen.scaffold',
     'lumen.structure',
@@ -69,13 +75,23 @@ const LUMEN_WRITE_OPERATIONS: ReadonlySet<EditorMcpOperationId> = new Set([
  * @description lumen MCP 操作网关：校验输入并以当前项目根驱动 `LumenSession`。
  */
 export class EditorMcpLumenGateway {
-    /** @description 解析当前 Creator 项目绝对路径。 */
+    /**
+     * @description 解析当前 Creator 项目绝对路径。
+     */
     private readonly _resolveProjectRoot: () => Promise<string>;
 
-    /** @description 可选 message 端口；缺省尝试 Creator `Editor.Message`。 */
+    /**
+     * @description 可选 message 端口；缺省尝试 Creator `Editor.Message`。
+     */
     private readonly _messagePort: ILumenMessagePort | null;
-    /** @description 输入编解码。 */
+    /**
+     * @description 输入编解码。
+     */
     private readonly _input: EditorMcpLumenInputCodec;
+    /**
+     * @description 由 Router 注入的 Prefab / Scene 首次创建协调器。
+     */
+    private _creationCoordinator: EditorMcpAssetDbCreationCoordinator | null = null;
 
     /**
      * @description 创建网关。
@@ -86,6 +102,14 @@ export class EditorMcpLumenGateway {
         this._resolveProjectRoot = resolveProjectRoot;
         this._messagePort = messagePort;
         this._input = new EditorMcpLumenInputCodec();
+    }
+
+    /**
+     * @description 注入 Router 共享的 AssetDB 首次创建协调器。
+     * @param coordinator 创建协调器。
+     */
+    public configureCreationCoordinator(coordinator: EditorMcpAssetDbCreationCoordinator): void {
+        this._creationCoordinator = coordinator;
     }
 
     /**
@@ -239,13 +263,17 @@ export class EditorMcpLumenGateway {
      * @param input 未受信输入
      * @returns 操作结果数据
      */
-    public async execute(operation: EditorMcpOperationId, input: ContractPayload | undefined): Promise<unknown> {
+    public async execute(
+        operation: EditorMcpOperationId,
+        input: ContractPayload | undefined,
+        lifecycle?: IEditorMcpAssetDbCreationLifecycle,
+    ): Promise<unknown> {
         this.validate(operation, input);
         if (!EditorMcpLumenGateway.isWriteOperation(operation)) {
-            return this._executeBody(operation, input);
+            return this._executeBody(operation, input, lifecycle);
         }
         const lockKey = this._readWriteLockKey(operation, input);
-        return LumenResourceWriteLock.shared().runExclusive(lockKey, () => this._executeBody(operation, input));
+        return LumenResourceWriteLock.shared().runExclusive(lockKey, () => this._executeBody(operation, input, lifecycle));
     }
 
     /**
@@ -254,7 +282,11 @@ export class EditorMcpLumenGateway {
      * @param input 未受信输入
      * @returns 操作结果数据
      */
-    private async _executeBody(operation: EditorMcpOperationId, input: ContractPayload | undefined): Promise<unknown> {
+    private async _executeBody(
+        operation: EditorMcpOperationId,
+        input: ContractPayload | undefined,
+        lifecycle?: IEditorMcpAssetDbCreationLifecycle,
+    ): Promise<unknown> {
         switch (operation) {
             case 'lumen.schema':
                 return this._executeSchema(this._input.readSchemaInput(input));
@@ -274,7 +306,7 @@ export class EditorMcpLumenGateway {
                     this._readLodRecalcBoundsInput(input),
                 );
             case 'lumen.scaffold':
-                return this._executeScaffold(this._input.readScaffoldInput(input));
+                return this._executeScaffold(this._input.readScaffoldInput(input), lifecycle);
             case 'lumen.structure':
                 return this._executeStructure(this._input.readStructureInput(input));
             case 'lumen.compileRecipe':
@@ -432,7 +464,9 @@ export class EditorMcpLumenGateway {
         return session;
     }
 
-    /** @description 尝试从 Creator 全局 `Editor.Message` 构造端口。 */
+    /**
+     * @description 尝试从 Creator 全局 `Editor.Message` 构造端口。
+     */
     private _readLodRecalcBoundsInput(
         input: ContractPayload | undefined,
     ): import('@peanut/pod-protocol').ILumenLodRecalcBoundsMcpInput {
@@ -552,7 +586,10 @@ export class EditorMcpLumenGateway {
         };
     }
 
-    private async _executeScaffold(input: ILumenScaffoldMcpInput): Promise<unknown> {
+    private async _executeScaffold(
+        input: ILumenScaffoldMcpInput,
+        lifecycle?: IEditorMcpAssetDbCreationLifecycle,
+    ): Promise<unknown> {
         if (Lumen24McpBridge.isCreator2x(input.cocosVersion)) {
             const projectRoot = await this._resolveProjectRoot();
             const result = await Lumen24McpBridge.scaffold(projectRoot, {
@@ -562,6 +599,32 @@ export class EditorMcpLumenGateway {
                 ...(input.reset === true ? { reset: true } : {}),
             });
             return this._decorateWriteResult({ ...result }, result.prefab);
+        }
+        const isHierarchyCreate = /\.(?:prefab|scene)$/iu.test(input.prefabRelativePath) && input.reset !== true;
+        if (isHierarchyCreate && this._creationCoordinator != null) {
+            const session = await this._createSession(input.cocosVersion == null ? {} : { cocosVersion: input.cocosVersion });
+            const serialized = session.serializeHierarchyScaffold({
+                prefabRelativePath: input.prefabRelativePath,
+                rootName: input.rootName ?? 'Root',
+                template: input.template ?? 'empty',
+                writeMetaIfMissing: false,
+            });
+            const creation = await this._creationCoordinator.create({
+                targetPath: serialized.relativePath,
+                resourceType: serialized.kind,
+                content: serialized.content,
+                lifecycle,
+            });
+            return this._decorateWriteResult(
+                {
+                    phase: session.phase,
+                    prefab: serialized.relativePath,
+                    cocos: session.cocosVersion.toString(),
+                    kind: serialized.kind,
+                    creation,
+                },
+                serialized.relativePath,
+            );
         }
         // Create-then-edit: wire AssetDB refresh and await import/ready before returning,
         // otherwise Creator Window logs "original asset is not exist" on the new prefab.

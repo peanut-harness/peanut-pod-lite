@@ -1,7 +1,7 @@
 import assert from 'assert/strict';
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import { dirname, join } from 'path';
 import test from 'node:test';
 
 import { createPluginModule, EditorMcpActionRouter, EditorMcpLumenGateway, EditorMcpPluginModule } from '../dist/index.js';
@@ -220,7 +220,16 @@ async function createActivePluginModule(options = {}) {
                         };
                     }
                     if (target === 'scene' && message === 'create-prefab') {
-                        return 'prefab-uuid';
+                        const raw = typeof args[1] === 'string' ? args[1] : args[0]?.url;
+                        const dbPath = typeof raw === 'string' ? raw : '';
+                        const projectPath = options.projectPath ?? 'projects/mcp-test';
+                        const relativePath = dbPath.replace(/^db:\/\//u, '');
+                        const absolutePath = join(projectPath, relativePath);
+                        mkdirSync(dirname(absolutePath), { recursive: true });
+                        writeFileSync(absolutePath, '[]\n');
+                        const uuid = '11111111-2222-4333-8444-555555555555';
+                        writeFileSync(`${absolutePath}.meta`, JSON.stringify({ uuid, importer: 'prefab' }));
+                        return { uuid };
                     }
                     if (target === 'scene' && message === 'apply-prefab') {
                         return true;
@@ -236,6 +245,9 @@ async function createActivePluginModule(options = {}) {
                     }
                     if (target === 'asset-db' && message === 'query-asset-info') {
                         const dbPath = typeof args[0] === 'string' ? args[0] : '';
+                        if (dbPath === 'db://assets') {
+                            return { uuid: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', importer: 'directory' };
+                        }
                         const projectPath = options.projectPath ?? 'projects/mcp-test';
                         const relativePath = dbPath.replace(/^db:\/\//u, '');
                         const metaPath = join(projectPath, `${relativePath}.meta`);
@@ -244,6 +256,36 @@ async function createActivePluginModule(options = {}) {
                         }
                         const meta = JSON.parse(readFileSync(metaPath, 'utf8'));
                         return { uuid: meta.uuid, importer: meta.importer ?? '' };
+                    }
+                    if (target === 'asset-db' && message === 'create-asset') {
+                        const dbPath = typeof args[0] === 'string' ? args[0] : '';
+                        const content = typeof args[1] === 'string' ? args[1] : '{}\n';
+                        const projectPath = options.projectPath ?? 'projects/mcp-test';
+                        const relativePath = dbPath.replace(/^db:\/\//u, '');
+                        const absolutePath = join(projectPath, relativePath);
+                        mkdirSync(dirname(absolutePath), { recursive: true });
+                        writeFileSync(absolutePath, content);
+                        const uuid = dbPath.includes('__peanut_assetdb_register_')
+                            ? 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
+                            : 'cccccccc-dddd-4eee-8fff-000000000000';
+                        const importer = dbPath.endsWith('.scene') ? 'scene' : dbPath.endsWith('.prefab') ? 'prefab' : 'json';
+                        writeFileSync(`${absolutePath}.meta`, JSON.stringify({ uuid, importer }));
+                        const parentPath = dirname(absolutePath);
+                        if (parentPath !== join(projectPath, 'assets')) {
+                            writeFileSync(`${parentPath}.meta`, JSON.stringify({
+                                uuid: 'dddddddd-eeee-4fff-8000-111111111111',
+                                importer: 'directory',
+                            }));
+                        }
+                        return { uuid };
+                    }
+                    if (target === 'asset-db' && message === 'delete-asset') {
+                        const dbPath = typeof args[0] === 'string' ? args[0] : '';
+                        const projectPath = options.projectPath ?? 'projects/mcp-test';
+                        const relativePath = dbPath.replace(/^db:\/\//u, '');
+                        rmSync(join(projectPath, relativePath), { force: true });
+                        rmSync(join(projectPath, `${relativePath}.meta`), { force: true });
+                        return true;
                     }
                     return null;
                 },
@@ -277,6 +319,51 @@ test('Editor MCP plugin should declare a tooling manifest and dynamic factory', 
     assert.equal(packageManifest.id, pluginModule.manifest.id);
     assert.equal(packageManifest.permissions.assetDb.write, pluginModule.manifest.permissions.assetDb.write);
     assert.deepEqual(packageManifest.permissions.sceneScripts, pluginModule.manifest.permissions.sceneScripts);
+});
+
+test('Editor MCP managed executor forwards the runtime task context to the router', async () => {
+    const pluginModule = new EditorMcpPluginModule(createCatalogLookupStub(), createLumenGatewayStub());
+    let registeredExecutor = null;
+    await pluginModule.activate({
+        plugin: { id: 'peanut.editor-mcp' },
+        runtime: {},
+        services: { request: async () => undefined },
+        tasks: {
+            managed: {
+                registerExecutor: (_kind, executor) => {
+                    registeredExecutor = executor;
+                },
+            },
+        },
+        logger: { info: () => {} },
+    });
+    assert.notEqual(registeredExecutor, null);
+    let forwardedContext = null;
+    pluginModule._router.planManagedResourceOperation = async () => ({
+        projectKey: 'project',
+        resourceKeys: ['assets/Atomic.prefab'],
+        requiresProjectWriter: false,
+        workerManagedCommitWindow: true,
+    });
+    pluginModule._router.executeManagedResourceOperation = async (_operation, _input, context) => {
+        forwardedContext = context;
+        return { operation: 'lumen.scaffold', data: {} };
+    };
+    const executorContext = {
+        owner: { pluginId: 'peanut.editor-mcp', connectionId: 'test', projectKey: 'project' },
+        signal: new AbortController().signal,
+        enterCommitWindow: () => true,
+        recordEvidence: () => undefined,
+    };
+    await registeredExecutor({
+        requestId: 'context-forwarding',
+        pluginId: 'peanut.editor-mcp',
+        scope: 'project',
+        priority: 'normal',
+        kind: 'editor-mcp.resource-operation',
+        payload: { operation: 'lumen.scaffold', input: {} },
+    }, executorContext);
+    assert.equal(forwardedContext, executorContext);
 });
 
 test('Editor MCP plugin should list, plan, and execute supported operations', async () => {
@@ -728,7 +815,7 @@ test('Editor MCP lumen gateway scaffolds and builds structure on a real project'
             },
         }, null, 2)}\n`);
         const lumenGateway = new EditorMcpLumenGateway(async () => root);
-        const { pluginModule } = await createActivePluginModule({
+        const { pluginModule, messageRequests } = await createActivePluginModule({
             projectPath: root,
             lumenGateway,
         });
@@ -738,6 +825,18 @@ test('Editor MCP lumen gateway scaffolds and builds structure on a real project'
             input: { prefabRelativePath: 'assets/ui/Demo.prefab', rootName: 'Demo', template: 'empty' },
         });
         assert.equal(scaffold.data.prefab, 'assets/ui/Demo.prefab');
+        assert.equal(scaffold.data.creation.phase, 'verified');
+        assert.equal(scaffold.data.creation.metaPresent, true);
+        assert.equal(scaffold.data.creation.cleanup.complete, true);
+        assert.equal(scaffold.data.taskPostflight.logChecked, true);
+        assert.equal(
+            messageRequests.filter((entry) =>
+                entry.target === 'asset-db' &&
+                entry.message === 'create-asset' &&
+                entry.args[0] === 'db://assets/ui/Demo.prefab'
+            ).length,
+            1,
+        );
 
         const structure = await pluginModule.dispatchMcpAction('cocos.call', {
             operation: 'lumen.structure',
@@ -1510,7 +1609,10 @@ test('Editor MCP lumen gateway scaffolds and builds structure on a real project'
 });
 
 test('Editor MCP should set selection by path and batch queryInfo', async () => {
-    const { pluginModule, messageRequests } = await createActivePluginModule();
+    const root = mkdtempSync(join(tmpdir(), 'peanut-editor-mcp-prefab-create-'));
+    try {
+    mkdirSync(join(root, 'assets'), { recursive: true });
+    const { pluginModule, messageRequests } = await createActivePluginModule({ projectPath: root });
     const setSelection = await pluginModule.dispatchMcpAction('cocos.call', {
         operation: 'editor.setSelection',
         input: { paths: ['Demo/Child'] },
@@ -1553,7 +1655,10 @@ test('Editor MCP should set selection by path and batch queryInfo', async () => 
     assert.equal(createPrefab.data.available, true);
     assert.equal(createPrefab.data.data.instancePath, 'Demo/Child');
     assert.equal(createPrefab.data.data.instanceUuid, 'child-uuid');
-    assert.deepEqual(messageRequests.at(-1), {
+    assert.equal(createPrefab.data.data.creation.phase, 'verified');
+    assert.equal(createPrefab.data.data.creation.metaPresent, true);
+    assert.equal(createPrefab.data.taskPostflight.logChecked, true);
+    assert.deepEqual(messageRequests.filter((entry) => entry.target === 'scene' && entry.message === 'create-prefab').at(-1), {
         target: 'scene',
         message: 'create-prefab',
         args: ['child-uuid', 'db://assets/Child.prefab'],
@@ -1607,6 +1712,9 @@ test('Editor MCP should set selection by path and batch queryInfo', async () => 
         input: { nodePath: 'Demo/Child', confirmDestructive: true },
     });
     assert.equal(unlink.data.available, true);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
 });
 
 test('Editor MCP plugin should execute silent asset lifecycle on disk', async () => {

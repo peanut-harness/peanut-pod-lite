@@ -1,6 +1,6 @@
 # peanut-pod-lite-host
 
-Creator **3.8.x** 原生扩展宿主。当前只有宿主与项目声明版本都精确为 **3.8.7** 时开放写操作，其它 3.8 版本只读。
+Creator **3.8.x** 原生扩展宿主。当前只有宿主与项目声明版本都精确为 **3.8.3** 或 **3.8.7** 时开放写操作，其它 3.8 版本只读。
 
 发布产物以 Creator 3.8.3 自带的 Electron 13 / Node 14 为最低宿主基线：构建目标固定为 `node14`，移除
 `node:` 内置模块前缀，并拒绝 `Object.hasOwn`、`String.prototype.replaceAll`、负索引 `Array.prototype.at`

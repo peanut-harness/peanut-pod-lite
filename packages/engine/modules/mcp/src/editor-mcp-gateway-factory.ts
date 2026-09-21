@@ -43,7 +43,12 @@ export function createEditorMcpExecuteOperation(
     const executionCodec = new EditorMcpExecutionCodec();
     const resourceExecutor = new ResourceOperationTaskExecutor({
         plan: async (operation, input) => router.planManagedResourceOperation(operation as EditorMcpOperationId, input),
-        execute: async (operation, input) => router.executeManagedResourceOperation(operation as EditorMcpOperationId, input),
+        execute: async (operation, input, executorContext) =>
+            router.executeManagedResourceOperation(
+                operation as EditorMcpOperationId,
+                input,
+                executorContext,
+            ),
     });
     let taskSequence = 0;
     const disposeExecutor = managedTasks?.registerExecutor(

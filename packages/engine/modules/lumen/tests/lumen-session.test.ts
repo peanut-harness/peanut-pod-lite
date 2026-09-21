@@ -108,6 +108,42 @@ test('scaffold empty prefab writes file and meta', (): void => {
     }
 });
 
+test('serialized hierarchy scaffold preserves prefab and scene shapes without touching disk', (): void => {
+    const root = createProject('lumen-serialized-scaffold-');
+    try {
+        const prefabSession = new LumenSession({ projectRoot: root });
+        const prefab = prefabSession.serializeHierarchyScaffold({
+            prefabRelativePath: 'assets/generated/Demo.prefab',
+            rootName: 'Demo',
+            template: 'empty',
+        });
+        assert.equal(prefab.kind, 'prefab');
+        assert.equal(prefab.relativePath, 'assets/generated/Demo.prefab');
+        const prefabEntries = JSON.parse(prefab.content) as Array<Record<string, unknown>>;
+        assert.equal(prefabEntries[0]?.__type__, 'cc.Prefab');
+        assert.equal(prefabEntries[1]?._name, 'Demo');
+        assert.equal(existsSync(join(root, prefab.relativePath)), false);
+        assert.equal(existsSync(join(root, `${prefab.relativePath}.meta`)), false);
+        assert.equal(existsSync(join(root, 'assets/generated')), false);
+
+        const sceneSession = new LumenSession({ projectRoot: root });
+        const scene = sceneSession.serializeHierarchyScaffold({
+            prefabRelativePath: 'assets/generated/Game.scene',
+            rootName: 'Game',
+            template: 'empty',
+        });
+        assert.equal(scene.kind, 'scene');
+        const sceneEntries = JSON.parse(scene.content) as Array<Record<string, unknown>>;
+        assert.equal(sceneEntries[0]?.__type__, 'cc.SceneAsset');
+        assert.equal(sceneEntries.some((entry) => entry._name === 'Main Camera'), true);
+        assert.equal(sceneEntries.some((entry) => entry._name === 'Main Light'), true);
+        assert.equal(existsSync(join(root, scene.relativePath)), false);
+        assert.equal(existsSync(join(root, `${scene.relativePath}.meta`)), false);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
 test('scaffold reset recreates prefab instead of appending on reopen', (): void => {
     const root = createProject('lumen-scaffold-reset-');
     try {

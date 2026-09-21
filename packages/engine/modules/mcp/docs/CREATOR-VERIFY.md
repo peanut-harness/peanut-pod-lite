@@ -81,7 +81,9 @@ npm exec -- tsx packages/hosts/modules/creator-38/scripts/verify-managed-task-li
   --output <qa-evidence-path>
 ```
 
-脚本通过当前会话描述符验证同资源 FIFO、不同资源并行、跨连接取消拒绝、owner 在 commit 前取消、取消目标与 AssetDB 注册探针零残留、成功任务恰好一次 postflight、Host/Core 产物身份一致和增量日志零 error/warn。输出只保存结构化安全摘要，不保存 Hub token。
+脚本通过当前会话描述符验证同资源 FIFO、不同资源并行、跨连接取消拒绝、owner 在 commit 前取消、Prefab/Scene 首次原子创建、双连接同目标竞争、创建任务 commit 前取消、真实 UUID/`.meta`、取消目标与 AssetDB 注册探针零残留、成功任务恰好一次 postflight、Host/Core 产物身份一致和增量日志零 error/warn。输出 schema 为 `peanut.creator38.managed-task-live.v2`，只保存结构化安全摘要，不保存 Hub token 或审批 token。
+
+原子创建矩阵必须同时满足：Prefab 与 Scene 的成功任务各有一条 `assetdb_settle` 和一条 `postflight` 证据；同目标竞争恰好一个成功且最终源文件摘要唯一；发布前取消后主文件和 `.meta` 均不存在；目录内不存在 `__peanut_assetdb_register_*`；日志增量不得出现 `original asset is not exist` 或其它新增 error/warn。任何 registration pending 或清理无法证明完成的结果都不允许自动重试。
 
 ## 7. 当前迁移证据
 
@@ -93,5 +95,6 @@ npm exec -- tsx packages/hosts/modules/creator-38/scripts/verify-managed-task-li
 - 本轮日志增量没有 error 或 warning，三份状态/报告中的宿主和 CPM 产物身份一致。
 - 2026-09-20，Creator 3.8.3 项目 `billiards-practice-clean` 的当前 pack 验收完成：修复旧 Node 的 `node:` builtin、`Object.hasOwn` 与 `crypto.randomUUID` 兼容性后，Host/Core 加载成功；`asset.writeText` 经 Hub 写租约完成 AssetDB settle 与 postflight 校验，随后 destructive 删除验证无残留。
 - 2026-09-21，修复 executor-managed 任务过早进入 commit 窗口后，同一候选 pack 在 Creator 3.8.3 与 3.8.7 逐版本通过受管任务矩阵：Host digest 均为 `5312e5db4c4287fc5f51294eb9758f828e36cb52df61428733405827c0b96e6b`，Core package digest 均为 `d5c5b010351c73586af7bad29cea352cc34f4c182e753d1572020a82407ee6bf`；两个版本均完成 5 个同资源 blocker、FIFO 最终值、两项不同资源并行、跨连接取消不可枚举、owner 取消与零残留，9 个成功任务各只有一条 postflight 证据，增量日志零 error/warn。结构化报告摘要分别为 `b56554090ebcd48a3fb2cd61105e44d152efb46a9afdce6e26b111a4e94e2e4a`（3.8.3）与 `7395057fd472f594d92c0c69e7e0d0f91983cf301bd7aa15db25a546b97151f3`（3.8.7）。
+- 2026-09-21，AssetDB 原子创建候选在 Creator 3.8.3 与 3.8.7 逐版本通过 `peanut.creator38.managed-task-live.v2`：Host digest 均为 `5312e5db4c4287fc5f51294eb9758f828e36cb52df61428733405827c0b96e6b`，Core package digest 均为 `68c6721913b494c5cfabe05ead19db00ec96074f48033a31d728ba856ddd645f`。Prefab/Scene 首次创建、同目标竞争、发布前取消、真实 UUID/`.meta`、唯一 `assetdb_settle`/postflight、零探针残留与零日志增量全部通过；报告摘要分别为 `db615d8ed8929ea5c7ccde93a19eef76e3ab54c27bdd0681633db7e650444850`（3.8.3）与 `30c2fcaa2de077cd2a26c8ed81add00d3b17a916c523d16ee8e2cc02e80daa1f`（3.8.7）。
 
 这不是 Wave 1 完成声明。剩余分母是 44 个写/破坏性 operation，必须继续按第 4、5 节逐项记录副作用、读取验证和清理结果。

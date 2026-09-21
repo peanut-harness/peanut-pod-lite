@@ -202,6 +202,24 @@ export interface ILumenScaffoldPrefabOptions {
 }
 
 /**
+ * @description Prefab / Scene 脚手架的内存序列化结果；由宿主决定如何原子发布。
+ */
+export interface ILumenSerializedHierarchyScaffold {
+    /**
+     * @description 工程相对目标路径。
+     */
+    readonly relativePath: string;
+    /**
+     * @description 层次资产种类。
+     */
+    readonly kind: 'prefab' | 'scene';
+    /**
+     * @description 规范化 Creator JSON 文本。
+     */
+    readonly content: string;
+}
+
+/**
  * @description 节点脚手架描述（仅结构，不含最终资源 uuid）。
  */
 export interface ILumenNodeSpec {

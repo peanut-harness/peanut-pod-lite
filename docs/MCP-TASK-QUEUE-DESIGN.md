@@ -177,6 +177,9 @@ uuid:<sub-asset-uuid>
 ### 3. AssetDB registration
 
 - 先确保父目录已由 AssetDB 登记。
+- 新建 Prefab/Scene 必须在内存完成规范化序列化，通过目标预留后调用 AssetDB `create-asset`；`prefab.createFromNode` 使用 Creator 原生发布器，但共享同一预留、登记确认与清理状态机。
+- 主资源发布前才进入不可逆 commit 窗口；发布前取消清理探针和本任务创建的空目录，发布后失败只有在 UUID/所有权匹配并证明 AssetDB 与磁盘均不存在时才返回 `unchanged`，否则返回 `may_have_changed`。
+- 首次创建的唯一 postflight 必须消费创建身份证据；registration pending、缺 `.meta`、引用失败或新增 `project.log` error/warn 均阻止成功，Hub 不再补做第二次 settle。
 - 对 `asset.copy` / `asset.createFolder` 这类纯磁盘变更，若目标路径尚未被 `query-asset-info` 识别，transaction 必须在目标目录用 `asset-db.create-asset` 创建短生命周期 JSON 探针，借助 Creator 原生 AssetDB 注册父目录和同目录资产；refresh/settle 后删除探针，删除失败必须清理文件与 `.meta` 并使缓存失效。
 - 新建主资源必须等待 `query-asset-info` 返回有效 UUID。
 - sidecar、子资源和依赖资源必须达到 ready 状态。
@@ -275,6 +278,7 @@ Phase 1 已从 Router 实例级 FIFO 升级为进程内共享的项目调度器�
 
 - [ ] 将 scaffold/compAdd/compSet/bind/commit 合并为批次执行。
 - [x] 通过统一 AssetDB transaction 执行父目录注册探针、refresh/settle、查询 UUID/子资源和 `.meta`，未登记直接失败关闭，并清理探针。
+- [x] Prefab/Scene 首次创建通过目标预留、父目录登记、AssetDB 发布、UUID/`.meta` 身份确认和所有权感知清理完成；Lumen 3.x 与 `prefab.createFromNode` 共用该状态机。
 - [x] 将 `project.log` 增量错误和警告纳入写任务成功条件。
 - [x] 失败任务返回稳定错误码、失败分类、状态歧义、可重试性、推荐动作和任务标识；普通与流式 Hub 响应保持一致。
 - [x] 工具目录公开写任务成功判据与禁止盲目重试规则。
