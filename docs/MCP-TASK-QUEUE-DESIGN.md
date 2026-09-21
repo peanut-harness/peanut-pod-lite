@@ -269,7 +269,7 @@ Phase 1 已从 Router 实例级 FIFO 升级为进程内共享的项目调度器�
 - [x] `ResourceOperationTaskQueue` 与 `LumenResourceWriteLock` 都一次性原子预约完整锁集合；同资源 FIFO、不同资源并行，空集合不再绕锁。
 - [x] 同工程跨 Router 共享 writer 屏障，不同工程 writer 可并行。
 - [x] 接入 `.meta` UUID/子资源、序列化引用和传递依赖扫描，并把闭包纳入一次性锁预留。
-- [ ] 增加任务级超时、取消和幂等控制。
+- [x] 增加任务级超时、取消和幂等控制。
 
 ### Phase 3：完整事务
 
@@ -282,10 +282,11 @@ Phase 1 已从 Router 实例级 FIFO 升级为进程内共享的项目调度器�
 
 ### Phase 4：异步和并行
 
-- [ ] 增加 `task.status/cancel/retry/evidence`。
+- [x] 增加 `task.status/cancel/evidence`。
+- [ ] 增加仅面向幂等或明确可恢复失败的 `task.retry`。
 - [x] 增加工程级 writer、公平的冲突 FIFO 和跨工程并行。
-- [ ] 增加优先级、取消、超时和批量公平配额。
-- 用两个 bridge connection 运行冲突和不冲突任务回归。
+- [x] 增加优先级、取消、超时和批量公平配额。
+- [x] 用两个 bridge connection 运行冲突和不冲突任务回归。
 
 ## 验收标准
 
