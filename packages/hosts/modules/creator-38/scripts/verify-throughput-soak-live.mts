@@ -15,6 +15,18 @@ const MAX_TRACKED_TASK_IDS = 1_024;
 const READ_OPERATION = 'peanut.editor-mcp.editor-query-version';
 const WRITE_OPERATION = 'peanut.editor-mcp.asset-write-text';
 
+class ThroughputSoakRequestError extends Error {
+    readonly failureCategory: string | null;
+    readonly retryAfterMs: number;
+
+    constructor(payload: Record<string, any>) {
+        super(typeof payload.error === 'string' ? payload.error : 'throughput_soak_request_failed');
+        this.name = 'ThroughputSoakRequestError';
+        this.failureCategory = typeof payload.failure?.category === 'string' ? payload.failure.category : null;
+        this.retryAfterMs = Number.isFinite(payload.failure?.retryAfterMs) ? Number(payload.failure.retryAfterMs) : 25;
+    }
+}
+
 const projectPath = resolve(readArgument('--project'));
 const outputPath = resolve(readArgument('--output'));
 const normalMs = readDuration('--normal-ms', ACCEPTANCE_NORMAL_MS);
@@ -179,8 +191,19 @@ async function runOverloadPhase(durationMs: number) {
         try {
             await submitBatch(paths, `overload-${cycle}`);
         } catch (error) {
-            if (error instanceof Error && error.message === 'throughput_overloaded') {
+            if (error instanceof ThroughputSoakRequestError && error.failureCategory === 'overloaded') {
                 counts.overloadRejected += 1;
+                await delay(Math.max(25, Math.min(error.retryAfterMs, 5_000)) + Math.floor(Math.random() * 25));
+                try {
+                    await submitBatch(paths, `overload-${cycle}-retry`);
+                    counts.retrySucceeded += 1;
+                } catch (retryError) {
+                    if (retryError instanceof ThroughputSoakRequestError && retryError.failureCategory === 'overloaded') {
+                        counts.overloadRejected += 1;
+                    } else {
+                        throw retryError;
+                    }
+                }
             } else {
                 throw error;
             }
@@ -293,7 +316,7 @@ async function measured<T>(kind: keyof typeof latencies, action: () => Promise<T
 async function request(body: Record<string, unknown>): Promise<any> {
     const payload = await rawRequest(body);
     if (payload.ok !== true) {
-        throw new Error(payload.error ?? 'throughput_soak_request_failed');
+        throw new ThroughputSoakRequestError(payload);
     }
     return payload.result;
 }

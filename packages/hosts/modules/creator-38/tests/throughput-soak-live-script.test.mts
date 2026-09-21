@@ -72,6 +72,7 @@ test('throughput soak live runner completes against a bounded mock Bridge', asyn
 
     let taskSequence = 0;
     let readSequence = 0;
+    let retentionCapacityRejected = false;
     const queriedTasks = new Set<string>();
     const batchSizes = new Map<string, number>();
     const server = createServer(async (request, response) => {
@@ -144,6 +145,14 @@ test('throughput soak live runner completes against a bounded mock Bridge', asyn
             return { ok: true, result: { taskId: body.taskId, status: 'succeeded' } };
         }
         if (body.action === 'batch.submit') {
+            if (body.batch.items.length === 32 && !retentionCapacityRejected) {
+                retentionCapacityRejected = true;
+                return {
+                    ok: false,
+                    error: 'task_retention_capacity_exceeded',
+                    failure: { category: 'overloaded', retryAfterMs: 25 },
+                };
+            }
             const batchId = `batch:${batchSizes.size + 1}`;
             batchSizes.set(batchId, body.batch.items.length);
             return {
