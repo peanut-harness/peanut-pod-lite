@@ -34,6 +34,6 @@
 
 - [x] 5.1 [repo: peanut-pod-lite] [paths: test/**, scripts/**, docs/**] [depends: 3.4, 4.8] [serial] [owner: qa] 完成模拟 10,000 读、500 写、过载、重试和 100 资源批次对照压测；验收：合格批处理负载吞吐至少为逐项执行的 2 倍，队列、任务、证据与内存均不突破硬上限。
 - [x] 5.2 [repo: peanut-pod-lite] [paths: package.json, scripts/**, test/**, docs/**] [depends: 5.1] [serial] [owner: integration] 运行完整 `verify`、`pack`、能力目录与 OpenSpec strict validation；验收：全部命令退出码为 0，产物仍公开 83 项能力且 Pro 缺失/失败不阻断 Lite。
-- [ ] 5.3 [repo: peanut-pod-lite] [paths: test/**, docs/**] [depends: 5.2] [parallel:creator-383] [owner: qa] 在 Creator 3.8.3 真实 Bridge 上执行 30 分钟正常负载与 10 分钟过载 soak；验收：无编辑器崩溃、未处理异常、永久锁、任务泄漏或错误项目状态，指标与日志已归档。
-- [ ] 5.4 [repo: peanut-pod-lite] [paths: test/**, docs/**] [depends: 5.2] [parallel:creator-387] [owner: qa] 在 Creator 3.8.7 真实 Bridge 上执行 30 分钟正常负载与 10 分钟过载 soak；验收：无编辑器崩溃、未处理异常、永久锁、任务泄漏或错误项目状态，指标与日志已归档。
-- [ ] 5.5 [repo: peanut-pod-lite] [paths: README.md, docs/**, openspec/**] [depends: 5.3, 5.4] [serial] [owner: integration] 更新吞吐调优、容量边界、故障语义、运维指标和版本验证文档，并按 Peanut Hub 流程同步知识；验收：文档默认值与实现一致，知识构建/check-sync 通过，最终分支已提交、推送并回读远端 SHA。
+- [x] 5.3 [repo: peanut-pod-lite] [paths: test/**, docs/**] [depends: 5.2] [parallel:creator-383] [owner: qa] 在 Creator 3.8.3 真实 Bridge 上执行 30 分钟正常负载与 10 分钟过载 soak；验收：无编辑器崩溃、未处理异常、永久锁、任务泄漏或错误项目状态，指标与日志已归档。
+- [x] 5.4 [repo: peanut-pod-lite] [paths: test/**, docs/**] [depends: 5.2] [parallel:creator-387] [owner: qa] 在 Creator 3.8.7 真实 Bridge 上执行 30 分钟正常负载与 10 分钟过载 soak；验收：无编辑器崩溃、未处理异常、永久锁、任务泄漏或错误项目状态，指标与日志已归档。
+- [x] 5.5 [repo: peanut-pod-lite] [paths: README.md, docs/**, openspec/**] [depends: 5.3, 5.4] [serial] [owner: integration] 更新吞吐调优、容量边界、故障语义、运维指标和版本验证文档，并按 Peanut Hub 流程同步知识；验收：文档默认值与实现一致，知识构建/check-sync 通过，最终分支已提交、推送并回读远端 SHA。
