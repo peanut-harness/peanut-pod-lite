@@ -17,7 +17,7 @@
 
 - [x] 3.1 `[repo: peanut-pod-lite] [paths: scripts/pack-directory-plugin.mjs, packages/engine/modules/creator-plugin/scripts/pack-plugin.mjs, packages/hosts/modules/creator-38/scripts/pack-host.mjs, tools/**, tests/**] [depends: 1.3] [parallel: lite-artifacts] [owner: lite-artifacts]` 生成 Host/Core archive 与 release descriptor，固定语义身份且排除绝对路径和非确定时间/压缩元数据影响；以相同 source/version 双构建的 descriptor、目录包 digest 和 archive 文件清单一致验收。
 - [x] 3.2 `[repo: cpm-install] [paths: product-catalog*, cli/**, tests/product-catalog*] [depends: 1.2, 3.1] [serial] [owner: coordinator]` 实现签名 Lite product catalog 的解析、固定产品信任锚、Host/Core 双 archive 摘要与目录包 digest 绑定，拒绝重定向、身份混搭和版本覆盖；以合法 catalog、逐字段篡改、Host/Core 交叉候选及重复版本测试验收。
-- [ ] 3.3 `[repo: cpm-install] [paths: cli/**install**, transaction/**, tests/product-install*] [depends: 2.3, 3.2] [serial] [owner: coordinator]` 实现显式 Lite `install/upgrade/repair` 项目命令，检查 Creator 未占用工程，原子提交 Host 扩展、Core 不可变版本目录和 schema v2 活动索引；以干净安装、同版本幂等、升级、校验前失败 unchanged、切换后恢复与 `may_have_changed` fixture 验收。
+- [x] 3.3 `[repo: cpm-install] [paths: cli/**install**, transaction/**, tests/product-install*] [depends: 2.3, 3.2] [serial] [owner: coordinator]` 实现显式 Lite `install/upgrade/repair` 项目命令，检查 Creator 未占用工程，原子提交 Host 扩展、Core 不可变版本目录和 schema v2 活动索引；以干净安装、同版本幂等、升级、校验前失败 unchanged、切换后恢复与 `may_have_changed` fixture 验收。
 - [ ] 3.4 `[repo: peanut-pod-lite + cpm-install] [paths: packages/engine/modules/installation/**, packages/hosts/modules/creator-38/**, cross-repo fixtures] [depends: 3.3] [serial] [owner: coordinator]` 对齐 CPM 安装结果与 Lite `ProjectPackageStore`/Host 加载契约，确保 `query-status.artifacts` 可核对 descriptor/catalog，且 Pro 缺失或失败只影响独立状态；以安装后加载、身份错配拒绝、Pro absent/failed 和修复路径集成测试验收。
 
 ## 4. 建立受控构建、签名与候选发布门禁
