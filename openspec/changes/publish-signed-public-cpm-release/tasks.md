@@ -10,8 +10,8 @@
 
 - [x] 2.1 `[repo: cpm-install] [paths: release-manifest.mjs, trust-anchor*, tests/release-manifest*] [depends: 1.2] [serial] [owner: coordinator]` 将正常公共路径绑定到固定 Ed25519 信任锚，保留仅测试可用的本地注入并实现双锚过渡校验；以缺锚、换锚、坏签名、字段篡改、重复版本和合法轮换测试验收。
 - [x] 2.2 `[repo: cpm-install] [paths: cli/**, scripts/**, runtime-manifest.mjs, tests/**] [depends: 1.2] [parallel: cpm-runtime] [owner: cpm-runtime]` 构建最小跨平台 CPM CLI runtime 与确定性 `runtime.manifest.json`，实现 `version --json` 和稳定入口，不包含产品包、密钥或邻仓路径；以 archive 逐文件摘要、迁址运行、Bash/Windows Node 冒烟和秘密扫描验收。
-- [ ] 2.3 `[repo: cpm-install] [paths: bootstrap.mjs, transaction/journal modules, tests/bootstrap*] [depends: 2.1, 2.2] [serial] [owner: coordinator]` 完成 `resolved -> downloaded -> staged -> committed -> verified/recovered` 事务、同版本幂等、current snapshot 与失败恢复，拒绝路径逃逸、链接、特殊/隐藏/清单外文件；以首次安装、升级、每阶段故障注入和零暂存残留测试验收。
-- [ ] 2.4 `[repo: cpm-install] [paths: install.sh, install.ps1, tests/install*] [depends: 2.3] [serial] [owner: coordinator]` 让 Bash/PowerShell 入口实际安装已验证 CLI、执行 `version --json` 并返回结构化身份，移除固定失败占位但在空/坏 manifest 时继续零修改失败关闭；以 shell fixture、PowerShell fixture、空 manifest 和已安装升级测试验收。
+- [x] 2.3 `[repo: cpm-install] [paths: bootstrap.mjs, transaction/journal modules, tests/bootstrap*] [depends: 2.1, 2.2] [serial] [owner: coordinator]` 完成 `resolved -> downloaded -> staged -> committed -> verified/recovered` 事务、同版本幂等、current snapshot 与失败恢复，拒绝路径逃逸、链接、特殊/隐藏/清单外文件；以首次安装、升级、每阶段故障注入和零暂存残留测试验收。
+- [x] 2.4 `[repo: cpm-install] [paths: install.sh, install.ps1, tests/install*] [depends: 2.3] [serial] [owner: coordinator]` 让 Bash/PowerShell 入口实际安装已验证 CLI、执行 `version --json` 并返回结构化身份，移除固定失败占位但在空/坏 manifest 时继续零修改失败关闭；以 shell fixture、PowerShell fixture、空 manifest 和已安装升级测试验收。
 
 ## 3. 产出并安装经过认证的 Lite 产品包
 
