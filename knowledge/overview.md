@@ -23,7 +23,7 @@ Cocos Creator 编辑器产品。公开 83 项免费操作（38 读、45 写/破�
 - 未知、缺失或不一致版本全部 fail-closed。
 - Creator 3.8.x 迁移验收按五个互斥域固定分母：Editor/Scene/Prefab 21、Asset read 15、Asset write 12、Preview/Builder/Reference 9、Lumen 26；legacy schema/readOnly/risk parity fixture 已覆盖全部 83 项，但不替代 Creator 实机证据。
 - 2026-09-20 在 Creator 3.8.3 工程 `billiards-practice-clean` 完成当前 Host/Core pack 的真实 Bridge 验证：宿主与工程版本均为 3.8.3，Host/Core 产物身份与状态报告一致，`asset.writeText` 经 Hub 写租约完成 AssetDB settle、`.meta` 生成和 postflight 校验，随后经 destructive 租约删除且无残留；3.8.3 现纳入 verified/write-enabled 精确画像。
-- Creator 3.8 实机报告同时记录宿主入口 SHA-256、Lite CPM package digest/packedAt 与可选 Pro package digest；`query-status`、`host-status.json`、`smoke-results.json` 三方身份必须一致，旧报告不能冒充当前 release。
+- Creator 3.8 实机报告同时记录宿主入口 SHA-256、打包 Host 目录包 digest、Lite CPM package digest/packedAt 与可选 Pro package digest；`query-status`、`host-status.json`、`smoke-results.json` 三方身份必须一致，旧报告不能冒充当前 release；live 脚本带 `--release-descriptor` 时再经 `CpmPackageStore.compareReleaseIdentity` 核对 descriptor。目录包 digest 规范按码元序拼接，校验端兼容旧 localeCompare 清单。
 - Creator 3.x 新建 Prefab/Scene 已改为单一 AssetDB 原子创建状态机：目标与 sidecar/父目录先纳入资源闭包，Lumen 在内存生成主内容，父目录登记探针清理完成后才进入 commit 窗口，再通过 `create-asset` 或 Creator 原生 Prefab 发布器写入并确认真实 UUID、`.meta` 与子资源。pending、身份不一致、探针残留或新增日志 error/warn 均阻止成功；无法证明回滚时返回 `may_have_changed`。
 - MCP 写调用默认进入进程内共享的项目调度器：同工程 Router 共享 AssetDB/editor writer 屏障，同资源按 FIFO 串行，不同资源的离线 Lumen 编辑与不同工程可以并行；多资源锁必须一次性原子预约，空锁集合降级为项目锁而不是绕锁。
 - 当前资源规划已覆盖 operation 推导资源、copy/rename/首次创建目标、主资源和父目录 `.meta`、序列化引用、传递依赖及 UUID/子资源闭包。纯磁盘 copy/createFolder 使用注册探针与 refresh/settle；首次创建使用专用发布状态机，创建身份由唯一 postflight 消费。共享任务控制面提供 connection-scoped 状态/取消/证据、超时与幂等，成功还要求 `project.log` 增量零错误零警告。自动重试与跨调用批次事务仍待后续阶段，设计见 `docs/MCP-TASK-QUEUE-DESIGN.md`。
