@@ -11,6 +11,14 @@ import { readRootReleaseVersion } from './release-identity.mts';
 const PRODUCT_ID = 'peanut.pod-lite';
 const CREATOR_PROFILES = Object.freeze(['3.8.3', '3.8.7']);
 const OPERATION_COUNTS = Object.freeze({ operationCount: 83, readOperationCount: 38, writeOperationCount: 45 });
+// 与 cpm-install `dev-signing.mjs` 相同的公开种子：开发密钥人人可复现，仅在 CPM_DEV_KEYS=1 时被信任且永不用于 stable。
+const LITE_PRODUCT_DEV_SEED = 'peanut-harness/lite-product-dev/v1';
+const PKCS8_ED25519_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex');
+
+/** @description 内置 Lite 产品开发私钥（公开种子派生，仅用于开发测试）。 */
+export function devProductPrivateKey() {
+    return createPrivateKey({ key: Buffer.concat([PKCS8_ED25519_PREFIX, createHash('sha256').update(LITE_PRODUCT_DEV_SEED).digest()]), format: 'der', type: 'pkcs8' });
+}
 
 /**
  * @description 重新核对已打包的 Lite 候选：descriptor 身份、双 Creator 画像、archive SHA-256
@@ -81,18 +89,23 @@ export function createSigningInput(descriptor, options) {
 }
 
 /**
- * @description 使用受控产品私钥签名；缺失私钥时失败关闭，dry-run 只输出规范化 payload。
+ * @description 使用受控产品私钥签名；缺失私钥时失败关闭，dry-run 只输出规范化 payload；devKey 使用内置开发密钥（拒绝 stable）。
  * @returns {object} dry-run 为 `{ payload }`，否则为 `{ publicKey, product }`。
  */
-export function signProductEntry(fields, options: { privateKeyPem?: string, dryRun?: boolean } = {}) {
+export function signProductEntry(fields, options: { privateKeyPem?: string, devKey?: boolean, dryRun?: boolean } = {}) {
     const payload = CpmSigningProtocol.canonicalize('lite-product-v1', fields);
     if (options.dryRun === true) return { payload };
-    if (typeof options.privateKeyPem !== 'string' || options.privateKeyPem.length === 0) throw new Error('lite_product_signing_key_missing');
     let privateKey;
-    try {
-        privateKey = createPrivateKey(options.privateKeyPem);
-    } catch {
-        throw new Error('lite_product_signing_key_invalid');
+    if (options.devKey === true) {
+        if (fields.channel === 'stable') throw new Error('lite_product_dev_key_stable_refused');
+        privateKey = devProductPrivateKey();
+    } else {
+        if (typeof options.privateKeyPem !== 'string' || options.privateKeyPem.length === 0) throw new Error('lite_product_signing_key_missing');
+        try {
+            privateKey = createPrivateKey(options.privateKeyPem);
+        } catch {
+            throw new Error('lite_product_signing_key_invalid');
+        }
     }
     const publicKey = createPublicKey(privateKey).export({ type: 'spki', format: 'der' }).toString('base64');
     const signature = sign(null, Buffer.from(payload, 'utf8'), privateKey).toString('base64');
@@ -180,7 +193,10 @@ async function main(args: string[]) {
         return fields;
     }
     const fields = JSON.parse(readFileSync(option('--input') ?? '', 'utf8'));
-    if (command === 'sign') return signProductEntry(fields, { dryRun: args.includes('--dry-run'), privateKeyPem: process.env.LITE_PRODUCT_SIGNING_KEY });
+    if (command === 'sign') {
+        const devKey = args.includes('--dev-key');
+        return signProductEntry(fields, { dryRun: args.includes('--dry-run'), devKey, privateKeyPem: devKey ? undefined : process.env.LITE_PRODUCT_SIGNING_KEY });
+    }
     if (command === 'readback') return verifyCandidateReadback(fields);
     throw new Error('lite_release_cli_usage');
 }

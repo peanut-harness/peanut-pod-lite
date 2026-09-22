@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import { createHash, generateKeyPairSync } from 'node:crypto';
+import { createHash, createPublicKey, generateKeyPairSync } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
 import { CpmSigningProtocol } from '../../packages/engine/modules/installation/src/integrity/cpm-signing-protocol.ts';
 import { buildReleaseArtifacts } from '../build-release-artifacts.mts';
-import { createSigningInput, signProductEntry, verifyCandidateReadback, verifyReleaseCandidate } from '../release-candidate.mts';
+import { createSigningInput, devProductPrivateKey, signProductEntry, verifyCandidateReadback, verifyReleaseCandidate } from '../release-candidate.mts';
 
 const fixtureRoot = resolve(import.meta.dirname, '../../packages/hosts/modules/creator-38/.test-temp', `release-candidate-${process.pid}`);
 const sourceCommit = 'b'.repeat(40);
@@ -115,4 +115,15 @@ test('read-back verifies candidate bytes without following redirects', async () 
     assert.equal(evidence.core.sha256, descriptor.core.sha256);
     await assert.rejects(verifyCandidateReadback(fields, async (url: string) => ({ ok: true, redirected: false, arrayBuffer: async () => (url === fields.hostUrl ? archives[fields.coreUrl] : archives[url]) })), /lite_release_readback_mismatch:host/u);
     await assert.rejects(verifyCandidateReadback(fields, async () => ({ ok: true, redirected: true, arrayBuffer: async () => Buffer.alloc(0) })), /lite_release_readback_redirect_refused/u);
+});
+
+test('built-in dev product key matches cpm-install and never signs stable', async () => {
+    const release = await buildFixture('dev-key');
+    const fields = createSigningInput(verifyReleaseCandidate(release), { baseUrl, channel: 'beta' });
+    const publicKey = createPublicKey(devProductPrivateKey()).export({ type: 'spki', format: 'der' }).toString('base64');
+    assert.equal(publicKey, 'MCowBQYDK2VwAyEAeKAVKJRVwUCfHV9QVs1arFqN5VFsz4iBcQ531fXzbtk=');
+    const signed = signProductEntry(fields, { devKey: true });
+    assert.equal(signed.publicKey, publicKey);
+    assert.equal(CpmSigningProtocol.verify('lite-product-v1', signed.product, signed.product.signature, publicKey), true);
+    assert.throws(() => signProductEntry({ ...fields, channel: 'stable' }, { devKey: true }), /lite_product_dev_key_stable_refused/u);
 });

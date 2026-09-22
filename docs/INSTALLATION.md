@@ -40,7 +40,7 @@ npm exec -- tsx packages/hosts/modules/creator-38/scripts/verify-throughput-soak
 
 ### 发布候选（维护者）
 
-`npm run release:candidate -- --base-url <immutable-https-dir> --channel beta --out <signing-input.json>` 先跑完整 `npm run verify` 与 `npm run pack`，再从 archive 字节重新核对 descriptor、Host/Core 摘要和 3.8.3/3.8.7 的 83/38/45 画像，并要求 `sourceCommit` 等于干净 HEAD，最后输出 `lite-product-v1` 签名输入。签名只消费该输入：`tsx tools/release-candidate.mts sign --input <file>` 仅从 `LITE_PRODUCT_SIGNING_KEY` 读取产品私钥，缺失即失败（`--dry-run` 只输出待签 payload）；上传到不可变地址后用 `readback --input <file>` 回读核对 SHA-256。live 验收脚本带 `--release-descriptor release/peanut.pod-lite-<v>/lite-release-descriptor.json` 时会拒绝与候选身份不一致的 `query-status.artifacts`。
+`npm run release:candidate -- --base-url <immutable-https-dir> --channel beta --out <signing-input.json>` 先跑完整 `npm run verify` 与 `npm run pack`，再从 archive 字节重新核对 descriptor、Host/Core 摘要和 3.8.3/3.8.7 的 83/38/45 画像，并要求 `sourceCommit` 等于干净 HEAD，最后输出 `lite-product-v1` 签名输入。签名只消费该输入：`tsx tools/release-candidate.mts sign --input <file>` 仅从 `LITE_PRODUCT_SIGNING_KEY` 读取产品私钥，缺失即失败（`--dry-run` 只输出待签 payload）；上传到不可变地址后用 `readback --input <file>` 回读核对 SHA-256。开发测试可用 `sign --dev-key` 以内置开发密钥签名（公开种子派生，仅在 CPM 设置 `CPM_DEV_KEYS=1` 时被信任，拒绝 stable）。live 验收脚本带 `--release-descriptor release/peanut.pod-lite-<v>/lite-release-descriptor.json` 时会拒绝与候选身份不一致的 `query-status.artifacts`。
 
 禁止在内部 module 目录单独安装依赖；仓库只维护根 lockfile。可选宿主发布物位于 `packages/hosts/modules/creator-24/release/` 与 `packages/hosts/modules/creator-30-35/release/`。
 
