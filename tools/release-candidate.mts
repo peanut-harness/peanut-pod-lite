@@ -144,8 +144,8 @@ function readArchive(releaseDirectory, artifact, kind, rootName) {
 function packageDigest(files: Map<string, Buffer>, excluded?: string) {
     const records = [...files.entries()]
         .filter(([path]) => path !== excluded)
-        .map(([path, content]) => `${path}:${sha256(content)}`)
-        .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
+        .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+        .map(([path, content]) => `${path}:${sha256(content)}`);
     return sha256(records.join('\n'));
 }
 

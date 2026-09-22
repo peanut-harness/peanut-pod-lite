@@ -28,12 +28,14 @@ async function buildFixture(name: string) {
     await mkdir(resolve(coreDirectory, 'bundled/default_prefab'), { recursive: true });
     await writeFile(resolve(hostDirectory, 'package.json'), '{"name":"peanut-pod-lite-host","version":"0.2.0"}\n');
     await writeFile(resolve(hostDirectory, 'dist/main.js'), 'module.exports = {};\n');
+    await writeFile(resolve(hostDirectory, 'dist/main.js.meta'), 'meta');
     const payload = {
         'peanut.pod-lite.bundle.js': 'module.exports = {};\n',
         'package.json': '{"type":"commonjs"}',
         'libs/.keep': '',
         'bundled/default_prefab/2d.meta': 'meta',
         'bundled/default_prefab_24/2d-camera.prefab': 'camera',
+        'bundled/default_prefab_24/2d-camera.prefab.meta': 'camera meta',
     };
     for (const [path, content] of Object.entries(payload)) await writeFile(resolve(coreDirectory, path), content);
     const files = Object.entries(payload)

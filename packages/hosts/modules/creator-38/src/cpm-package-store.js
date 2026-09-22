@@ -31,7 +31,7 @@ class CpmPackageStore {
                     if (relativePath === 'node_modules') throw new Error('development_checkout');
                     walk(join(directory, entry.name), relativePath);
                 } else if (entry.isFile()) {
-                    records.push(`${relativePath}:${createHash('sha256').update(readFileSync(join(directory, entry.name))).digest('hex')}`);
+                    records.push([relativePath, createHash('sha256').update(readFileSync(join(directory, entry.name))).digest('hex')]);
                 } else {
                     throw new Error('unsupported_entry');
                 }
@@ -42,8 +42,9 @@ class CpmPackageStore {
         } catch {
             return null;
         }
-        records.sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
-        return createHash('sha256').update(records.join('\n')).digest('hex');
+        // 按路径（而非整条记录）码元排序，与打包器一致：`a` 与 `a.meta` 的次序不受 `:` 影响。
+        records.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0));
+        return createHash('sha256').update(records.map(([path, digest]) => `${path}:${digest}`).join('\n')).digest('hex');
     }
 
     /**

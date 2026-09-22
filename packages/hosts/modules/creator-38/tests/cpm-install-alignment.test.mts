@@ -68,7 +68,8 @@ test('Host package digest ignores Finder metadata and refuses development checko
         mkdirSync(join(root, 'dist'));
         writeFileSync(join(root, 'dist/main.js'), 'main');
         writeFileSync(join(root, 'package.json'), '{}');
-        const expected = createHash('sha256').update([`dist/main.js:${sha256('main')}`, `package.json:${sha256('{}')}`].join('\n')).digest('hex');
+        writeFileSync(join(root, 'package.json.meta'), 'meta');
+        const expected = createHash('sha256').update([`dist/main.js:${sha256('main')}`, `package.json:${sha256('{}')}`, `package.json.meta:${sha256('meta')}`].join('\n')).digest('hex');
         assert.equal(hostPackageDigest(root), expected);
         writeFileSync(join(root, '.DS_Store'), 'finder');
         assert.equal(hostPackageDigest(root), expected);
