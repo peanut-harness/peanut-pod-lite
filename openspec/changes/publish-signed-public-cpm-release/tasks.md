@@ -8,14 +8,14 @@
 
 ## 2. 完成公共 CPM runtime 与原子引导安装
 
-- [ ] 2.1 `[repo: cpm-install] [paths: release-manifest.mjs, trust-anchor*, tests/release-manifest*] [depends: 1.2] [serial] [owner: coordinator]` 将正常公共路径绑定到固定 Ed25519 信任锚，保留仅测试可用的本地注入并实现双锚过渡校验；以缺锚、换锚、坏签名、字段篡改、重复版本和合法轮换测试验收。
-- [ ] 2.2 `[repo: cpm-install] [paths: cli/**, scripts/**, runtime-manifest.mjs, tests/**] [depends: 1.2] [parallel: cpm-runtime] [owner: cpm-runtime]` 构建最小跨平台 CPM CLI runtime 与确定性 `runtime.manifest.json`，实现 `version --json` 和稳定入口，不包含产品包、密钥或邻仓路径；以 archive 逐文件摘要、迁址运行、Bash/Windows Node 冒烟和秘密扫描验收。
+- [x] 2.1 `[repo: cpm-install] [paths: release-manifest.mjs, trust-anchor*, tests/release-manifest*] [depends: 1.2] [serial] [owner: coordinator]` 将正常公共路径绑定到固定 Ed25519 信任锚，保留仅测试可用的本地注入并实现双锚过渡校验；以缺锚、换锚、坏签名、字段篡改、重复版本和合法轮换测试验收。
+- [x] 2.2 `[repo: cpm-install] [paths: cli/**, scripts/**, runtime-manifest.mjs, tests/**] [depends: 1.2] [parallel: cpm-runtime] [owner: cpm-runtime]` 构建最小跨平台 CPM CLI runtime 与确定性 `runtime.manifest.json`，实现 `version --json` 和稳定入口，不包含产品包、密钥或邻仓路径；以 archive 逐文件摘要、迁址运行、Bash/Windows Node 冒烟和秘密扫描验收。
 - [ ] 2.3 `[repo: cpm-install] [paths: bootstrap.mjs, transaction/journal modules, tests/bootstrap*] [depends: 2.1, 2.2] [serial] [owner: coordinator]` 完成 `resolved -> downloaded -> staged -> committed -> verified/recovered` 事务、同版本幂等、current snapshot 与失败恢复，拒绝路径逃逸、链接、特殊/隐藏/清单外文件；以首次安装、升级、每阶段故障注入和零暂存残留测试验收。
 - [ ] 2.4 `[repo: cpm-install] [paths: install.sh, install.ps1, tests/install*] [depends: 2.3] [serial] [owner: coordinator]` 让 Bash/PowerShell 入口实际安装已验证 CLI、执行 `version --json` 并返回结构化身份，移除固定失败占位但在空/坏 manifest 时继续零修改失败关闭；以 shell fixture、PowerShell fixture、空 manifest 和已安装升级测试验收。
 
 ## 3. 产出并安装经过认证的 Lite 产品包
 
-- [ ] 3.1 `[repo: peanut-pod-lite] [paths: scripts/pack-directory-plugin.mjs, packages/engine/modules/creator-plugin/scripts/pack-plugin.mjs, packages/hosts/modules/creator-38/scripts/pack-host.mjs, tools/**, tests/**] [depends: 1.3] [parallel: lite-artifacts] [owner: lite-artifacts]` 生成 Host/Core archive 与 release descriptor，固定语义身份且排除绝对路径和非确定时间/压缩元数据影响；以相同 source/version 双构建的 descriptor、目录包 digest 和 archive 文件清单一致验收。
+- [x] 3.1 `[repo: peanut-pod-lite] [paths: scripts/pack-directory-plugin.mjs, packages/engine/modules/creator-plugin/scripts/pack-plugin.mjs, packages/hosts/modules/creator-38/scripts/pack-host.mjs, tools/**, tests/**] [depends: 1.3] [parallel: lite-artifacts] [owner: lite-artifacts]` 生成 Host/Core archive 与 release descriptor，固定语义身份且排除绝对路径和非确定时间/压缩元数据影响；以相同 source/version 双构建的 descriptor、目录包 digest 和 archive 文件清单一致验收。
 - [ ] 3.2 `[repo: cpm-install] [paths: product-catalog*, cli/**, tests/product-catalog*] [depends: 1.2, 3.1] [serial] [owner: coordinator]` 实现签名 Lite product catalog 的解析、固定产品信任锚、Host/Core 双 archive 摘要与目录包 digest 绑定，拒绝重定向、身份混搭和版本覆盖；以合法 catalog、逐字段篡改、Host/Core 交叉候选及重复版本测试验收。
 - [ ] 3.3 `[repo: cpm-install] [paths: cli/**install**, transaction/**, tests/product-install*] [depends: 2.3, 3.2] [serial] [owner: coordinator]` 实现显式 Lite `install/upgrade/repair` 项目命令，检查 Creator 未占用工程，原子提交 Host 扩展、Core 不可变版本目录和 schema v2 活动索引；以干净安装、同版本幂等、升级、校验前失败 unchanged、切换后恢复与 `may_have_changed` fixture 验收。
 - [ ] 3.4 `[repo: peanut-pod-lite + cpm-install] [paths: packages/engine/modules/installation/**, packages/hosts/modules/creator-38/**, cross-repo fixtures] [depends: 3.3] [serial] [owner: coordinator]` 对齐 CPM 安装结果与 Lite `ProjectPackageStore`/Host 加载契约，确保 `query-status.artifacts` 可核对 descriptor/catalog，且 Pro 缺失或失败只影响独立状态；以安装后加载、身份错配拒绝、Pro absent/failed 和修复路径集成测试验收。

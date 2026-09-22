@@ -12,8 +12,8 @@
   ],
   "scripts": {
     "clean": "node tools/run-internal-modules.mjs clean",
-    "generate": "node tools/generate-creator-profiles.mjs && node tools/release-identity.mjs",
-    "generate:check": "node tools/generate-creator-profiles.mjs --check && node tools/release-identity.mjs --check",
+    "generate": "node tools/generate-creator-profiles.mjs && tsx tools/release-identity.mts",
+    "generate:check": "node tools/generate-creator-profiles.mjs --check && tsx tools/release-identity.mts --check",
     "build": "npm run build --workspace @peanut/pod-protocol && npm run build --workspace @peanut/pod-sdk && npm run build --workspace @peanut/pod-engine && npm run build --workspace @peanut/pod-panel && npm run build --workspace @peanut/pod-hosts",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test:tools": "node --test tools/tests/*.test.mjs && tsx --test tools/tests/*.test.mts",

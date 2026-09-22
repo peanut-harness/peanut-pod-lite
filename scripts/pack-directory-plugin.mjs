@@ -6,6 +6,12 @@ import { resolve } from 'path';
 import { stripNodeBuiltinProtocol } from './creator-electron-bundle-normalize.mjs';
 import { EsbuildCliRunner } from './esbuild-cli-runner.mjs';
 
+const DETERMINISTIC_PACKED_AT = '1970-01-01T00:00:00.000Z';
+
+function comparePaths(left, right) {
+    return left < right ? -1 : left > right ? 1 : 0;
+}
+
 /**
  * @description 递归列出普通文件，用于生成稳定的完整性清单。
  * @param {string} directoryPath
@@ -14,7 +20,7 @@ import { EsbuildCliRunner } from './esbuild-cli-runner.mjs';
 async function listFiles(directoryPath) {
     const entries = await readdir(directoryPath, { withFileTypes: true });
     const files = [];
-    for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+    for (const entry of entries.sort((left, right) => comparePaths(left.name, right.name))) {
         const entryPath = resolve(directoryPath, entry.name);
         if (entry.isDirectory()) {
             const nestedFiles = await listFiles(entryPath);
@@ -107,8 +113,8 @@ export async function packDirectoryPlugin(options) {
         const content = await readFile(resolve(stagingDirectory, filePath));
         records.push({ path: filePath, digest: createHash('sha256').update(content).digest('hex') });
     }
-    // 与 ProjectPackageStore 安装校验一致：按 path localeCompare 排序后再算总 digest。
-    records.sort((left, right) => left.path.localeCompare(right.path));
+    // 与 ProjectPackageStore 安装校验一致：按稳定 path 顺序计算总 digest。
+    records.sort((left, right) => comparePaths(left.path, right.path));
     const manifest = JSON.parse(await readFile(sourceManifestPath, 'utf8'));
     const digest = createHash('sha256')
         .update(records.map((record) => `${record.path}:${record.digest}`).join('\n'))
@@ -123,7 +129,7 @@ export async function packDirectoryPlugin(options) {
                 package: {
                     ...(manifest.package ?? {}),
                     digest,
-                    packedAt: new Date().toISOString(),
+                    packedAt: DETERMINISTIC_PACKED_AT,
                     files: records,
                     libraries: [],
                 },

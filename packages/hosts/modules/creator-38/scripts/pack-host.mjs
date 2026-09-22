@@ -7,6 +7,7 @@ import {
     assertCreator383BundleCompatibility,
     stripNodeBuiltinProtocol,
 } from '../../../../../scripts/creator-electron-bundle-normalize.mjs';
+import { buildLiteReleaseArtifacts } from '../../../../../tools/build-release-artifacts.mts';
 
 const extensionRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repositoryRoot = resolve(extensionRoot, '../../../..');
@@ -66,4 +67,10 @@ await writeFile(
     '# Peanut Pod Lite Host\n\nInstall this extension before the Lite directory package.\n\n- Extension > Cocos Plugin Manager\n- Extension > Peanut Account\n',
     'utf8',
 );
-process.stdout.write(`${JSON.stringify({ ok: true, outputDirectory }, null, 2)}\n`);
+const releaseArtifacts = await buildLiteReleaseArtifacts(repositoryRoot);
+process.stdout.write(`${JSON.stringify({
+    ok: true,
+    outputDirectory,
+    releaseDescriptor: releaseArtifacts.descriptorPath ?? null,
+    releaseArtifactsSkipped: releaseArtifacts.skipped ?? false,
+}, null, 2)}\n`);

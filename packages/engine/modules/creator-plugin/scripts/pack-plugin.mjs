@@ -16,6 +16,7 @@ const packagesRoot = resolve(pluginRoot, '..');
 const repositoryRoot = resolve(pluginRoot, '../../../..');
 const sourceManifestName = 'peanut.pod-lite.manifest.json';
 const bundleFileName = 'peanut.pod-lite.bundle.js';
+const deterministicPackedAt = '1970-01-01T00:00:00.000Z';
 const rootManifest = JSON.parse(await readFile(resolve(repositoryRoot, 'package.json'), 'utf8'));
 const sourceManifest = JSON.parse(await readFile(resolve(pluginRoot, sourceManifestName), 'utf8'));
 if (sourceManifest.version !== rootManifest.version) {
@@ -29,6 +30,10 @@ const packageDirectory = resolve(releaseDirectory, releaseDirectoryName);
 const assetsDirectory = resolve(pluginRoot, 'assets');
 const bundlePath = resolve(stagingDirectory, bundleFileName);
 
+function comparePaths(left, right) {
+    return left < right ? -1 : left > right ? 1 : 0;
+}
+
 /**
  * @description 递归列出普通文件，用于生成稳定的完整性清单。
  * @param {string} directoryPath
@@ -37,7 +42,7 @@ const bundlePath = resolve(stagingDirectory, bundleFileName);
 async function listFiles(directoryPath) {
     const entries = await readdir(directoryPath, { withFileTypes: true });
     const files = [];
-    for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+    for (const entry of entries.sort((left, right) => comparePaths(left.name, right.name))) {
         const entryPath = resolve(directoryPath, entry.name);
         if (entry.isDirectory()) {
             const nestedFiles = await listFiles(entryPath);
@@ -99,7 +104,7 @@ for (const filePath of await listFiles(stagingDirectory)) {
     const content = await readFile(resolve(stagingDirectory, filePath));
     records.push({ path: filePath, digest: createHash('sha256').update(content).digest('hex') });
 }
-records.sort((left, right) => left.path.localeCompare(right.path));
+records.sort((left, right) => comparePaths(left.path, right.path));
 const manifest = sourceManifest;
 const digest = createHash('sha256')
     .update(records.map((record) => `${record.path}:${record.digest}`).join('\n'))
@@ -114,7 +119,7 @@ await writeFile(
             package: {
                 ...(manifest.package ?? {}),
                 digest,
-                packedAt: new Date().toISOString(),
+                packedAt: deterministicPackedAt,
                 files: records,
                 libraries: [],
             },

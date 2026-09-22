@@ -7,9 +7,9 @@
     "description": "Native Cocos Creator host for the open Peanut Pod Lite package.",
     "editor": ">=3.8.0 <3.9.0",
     "scripts": {
-        "build": "node scripts/pack-host.mjs",
+        "build": "tsx scripts/pack-host.mjs",
         "typecheck": "node ../../../../tools/check-javascript-syntax.mjs src panel scripts",
-        "pack": "node scripts/pack-host.mjs",
+        "pack": "tsx scripts/pack-host.mjs",
         "test": "npm run pack && node --test tests/release-package.test.mjs tests/package-integrity.test.mts tests/optional-pro-host.test.mjs tests/account-upgrade.test.mjs tests/managed-task-bridge.test.mts tests/managed-task-live-script.test.mts tests/throughput-soak-live-script.test.mts"
     },
     "devDependencies": {
