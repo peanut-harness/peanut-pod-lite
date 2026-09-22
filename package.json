@@ -19,6 +19,7 @@
     "test:tools": "node --test tools/tests/*.test.mjs && tsx --test tools/tests/*.test.mts",
     "test": "npm run test:tools && npm run test --workspace @peanut/pod-protocol && npm run test --workspace @peanut/pod-sdk && npm run test --workspace @peanut/pod-engine && npm run test --workspace @peanut/pod-panel && npm run test --workspace @peanut/pod-hosts",
     "pack": "npm run pack --workspace @peanut/pod-engine && npm run pack --workspace @peanut/pod-hosts",
+    "release:candidate": "npm run verify && npm run pack && tsx tools/release-candidate.mts candidate",
     "verify:structure": "node tools/verify-workspace-structure.mjs",
     "verify:standards": "tsx tools/verify-source-conformance.mts",
     "verify": "npm run verify:structure && npm run verify:standards && npm run generate:check && npm run build && npm run typecheck && npm test"

@@ -38,6 +38,10 @@ npm exec -- tsx packages/hosts/modules/creator-38/scripts/verify-throughput-soak
 报告必须是 `peanut.creator38.managed-task-live.v2`，不得包含 Hub token 或审批 token；两个精确版本的报告必须绑定同一 `query-status.artifacts`。
 吞吐报告必须是 `peanut.creator38.throughput-soak.v1`，100 资源批次吞吐至少为逐项基线的 2 倍，control P95 不超过 1 秒，overload 必须以拒绝和退避重试体现，并在冷却后确认任务索引、注册探针和新增 error/warn 均为零。`--allow-short --normal-ms <ms> --overload-ms <ms>` 仅用于 runner 冒烟，不得勾选长稳任务。
 
+### 发布候选（维护者）
+
+`npm run release:candidate -- --base-url <immutable-https-dir> --channel beta --out <signing-input.json>` 先跑完整 `npm run verify` 与 `npm run pack`，再从 archive 字节重新核对 descriptor、Host/Core 摘要和 3.8.3/3.8.7 的 83/38/45 画像，并要求 `sourceCommit` 等于干净 HEAD，最后输出 `lite-product-v1` 签名输入。签名只消费该输入：`tsx tools/release-candidate.mts sign --input <file>` 仅从 `LITE_PRODUCT_SIGNING_KEY` 读取产品私钥，缺失即失败（`--dry-run` 只输出待签 payload）；上传到不可变地址后用 `readback --input <file>` 回读核对 SHA-256。live 验收脚本带 `--release-descriptor release/peanut.pod-lite-<v>/lite-release-descriptor.json` 时会拒绝与候选身份不一致的 `query-status.artifacts`。
+
 禁止在内部 module 目录单独安装依赖；仓库只维护根 lockfile。可选宿主发布物位于 `packages/hosts/modules/creator-24/release/` 与 `packages/hosts/modules/creator-30-35/release/`。
 
 2.4 宿主安装到项目 `packages/peanut-pod-24/`；3.0–3.5 宿主安装到 `extensions/peanut-pod-35/`。
