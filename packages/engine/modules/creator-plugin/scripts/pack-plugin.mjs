@@ -13,11 +13,16 @@ import {
 
 const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const packagesRoot = resolve(pluginRoot, '..');
+const repositoryRoot = resolve(pluginRoot, '../../../..');
 const sourceManifestName = 'peanut.pod-lite.manifest.json';
 const bundleFileName = 'peanut.pod-lite.bundle.js';
-const releaseDirectoryName = 'peanut.pod-lite-0.1.0';
+const rootManifest = JSON.parse(await readFile(resolve(repositoryRoot, 'package.json'), 'utf8'));
+const sourceManifest = JSON.parse(await readFile(resolve(pluginRoot, sourceManifestName), 'utf8'));
+if (sourceManifest.version !== rootManifest.version) {
+    throw new Error('lite_release_identity_mismatch');
+}
+const releaseDirectoryName = `${sourceManifest.id}-${rootManifest.version}`;
 const entryPath = resolve(pluginRoot, 'dist/index.js');
-const sourceManifestPath = resolve(pluginRoot, sourceManifestName);
 const releaseDirectory = resolve(pluginRoot, 'release');
 const stagingDirectory = resolve(pluginRoot, '.package-staging');
 const packageDirectory = resolve(releaseDirectory, releaseDirectoryName);
@@ -95,7 +100,7 @@ for (const filePath of await listFiles(stagingDirectory)) {
     records.push({ path: filePath, digest: createHash('sha256').update(content).digest('hex') });
 }
 records.sort((left, right) => left.path.localeCompare(right.path));
-const manifest = JSON.parse(await readFile(sourceManifestPath, 'utf8'));
+const manifest = sourceManifest;
 const digest = createHash('sha256')
     .update(records.map((record) => `${record.path}:${record.digest}`).join('\n'))
     .digest('hex');

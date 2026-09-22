@@ -11,6 +11,10 @@ import {
 const extensionRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repositoryRoot = resolve(extensionRoot, '../../../..');
 const manifest = JSON.parse(await readFile(resolve(extensionRoot, 'package.json'), 'utf8'));
+const rootManifest = JSON.parse(await readFile(resolve(repositoryRoot, 'package.json'), 'utf8'));
+if (manifest.version !== rootManifest.version) {
+    throw new Error('lite_release_identity_mismatch');
+}
 const outputDirectory = resolve(extensionRoot, 'release', `${manifest.name}-${manifest.version}`);
 const mainBundlePath = resolve(outputDirectory, 'dist/main.js');
 await rm(outputDirectory, { recursive: true, force: true });

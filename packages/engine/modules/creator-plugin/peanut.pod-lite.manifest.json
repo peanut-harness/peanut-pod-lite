@@ -1,6 +1,6 @@
 {
   "id": "peanut.pod-lite",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "kind": "tooling-plugin",
   "displayName": "Peanut Pod Lite",
   "description": {
@@ -8,7 +8,7 @@
     "zh-CN": "开源 Cocos Creator 编辑器能力；写入仅需本地审批。"
   },
   "main": "./peanut.pod-lite.bundle.js",
-  "engines": { "host": "^0.1.0" },
+  "engines": { "host": "^0.2.0" },
   "activation": { "autoActivate": false, "events": ["onStartup"] },
   "permissions": {},
   "package": { "schemaVersion": 1, "digest": "", "packedAt": "", "files": [], "libraries": [] }

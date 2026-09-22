@@ -14,6 +14,7 @@ import {
     type ICoreCocosMcpExecutionContext,
     type EditorMcpGatewayExecute,
 } from '@peanut/pod-engine/policy';
+import { PEANUT_POD_LITE_VERSION } from './release-version.js';
 
 /**
  * @description MCP 调用时由宿主注入的连接与资源范围。
@@ -109,11 +110,11 @@ export class CoreCocosCreatorHostPluginModule {
      */
     public readonly manifest = Object.freeze({
         id: 'peanut.pod-lite',
-        version: '0.1.0',
+        version: PEANUT_POD_LITE_VERSION,
         kind: 'tooling-plugin',
         displayName: 'Peanut Pod Lite',
         main: './peanut.pod-lite.bundle.js',
-        engines: { host: '^0.1.0' },
+        engines: { host: `^${PEANUT_POD_LITE_VERSION}` },
         // Host loads this package via CPM (activateCore). Plugin Manager must not
         // auto-activate it as a legacy MCP capability plugin.
         activation: { autoActivate: false, events: ['onStartup'] },

@@ -92,6 +92,17 @@ declare module 'crypto' {
 
     /** @description 创建指定算法的摘要计算器。 */
     export function createHash(algorithm: 'sha256'): IHash;
+    /** @description 从 DER/SPKI 字节创建 Ed25519 公钥句柄。 */
+    export function createPublicKey(options: { readonly key: Uint8Array; readonly format: 'der'; readonly type: 'spki' }): unknown;
+    /** @description 校验 Ed25519 签名。 */
+    export function verify(algorithm: null, data: Uint8Array, key: unknown, signature: Uint8Array): boolean;
+}
+
+declare module 'buffer' {
+    /** @description Node Buffer 的最小静态构造声明。 */
+    export const Buffer: {
+        from(value: string, encoding: 'utf8' | 'base64'): Uint8Array;
+    };
 }
 
 declare module 'path' {

@@ -33,6 +33,11 @@ import {
 
 这些 API 只处理规范化路径、摘要记录与最小 manifest，不包含 CLI、Creator 宿主或安装索引业务。
 
+跨仓发行签名使用
+[`docs/signing-protocol-v1.md`](docs/signing-protocol-v1.md) 中的固定字段顺序。
+`CpmSigningProtocol` 同时校验 CPM CLI 与 Lite 产品发行的公开测试向量，但两个用途
+必须使用独立的生产信任锚。
+
 ## 最小示例
 
 ```typescript

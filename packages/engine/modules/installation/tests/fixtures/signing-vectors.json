@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "publicKey": {
+    "algorithm": "ed25519",
+    "format": "spki-der-base64",
+    "value": "MCowBQYDK2VwAyEAVUOnYN6V0lXxYHXsdW3hliSXxCu8ebiOTMq/l4LmoUY="
+  },
+  "vectors": [
+    {
+      "kind": "cpm-release-v1",
+      "fields": {
+        "id": "peanut-cpm-cli",
+        "version": "1.0.0",
+        "channel": "beta",
+        "url": "https://releases.peanut-harness.dev/cpm/1.0.0/peanut-cpm-cli.tgz",
+        "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      },
+      "canonicalPayload": "{\"schemaVersion\":1,\"kind\":\"cpm-release-v1\",\"id\":\"peanut-cpm-cli\",\"version\":\"1.0.0\",\"channel\":\"beta\",\"url\":\"https://releases.peanut-harness.dev/cpm/1.0.0/peanut-cpm-cli.tgz\",\"sha256\":\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"}",
+      "signature": "3W8VXGG0nFA7ZLw7i5LIIlqO0NnUdCFt1GMcK1HRJwok93gV3a6RUwQNIkO79xwxRMwg5hqYKM9+WZVTmR6HBQ=="
+    },
+    {
+      "kind": "lite-product-v1",
+      "fields": {
+        "id": "peanut.pod-lite",
+        "version": "0.2.0",
+        "channel": "beta",
+        "sourceCommit": "0123456789abcdef0123456789abcdef01234567",
+        "hostUrl": "https://releases.peanut-harness.dev/lite/0.2.0/peanut-pod-lite-host.tgz",
+        "hostSha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "hostPackageDigest": "2222222222222222222222222222222222222222222222222222222222222222",
+        "coreUrl": "https://releases.peanut-harness.dev/lite/0.2.0/peanut-pod-lite-core.tgz",
+        "coreSha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "corePackageDigest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "creatorProfiles": [
+          "3.8.3",
+          "3.8.7"
+        ]
+      },
+      "canonicalPayload": "{\"schemaVersion\":1,\"kind\":\"lite-product-v1\",\"id\":\"peanut.pod-lite\",\"version\":\"0.2.0\",\"channel\":\"beta\",\"sourceCommit\":\"0123456789abcdef0123456789abcdef01234567\",\"hostUrl\":\"https://releases.peanut-harness.dev/lite/0.2.0/peanut-pod-lite-host.tgz\",\"hostSha256\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"hostPackageDigest\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"coreUrl\":\"https://releases.peanut-harness.dev/lite/0.2.0/peanut-pod-lite-core.tgz\",\"coreSha256\":\"3333333333333333333333333333333333333333333333333333333333333333\",\"corePackageDigest\":\"4444444444444444444444444444444444444444444444444444444444444444\",\"creatorProfiles\":[\"3.8.3\",\"3.8.7\"]}",
+      "signature": "ZqlCACyy9Jt5PvXKakUEAfZBZUi38R6RACi4PxR7owNU3IHw1B2LMacISG9XYGcJkgz9igmc/Bv/B4turiTMCA=="
+    }
+  ]
+}

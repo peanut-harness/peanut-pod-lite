@@ -2,9 +2,9 @@
 
 ## 1. 冻结发行协议与基线
 
-- [ ] 1.1 `[repo: cpm-install] [paths: release-manifest.mjs, runtime-manifest.mjs, bootstrap.mjs, install.sh, install.ps1, tests/**] [depends: none] [serial] [owner: coordinator]` 记录当前空 manifest、脚本 exit 1、已有 Ed25519/runtime 校验和原子安装正负行为，补齐不会修改真实用户目录的基线 fixture；以仓库测试通过并保存稳定错误码清单验收。
-- [ ] 1.2 `[repo: cpm-install + peanut-pod-lite] [paths: protocol fixtures/schema docs] [depends: 1.1] [serial] [owner: coordinator]` 定义 CLI release 与 Lite product catalog 的规范化签名 payload、固定字段顺序、渠道、不可变版本和双锚轮换规则，提交跨仓共享测试向量但不提交私钥；以两仓 verifier 对同一向量给出一致结果、篡改任一受签字段均失败验收。
-- [ ] 1.3 `[repo: peanut-pod-lite] [paths: package.json, packages/engine/modules/creator-plugin/**manifest**, packages/hosts/modules/creator-38/package.json, scripts/**, tests/**] [depends: 1.2] [serial] [owner: coordinator]` 统一 Lite release version/source identity，定义 Host/Core release descriptor schema 与兼容画像字段，消除脚本内独立硬编码版本；以生成检查证明 Host、Core、目录名与 descriptor 版本一致且现有 83/45 catalog 不漂移验收。
+- [x] 1.1 `[repo: cpm-install] [paths: release-manifest.mjs, runtime-manifest.mjs, bootstrap.mjs, install.sh, install.ps1, tests/**] [depends: none] [serial] [owner: coordinator]` 记录当前空 manifest、脚本 exit 1、已有 Ed25519/runtime 校验和原子安装正负行为，补齐不会修改真实用户目录的基线 fixture；以仓库测试通过并保存稳定错误码清单验收。
+- [x] 1.2 `[repo: cpm-install + peanut-pod-lite] [paths: protocol fixtures/schema docs] [depends: 1.1] [serial] [owner: coordinator]` 定义 CLI release 与 Lite product catalog 的规范化签名 payload、固定字段顺序、渠道、不可变版本和双锚轮换规则，提交跨仓共享测试向量但不提交私钥；以两仓 verifier 对同一向量给出一致结果、篡改任一受签字段均失败验收。
+- [x] 1.3 `[repo: peanut-pod-lite] [paths: package.json, packages/engine/modules/creator-plugin/**manifest**, packages/hosts/modules/creator-38/package.json, scripts/**, tests/**] [depends: 1.2] [serial] [owner: coordinator]` 统一 Lite release version/source identity，定义 Host/Core release descriptor schema 与兼容画像字段，消除脚本内独立硬编码版本；以生成检查证明 Host、Core、目录名与 descriptor 版本一致且现有 83/45 catalog 不漂移验收。
 
 ## 2. 完成公共 CPM runtime 与原子引导安装
 

@@ -18,6 +18,7 @@ npm install
 npm run pack --prefix packages/hosts/modules/creator-38
 ```
 
-产物：`packages/hosts/modules/creator-38/release/peanut-pod-lite-host-0.1.0/`。
+产物目录由根 `package.json` 的版本生成，例如
+`packages/hosts/modules/creator-38/release/peanut-pod-lite-host-0.2.0/`。
 
 安装到目标工程后必须重启 Creator；不能只执行 development reload。进程识别只接受精确匹配的 `--project` / `--path` 参数。

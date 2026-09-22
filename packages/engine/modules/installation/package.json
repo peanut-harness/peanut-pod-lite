@@ -19,7 +19,7 @@
     "scripts": {
         "build": "tsc -p tsconfig.json",
         "typecheck": "tsc -p tsconfig.json --noEmit",
-        "test": "tsx --test --tsconfig tsconfig.json tests/cpm-integrity-protocol.test.ts tests/packaging-smoke.test.ts tests/packaging-validation.test.ts tests/project-package-store.test.ts",
+        "test": "tsx --test --tsconfig tsconfig.json tests/cpm-integrity-protocol.test.ts tests/cpm-signing-protocol.test.ts tests/packaging-smoke.test.ts tests/packaging-validation.test.ts tests/project-package-store.test.ts",
         "smoke": "tsx --tsconfig tsconfig.json src/integration/run-packaging-smoke.ts"
     },
     "devDependencies": {

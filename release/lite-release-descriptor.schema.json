@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peanut-harness.dev/schemas/lite-release-descriptor-v1.json",
+  "title": "Peanut Pod Lite release descriptor",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "productId",
+    "version",
+    "sourceCommit",
+    "creatorProfiles",
+    "host",
+    "core"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "productId": { "const": "peanut.pod-lite" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "creatorProfiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["version", "operationCount", "readOperationCount", "writeOperationCount"],
+        "properties": {
+          "version": { "enum": ["3.8.3", "3.8.7"] },
+          "operationCount": { "const": 83 },
+          "readOperationCount": { "const": 38 },
+          "writeOperationCount": { "const": 45 }
+        }
+      }
+    },
+    "host": { "$ref": "#/$defs/artifact" },
+    "core": { "$ref": "#/$defs/artifact" }
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "archive", "sha256", "packageDigest"],
+      "properties": {
+        "kind": { "enum": ["host", "core"] },
+        "archive": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "packageDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    }
+  }
+}
