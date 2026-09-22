@@ -485,3 +485,38 @@ test('project packaging should reject the removed v1 installed manifest format',
         rmSync(projectPath, { recursive: true, force: true });
     }
 });
+
+test('keeps a CPM-installed tooling package whose digest uses code-unit ordering during repair', async () => {
+    const { ProjectPackageStore } = await import('../src/persistence/project-package-store');
+    const projectRoot = mkdtempSync(join(tmpdir(), 'peanut-cpm-layout-'));
+    try {
+        const pluginId = 'peanut.pod-lite';
+        const version = '0.2.0';
+        const installPath = join('peanut-plugins', 'plugins', pluginId, version);
+        const packageRoot = join(projectRoot, installPath);
+        const payload: Record<string, string> = {
+            [`${pluginId}.bundle.js`]: 'module.exports = {};',
+            'package.json': '{"type":"commonjs"}',
+            'libs/.keep': '',
+            'bundled/default_prefab/2d.meta': 'meta',
+            'bundled/default_prefab_24/2d-camera.prefab': 'camera',
+        };
+        for (const [path, content] of Object.entries(payload)) {
+            mkdirSync(join(packageRoot, ...path.split('/').slice(0, -1)), { recursive: true });
+            writeFileSync(join(packageRoot, ...path.split('/')), content);
+        }
+        const files = Object.entries(payload).map(([path, content]) => ({ path, digest: createHash('sha256').update(content).digest('hex') }));
+        const ordered = [...files].sort((left, right) => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0));
+        const digest = createHash('sha256').update(ordered.map((file) => `${file.path}:${file.digest}`).join('\n')).digest('hex');
+        writeFileSync(join(packageRoot, `${pluginId}.manifest.json`), JSON.stringify({ id: pluginId, version, kind: 'tooling-plugin', main: `./${pluginId}.bundle.js`, package: { schemaVersion: 1, digest, files } }));
+        const index = { schemaVersion: 2, plugins: [{ pluginId, activeVersion: version, versions: [{ version, installPath }] }] };
+        writeFileSync(join(projectRoot, 'peanut-plugins', 'installed.json'), `${JSON.stringify(index, null, 4)}\n`);
+
+        const store = new ProjectPackageStore(projectRoot);
+        assert.equal(store.inspect(packageRoot).isValidStructure, true);
+        assert.deepEqual(store.repair(), { repaired: false, actions: [] });
+        assert.deepEqual(store.readInstalledSnapshots().map((snapshot) => [snapshot.pluginId, snapshot.activeVersion]), [[pluginId, version]]);
+    } finally {
+        rmSync(projectRoot, { recursive: true, force: true });
+    }
+});

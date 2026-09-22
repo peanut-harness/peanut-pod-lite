@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import { createHash, randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 
 import { assertManagedTaskLiveReport, readCreatedIdentity } from './managed-task-live-evidence.mts';
+
+const { CpmPackageStore } = createRequire(import.meta.url)('../src/cpm-package-store.js');
 
 const projectPath = resolve(readArgument('--project'));
 const outputPath = resolve(readArgument('--output'));
@@ -23,6 +26,9 @@ assert.equal(hostStatus.ready, true);
 assert.equal(hostStatus.creatorContext.version.raw, hostStatus.creatorContext.projectVersion.raw);
 assert.equal(hostStatus.creatorContext.writesAllowed, true);
 assert.deepEqual(hostStatus.artifacts, smokeResults.artifacts);
+if (process.argv.includes('--release-descriptor')) {
+    assert.deepEqual(CpmPackageStore.compareReleaseIdentity(hostStatus.artifacts, readJson(resolve(readArgument('--release-descriptor')))), []);
+}
 
 await request({ action: 'setPluginExposure', pluginId: 'peanut.editor-mcp', mode: 'all' });
 const health = await request({ action: 'health' });

@@ -82,6 +82,8 @@ function resolveHostArtifactIdentity() {
         id: packageManifest.name,
         version: packageManifest.version,
         mainDigest: createHash('sha256').update(readFileSync(__filename)).digest('hex'),
+        // 仅打包后的扩展（dist/main.js）可对照 release descriptor 的 Host 目录包摘要。
+        packageDigest: __filename.endsWith(join('dist', 'main.js')) ? CpmPackageStore.hostPackageDigest(join(__dirname, '..')) : null,
     });
 }
 

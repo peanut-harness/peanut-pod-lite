@@ -14,6 +14,58 @@ const VERSION_PATTERN = /^\d+\.\d+\.\d+$/u;
  * Reads the CPM installation index and verifies active directory packages before they are loaded.
  */
 class CpmPackageStore {
+    /**
+     * @description 按 release descriptor 的 Host 目录包协议计算扩展目录摘要：
+     * 全部普通文件（忽略 .DS_Store）的 `path:sha256` 按码元序换行拼接后取 SHA-256。
+     * 开发检出（含 node_modules）或存在链接/特殊文件时返回 null。
+     * @param {string} root Host 扩展根目录。
+     * @returns {string | null} 小写十六进制摘要。
+     */
+    static hostPackageDigest(root) {
+        const records = [];
+        const walk = (directory, prefix) => {
+            for (const entry of readdirSync(directory, { withFileTypes: true })) {
+                if (entry.name === '.DS_Store') continue;
+                const relativePath = prefix.length === 0 ? entry.name : `${prefix}/${entry.name}`;
+                if (entry.isDirectory()) {
+                    if (relativePath === 'node_modules') throw new Error('development_checkout');
+                    walk(join(directory, entry.name), relativePath);
+                } else if (entry.isFile()) {
+                    records.push(`${relativePath}:${createHash('sha256').update(readFileSync(join(directory, entry.name))).digest('hex')}`);
+                } else {
+                    throw new Error('unsupported_entry');
+                }
+            }
+        };
+        try {
+            walk(root, '');
+        } catch {
+            return null;
+        }
+        records.sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
+        return createHash('sha256').update(records.join('\n')).digest('hex');
+    }
+
+    /**
+     * @description 核对 `query-status.artifacts` 与 Lite release descriptor 是否属于同一发行。
+     * @param {object} artifacts Host 报告的 `{ host, core }` 身份。
+     * @param {object} descriptor `lite-release-descriptor.json` 内容。
+     * @returns {string[]} 不一致字段；空数组表示一致。
+     */
+    static compareReleaseIdentity(artifacts, descriptor) {
+        const mismatches = [];
+        const expect = (field, actual, expected) => {
+            if (actual !== expected) mismatches.push(field);
+        };
+        expect('host.id', artifacts?.host?.id, 'peanut-pod-lite-host');
+        expect('host.version', artifacts?.host?.version, descriptor?.version);
+        expect('host.packageDigest', artifacts?.host?.packageDigest, descriptor?.host?.packageDigest);
+        expect('core.id', artifacts?.core?.id, descriptor?.productId);
+        expect('core.version', artifacts?.core?.version, descriptor?.version);
+        expect('core.packageDigest', artifacts?.core?.packageDigest, descriptor?.core?.packageDigest);
+        return mismatches;
+    }
+
     constructor(projectPath) {
         this.projectPath = realpathSync(resolve(projectPath));
         this.indexPath = join(this.projectPath, 'peanut-plugins', 'installed.json');
