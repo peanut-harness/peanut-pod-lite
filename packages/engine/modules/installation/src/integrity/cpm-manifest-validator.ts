@@ -104,7 +104,7 @@ export class CpmManifestValidator {
         if (files.length === 0) {
             issues.push('cpm_package_files_missing');
         }
-        if (metadata.digest !== CpmIntegrityProtocol.digest(files)) {
+        if (!CpmIntegrityProtocol.matchesDigest(files, metadata.digest)) {
             issues.push('cpm_package_digest_mismatch');
         }
         const manifest: ICpmPackageManifestInput = {

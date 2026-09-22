@@ -50,7 +50,25 @@ export class CpmIntegrityProtocol {
             paths.add(record.path);
             return { path: record.path, digest: record.digest };
         });
-        return validated.sort((left, right) => left.path.localeCompare(right.path));
+        return validated.sort((left, right) => this.comparePaths(left.path, right.path));
+    }
+
+    /**
+     * @description 按 UTF-16 码元比较路径，保证跨机器、跨 ICU 的摘要顺序一致。
+     */
+    public static comparePaths(left: string, right: string): number {
+        return left < right ? -1 : left > right ? 1 : 0;
+    }
+
+    /**
+     * @description 判断声明摘要是否与记录一致；接受规范码元顺序与旧版 localeCompare 顺序。
+     * @param records 已校验的文件摘要记录。
+     * @param expected 清单声明的包摘要。
+     */
+    public static matchesDigest(records: readonly ICpmFileRecord[], expected: string): boolean {
+        if (expected === this.digest(records)) return true;
+        const legacy = [...this.sortRecords(records)].sort((left, right) => left.path.localeCompare(right.path));
+        return expected === this.sha256(legacy.map((record) => `${record.path}:${record.digest}`).join('\n'));
     }
 
     /**

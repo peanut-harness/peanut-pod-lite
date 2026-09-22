@@ -170,3 +170,48 @@ test('system key store persists encrypted material and exposes only a non-extrac
         rmSync(projectRoot, { recursive: true, force: true });
     }
 });
+
+test('CPM store accepts code-unit ordered package digests and legacy localeCompare digests', () => {
+    const temporaryRoot = resolve(import.meta.dirname, '..', '.test-temp');
+    mkdirSync(temporaryRoot, { recursive: true });
+    const projectRoot = mkdtempSync(join(temporaryRoot, 'pod-lite-digest-order-'));
+    try {
+        const pluginId = 'peanut.pod-lite';
+        const version = '0.2.0';
+        const relativeInstallPath = join('peanut-plugins', 'plugins', pluginId, version);
+        const packageRoot = resolve(projectRoot, relativeInstallPath);
+        const payload: Record<string, string> = {
+            [`${pluginId}.bundle.js`]: 'module.exports = {};',
+            'package.json': JSON.stringify({ type: 'commonjs' }),
+            'libs/.keep': '',
+            'bundled/default_prefab/2d.meta': 'meta',
+            'bundled/default_prefab_24/2d-camera.prefab': 'camera',
+        };
+        for (const [path, content] of Object.entries(payload)) {
+            mkdirSync(join(packageRoot, ...path.split('/').slice(0, -1)), { recursive: true });
+            writeFileSync(join(packageRoot, ...path.split('/')), content);
+        }
+        const files = Object.entries(payload).map(([path, content]) => ({ path, digest: createHash('sha256').update(content).digest('hex') }));
+        const digestFor = (compare: (left: string, right: string) => number): string => createHash('sha256')
+            .update([...files].sort((left, right) => compare(left.path, right.path)).map((file) => `${file.path}:${file.digest}`).join('\n'))
+            .digest('hex');
+        const codeUnit = digestFor((left, right) => (left < right ? -1 : left > right ? 1 : 0));
+        const legacy = digestFor((left, right) => left.localeCompare(right));
+        assert.notEqual(codeUnit, legacy);
+        mkdirSync(join(projectRoot, 'peanut-plugins'), { recursive: true });
+        writeFileSync(
+            join(projectRoot, 'peanut-plugins', 'installed.json'),
+            JSON.stringify({ schemaVersion: 2, plugins: [{ pluginId, activeVersion: version, versions: [{ version, installPath: relativeInstallPath }] }] }),
+        );
+        const manifestPath = join(packageRoot, `${pluginId}.manifest.json`);
+        const store = new CpmPackageStore(projectRoot);
+        for (const digest of [codeUnit, legacy]) {
+            writeFileSync(manifestPath, JSON.stringify({ id: pluginId, version, kind: 'tooling-plugin', main: `./${pluginId}.bundle.js`, package: { schemaVersion: 1, files, digest } }));
+            assert.equal(store.resolveActivePackage(pluginId, true).manifest.version, version);
+        }
+        writeFileSync(manifestPath, JSON.stringify({ id: pluginId, version, kind: 'tooling-plugin', main: `./${pluginId}.bundle.js`, package: { schemaVersion: 1, files, digest: 'f'.repeat(64) } }));
+        assert.throws(() => store.resolveActivePackage(pluginId, true), /integrity_digest_mismatch/u);
+    } finally {
+        rmSync(projectRoot, { recursive: true, force: true });
+    }
+});

@@ -4,6 +4,7 @@ import { join, resolve } from 'path';
 
 import type { IPluginInstallPlan, IPluginInstallResult, IPluginManifest, IPluginPackageInspection, IPluginPackageMeta, IPluginRepairResult, IPluginUninstallResult } from '@peanut/pod-protocol';
 
+import { CpmIntegrityProtocol } from '../integrity/cpm-integrity-protocol.js';
 import { PanelPackageLayout } from '../panel/panel-package-layout.js';
 import type { IInstalledPackageRecord, IInstalledPackageSnapshot } from '../shared/installed-package-store.js';
 import type { IPackageSnapshot } from '../shared/package-snapshot-store.js';
@@ -589,7 +590,7 @@ export class ProjectPackageStore {
             return issues;
         }
         // 保存按路径排序的文件摘要记录，用于稳定计算总摘要并逐项验证磁盘内容。
-        const fileRecords = [...packageManifest.files].sort((left, right) => left.path.localeCompare(right.path));
+        const fileRecords = [...packageManifest.files].sort((left, right) => CpmIntegrityProtocol.comparePaths(left.path, right.path));
         if (fileRecords.length === 0) {
             issues.push('package_file_integrity_missing');
         }
@@ -610,14 +611,20 @@ export class ProjectPackageStore {
                 issues.push(`package_file_integrity_mismatch:${fileRecord.path}`);
             }
         }
-        // 保存由文件路径和摘要构成的稳定摘要输入，manifest 本身不计入以避免循环依赖。
-        const digestPayload = fileRecords.map((fileRecord) => `${fileRecord.path}:${fileRecord.digest}`).join('\n');
-        // 保存实际计算出的包摘要，必须等于清单声明以保证索引可用于完整性比对。
-        const actualPackageDigest = createHash('sha256').update(digestPayload).digest('hex');
-        if (actualPackageDigest !== packageManifest.digest) {
+        // 规范顺序为码元序；兼容旧版 localeCompare 打包的清单，manifest 本身不计入以避免循环依赖。
+        if (!this._matchesPackageDigest(fileRecords, packageManifest.digest)) {
             issues.push('package_digest_mismatch');
         }
         return issues;
+    }
+
+    /** @description 非法或重复记录已由逐项检查报告，此处视为摘要不匹配而非抛出。 */
+    private _matchesPackageDigest(fileRecords: readonly { path: string; digest: string }[], expected: string): boolean {
+        try {
+            return CpmIntegrityProtocol.matchesDigest(fileRecords, expected);
+        } catch {
+            return false;
+        }
     }
 
     /** @description 读取 installed.json；缺失或损坏时返回安全的空索引。 */

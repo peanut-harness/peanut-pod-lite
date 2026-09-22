@@ -81,10 +81,7 @@ class CpmPackageStore {
                 throw new Error(`peanut_cpm_integrity_file_mismatch:${pluginId}:${recordPath}`);
             }
         }
-        const packageDigest = createHash('sha256')
-            .update([...expectedRecords].sort(([left], [right]) => left.localeCompare(right)).map(([path, digest]) => `${path}:${digest}`).join('\n'))
-            .digest('hex');
-        if (packageDigest !== manifest.package.digest) {
+        if (!this.matchesPackageDigest(expectedRecords, manifest.package.digest)) {
             throw new Error(`peanut_cpm_integrity_digest_mismatch:${pluginId}`);
         }
         const mainRecordPath = manifest.main.slice(2);
@@ -92,6 +89,15 @@ class CpmPackageStore {
             throw new Error(`peanut_cpm_entry_not_integrity_checked:${pluginId}`);
         }
         return Object.freeze({ manifest: Object.freeze(manifest), mainPath: join(realPackagePath, mainRecordPath), packagePath: realPackagePath });
+    }
+
+    matchesPackageDigest(records, expected) {
+        // 规范顺序为码元序（跨 ICU 稳定）；兼容旧版按 localeCompare 打包的清单。
+        const digest = (compare) => createHash('sha256')
+            .update([...records].sort(([left], [right]) => compare(left, right)).map(([path, digest]) => `${path}:${digest}`).join('\n'))
+            .digest('hex');
+        return expected === digest((left, right) => (left < right ? -1 : left > right ? 1 : 0))
+            || expected === digest((left, right) => left.localeCompare(right));
     }
 
     readInstalledIndex(required) {
