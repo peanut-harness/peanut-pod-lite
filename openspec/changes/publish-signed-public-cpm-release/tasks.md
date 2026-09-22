@@ -22,7 +22,7 @@
 
 ## 4. 建立受控构建、签名与候选发布门禁
 
-- [ ] 4.1 `[repo: cpm-install] [paths: release scripts/workflows, policy docs, tests/**] [depends: 2.4, 3.2] [serial] [owner: coordinator]` 建立 CLI runtime 构建、SBOM/许可证清单、不可变上传、回读摘要和受控 Ed25519 签名流程，确保 fork/普通 CI 无法读取私钥且日志/artifact 不泄密；以无密钥 dry-run、临时测试键签名、secret scan 和重复版本拒绝验收。
+- [x] 4.1 `[repo: cpm-install] [paths: release scripts/workflows, policy docs, tests/**] [depends: 2.4, 3.2] [serial] [owner: coordinator]` 建立 CLI runtime 构建、SBOM/许可证清单、不可变上传、回读摘要和受控 Ed25519 签名流程，确保 fork/普通 CI 无法读取私钥且日志/artifact 不泄密；以无密钥 dry-run、临时测试键签名、secret scan 和重复版本拒绝验收。
 - [ ] 4.2 `[repo: peanut-pod-lite] [paths: release scripts/workflows, docs/INSTALLATION.md, tests/**] [depends: 3.1, 3.4] [serial] [owner: coordinator]` 建立 Lite Host/Core 候选构建、descriptor 校验、双 Creator profile 声明和产品 catalog 签名输入输出，发布过程只消费已验证 artifact 而不从邻仓现场重建；以 `npm run verify`、`npm run pack`、候选摘要回读和私钥缺失 fail-closed 验收。
 - [ ] 4.3 `[repo: cpm-install + peanut-pod-lite] [paths: candidate release storage/evidence manifests] [depends: 4.1, 4.2] [serial] [owner: integration]` 上传不可变 candidate/beta CLI 与 Host/Core archive，冻结所有 URL、SHA、目录包 digest、source commit 与签名输入，但保持 stable manifest 不变；以从候选 HTTPS 端点回读全部字节并与 evidence manifest 完全一致验收。
 
