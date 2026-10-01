@@ -2,7 +2,7 @@
 
 - Creator 3.8 宿主发布物以 3.8.3 的 Electron 13 / Node 14 为最低加载基线：bundle 移除 `node:` 前缀、拒绝新运行时 API，并在缺失时安装 `AbortController` polyfill；这只保证宿主和只读 Hub 可加载，不等于授予 3.8.3 写能力。
 - 未知、缺失或不一致版本全部 fail-closed。
-- Creator 3.8.7 迁移验收按五个互斥域固定分母：Editor/Scene/Prefab 21、Asset read 15、Asset write 12、Preview/Builder/Reference 9、Lumen 26；legacy schema/readOnly/risk parity fixture 已覆盖全部 83 项，但不替代 Creator 实机证据。
+- 旧 83 项 Creator 3.8.7 迁移验收按五个互斥域固定分母：Editor/Scene/Prefab 21、Asset read 15、Asset write 12、Preview/Builder/Reference 9、Lumen 26；legacy schema/readOnly/risk parity fixture 已覆盖旧 83 项，但不替代 Creator 实机证据。
 - Creator 3.8 实机报告同时记录宿主入口 SHA-256、Lite CPM package digest/packedAt 与可选 Pro package digest；`query-status`、`host-status.json`、`smoke-results.json` 三方身份必须一致，旧报告不能冒充当前 release。
 - Creator 3.x 新建 Prefab/Scene 已改为目标预留、父目录登记、AssetDB `create-asset`/原生 Prefab 发布、真实 UUID/`.meta` 查询与所有权感知清理的单一状态机；Lumen 主内容先在内存序列化，不再先写磁盘后 refresh。registration pending、身份不一致、探针残留或新增日志 warning/error 均失败关闭，无法证明清理完成时返回 `may_have_changed` 并禁止盲目重试。
 - MCP 写调用默认进入进程内共享的项目调度器：同工程 Router 共享 AssetDB/editor writer 屏障，同资源按 FIFO 串行，不同资源的离线 Lumen 编辑与不同工程可以并行；多资源锁必须一次性原子预约，空锁集合降级为项目锁而不是绕锁。
@@ -12,3 +12,5 @@
 - 2026-09-19 同工程实机目录 revision 84 已公开写工具的 `outputSchema` 与 `aiHandling`；无审批 copy 返回 `approval_required/not_started/request_approval`，已审批但源缺失返回 `silent_copy_seed_missing`、任务 ID、`unknown/stop`，两者都未生成目标。成功结果解包将内部 `taskPostflight` 兼容映射为公开 `postflight`，schema 要求必含布尔 `verified`；实机 copy 返回 HTTP 200、`taskStatus=succeeded`、`postflight.verified=true`，AssetDB 读回 UUID `2b69c9d2-17bd-4fe0-a94b-1b808bbe9458`，资产保留于 `assets/mcp-ai-contract-validation/success-final/Record02.json` 及 `.meta`。携完整 `mcpFailure` 的已处理任务失败不再进入 PluginDiagnosticReporter，最终会话 `project.log` 零 error/warn。
 - 2026-09-21，同一候选 pack 在 Creator 3.8.3 与 3.8.7 通过受管任务实机矩阵：Host/Core digest 分别固定为 `5312e5db4c4287fc5f51294eb9758f828e36cb52df61428733405827c0b96e6b` 与 `d5c5b010351c73586af7bad29cea352cc34f4c182e753d1572020a82407ee6bf`；同资源 FIFO、不同资源并行、跨连接取消拒绝、owner commit 前取消、取消目标/注册探针零残留、每任务唯一 postflight 与增量日志零 error/warn 均通过。报告摘要分别为 `b56554090ebcd48a3fb2cd61105e44d152efb46a9afdce6e26b111a4e94e2e4a` 与 `7395057fd472f594d92c0c69e7e0d0f91983cf301bd7aa15db25a546b97151f3`。
 - 2026-09-21，AssetDB 原子创建候选在 Creator 3.8.3 与 3.8.7 通过 v2 实机矩阵：两端 Host digest 均为 `5312e5db4c4287fc5f51294eb9758f828e36cb52df61428733405827c0b96e6b`，Core digest 均为 `68c6721913b494c5cfabe05ead19db00ec96074f48033a31d728ba856ddd645f`。Prefab/Scene 均取得真实 UUID 与 `.meta`；双连接同目标恰好一成一败且无覆盖；发布前取消无主文件或 `.meta`；12 个成功任务各一条 postflight，创建任务各一条 `assetdb_settle`；探针残留与 `project.log` 增量均为零。报告摘要分别为 `db615d8ed8929ea5c7ccde93a19eef76e3ab54c27bdd0681633db7e650444850` 与 `30c2fcaa2de077cd2a26c8ed81add00d3b17a916c523d16ee8e2cc02e80daa1f`。
+
+- 任务 1.1 当前源码目录新增 `asset.readText`，共 84 项（39 读/45 写）；只读、无缓存/合并且声明 writer barrier，旧写审批和映射保留。此阶段仅契约与离线定向验证，Kernel 新关键词与文件 I/O 尚待实现；旧 83 项 fixture 分母和全部旧双版本报告保留，新全类型 coverage manifest 与新候选实机验证尚未完成。

@@ -83,11 +83,11 @@ test('Preview/Builder/Reference/Lumen Lite definitions preserve the normalized l
     assert.deepEqual(actual, expected);
 });
 
-test('Lite 83 keeps preview capture and SnowB Pro-exclusive', () => {
+test('Lite 84 keeps preview capture and SnowB Pro-exclusive', () => {
     const operations = listLitePublicOperations();
     const catalog = new CoreCocosMcpToolDefinitionCatalog();
 
-    assert.equal(operations.length, 83);
+    assert.equal(operations.length, 84);
     assert.equal(operations.includes('preview.capture'), false);
     assert.equal(operations.includes('snowb.bmfont.export'), false);
     assert.equal(operations.some((operation) => operation.startsWith('snowb.')), false);

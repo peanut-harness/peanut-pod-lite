@@ -6,7 +6,11 @@ import type {
     IMcpJsonSchema,
     LocalizedText,
 } from '@peanut/pod-protocol';
-import { CoreCocosMcpOperationThroughputProfileCatalog } from '@peanut/pod-engine/policy';
+import {
+    CoreCocosMcpOperationThroughputProfileCatalog,
+    CoreTextFileIoContract,
+    type ICoreMcpJsonSchema,
+} from '@peanut/pod-engine/policy';
 
 const TOOL_NAME_PREFIX = 'peanut.editor-mcp.';
 
@@ -16,7 +20,9 @@ const TOOL_NAME_PREFIX = 'peanut.editor-mcp.';
  * 供 AI 直接按工具调用，避免把 operation 藏进 payload 造成的路由拼错与「搜不到」。
  */
 export class EditorMcpToolCatalog {
-    /** @description 83 项公开 operation 的权威吞吐画像。 */
+    /**
+     * @description 84 项公开 operation 的权威吞吐画像。
+     */
     private readonly _throughputProfiles = new CoreCocosMcpOperationThroughputProfileCatalog();
     /** @description operation 到其一级工具 inputSchema 的映射；键集合即权威 operation 全集。 */
     private readonly _schemas: ReadonlyMap<EditorMcpOperationId, IMcpJsonSchema>;
@@ -83,12 +89,14 @@ export class EditorMcpToolCatalog {
                 description: this._descriptionWithAiContract(descriptor.description, descriptor.readOnly),
                 category: 'cocos',
                 inputSchema: effectiveInputSchema,
-                ...(descriptor.readOnly ? {} : { outputSchema: this._writeOutputSchema() }),
+                ...(descriptor.operation === 'asset.readText'
+                    ? { outputSchema: this._textFileSchema(CoreTextFileIoContract.readOutputSchema()) }
+                    : descriptor.readOnly ? {} : { outputSchema: this._writeOutputSchema() }),
                 readOnly: descriptor.readOnly,
                 risk: descriptor.risk,
                 ...(descriptor.readOnly ? {} : { executionModel: 'managed_task' as const }),
                 lane: descriptor.lane,
-                aiHandling: this._aiHandling(descriptor.readOnly),
+                aiHandling: this._aiHandling(descriptor.readOnly, descriptor.operation),
                 throughput: {
                     operationId: descriptor.operation,
                     costClass: throughput.costClass,
@@ -132,14 +140,17 @@ export class EditorMcpToolCatalog {
     /**
      * @description 构造 AI 调用处理的机器可读规则。
      * @param readOnly 是否为只读工具。
+     * @param operation 稳定业务操作。
      * @returns 稳定调用规则。
      */
-    private _aiHandling(readOnly: boolean): IMcpAiHandlingGuidance {
+    private _aiHandling(readOnly: boolean, operation: EditorMcpOperationId): IMcpAiHandlingGuidance {
         return Object.freeze({
             schemaVersion: 1,
             successSignals: Object.freeze(
                 readOnly
-                    ? ['response.ok=true']
+                    ? operation === 'asset.readText'
+                        ? ['response.ok=true', 'result.ok=true', 'result.consistent=true', 'result.files[*].status=read']
+                        : ['response.ok=true']
                     : ['response.ok=true', 'result.taskStatus=succeeded', 'result.postflight.verified=true'],
             ),
             failureField: 'failure',
@@ -185,6 +196,23 @@ export class EditorMcpToolCatalog {
     }
 
     /**
+     * @description 将无协议运行时依赖的 Core 文本 schema 转为协议 DTO，递归保留所有约束。
+     * @param schema Core 的权威文本契约。
+     * @returns 不丢失互斥、容量和哈希约束的公开 schema。
+     */
+    private _textFileSchema(schema: ICoreMcpJsonSchema): IMcpJsonSchema {
+        const { properties, items, oneOf, ...scalarConstraints } = schema;
+        return {
+            ...scalarConstraints,
+            ...(properties == null ? {} : {
+                properties: Object.fromEntries(Object.entries(properties).map(([name, child]) => [name, this._textFileSchema(child)])),
+            }),
+            ...(items == null ? {} : { items: this._textFileSchema(items) }),
+            ...(oneOf == null ? {} : { oneOf: oneOf.map((branch) => this._textFileSchema(branch)) }),
+        };
+    }
+
+    /**
      * @description 构建 operation 到精确 inputSchema 的映射。
      * @returns 覆盖全部 operation 的 schema 映射。
      */
@@ -212,6 +240,7 @@ export class EditorMcpToolCatalog {
                 uuids: this._stringArray('批量 UUID 列表。'),
             }),
         );
+        map.set('asset.readText', this._textFileSchema(CoreTextFileIoContract.readInputSchema()));
         map.set('asset.catalog.summary', this._empty());
         map.set(
             'asset.catalog.lookup',
@@ -443,19 +472,7 @@ export class EditorMcpToolCatalog {
         map.set(
             'asset.writeText',
             this._object({
-                path: this._string('单文件相对路径（assets/...）；与 files 二选一。'),
-                content: this._string('单文件 UTF-8 内容；与 path 成对。'),
-                files: {
-                    type: 'array',
-                    description: '批量文本文件；提供时忽略 path/content。',
-                    items: this._object(
-                        {
-                            path: this._string('相对路径（assets/...）。'),
-                            content: this._string('UTF-8 文本。'),
-                        },
-                        ['path', 'content'],
-                    ),
-                },
+                ...this._textFileSchema({ type: 'object', properties: CoreTextFileIoContract.writeProperties() }).properties,
                 ...this._writeControl(),
             }),
         );

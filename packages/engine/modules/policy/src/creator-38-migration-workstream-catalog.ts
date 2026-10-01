@@ -20,7 +20,7 @@ export interface ICreator38MigrationWorkstreamEntry {
 }
 
 /**
- * @description 将 83 项 Lite operation 划分为互不重叠的 Creator 3.8.7 验收工作流。
+ * @description 将 84 项 Lite operation 划分为互不重叠的 Creator 3.8.7 验收工作流。
  */
 export class Creator38MigrationWorkstreamCatalog {
     /**

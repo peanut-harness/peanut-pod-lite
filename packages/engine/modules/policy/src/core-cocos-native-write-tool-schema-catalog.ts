@@ -1,3 +1,4 @@
+import { CoreTextFileIoContract } from './core-text-file-io-contract.js';
 import { CoreCocosNativeWriteCapabilityCatalog, type CoreCocosNativeWriteOperation } from './core-cocos-native-write-capability-catalog.js';
 import type { ICoreMcpJsonSchema } from './core-cocos-mcp-read-tool-schema-catalog.js';
 
@@ -30,7 +31,7 @@ export class CoreCocosNativeWriteToolSchemaCatalog {
         schemas.set('asset.createFolder', this.object({ path: this.string('待创建文件夹相对路径；缺失的父目录会一并创建。'), ...control() }, ['path']));
         schemas.set('asset.delete', this.object({ paths: this.stringArray('待删除资源相对路径列表（文件或文件夹，递归）。'), ...control() }, ['paths']));
         schemas.set('asset.reimport', this.object({ paths: this.stringArray('可选相对路径列表；省略则刷新 db://assets。'), path: this.string('单路径别名；会并入 paths。'), ...control() }));
-        schemas.set('asset.writeText', this.object({ path: this.string('单文件相对路径（assets/...）；与 files 二选一。'), content: this.string('单文件 UTF-8 内容；与 path 成对。'), files: { type: 'array', description: '批量文本文件；提供时忽略 path/content。', items: this.object({ path: this.string('相对路径（assets/...）。'), content: this.string('UTF-8 文本。') }, ['path', 'content']) }, ...control() }));
+        schemas.set('asset.writeText', this.object({ ...CoreTextFileIoContract.writeProperties(), ...control() }));
         schemas.set('asset.ensureSpriteFramesBatch', this.object({ dbPaths: this.stringArray('db://assets/... 或 assets/... 的 PNG 路径列表。'), refreshRoot: this.string('可选批量刷新根；省略则逐项 refresh-asset 并等待就绪。'), ...control() }, ['dbPaths']));
         schemas.set('scene.restoreEditorResource', this.object({ uuid: this.string('资源 uuid；与 url 至少一个，或都省略表示恢复「当前」。'), url: this.string('资源 url / db 路径。'), ...control() }));
         schemas.set('scene.open', this.object({ path: this.string('场景 db:// 或项目相对路径。'), ...control() }, ['path']));

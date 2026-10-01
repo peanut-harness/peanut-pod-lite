@@ -190,6 +190,22 @@ export interface IMcpJsonSchema extends ContractPayload {
      * @description 字符串枚举值。
      */
     readonly enum?: readonly string[];
+    /**
+     * @description 必须恰好匹配一个分支，用于互斥输入。
+     */
+    readonly oneOf?: readonly IMcpJsonSchema[];
+    /**
+     * @description 数组的最少元素数。
+     */
+    readonly minItems?: number;
+    /**
+     * @description 数组的最多元素数。
+     */
+    readonly maxItems?: number;
+    /**
+     * @description 字符串必须匹配的受控正则表达式。
+     */
+    readonly pattern?: string;
 }
 
 /**

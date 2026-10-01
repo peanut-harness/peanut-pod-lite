@@ -1,6 +1,6 @@
 # peanut-pod-lite
 
-Cocos Creator 编辑器产品。公开 83 项免费操作（38 读、45 写/破坏性），可登录并升级订阅，但不执行付费能力。
+Cocos Creator 编辑器产品。当前源码契约为 84 项免费操作（39 读、45 写/破坏性），保留旧 83 项映射并新增只读 `asset.readText`；可登录并升级订阅，但不执行付费能力。任务 1.1 完成 DTO/policy/schema/目录：默认 32 文件、每文件 1 MiB、输入/输出各 4 MiB；读取项用 `byteCount`，写入前 `beforeSha256` 区分真实摘要/absent/未知 null，`sha256` 为真实后验摘要。Core 已校验 oneOf/数组容量/哈希模式，Kernel 接纳校验与实际文本 I/O 待任务 3.1–3.5；17 项协议、54 项 policy、35 项 MCP 定向测试及 Node14 内存 bundle 检查通过，尚无新 Creator 或全量零日志验收。
 
 ## Architecture v2
 
@@ -21,7 +21,7 @@ Cocos Creator 编辑器产品。公开 83 项免费操作（38 读、45 写/破�
 - 3.8.3 与 3.8.7：host/project 版本都存在且一致时 full，可写；其它 3.8 补丁版本保持只读，直到逐版本完成实机证据。
 - 最低宿主兼容、实机证据与任务调度事实见 [creator-profiles.md](creator-profiles.md)。
 - 未知、缺失或不一致版本全部 fail-closed。
-- Creator 3.8.x 迁移验收按五个互斥域固定分母：Editor/Scene/Prefab 21、Asset read 15、Asset write 12、Preview/Builder/Reference 9、Lumen 26；legacy schema/readOnly/risk parity fixture 已覆盖全部 83 项，但不替代 Creator 实机证据。
+- 旧 83 项 Creator 3.8.x 迁移验收按五个互斥域固定分母：Editor/Scene/Prefab 21、Asset read 15、Asset write 12、Preview/Builder/Reference 9、Lumen 26；legacy schema/readOnly/risk parity fixture 已覆盖旧 83 项，但不替代 Creator 实机证据。
 - 2026-09-20 在 Creator 3.8.3 工程 `billiards-practice-clean` 完成当前 Host/Core pack 的真实 Bridge 验证：宿主与工程版本均为 3.8.3，Host/Core 产物身份与状态报告一致，`asset.writeText` 经 Hub 写租约完成 AssetDB settle、`.meta` 生成和 postflight 校验，随后经 destructive 租约删除且无残留；3.8.3 现纳入 verified/write-enabled 精确画像。
 - Creator 3.8 实机报告同时记录宿主入口 SHA-256、打包 Host 目录包 digest、Lite CPM package digest/packedAt 与可选 Pro package digest；`query-status`、`host-status.json`、`smoke-results.json` 三方身份必须一致，旧报告不能冒充当前 release；live 脚本带 `--release-descriptor` 时再经 `CpmPackageStore.compareReleaseIdentity` 核对 descriptor。目录包 digest 规范按码元序拼接，校验端兼容旧 localeCompare 清单。
 - Creator 3.x 新建 Prefab/Scene 已改为单一 AssetDB 原子创建状态机：目标与 sidecar/父目录先纳入资源闭包，Lumen 在内存生成主内容，父目录登记探针清理完成后才进入 commit 窗口，再通过 `create-asset` 或 Creator 原生 Prefab 发布器写入并确认真实 UUID、`.meta` 与子资源。pending、身份不一致、探针残留或新增日志 error/warn 均阻止成功；无法证明回滚时返回 `may_have_changed`。

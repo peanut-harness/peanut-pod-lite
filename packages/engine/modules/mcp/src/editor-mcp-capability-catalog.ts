@@ -71,6 +71,16 @@ export const EDITOR_MCP_CAPABILITY_SEEDS: readonly EditorMcpCapabilitySeed[] = [
         requiresInput: true,
     },
     {
+        operation: 'asset.readText',
+        readOnly: true,
+        risk: 'read',
+        description: {
+            'en-US': 'Read one or multiple UTF-8 text files within assets in input order. Default limits: 32 files, 1 MiB per file, 4 MiB encoded request and response. Success requires all files and a consistent revision.',
+            'zh-CN': '按输入顺序读取 assets 内单个或多个 UTF-8 文本。默认每批 32 文件、每文件 1 MiB、编码请求及响应各 4 MiB；全部文件成功且 revision 一致才算成功。',
+        },
+        requiresInput: true,
+    },
+    {
         operation: 'asset.catalog.summary',
         readOnly: true,
         risk: 'read',

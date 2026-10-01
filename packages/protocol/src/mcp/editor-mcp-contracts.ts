@@ -91,6 +91,7 @@ export type EditorMcpOperationId =
     | 'editor.querySelection'
     | 'editor.setSelection'
     | 'asset.queryInfo'
+    | 'asset.readText'
     | 'asset.catalog.summary'
     | 'asset.catalog.lookup'
     | 'asset.catalog.refresh'

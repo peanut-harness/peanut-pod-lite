@@ -26,6 +26,9 @@ export class CoreMcpInputValidator {
         if (depth > 64 || --budget.remaining < 0) {
             return false;
         }
+        if (schema.oneOf != null && schema.oneOf.filter((branch) => this.matches(branch, value, depth + 1, budget)).length !== 1) {
+            return false;
+        }
         switch (schema.type) {
             case 'object':
                 if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -46,12 +49,14 @@ export class CoreMcpInputValidator {
             case 'array':
                 return (
                     Array.isArray(value) &&
+                    (schema.minItems == null || value.length >= schema.minItems) &&
+                    (schema.maxItems == null || value.length <= schema.maxItems) &&
                     value.every((child) =>
                         schema.items == null ? this.isJson(child, depth + 1, budget) : this.matches(schema.items, child, depth + 1, budget),
                     )
                 );
             case 'string':
-                return typeof value === 'string' && (schema.enum == null || schema.enum.includes(value));
+                return typeof value === 'string' && (schema.enum == null || schema.enum.includes(value)) && this.matchesPattern(schema.pattern, value);
             case 'number':
                 return typeof value === 'number' && Number.isFinite(value);
             case 'integer':
@@ -60,6 +65,23 @@ export class CoreMcpInputValidator {
                 return typeof value === 'boolean';
             default:
                 return false;
+        }
+    }
+
+    /**
+     * @description 校验受控正则约束；错误 schema 也必须拒绝输入。
+     * @param pattern 目录内声明的正则表达式。
+     * @param value 待校验的字符串。
+     * @returns 是否匹配或未声明约束。
+     */
+    private matchesPattern(pattern: string | undefined, value: string): boolean {
+        if (pattern == null) {
+            return true;
+        }
+        try {
+            return new RegExp(pattern).test(value);
+        } catch {
+            return false;
         }
     }
 

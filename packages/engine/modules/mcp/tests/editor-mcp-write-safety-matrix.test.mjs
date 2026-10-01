@@ -5,6 +5,7 @@ import { join } from 'path';
 import test from 'node:test';
 
 import { EditorMcpPluginModule } from '../dist/index.js';
+import { CoreTextFileIoContract } from '../../policy/dist/index.js';
 
 function createCatalogLookupStub() {
     return {
@@ -699,9 +700,27 @@ test('matrix: scene.open hard-blocks db:// args to open-scene', async () => {
 test('matrix: flat tools expose one tool per operation with correct readOnly/risk', async () => {
     const { definitions } = await activateRouter();
     const catalog = [...definitions.values()];
-    assert.equal(catalog.length, 83);
-    assert.equal(catalog.filter((definition) => definition.readOnly).length, 38);
+    assert.equal(catalog.length, 84);
+    assert.equal(catalog.filter((definition) => definition.readOnly).length, 39);
     assert.equal(catalog.filter((definition) => !definition.readOnly).length, 45);
+    const readText = definitions.get('peanut.editor-mcp.asset-read-text');
+    assert.ok(readText);
+    assert.equal(readText.readOnly, true);
+    assert.equal(readText.risk, 'read');
+    assert.equal(readText.lane, 'lumen-offline');
+    assert.deepEqual(readText.inputSchema, CoreTextFileIoContract.readInputSchema());
+    assert.deepEqual(readText.outputSchema, CoreTextFileIoContract.readOutputSchema());
+    assert.deepEqual(readText.aiHandling.successSignals, [
+        'response.ok=true', 'result.ok=true', 'result.consistent=true', 'result.files[*].status=read',
+    ]);
+    assert.equal(readText.throughput.readCoalescing, 'none');
+    assert.equal(readText.throughput.readCache, 'none');
+    assert.equal(readText.throughput.readConsistency, 'writer_barrier');
+    const writeText = definitions.get('peanut.editor-mcp.asset-write-text');
+    assert.ok(writeText);
+    for (const [name, schema] of Object.entries(CoreTextFileIoContract.writeProperties())) {
+        assert.deepEqual(writeText.inputSchema.properties[name], schema, name);
+    }
     const version = definitions.get('peanut.editor-mcp.editor-query-version');
     assert.ok(version, 'editor-query-version');
     assert.equal(version.readOnly, true);

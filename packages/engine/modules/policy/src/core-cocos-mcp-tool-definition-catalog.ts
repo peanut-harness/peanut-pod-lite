@@ -1,3 +1,4 @@
+import { CoreTextFileIoContract } from './core-text-file-io-contract.js';
 import { CoreCocosMcpCapabilityCatalog, type CoreCocosMcpOperation } from './core-cocos-mcp-capability-catalog.js';
 import { CoreCocosNativeWriteCapabilityCatalog, type CoreCocosNativeWriteOperation } from './core-cocos-native-write-capability-catalog.js';
 import { CoreCocosNativeWriteToolSchemaCatalog } from './core-cocos-native-write-tool-schema-catalog.js';
@@ -78,11 +79,12 @@ export class CoreCocosMcpToolDefinitionCatalog {
                     operation: capability.operation,
                     description: `Read-only Cocos MCP capability: ${capability.operation}. Treat the call as successful only when response.ok=true. On response.ok=false, inspect failure.code, failure.category, and failure.recommendedAction.`,
                     inputSchema,
+                    ...(capability.operation === 'asset.readText' ? { outputSchema: CoreTextFileIoContract.readOutputSchema() } : {}),
                     readOnly: true,
                     risk: 'read',
                     executionModel: 'inline',
                     requiresLocalApproval: false,
-                    aiHandling: this.createAiHandling(true),
+                    aiHandling: this.createAiHandling(true, capability.operation),
                     throughput: throughputProfiles.find(capability.operation) as ICoreCocosMcpOperationThroughputProfile,
                 }),
             );
@@ -141,14 +143,17 @@ export class CoreCocosMcpToolDefinitionCatalog {
     /**
      * @description 构造 AI 调用处理的稳定规则。
      * @param readOnly 是否为只读工具。
+     * @param operation 可选业务操作，用于文本快照成功条件。
      * @returns 不可变调用规则。
      */
-    private createAiHandling(readOnly: boolean): ICoreCocosMcpAiHandlingGuidance {
+    private createAiHandling(readOnly: boolean, operation?: CoreCocosMcpPublicOperation): ICoreCocosMcpAiHandlingGuidance {
         return Object.freeze({
             schemaVersion: 1,
             successSignals: Object.freeze(
                 readOnly
-                    ? ['response.ok=true']
+                    ? operation === 'asset.readText'
+                        ? ['response.ok=true', 'result.ok=true', 'result.consistent=true', 'result.files[*].status=read']
+                        : ['response.ok=true']
                     : ['response.ok=true', 'result.taskStatus=succeeded', 'result.postflight.verified=true'],
             ),
             failureField: 'failure',

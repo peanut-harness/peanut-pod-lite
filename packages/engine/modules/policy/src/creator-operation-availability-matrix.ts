@@ -29,7 +29,7 @@ export interface ICreatorOperationAvailabilityEntry {
  */
 export class CreatorOperationAvailabilityMatrix {
     /**
-     * @description 生成全部 83 项操作的状态。
+     * @description 生成全部 84 项操作的状态。
      * @param context 宿主解析后的可信 Creator 上下文
      * @returns 与公开目录一一对应的不可变矩阵
      */

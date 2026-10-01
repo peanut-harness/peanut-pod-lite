@@ -1,4 +1,18 @@
 export type {
+    ITextFileIoLimits,
+    TextFileReadInput,
+    TextFileExpectedSha256,
+    ITextFileWriteEntry,
+    ITextFileWriteInput,
+    ITextFileReadSuccess,
+    ITextFileReadFailure,
+    TextFileReadOutcome,
+    ITextFileReadResult,
+    TextFileWriteStatus,
+    ITextFileWriteOutcome,
+    ITextFileWriteResult,
+} from './mcp/text-file-io-contracts.js';
+export type {
     IMcpCapabilityCatalog,
     IMcpCapabilityDefinition,
     IMcpAiHandlingGuidance,

@@ -59,7 +59,7 @@ test('legacy AssetDB operation set is split into 15 reads and 12 locally approve
     assert.equal(writeOperations.length, 12);
     assert.equal(readOperations.some((operation) => writeOperations.includes(operation)), false);
 
-    const actual = catalog.list().filter((definition) => definition.operation.startsWith('asset.'));
+    const actual = catalog.list().filter((definition) => definition.operation.startsWith('asset.') && definition.operation !== 'asset.readText');
     assert.deepEqual(
         new Set(actual.map((definition) => definition.operation)),
         new Set([...readOperations, ...writeOperations]),
@@ -88,6 +88,16 @@ test('legacy AssetDB business schemas and the Lite approval overlay stay frozen'
                 required: expected.required,
                 properties: {
                     ...expected.properties,
+                    ...(operation === 'asset.writeText' ? {
+                        expectedSha256: 'string',
+                        files: {
+                            ...expected.properties.files,
+                            items: {
+                                ...expected.properties.files.items,
+                                properties: { ...expected.properties.files.items.properties, expectedSha256: 'string' },
+                            },
+                        },
+                    } : {}),
                     ...contract.writeControlProperties,
                     execution: {
                         type: 'object',

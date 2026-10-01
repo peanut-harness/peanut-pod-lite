@@ -8,6 +8,7 @@ export type CoreCocosMcpOperation =
     | 'editor.queryProject'
     | 'editor.querySelection'
     | 'asset.queryInfo'
+    | 'asset.readText'
     | 'asset.catalog.summary'
     | 'asset.catalog.lookup'
     | 'asset.importPlan'
@@ -63,6 +64,7 @@ export class CoreCocosMcpCapabilityCatalog {
         'editor.queryProject',
         'editor.querySelection',
         'asset.queryInfo',
+        'asset.readText',
         'asset.catalog.summary',
         'asset.catalog.lookup',
         'asset.importPlan',

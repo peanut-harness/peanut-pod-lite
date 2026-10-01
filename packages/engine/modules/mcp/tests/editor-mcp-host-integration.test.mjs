@@ -9,7 +9,7 @@ import { RuntimeFacade } from '@peanut/pod-engine/runtime';
 
 import { createPluginModule } from '../dist/index.js';
 
-test('Editor MCP plugin should expose 83 Lite operations without a Pro plugin', async () => {
+test('Editor MCP plugin should expose 84 Lite operations without a Pro plugin', async () => {
     const projectPath = mkdtempSync(join(tmpdir(), 'peanut-editor-mcp-managed-host-'));
     mkdirSync(join(projectPath, 'temp', 'logs'), { recursive: true });
     writeFileSync(join(projectPath, 'temp', 'logs', 'project.log'), '', 'utf8');
@@ -40,7 +40,7 @@ test('Editor MCP plugin should expose 83 Lite operations without a Pro plugin', 
 
     mcpCapabilityRegistry.setPluginExposure(pluginModule.manifest.id, 'all');
     const fullNames = mcpCapabilityRegistry.getCatalog().capabilities.map((capability) => capability.name);
-    assert.equal(fullNames.length, 83);
+    assert.equal(fullNames.length, 84);
     assert.equal(fullNames.includes('peanut.editor-mcp.asset-import'), true);
     assert.equal(fullNames.includes('peanut.editor-mcp.lumen-comp-set'), true);
     assert.equal(fullNames.includes('peanut.editor-mcp.lumen-node-rm'), true);
