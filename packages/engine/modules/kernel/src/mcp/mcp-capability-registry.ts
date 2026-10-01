@@ -434,33 +434,64 @@ export class McpCapabilityRegistry {
     }
 
     /**
-     * @description 按受支持的 JSON Schema 子集收窄外部输入。
+     * @description 按受支持的 JSON Schema 子集收窄输入，保留旧附加字段与整数语义并限制递归预算。
+     * @param value 当前待校验值。
+     * @param schema 当前契约。
+     * @param depth 已遍历深度。
+     * @param budget 当前调用共享的剩余节点数。
+     * @returns 当前值是否满足全部约束。
      */
-    private _matchesSchema(value: unknown, schema: IMcpCapabilityDefinition['inputSchema']): boolean {
+    private _matchesSchema(value: unknown, schema: IMcpCapabilityDefinition['inputSchema'], depth = 0, budget = { remaining: 100_000 }): boolean {
+        if (depth > 64 || --budget.remaining < 0) {
+            return false;
+        }
+        if (schema.oneOf != null && schema.oneOf.filter((branch) => this._matchesSchema(value, branch, depth + 1, budget)).length !== 1) {
+            return false;
+        }
         if (schema.type === 'object') {
             if (typeof value !== 'object' || value == null || Array.isArray(value)) {
                 return false;
             }
-            const record = value as Record<string, unknown>;
             const properties = schema.properties ?? {};
-            if ((schema.required ?? []).some((key) => !Object.prototype.hasOwnProperty.call(record, key))) {
+            if ((schema.required ?? []).some((key) => !Object.prototype.hasOwnProperty.call(value, key))) {
                 return false;
             }
-            if (schema.additionalProperties !== true && Object.keys(record).some((key) => properties[key] == null)) {
+            if (schema.additionalProperties !== true && Object.keys(value).some((key) => !Object.prototype.hasOwnProperty.call(properties, key))) {
                 return false;
             }
-            return Object.entries(properties).every(([key, propertySchema]) => !Object.prototype.hasOwnProperty.call(record, key) || this._matchesSchema(record[key], propertySchema));
+            return Object.entries(properties).every(([key, propertySchema]) => !Object.prototype.hasOwnProperty.call(value, key)
+                || this._matchesSchema(Reflect.get(value, key), propertySchema, depth + 1, budget));
         }
         if (schema.type === 'array') {
-            return Array.isArray(value) && (schema.items == null || value.every((item) => this._matchesSchema(item, schema.items!)));
+            const items = schema.items;
+            return Array.isArray(value) && (schema.minItems == null || value.length >= schema.minItems)
+                && (schema.maxItems == null || value.length <= schema.maxItems)
+                && (items == null || value.every((item: unknown) => this._matchesSchema(item, items, depth + 1, budget)));
         }
         if (schema.type === 'string') {
-            return typeof value === 'string' && (schema.enum == null || schema.enum.includes(value));
+            return typeof value === 'string' && (schema.enum == null || schema.enum.includes(value)) && this._matchesPattern(schema.pattern, value);
         }
         if (schema.type === 'boolean') {
             return typeof value === 'boolean';
         }
         return typeof value === 'number' && Number.isFinite(value) && (schema.type !== 'integer' || Number.isInteger(value));
+    }
+
+    /**
+     * @description 执行发布契约中的字符串正则；格式错误的正则拒绝输入而不进入 handler。
+     * @param pattern 可选契约正则。
+     * @param value 待校验字符串。
+     * @returns 是否匹配，未声明约束时为真。
+     */
+    private _matchesPattern(pattern: string | undefined, value: string): boolean {
+        if (pattern == null) {
+            return true;
+        }
+        try {
+            return new RegExp(pattern).test(value);
+        } catch {
+            return false;
+        }
     }
 }
 

@@ -12,7 +12,7 @@
 
 ## 3. 多文件读取与写入
 
-- [ ] 3.1 `[peanut-pod-lite:packages/engine/modules/assets/src/text-file-io-guard.ts,packages/engine/modules/assets/src/index.ts,packages/engine/modules/assets/tests/text-file-io-guard.test.ts,packages/engine/modules/kernel/src/mcp/mcp-capability-registry.ts,packages/engine/modules/kernel/tests/mcp-capability-registry.test.ts | serial | depends:1.1 | owner:01a0f2c9-6b9a-7560-8866-f97beda3ec0c | requirements:bulk-text-file-io#Text file calls are bounded and project confined | non-goals:只实现离线路径字节UTF8guard和Kernel关键词校验，不接文件执行器或writer、不改旧审批、不运行Creator、不改原工程旧报告、不pack或发布]` 实现资产根 realpath/symlink 校验、重复物理目标检查及文件数/单文件/输入输出字节预算；依赖：1.1；owned paths：assets 的新增文本 I/O guard 与独立测试；验收：穿越、大小写别名、symlink、非法 UTF-8、二进制、32/33 文件和正文边界测试通过，拒绝前后文件摘要相同。
+- [x] 3.1 `[peanut-pod-lite:packages/engine/modules/assets/src/text-file-io-guard.ts,packages/engine/modules/assets/src/index.ts,packages/engine/modules/assets/tests/text-file-io-guard.test.ts,packages/engine/modules/kernel/src/mcp/mcp-capability-registry.ts,packages/engine/modules/kernel/tests/mcp-capability-registry.test.ts | serial | depends:1.1 | owner:01a0f2c9-6b9a-7560-8866-f97beda3ec0c | requirements:bulk-text-file-io#Text file calls are bounded and project confined | non-goals:只实现离线路径字节UTF8guard和Kernel关键词校验，不接文件执行器或writer、不改旧审批、不运行Creator、不改原工程旧报告、不pack或发布]` 实现资产根 realpath/symlink 校验、重复物理目标检查及文件数/单文件/输入输出字节预算；依赖：1.1；owned paths：assets 的新增文本 I/O guard 与独立测试；验收：穿越、大小写别名、symlink、非法 UTF-8、二进制、32/33 文件和正文边界测试通过，拒绝前后文件摘要相同。
 - [ ] 3.2 实现 `asset.readText` 单文件/多文件内容读回、writer 屏障、资源互斥、revision/文件快照与有界冲突；依赖：3.1；验收：BOM、CRLF、Unicode、空文件、缺文件逐项结果、跨 revision 写入及外部编辑测试通过，不返回混合快照或截断内容。
 - [ ] 3.3 重构 `asset.writeText` 为全批准备后进入唯一 writer，在第一项变化前重验所有路径与期望摘要；依赖：3.1；验收：最后一项无效、排队时外部改动、`absent` 冲突、无审批均使整批 unchanged，无目录/meta/探针变更。
 - [ ] 3.4 增加逐文件内容摘要、UUID/meta 后验、兼容结果字段和保守部分失败结果；依赖：3.3；验收：第 N 项提交和最终后验故障注入准确区分已写/待核实/未执行，不能误报整批成功或无证据回滚。
@@ -44,6 +44,6 @@
 
 ## 8. Execution Notes
 
-任务 1.1 契约与 1.2 覆盖草稿工具已验收，32 项合成校验测试不代表实机覆盖，其余实现任务均未完成。Kernel 现有 schema matcher 的 oneOf/minItems/maxItems/pattern 支持缺口必须在任务 3.1 或 3.5 发包时包含精确 kernel 文件与测试；此处不开放其源码。实施前逐 task id 发包，声明依赖、owned paths、非目标和验收。4.1/4.2 可在 1.2 完成、夹具格式确认、宿主可用且路径无重叠后评估临时子 Agent；共享目录/schema、runner、构建、Git、知识、Creator 实机和性能测量保持串行。上述候选 lane 不是已经执行或批准的并行登记。
+任务 1.1 契约、1.2 覆盖草稿工具及 3.1 离线 guard/Kernel oneOf/minItems/maxItems/pattern 已验收；77 项离线回归和两个文件竞态/JSON 边界探针不代表 Creator 实机覆盖，其余实现任务未完成。3.2 尚待逐项登记 SDK 调用上下文、真实 Hub revision/writer 屏障、与 managed executor 相同资源锁、完整失败结果及传输输出校验，不得用占位 revision 或仅新 gateway 测试宣布一致性。实施前逐 task id 发包，声明依赖、owned paths、非目标和验收。4.1/4.2 可在 1.2 完成、夹具格式确认、宿主可用且路径无重叠后评估临时子 Agent；共享目录/schema、runner、构建、Git、知识、Creator 实机和性能测量保持串行。上述候选 lane 不是已经执行或批准的并行登记。
 
 任务 6.1 发包必须纳入 `tools/release-identity.mts` 与 `tools/tests/release-identity.test.mts`，将当前硬编码旧 83/38 profile 身份对齐新源码 84/39/45；该后续修正尚未开放，旧包、旧实机报告及摘要保留。

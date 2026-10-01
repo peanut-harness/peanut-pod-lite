@@ -55,6 +55,8 @@ export type {
     IReferencingNodeQueryResult,
 } from './serialized-asset-reference-scanner';
 export { SilentAssetPathGuard } from './silent-asset-path-guard';
+export { TextFileIoGuard } from './text-file-io-guard';
+export type { ITextFileIoGuardLimits, ITextFileIoTarget, ITextFileIoSnapshot, ITextFileIoPreparedWrite } from './text-file-io-guard';
 export { SilentAssetMoveRename } from './silent-asset-move-rename';
 export type { ISilentAssetMoveRenameRequest, ISilentAssetMoveRenameResult } from './silent-asset-move-rename';
 export { SilentAssetCreateFolder } from './silent-asset-create-folder';
