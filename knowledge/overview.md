@@ -1,6 +1,6 @@
 # peanut-pod-lite
 
-Cocos Creator 编辑器产品。当前源码契约为 84 项免费操作（39 读、45 写/破坏性），保留旧 83 项映射并新增只读 `asset.readText`；可登录并升级订阅，但不执行付费能力。任务 1.1 完成 DTO/policy/schema/目录：默认 32 文件、每文件 1 MiB、输入/输出各 4 MiB；读取项用 `byteCount`，写入前 `beforeSha256` 区分真实摘要/absent/未知 null，`sha256` 为真实后验摘要。Core 已校验 oneOf/数组容量/哈希模式，Kernel 接纳校验与实际文本 I/O 待任务 3.1–3.5；17 项协议、54 项 policy、35 项 MCP 定向测试及 Node14 内存 bundle 检查通过，尚无新 Creator 或全量零日志验收。
+Cocos Creator 编辑器产品。当前源码契约为 84 项免费操作（39 读、45 写/破坏性），保留旧 83 项映射并新增只读 `asset.readText`；可登录并升级订阅，但不执行付费能力。任务 1.1 完成 DTO/policy/schema/目录：默认 32 文件、每文件 1 MiB、输入/输出各 4 MiB；读取项用 `byteCount`，写入前 `beforeSha256` 区分真实摘要/absent/未知 null，`sha256` 为真实后验摘要。Core 已校验 oneOf/数组容量/哈希模式，Kernel 接纳校验与实际文本 I/O 待任务 3.1–3.5；17 项协议、54 项 policy、35 项 MCP 定向测试及 Node14 内存 bundle 检查通过，尚无新 Creator 或全量零日志验收。 任务 1.2 已提供绑定产品与两版安装源码的覆盖草稿/严格校验：3.8.7 为 1220 目标/4119 用例，3.8.3 为 1229/4128；每版 4 个动态注册未解析项保留待运行时对照，全部 8247 用例 pending、可用性 unverified，32 项合成读取/校验测试通过。真实夹具、运行时目录和原生日志读取端口仍待后续，静态分母不代表实机覆盖。
 
 ## Architecture v2
 
