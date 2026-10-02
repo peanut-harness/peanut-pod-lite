@@ -854,7 +854,13 @@ const methods = {
         }
         const registry = getPluginManagerKernel()?.getMcpCapabilityRegistry?.();
         if (registry?.getRegisteredProviderPluginId?.(name) === HUB_CAPABILITY_PLUGIN_ID) {
-            const result = await registry.invokeFromHost(name, input, invocation);
+            const hub = getPluginManagerKernel()?.getMcpHubControl?.();
+            if ((name === 'asset.readText' || name.endsWith('.asset-read-text')) && typeof hub?.invokeFromHost !== 'function') {
+                throw new Error('text_file_io_consistency_unavailable');
+            }
+            const result = typeof hub?.invokeFromHost === 'function'
+                ? await hub.invokeFromHost(name, input, invocation)
+                : await registry.invokeFromHost(name, input, invocation);
             if (isRecord(result) && typeof result.taskId === 'string') {
                 getPluginManagerKernel()?.getMcpTaskControl?.().attachCapability(
                     result.taskId,

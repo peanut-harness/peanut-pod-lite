@@ -12,6 +12,7 @@ import type {
     ThroughputCostClass,
 } from '@peanut/pod-protocol';
 import { ThroughputContractValidator } from '@peanut/pod-protocol';
+import type { IMcpCapabilityInvocation } from '@peanut/pod-sdk';
 import {
     ProjectLogPostflightMonitor,
     ProjectLogPostflightRepairer,
@@ -19,7 +20,6 @@ import {
     ProjectWriterBarrier,
     RevisionAwareReadCoordinator,
     ThroughputAdmissionController,
-    type IProjectWriterBarrierLease,
     type IThroughputAdmissionLimits,
 } from '@peanut/pod-engine/runtime';
 
@@ -29,6 +29,7 @@ import type { IMcpCapabilityProgress, McpPluginExposureMode } from './mcp-capabi
 import { McpBatchCoordinator, type IMcpApprovalLeaseMirror } from './mcp-batch-coordinator.js';
 import {
     summarizeMcpHubCapability,
+    McpHubInvocationContext,
     type IMcpHubControl,
     type IMcpHubPendingPlan,
     type IMcpHubRecentCall,
@@ -41,7 +42,6 @@ import { McpControlFlowRefusal } from './mcp-control-flow-refusal.js';
 
 ensureAbortControllerPolyfill();
 
-const MAX_REQUEST_BODY_LENGTH = 128 * 1024;
 const PLAN_TTL_MS = 5 * 60 * 1000;
 const MAX_RECENT_CALLS = 100;
 
@@ -134,6 +134,19 @@ interface IMcpHubActiveInvocation {
  * @description 编辑器进程内的 loopback Hub；只为 stdio bridge 提供经 token 认证的私有路由。
  */
 export class CocosMcpHub implements IMcpHubControl {
+    /**
+     * @description 同一 Hub 实例的内部身份与一致性服务装配。
+     */
+    private readonly _invocationContext = new McpHubInvocationContext(
+        (name) => this._requirePluginManager().getMcpCapabilityRegistry().getRegisteredDefinition(name),
+        (definition, name, input, invocation) => this._invokeWithPostflight(definition, name, input, invocation.connectionId,
+            invocation, invocation.risk ?? definition.risk,
+            { resourceIds: invocation.resourceIds ?? [], hasLocalApproval: invocation.hasLocalApproval === true }, invocation),
+        () => resolve(this._options.projectPath),
+        () => ({ revision: this._projectRevision.snapshot().revision, activeWriters: this._writerBarrier.inspect().activeWriters }),
+        () => this._writerBarrier.waitForPriorWriters(),
+        (refreshBoundary) => this._finishProjectWrite(refreshBoundary),
+    );
     /** @description MCP 边界输入校验器。 */
     private readonly _inputReader = new CocosMcpInputReader();
     /** @description 动态提供当前 plugin-manager 的函数，支持 kernel reload。 */
@@ -186,11 +199,6 @@ export class CocosMcpHub implements IMcpHubControl {
     private readonly _readCoordinator: RevisionAwareReadCoordinator;
     /** @description 强一致读取等待已接纳 writer 的工程屏障。 */
     private readonly _writerBarrier = new ProjectWriterBarrier();
-    /** @description 等待受管任务终态后再次推进 revision 的任务。 */
-    private readonly _pendingRevisionTasks = new Map<string, {
-        readonly refreshBoundary: boolean;
-        readonly barrierLease: IProjectWriterBarrierLease;
-    }>();
     /** @description Runtime 任务终态订阅撤销器。 */
     private _removeTaskTerminalListener: (() => void) | null = null;
 
@@ -213,7 +221,7 @@ export class CocosMcpHub implements IMcpHubControl {
         this._disabledPluginIds = new Set(settings.disabledPluginIds);
         this._writeEnabledPluginIds = new Set(settings.writeEnabledPluginIds);
         this._directWriteEnabled = settings.directWriteEnabled;
-        this._maxConcurrentWrites = this._readMaxConcurrentWrites(options.maxConcurrentWrites);
+        this._maxConcurrentWrites = this._invocationContext.readMaxConcurrentWrites(options.maxConcurrentWrites);
         this._throughputAdmission = new ThroughputAdmissionController(options.throughputAdmissionLimits);
         this._projectRevision = new ProjectRevisionClock(resolve(options.projectPath));
         this._readCoordinator = new RevisionAwareReadCoordinator(this._projectRevision, {
@@ -284,10 +292,7 @@ export class CocosMcpHub implements IMcpHubControl {
         this._plans.clear();
         this._removeTaskTerminalListener?.();
         this._removeTaskTerminalListener = null;
-        for (const pending of this._pendingRevisionTasks.values()) {
-            pending.barrierLease.release();
-        }
-        this._pendingRevisionTasks.clear();
+        this._invocationContext.releasePendingWriters();
         this._batchCoordinator.dispose();
         this._readCoordinator.dispose();
         if (server != null) {
@@ -365,6 +370,12 @@ export class CocosMcpHub implements IMcpHubControl {
     public notifyExternalProjectChange(): ReturnType<ProjectRevisionClock['snapshot']> {
         return this._projectRevision.externalChange();
     }
+
+    /**
+     * @description Creator 直连沿用同一 Hub 的真实版本与 writer 屏障，保留 Registry 宿主授权语义。
+     * @returns 原始能力结果。
+     */
+    public readonly invokeFromHost = this._invocationContext.invokeFromHost.bind(this._invocationContext);
 
     /**
      * @description 保存面板配置，并立即启动或停止当前项目的 Hub。
@@ -898,10 +909,15 @@ export class CocosMcpHub implements IMcpHubControl {
             resourceIds: [],
             hasLocalApproval: false,
         },
+        hostInvocation?: IMcpCapabilityInvocation,
     ): Promise<unknown> {
         const registry = this._requirePluginManager().getMcpCapabilityRegistry();
+        const context = this._invocationContext.create({ connectionId, ...invocation, ...hostInvocation, risk, ...authorization });
+        const invoke = (): Promise<unknown> => hostInvocation == null
+            ? registry.invoke(name, input, context) : registry.invokeFromHost(name, input, context);
         if (definition.readOnly) {
-            if (definition.throughput?.readConsistency === 'writer_barrier' || definition.throughput == null) {
+            if (name !== 'asset.readText' && !name.endsWith('.asset-read-text')
+                && (definition.throughput?.readConsistency === 'writer_barrier' || definition.throughput == null)) {
                 await this._writerBarrier.waitForPriorWriters();
             }
             const providerId = registry.getRegisteredProviderPluginId(name) ?? 'unknown-provider';
@@ -914,39 +930,58 @@ export class CocosMcpHub implements IMcpHubControl {
                 allowCoalescing: definition.throughput?.readCoalescing === 'project',
                 cacheTtlMs: definition.throughput?.readCache === 'revision_lru' ? 250 : 0,
                 retryOnRevisionChange: definition.throughput?.readCoalescing === 'project',
-            }, () => registry.invoke(name, input, { connectionId, ...invocation, risk, ...authorization }));
+            }, invoke);
             return coordinated.value;
         }
         const barrierLease = this._writerBarrier.admitWriter();
         this._projectRevision.beginWrite();
+        this._invocationContext.retainWriter(barrierLease, definition.executionModel === 'managed_task');
         if (definition.executionModel === 'managed_task') {
-            this._ensureTaskRevisionSubscription();
+            let queuedTaskId: string | null = null;
             try {
-                const result = await registry.invoke(name, input, { connectionId, ...invocation, risk, ...authorization });
-                const receipt = this._readManagedTaskReceipt(result);
+                this._ensureTaskRevisionSubscription();
+                const result = await invoke();
+                const receipt = this._invocationContext.readManagedTaskReceipt(result);
                 if (receipt.taskStatus === 'succeeded') {
-                    this._finishProjectWrite(this._isRefreshBoundary(name));
-                    barrierLease.release();
+                    this._invocationContext.finishWriter(barrierLease, this._isRefreshBoundary(name));
                 } else {
-                    this._pendingRevisionTasks.set(receipt.taskId, {
-                        refreshBoundary: this._isRefreshBoundary(name),
-                        barrierLease,
-                    });
+                    this._invocationContext.retainTaskWriter(receipt.taskId, barrierLease, this._isRefreshBoundary(name));
+                    queuedTaskId = receipt.taskId;
+                    const control = this._requirePluginManager().getMcpTaskControl();
+                    control.attachCapability(receipt.taskId, name, connectionId);
+                    const status = await control.getStatus(receipt.taskId, connectionId);
+                    if (status != null && (status.status === 'succeeded' || status.status === 'failed' || status.status === 'cancelled')) {
+                        this._invocationContext.finishTaskWriters(receipt.taskId);
+                    }
                 }
                 return result;
             } catch (error) {
-                this._projectRevision.finishWrite();
-                barrierLease.release();
+                if (queuedTaskId != null) {
+                    try {
+                        if (await this._requirePluginManager().getMcpTaskControl()
+                            .confirmTerminalForInvocation(queuedTaskId, name, connectionId)) {
+                            this._invocationContext.finishTaskWriters(queuedTaskId);
+                        }
+                    } catch {
+                        // 无法证明真实终态时保持屏障，继续传播最初的回执观察错误。
+                    }
+                }
+                this._invocationContext.failWriter(barrierLease);
                 throw error;
             }
         }
         await this._acquireWriteSlot();
         let succeeded = false;
         try {
+            if (hostInvocation != null) {
+                const result = await invoke();
+                succeeded = true;
+                return result;
+            }
             const projectRoot = resolve(this._options.projectPath);
             const monitor = new ProjectLogPostflightMonitor();
             const checkpoint = monitor.checkpoint(projectRoot);
-            const result = await registry.invoke(name, input, { connectionId, ...invocation, risk, ...authorization });
+            const result = await invoke();
             let postflight = monitor.readDelta(checkpoint);
             if (postflight.verified === false && risk !== 'destructive') {
                 const repairer = new ProjectLogPostflightRepairer(this._options.repairMessage ?? null);
@@ -960,8 +995,7 @@ export class CocosMcpHub implements IMcpHubControl {
             return { data: result, postflight };
         } finally {
             this._releaseWriteSlot();
-            this._finishProjectWrite(succeeded && this._isRefreshBoundary(name));
-            barrierLease.release();
+            this._invocationContext.finishWriter(barrierLease, succeeded && this._isRefreshBoundary(name));
         }
     }
 
@@ -971,12 +1005,7 @@ export class CocosMcpHub implements IMcpHubControl {
             return;
         }
         this._removeTaskTerminalListener = this._requirePluginManager().onTaskTerminal((event) => {
-            const pending = this._pendingRevisionTasks.get(event.taskId);
-            if (pending != null) {
-                this._pendingRevisionTasks.delete(event.taskId);
-                this._finishProjectWrite(pending.refreshBoundary);
-                pending.barrierLease.release();
-            }
+            this._invocationContext.finishTaskWriters(event.taskId);
             this._batchCoordinator.handleTaskTerminal(event.taskId);
         });
     }
@@ -992,18 +1021,6 @@ export class CocosMcpHub implements IMcpHubControl {
     /** @description 识别当前公开目录中的 AssetDB/preview 刷新边界。 */
     private _isRefreshBoundary(name: string): boolean {
         return name === 'asset.catalog.refresh' || name === 'lumen.refresh' || name === 'lumen.commit' || name === 'preview.refresh';
-    }
-
-    /**
-     * @description 解析并校验 Hub 写并发上限。
-     * @param value 可选配置。
-     * @returns 1–32 之间的整数。
-     */
-    private _readMaxConcurrentWrites(value: number | undefined): number {
-        if (typeof value !== 'number' || !Number.isFinite(value)) {
-            return 16;
-        }
-        return Math.max(1, Math.min(32, Math.floor(value)));
     }
 
     /**
@@ -1106,18 +1123,7 @@ export class CocosMcpHub implements IMcpHubControl {
 
     /** @description 从请求体读取并收窄 JSON 对象。 */
     private async _readPayload(request: import('http').IncomingMessage): Promise<Record<string, unknown>> {
-        let body = '';
-        for await (const chunk of request) {
-            body += String(chunk);
-            if (body.length > MAX_REQUEST_BODY_LENGTH) {
-                throw new Error('cocos_mcp_hub_request_too_large');
-            }
-        }
-        const parsed: unknown = JSON.parse(body);
-        if (typeof parsed !== 'object' || parsed == null || Array.isArray(parsed)) {
-            throw new Error('cocos_mcp_hub_payload_invalid');
-        }
-        return parsed as Record<string, unknown>;
+        return this._invocationContext.readPayload(request);
     }
 
     /** @description 发布经原子替换写入的本机连接描述。 */
@@ -1439,7 +1445,7 @@ export class CocosMcpHub implements IMcpHubControl {
             this._completeRecentCall(auditId, 'succeeded');
             return;
         }
-        const receipt = this._readManagedTaskReceipt(result);
+        const receipt = this._invocationContext.readManagedTaskReceipt(result);
         this._requirePluginManager().getMcpTaskControl().attachCapability(receipt.taskId, definition.name, connectionId);
         const record = this._recentCalls.find((candidate) => candidate.id === auditId);
         if (record == null || record.completedAt != null) {
@@ -1469,22 +1475,6 @@ export class CocosMcpHub implements IMcpHubControl {
             record.status = 'approved';
         }
     }
-
-    /** @description 校验受管 capability 的成功返回值包含稳定任务回执。 */
-    private _readManagedTaskReceipt(result: unknown): { readonly taskId: string; readonly taskStatus: 'queued' | 'succeeded' } {
-        if (result == null || typeof result !== 'object' || Array.isArray(result)) {
-            throw new Error('cocos_mcp_managed_task_receipt_invalid');
-        }
-        const record = result as Record<string, unknown>;
-        if (
-            typeof record.taskId !== 'string' || record.taskId.length === 0 ||
-            record.taskStatus !== 'queued' && record.taskStatus !== 'succeeded'
-        ) {
-            throw new Error('cocos_mcp_managed_task_receipt_invalid');
-        }
-        return { taskId: record.taskId, taskStatus: record.taskStatus };
-    }
-
 
     /**
      * @description 从磁盘重新加载 MCP 设置并应用到当前 registry。
@@ -1533,7 +1523,6 @@ export class CocosMcpHub implements IMcpHubControl {
     ): { readonly approvalToken: string; readonly approvalId: string; readonly expiresAt: number; readonly idleLeaseMs: number; readonly liteMirrored: boolean } {
         return this._batchCoordinator.issueApprovalFromPayload(connectionId, payload);
     }
-
 
     /** @description 返回当前活跃 plugin-manager；内核暂不可用时拒绝请求。 */
     private _requirePluginManager(): PluginManagerApp {

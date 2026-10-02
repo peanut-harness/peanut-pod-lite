@@ -180,7 +180,7 @@ export class EditorMcpPluginModule extends PluginModuleBase {
             const requestInput = decoded.input;
             const plan = router.plan({ operation, input: requestInput });
             const result = plan.readOnly || managedTasks == null
-                ? await router.dispatch('cocos.call', { operation, input: requestInput })
+                ? await router.dispatch('cocos.call', { operation, input: requestInput }, invocation)
                 : await this._executeManagedCapability(operation, requestInput, invocation, managedTasks, decoded.execution);
             if (!this._isActionResult(result)) {
                 throw new Error('editor_mcp_capability_result_invalid');

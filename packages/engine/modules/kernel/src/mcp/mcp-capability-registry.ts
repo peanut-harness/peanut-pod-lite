@@ -214,6 +214,15 @@ export class McpCapabilityRegistry {
     }
 
     /**
+     * @description 为宿主内部调度查询原始定义；不会改变外部 Hub 公开级别。
+     * @param name 已注册工具名称。
+     * @returns 注册定义，未知工具返回空。
+     */
+    public getRegisteredDefinition(name: string): IMcpCapabilityDefinition | null {
+        return this._registrations.get(name)?.definition ?? null;
+    }
+
+    /**
      * @description 校验 invocation 对象确由当前插件 handler 的宿主调用签发。
      */
     public resolveInvocationOwner(
@@ -410,7 +419,10 @@ export class McpCapabilityRegistry {
             return false;
         }
         const schema = value as Record<string, unknown>;
-        if (!['object', 'array', 'string', 'number', 'integer', 'boolean'].includes(schema.type as string)) {
+        const types = typeof schema.type === 'string' ? [schema.type] : schema.type;
+        if (!Array.isArray(types) || types.length < 1 || types.length > 7
+            || types.some((type: unknown) => typeof type !== 'string'
+                || !['object', 'array', 'string', 'number', 'integer', 'boolean', 'null'].includes(type))) {
             return false;
         }
         return true;
@@ -448,6 +460,15 @@ export class McpCapabilityRegistry {
         if (schema.oneOf != null && schema.oneOf.filter((branch) => this._matchesSchema(value, branch, depth + 1, budget)).length !== 1) {
             return false;
         }
+        if (typeof schema.type !== 'string') {
+            return Array.isArray(schema.type) && schema.type.length > 0 && schema.type.length <= 7
+                && schema.type.every((type) => typeof type === 'string'
+                    && ['object', 'array', 'string', 'number', 'integer', 'boolean', 'null'].includes(type))
+                && schema.type.some((type) => this._matchesSchema(value, { ...schema, type, oneOf: undefined }, depth + 1, budget));
+        }
+        if (schema.type === 'null') {
+            return value === null;
+        }
         if (schema.type === 'object') {
             if (typeof value !== 'object' || value == null || Array.isArray(value)) {
                 return false;
@@ -474,7 +495,8 @@ export class McpCapabilityRegistry {
         if (schema.type === 'boolean') {
             return typeof value === 'boolean';
         }
-        return typeof value === 'number' && Number.isFinite(value) && (schema.type !== 'integer' || Number.isInteger(value));
+        return (schema.type === 'number' || schema.type === 'integer') && typeof value === 'number'
+            && Number.isFinite(value) && (schema.type !== 'integer' || Number.isInteger(value));
     }
 
     /**

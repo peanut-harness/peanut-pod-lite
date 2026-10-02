@@ -5,9 +5,161 @@ import { join } from 'path';
 import test from 'node:test';
 
 import { CocosMcpHub } from '../src/mcp/cocos-mcp-hub';
+import { McpHubInvocationContext } from '../src/mcp/mcp-hub-control.js';
+import { CoreTextFileIoContract } from '@peanut/pod-engine/policy';
 import { PluginManagerApp } from '../src/app/plugin-manager-app';
 import { MacOsKeychainPluginProtectedKeyProvider, type IMacOsKeychainCommandRunner } from '../src/shared/plugin-protected-key-api';
-import { RuntimeFacade } from '@peanut/pod-engine/runtime';
+import { ProjectRevisionClock, ProjectWriterBarrier, RuntimeFacade } from '@peanut/pod-engine/runtime';
+
+/**
+ * @description 使用真实屏障和版本时钟验证调用租约的结算边界。
+ * @returns 当前隔离服务及实际 writer 接纳入口。
+ */
+function writerFixture() {
+    const barrier = new ProjectWriterBarrier();
+    const clock = new ProjectRevisionClock('/owned-writer-fixture');
+    const context = new McpHubInvocationContext(() => null, async () => null, () => '/owned-writer-fixture',
+        () => ({ revision: clock.snapshot().revision, activeWriters: barrier.inspect().activeWriters }),
+        () => barrier.waitForPriorWriters(), (refresh) => { clock.finishWrite(); if (refresh) { clock.refreshSettled(); } });
+    return { context, barrier, clock, admit: (awaitManagedReceipt = true) => {
+        const lease = barrier.admitWriter();
+        clock.beginWrite();
+        context.retainWriter(lease, awaitManagedReceipt);
+        return lease;
+    } };
+}
+
+test('one terminal task releases all 32 actual queued invocation leases exactly once', async (): Promise<void> => {
+    const f = writerFixture();
+    const leases = Array.from({ length: 32 }, () => f.admit());
+    for (const lease of leases) { f.context.retainTaskWriter('shared-task', lease, false); }
+    assert.equal(f.barrier.inspect().activeWriters, 32);
+    f.context.finishTaskWriters('shared-task');
+    await f.barrier.waitForPriorWriters();
+    assert.equal(f.barrier.inspect().activeWriters, 0);
+    assert.equal(f.clock.snapshot().revision, 64);
+    f.context.finishTaskWriters('shared-task');
+    for (const lease of leases) { f.context.failWriter(lease); }
+    assert.equal(f.clock.snapshot().revision, 64);
+});
+
+test('observation failure preserves its queued lease, shared task peer and unrelated writer leases', (): void => {
+    const f = writerFixture();
+    const first = f.admit();
+    const failed = f.admit();
+    const other = f.admit();
+    f.context.retainTaskWriter('shared-task', first, false);
+    f.context.retainTaskWriter('shared-task', failed, false);
+    f.context.retainTaskWriter('other-task', other, false);
+    f.context.failWriter(failed);
+    assert.equal(f.barrier.inspect().activeWriters, 3);
+    f.context.finishTaskWriters('shared-task');
+    assert.equal(f.barrier.inspect().activeWriters, 1);
+    const consistency = f.context.create({ connectionId: 'owned-connection' }).textReadConsistency;
+    assert.ok(consistency);
+    assert.throws(() => consistency.getRevision(), /snapshot_conflict/);
+    f.context.finishTaskWriters('other-task');
+    assert.equal(consistency.getRevision(), 6);
+});
+
+test('a pre-task failure retracts only its unbound admission exactly once', (): void => {
+    const f = writerFixture();
+    const bound = f.admit();
+    const unbound = f.admit();
+    f.context.retainTaskWriter('running-task', bound, false);
+    f.context.failWriter(unbound);
+    f.context.failWriter(unbound);
+    assert.equal(f.barrier.inspect().activeWriters, 1);
+    assert.equal(f.clock.snapshot().revision, 3);
+    f.context.finishTaskWriters('running-task');
+    assert.equal(f.barrier.inspect().activeWriters, 0);
+    assert.equal(f.clock.snapshot().revision, 4);
+});
+
+test('trusted early terminal settles delayed receipts while unrelated tasks retain their writers', (): void => {
+    const f = writerFixture();
+    const late = f.admit();
+    const peer = f.admit();
+    const other = f.admit();
+    f.context.finishTaskWriters('early-task');
+    f.context.retainTaskWriter('early-task', late, true);
+    f.context.retainTaskWriter('other-task', other, false);
+    f.context.failWriter(other);
+    f.context.retainTaskWriter('early-task', peer, false);
+    f.context.failWriter(late);
+    assert.equal(f.barrier.inspect().activeWriters, 1);
+    assert.equal(f.clock.snapshot().revision, 6);
+    f.context.finishTaskWriters('other-task');
+    assert.equal(f.clock.snapshot().revision, 7);
+    const next = f.admit();
+    f.context.retainTaskWriter('early-task', next, false);
+    assert.equal(f.barrier.inspect().activeWriters, 1, 'early-terminal evidence expires with its actual receipt window');
+    f.context.releasePendingWriters();
+    assert.equal(f.clock.snapshot().revision, 9);
+});
+
+test('an inline writer cannot prolong unrelated managed terminal evidence', (): void => {
+    const f = writerFixture();
+    const inline = f.admit(false);
+    f.context.finishTaskWriters('past-task');
+    const managed = f.admit();
+    f.context.retainTaskWriter('past-task', managed, false);
+    assert.equal(f.barrier.inspect().activeWriters, 2);
+    f.context.finishWriter(inline, false);
+    assert.equal(f.barrier.inspect().activeWriters, 1);
+    f.context.finishTaskWriters('past-task');
+    assert.equal(f.clock.snapshot().revision, 4);
+});
+
+test('stop settles bound and not-yet-returned writer receipts without late double settlement', (): void => {
+    const f = writerFixture();
+    const first = f.admit();
+    const second = f.admit();
+    const late = f.admit();
+    f.context.retainTaskWriter('shared-task', first, true);
+    f.context.retainTaskWriter('shared-task', second, true);
+    f.context.releasePendingWriters();
+    assert.equal(f.barrier.inspect().activeWriters, 0);
+    assert.equal(f.clock.snapshot().revision, 6);
+    f.context.retainTaskWriter('late-task', late, true);
+    f.context.finishTaskWriters('late-task');
+    f.context.finishTaskWriters('shared-task');
+    f.context.failWriter(first);
+    f.context.releasePendingWriters();
+    assert.equal(f.clock.snapshot().revision, 6);
+});
+
+test('terminal event followed by lookup failure keeps per-invocation refresh and finish counts', (): void => {
+    const f = writerFixture();
+    const first = f.admit();
+    const second = f.admit();
+    f.context.retainTaskWriter('shared-task', first, false);
+    f.context.retainTaskWriter('shared-task', second, true);
+    f.context.finishTaskWriters('shared-task');
+    assert.equal(f.clock.snapshot().revision, 5);
+    f.context.failWriter(second);
+    f.context.finishWriter(first, true);
+    assert.equal(f.clock.snapshot().revision, 5);
+});
+
+test('Hub byte boundary reassembles split Unicode and enforces complete text and legacy request budgets', async (): Promise<void> => {
+    const context = new McpHubInvocationContext(() => null, async () => null, () => '/owned-fixture',
+        () => ({ revision: 0, activeWriters: 0 }), async () => {}, () => {});
+    const payload = { action: 'call', name: 'peanut.editor-mcp.asset-read-text', input: { path: 'assets/雪🙂.txt' } };
+    const bytes = Buffer.from(JSON.stringify(payload));
+    async function* fragments(): AsyncGenerator<Buffer> {
+        for (const byte of bytes) { yield Buffer.from([byte]); }
+    }
+    assert.deepEqual(await context.readPayload(fragments()), payload);
+    const complete = Buffer.concat([bytes, Buffer.from(' '.repeat(CoreTextFileIoContract.limits.maxInputBytes - bytes.length))]);
+    async function* oneChunk(buffer: Buffer): AsyncGenerator<Buffer> { yield buffer; }
+    assert.deepEqual(await context.readPayload(oneChunk(complete)), payload);
+    await assert.rejects(() => context.readPayload(oneChunk(Buffer.concat([complete, Buffer.from(' ')]))), /request_too_large/);
+    const legacy = Buffer.from(JSON.stringify({ ...payload, name: 'peanut.example.inspect' }) + ' '.repeat(128 * 1024));
+    await assert.rejects(() => context.readPayload(oneChunk(legacy)), /request_too_large/);
+    const malformed = Buffer.concat([Buffer.from('{"path":"'), Buffer.from([0xc3, 0x28]), Buffer.from('"}')]);
+    await assert.rejects(() => context.readPayload(oneChunk(malformed)), /payload_invalid/);
+});
 
 test('Cocos MCP Hub should publish a session-scoped dynamic connection descriptor and remove it on stop', async (): Promise<void> => {
     const projectPath = mkdtempSync(join(tmpdir(), 'peanut-cocos-mcp-hub-'));

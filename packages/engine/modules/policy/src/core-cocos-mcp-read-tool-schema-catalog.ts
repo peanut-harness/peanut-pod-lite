@@ -6,7 +6,8 @@ import { CoreCocosMcpCapabilityCatalog, type CoreCocosMcpOperation } from './cor
  */
 export interface ICoreMcpJsonSchema {
     /** @description JSON 值类型。 */
-    readonly type: 'object' | 'array' | 'string' | 'number' | 'integer' | 'boolean';
+    readonly type: 'object' | 'array' | 'string' | 'number' | 'integer' | 'boolean' | 'null'
+        | readonly ('object' | 'array' | 'string' | 'number' | 'integer' | 'boolean' | 'null')[];
     /** @description 面向调用方的字段说明。 */
     readonly description?: string;
     /** @description 对象字段定义。 */

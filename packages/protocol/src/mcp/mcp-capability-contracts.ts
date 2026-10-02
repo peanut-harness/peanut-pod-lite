@@ -165,7 +165,8 @@ export interface IMcpJsonSchema extends ContractPayload {
     /**
      * @description JSON 值类型。
      */
-    readonly type: 'object' | 'array' | 'string' | 'number' | 'integer' | 'boolean';
+    readonly type: 'object' | 'array' | 'string' | 'number' | 'integer' | 'boolean' | 'null'
+        | readonly ('object' | 'array' | 'string' | 'number' | 'integer' | 'boolean' | 'null')[];
     /**
      * @description 面向调用方的字段说明。
      */

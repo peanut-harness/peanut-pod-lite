@@ -24,6 +24,21 @@ function schemaForRegistry(schema: ICoreMcpJsonSchema): IMcpJsonSchema {
     return result;
 }
 
+test('Kernel validates the public nullable text result including failed-content exclusion', async (): Promise<void> => {
+    const registry = new McpCapabilityRegistry();
+    let output: unknown = { schemaVersion: 1, ok: false, consistent: false, revision: null,
+        files: [{ path: 'assets/missing.txt', status: 'failed', code: 'text_file_io_not_found' }] };
+    registry.register('peanut.example', {
+        name: 'peanut.example.text-result', description: '文本逐项结果', category: 'cocos',
+        inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+        outputSchema: schemaForRegistry(CoreTextFileIoContract.readOutputSchema()), readOnly: true, risk: 'read',
+    }, async () => output);
+    assert.deepEqual(await registry.invoke('peanut.example.text-result', {}, { connectionId: 'test' }), output);
+    output = { schemaVersion: 1, ok: false, consistent: false, revision: null,
+        files: [{ path: 'assets/missing.txt', status: 'failed', code: 'text_file_io_not_found', content: 'leak' }] };
+    await assert.rejects(() => registry.invoke('peanut.example.text-result', {}, { connectionId: 'test' }), /output_invalid/);
+});
+
 test('MCP capability registry should validate, expose, invoke, and revoke plugin-scoped capabilities', async (): Promise<void> => {
     const registry = new McpCapabilityRegistry();
     const dispose = registry.register('peanut.example', {

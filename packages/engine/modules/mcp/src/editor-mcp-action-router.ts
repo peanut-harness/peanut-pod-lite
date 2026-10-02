@@ -1,3 +1,4 @@
+import { existsSync, realpathSync } from 'fs';
 import type {
     ContractPayload,
     EditorMcpActionId,
@@ -13,7 +14,7 @@ import type {
 import { McpControlFlowRefusal } from '@peanut/pod-engine/kernel';
 import { ProjectLogPostflightMonitor, ResourceLockManager } from '@peanut/pod-engine/runtime';
 import { EditorMcpExecutionLaneResolver, ProductLineMcpPolicy } from '@peanut/pod-protocol';
-import type { IGrantedRuntimeClientSet } from '@peanut/pod-sdk';
+import type { IGrantedRuntimeClientSet, IMcpCapabilityInvocation } from '@peanut/pod-sdk';
 import { AssetCatalogFastLookupApi, CompatibleUuid, type IAssetCatalogFastLookup } from '@peanut/pod-engine/assets';
 
 import { EditorMcpAssetDiagnostics } from './editor-mcp-asset-diagnostics.js';
@@ -35,6 +36,7 @@ import { EditorMcpPrefabOfflineGateway } from './editor-mcp-prefab-offline-gatew
 import { CAPABILITIES, type EditorMcpCapabilitySeed } from './editor-mcp-capability-catalog.js';
 import { ResourceOperationPlanner } from './resource-operation-planner.js';
 import { ResourceOperationTaskExecutor } from './resource-operation-task-executor.js';
+import { EditorMcpTextReadGateway } from './editor-mcp-text-read-gateway.js';
 
 /**
  * @description 显式校验外部 MCP 输入，并通过受限 runtime grant 与插件服务执行 action。
@@ -104,6 +106,14 @@ export class EditorMcpActionRouter {
      * @description 写 operation 资源闭包规划器。
      */
     private readonly _taskPlanner: ResourceOperationPlanner;
+    /**
+     * @description 当前 writer 与文本 reader 共用的实际锁。
+     */
+    private readonly _resourceLocks: ResourceLockManager;
+    /**
+     * @description 不缓存的真实文本读取入口。
+     */
+    private readonly _textReader: EditorMcpTextReadGateway;
 
     /**
      * @description 创建一个新的 Editor MCP action router。
@@ -119,6 +129,8 @@ export class EditorMcpActionRouter {
         resourceLockManager: ResourceLockManager = EditorMcpActionRouter._sharedResourceLockManager,
     ) {
         this._runtime = runtime;
+        this._resourceLocks = resourceLockManager;
+        this._textReader = new EditorMcpTextReadGateway(resourceLockManager);
         this._catalogLookup = catalogLookup;
         this._taskPlanner = new ResourceOperationPlanner();
         this._diagnostics = new EditorMcpAssetDiagnostics();
@@ -204,6 +216,14 @@ export class EditorMcpActionRouter {
     }
 
     /**
+     * @description 工厂受管 writer 必须复用此锁，保证与本 Router 的文本 reader 原子互斥。
+     * @returns 当前实际锁实例。
+     */
+    public getResourceLockManager(): ResourceLockManager {
+        return this._resourceLocks;
+    }
+
+    /**
      * @description 为能力种子注入执行车道与 description 前缀。
      * @param capability 能力种子。
      * @returns 完整能力描述。
@@ -256,6 +276,7 @@ export class EditorMcpActionRouter {
     public async dispatch(
         action: EditorMcpActionId,
         payload?: unknown,
+        invocation?: IMcpCapabilityInvocation,
     ): Promise<readonly IEditorMcpCapabilityDescriptor[] | IEditorMcpActionPlan | IEditorMcpActionResult> {
         if (action === 'editor-mcp.capabilities.list' || action === 'cocos.capabilities') {
             return this.listCapabilities();
@@ -265,7 +286,7 @@ export class EditorMcpActionRouter {
             return this.plan(request);
         }
         if (action === 'editor-mcp.execute' || action === 'cocos.call') {
-            return this.execute(request);
+            return this.execute(request, invocation);
         }
         throw new Error(`editor_mcp_action_unsupported:${action}`);
     }
@@ -296,13 +317,17 @@ export class EditorMcpActionRouter {
      * @param request 已校验的操作请求
      * @returns 查询结果
      */
-    public async execute(request: IEditorMcpOperationRequest): Promise<IEditorMcpActionResult> {
+    public async execute(request: IEditorMcpOperationRequest, invocation?: IMcpCapabilityInvocation): Promise<IEditorMcpActionResult> {
         this._validateOperationInput(request);
         const phase = this._runtime.version.getCurrentVersion().phase;
         if (ProductLineMcpPolicy.decide(phase, request.operation) === 'refuse') {
             McpControlFlowRefusal.reject(ProductLineMcpPolicy.refuseError(phase, request.operation));
         }
         const planned = this.plan(request);
+        if (request.operation === 'asset.readText') {
+            return { operation: request.operation,
+                data: await this._textReader.read(await this._requireProjectPath(), request.input, invocation) };
+        }
         if (planned.readOnly) {
             return this._executeDirect(request);
         }
@@ -349,7 +374,9 @@ export class EditorMcpActionRouter {
         operation: EditorMcpOperationId,
         input: Readonly<Record<string, unknown>>,
     ): Promise<ReturnType<ResourceOperationPlanner['plan']>> {
-        return this._taskPlanner.plan(await this._requireProjectPath(), operation, input);
+        const projectRoot = await this._requireProjectPath();
+        const plan = this._taskPlanner.plan(projectRoot, operation, input);
+        return Object.freeze({ ...plan, resourceKeys: this._textReader.writerKeys(projectRoot, plan.resourceKeys) });
     }
 
     /**
@@ -1214,6 +1241,8 @@ export class EditorMcpActionRouter {
                 return this._runtime.selection != null || this._runtime.message != null;
             case 'asset.queryInfo':
                 return this._runtime.assetRead != null;
+            case 'asset.readText':
+                return this._runtime.projectRead != null;
             case 'asset.catalog.summary':
             case 'asset.catalog.lookup':
             case 'asset.catalog.refresh':
@@ -1350,7 +1379,7 @@ export class EditorMcpActionRouter {
         if (typeof projectDirectory !== 'string' || projectDirectory.trim().length === 0) {
             throw new Error('editor_mcp_project_path_unavailable');
         }
-        return projectDirectory;
+        return existsSync(projectDirectory) ? realpathSync(projectDirectory) : projectDirectory;
     }
 
     /**

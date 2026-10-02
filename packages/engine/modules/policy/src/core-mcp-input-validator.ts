@@ -29,7 +29,15 @@ export class CoreMcpInputValidator {
         if (schema.oneOf != null && schema.oneOf.filter((branch) => this.matches(branch, value, depth + 1, budget)).length !== 1) {
             return false;
         }
+        if (typeof schema.type !== 'string') {
+            return Array.isArray(schema.type) && schema.type.length > 0 && schema.type.length <= 7
+                && schema.type.every((type) => typeof type === 'string'
+                    && ['object', 'array', 'string', 'number', 'integer', 'boolean', 'null'].includes(type))
+                && schema.type.some((type) => this.matches({ ...schema, type, oneOf: undefined }, value, depth + 1, budget));
+        }
         switch (schema.type) {
+            case 'null':
+                return value === null;
             case 'object':
                 if (typeof value !== 'object' || value === null || Array.isArray(value)) {
                     return false;

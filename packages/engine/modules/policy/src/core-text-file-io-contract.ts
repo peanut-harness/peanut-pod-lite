@@ -78,7 +78,7 @@ export class CoreTextFileIoContract {
     }
 
     /**
-     * @description 公开稳定读取成功结果的最小 schema；失败仍使用外层结构化 failure。
+     * @description 公开有序逐文件结果，支持明确失败以及未取得稳定快照时的空版本。
      * @param limits 调用方注入的容量配置；默认使用产品容量。
      * @returns 需要一致快照和有序逐文件证据的输出契约。
      */
@@ -89,23 +89,39 @@ export class CoreTextFileIoContract {
                 schemaVersion: { type: 'integer' },
                 ok: { type: 'boolean' },
                 consistent: { type: 'boolean' },
-                revision: { type: 'integer' },
+                revision: { type: ['integer', 'null'] },
                 files: {
                     type: 'array',
                     minItems: 1,
                     maxItems: limits.maxFiles,
                     items: {
                         type: 'object',
-                        properties: {
-                            path: { type: 'string' },
-                            status: { type: 'string', enum: ['read'] },
-                            content: { type: 'string' },
-                            byteCount: { type: 'integer' },
-                            sha256: { type: 'string', pattern: '^[0-9a-f]{64}(?![\\s\\S])' },
-                            revision: { type: 'integer' },
-                        },
-                        required: ['path', 'status', 'content', 'byteCount', 'sha256', 'revision'],
-                        additionalProperties: false,
+                        additionalProperties: true,
+                        oneOf: [
+                            {
+                                type: 'object',
+                                properties: {
+                                    path: { type: 'string' },
+                                    status: { type: 'string', enum: ['read'] },
+                                    content: { type: 'string' },
+                                    byteCount: { type: 'integer' },
+                                    sha256: { type: 'string', pattern: '^[0-9a-f]{64}(?![\\s\\S])' },
+                                    revision: { type: 'integer' },
+                                },
+                                required: ['path', 'status', 'content', 'byteCount', 'sha256', 'revision'],
+                                additionalProperties: false,
+                            },
+                            {
+                                type: 'object',
+                                properties: {
+                                    path: { type: 'string' },
+                                    status: { type: 'string', enum: ['failed'] },
+                                    code: { type: 'string' },
+                                },
+                                required: ['path', 'status', 'code'],
+                                additionalProperties: false,
+                            },
+                        ],
                     },
                 },
             },

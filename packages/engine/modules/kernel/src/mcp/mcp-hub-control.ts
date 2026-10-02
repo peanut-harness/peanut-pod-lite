@@ -11,6 +11,11 @@ import type {
     TaskStatus,
 } from '@peanut/pod-protocol';
 
+import type { IMcpCapabilityInvocation } from '@peanut/pod-sdk';
+import { McpControlFlowRefusal } from './mcp-control-flow-refusal.js';
+import { CoreTextFileIoContract } from '@peanut/pod-engine/policy';
+import type { IProjectWriterBarrierLease } from '@peanut/pod-engine/runtime';
+
 import type { McpPluginExposureMode } from './mcp-capability-registry.js';
 
 /**
@@ -187,6 +192,15 @@ export interface IMcpHubPendingPlan extends ContractPayload {
  */
 export interface IMcpHubControl {
     /**
+     * @description Creator 直连的统一版本屏障入口，保留宿主原审批及公开策略。
+     * @param name 注册能力名称。
+     * @param input 业务输入。
+     * @param invocation 宿主调用上下文。
+     * @returns 原始能力结果；旧控制面可省略，新文本读取必须提供。
+     */
+    invokeFromHost?(name: string, input: unknown, invocation: IMcpCapabilityInvocation): Promise<unknown>;
+
+    /**
      * @description 获取 MCP Hub 状态及当前公开工具。
      * @returns 当前面板可安全展示的状态快照。
      */
@@ -267,4 +281,261 @@ export function summarizeMcpHubCapability(definition: IMcpCapabilityDefinition):
         ...(definition.lane != null ? { lane: definition.lane } : {}),
         ...(definition.aiHandling != null ? { aiHandling: definition.aiHandling } : {}),
     };
+}
+
+/**
+ * @description 封装 Hub 签发的内部调用身份、真实读服务及受管回执边界。
+ */
+export class McpHubInvocationContext {
+    /**
+     * @description 同一受管任务保留每次调用的真实租约，避免重复回执覆盖此前 writer。
+     */
+    private readonly _pendingWriters = new Map<string, Map<IProjectWriterBarrierLease, boolean>>();
+    /**
+     * @description 已接纳但尚未结算的实际调用租约，覆盖回执尚未返回的停止窗口。
+     */
+    private readonly _writers = new Set<IProjectWriterBarrierLease>();
+    /**
+     * @description 尚未绑定受管回执的实际租约，限定提前终态事件的暂存生命周期。
+     */
+    private readonly _awaitingTaskWriters = new Set<IProjectWriterBarrierLease>();
+    /**
+     * @description 仅在回执尚未绑定期间暂存可信终态，覆盖终态先于 queued 回执及查询失败的窗口。
+     */
+    private readonly _terminalTasks = new Set<string>();
+    /**
+     * @description 非文本读取动作保持既有 128 KiB 请求上限。
+     */
+    private static readonly _legacyInputBytes = 128 * 1024;
+    /**
+     * @description 注入宿主实际服务，不创建第二套时钟、屏障或审批存储。
+     * @param getDefinition 不受外部公开级别影响的宿主定义查询。
+     * @param execute Hub 实际执行生命周期。
+     * @param projectKey 宿主配置的工程根。
+     * @param revision 当前工程真实时钟。
+     * @param waitForWriters 同一 Hub 的此前 writer 屏障。
+     * @param finishWrite 同一 Hub 的真实版本结算，不创建第二套时钟。
+     */
+    public constructor(
+        private readonly _getDefinition: (name: string) => IMcpCapabilityDefinition | null,
+        private readonly _execute: (definition: IMcpCapabilityDefinition, name: string, input: unknown, invocation: IMcpCapabilityInvocation) => Promise<unknown>,
+        private readonly _projectKey: () => string,
+        private readonly _revision: () => {
+            /**
+             * @description 同一 Hub 的当前工程版本。
+             */
+            readonly revision: number;
+            /**
+             * @description 已接纳但未完成的 writer 数量。
+             */
+            readonly activeWriters: number;
+        },
+        private readonly _waitForWriters: () => Promise<void>,
+        private readonly _finishWrite: (refreshBoundary: boolean) => void,
+    ) {}
+
+    /**
+     * @description 记录已经由同一 Hub 接纳并开始版本生命周期的 writer，不再次接纳屏障。
+     * @param lease Hub 已创建的真实租约。
+     * @param awaitManagedReceipt 是否实际等待受管回执；inline writer 不延长提前终态暂存窗口。
+     * @returns 无返回值。
+     */
+    public retainWriter(lease: IProjectWriterBarrierLease, awaitManagedReceipt = false): void {
+        this._writers.add(lease);
+        if (awaitManagedReceipt) {
+            this._awaitingTaskWriters.add(lease);
+        }
+    }
+
+    /**
+     * @description 同一 queued 任务可对应多个调用租约，保持每个调用的刷新语义。
+     * @param taskId 实际受管任务身份。
+     * @param lease 本次调用接纳的 writer 租约。
+     * @param refreshBoundary 是否属于刷新结算边界。
+     * @returns 无返回值。
+     */
+    public retainTaskWriter(taskId: string, lease: IProjectWriterBarrierLease, refreshBoundary: boolean): void {
+        if (!this._writers.has(lease)) {
+            return;
+        }
+        const terminalObserved = this._terminalTasks.has(taskId);
+        this._awaitingTaskWriters.delete(lease);
+        if (this._awaitingTaskWriters.size === 0) {
+            this._terminalTasks.clear();
+        }
+        if (terminalObserved) {
+            this.finishWriter(lease, refreshBoundary);
+            return;
+        }
+        const pending = this._pendingWriters.get(taskId) ?? new Map<IProjectWriterBarrierLease, boolean>();
+        pending.set(lease, refreshBoundary);
+        this._pendingWriters.set(taskId, pending);
+    }
+
+    /**
+     * @description 实际任务进入终态时释放该任务全部调用租约，每个真实租约只推进一次版本。
+     * @param taskId 已确认终态的实际任务身份。
+     * @returns 无返回值。
+     */
+    public finishTaskWriters(taskId: string): void {
+        if (this._awaitingTaskWriters.size !== 0) {
+            this._terminalTasks.add(taskId);
+        }
+        const pending = this._pendingWriters.get(taskId);
+        this._pendingWriters.delete(taskId);
+        for (const [lease, refreshBoundary] of pending ?? []) {
+            this.finishWriter(lease, refreshBoundary);
+        }
+    }
+
+    /**
+     * @description 未绑定任务的失败只撤销当前调用；已绑定 queued 任务的观察失败保持屏障，等待可信终态或停止。
+     * @param lease 当前调用真实租约。
+     * @returns 无返回值。
+     */
+    public failWriter(lease: IProjectWriterBarrierLease): void {
+        for (const pending of this._pendingWriters.values()) {
+            if (pending.has(lease)) {
+                return;
+            }
+        }
+        this.finishWriter(lease, false);
+    }
+
+    /**
+     * @description 以真实租约的幂等释放结果结算版本，防止终态事件和查询或异常重复结算。
+     * @param lease 本次调用真实租约。
+     * @param refreshBoundary 是否额外记录刷新边界。
+     * @returns 无返回值。
+     */
+    public finishWriter(lease: IProjectWriterBarrierLease, refreshBoundary: boolean): void {
+        if (this._writers.delete(lease) && lease.release()) {
+            this._awaitingTaskWriters.delete(lease);
+            if (this._awaitingTaskWriters.size === 0) {
+                this._terminalTasks.clear();
+            }
+            this._finishWrite(refreshBoundary);
+        }
+    }
+
+    /**
+     * @description Hub 停止时以非刷新边界结算全部实际调用，迟到回执和终态不能再次结算。
+     * @returns 无返回值。
+     */
+    public releasePendingWriters(): void {
+        for (const lease of this._writers) {
+            this.finishWriter(lease, false);
+        }
+        this._pendingWriters.clear();
+    }
+
+    /**
+     * @description 覆盖不可信的同名上下文字段，签发真实工程读服务。
+     * @param invocation 经宿主确认的调用身份及授权。
+     * @returns 保留原身份并绑定真实服务的调用对象。
+     */
+    public create(invocation: IMcpCapabilityInvocation): IMcpCapabilityInvocation {
+        return { ...invocation, textReadConsistency: {
+            projectKey: this._projectKey(),
+            waitForPriorWriters: this._waitForWriters,
+            getRevision: () => {
+                const state = this._revision();
+                if (state.activeWriters !== 0) {
+                    throw new Error('text_file_io_snapshot_conflict');
+                }
+                return state.revision;
+            },
+        } };
+    }
+
+    /**
+     * @description 查询实际注册定义并进入 Hub 写生命周期，保留宿主直连公开语义。
+     * @param name 注册名称。
+     * @param input 业务输入。
+     * @param invocation 宿主原始上下文。
+     * @returns 原始能力结果。
+     */
+    public invokeFromHost(name: string, input: unknown, invocation: IMcpCapabilityInvocation): Promise<unknown> {
+        const definition = this._getDefinition(name);
+        if (definition == null) {
+            McpControlFlowRefusal.reject(`mcp_capability_unregistered:${name}`);
+        }
+        return this._execute(definition, name, input, invocation);
+    }
+
+    /**
+     * @description 解析并校验 Hub 写并发上限。
+     * @param value 可选配置。
+     * @returns 1–32 之间的整数。
+     */
+    public readMaxConcurrentWrites(value: number | undefined): number {
+        if (typeof value !== 'number' || !Number.isFinite(value)) {
+            return 16;
+        }
+        return Math.max(1, Math.min(32, Math.floor(value)));
+    }
+
+    /**
+     * @description 先按实际原始字节限流，再一次解码 JSON，避免跨网络分块损坏 Unicode 路径。
+     * @param request 当前 HTTP 请求字节迭代器。
+     * @returns 经完整编码容量检查的对象请求。
+     */
+    public async readPayload(request: AsyncIterable<unknown>): Promise<Record<string, unknown>> {
+        const chunks: ReturnType<typeof Buffer.from>[] = [];
+        let byteCount = 0;
+        for await (const chunk of request) {
+            if (typeof chunk !== 'string' && !(chunk instanceof Uint8Array)) {
+                throw new Error('cocos_mcp_hub_payload_invalid');
+            }
+            const bytes = typeof chunk === 'string' ? Buffer.from(chunk) : Buffer.from(chunk);
+            byteCount += bytes.length;
+            if (byteCount > CoreTextFileIoContract.limits.maxInputBytes) {
+                throw new Error('cocos_mcp_hub_request_too_large');
+            }
+            chunks.push(bytes);
+        }
+        const body = Buffer.concat(chunks);
+        const decoded = body.toString('utf8');
+        const encoded = Buffer.from(decoded);
+        if (encoded.length !== body.length || encoded.some((byte, index) => byte !== body[index])) {
+            throw new Error('cocos_mcp_hub_payload_invalid');
+        }
+        const parsed: unknown = JSON.parse(decoded);
+        if (typeof parsed !== 'object' || parsed == null || Array.isArray(parsed)) {
+            throw new Error('cocos_mcp_hub_payload_invalid');
+        }
+        const name: unknown = Reflect.get(parsed, 'name');
+        const isTextRead = Reflect.get(parsed, 'action') === 'call'
+            && (name === 'asset.readText' || name === 'peanut.editor-mcp.asset-read-text');
+        if (!isTextRead && byteCount > McpHubInvocationContext._legacyInputBytes) {
+            throw new Error('cocos_mcp_hub_request_too_large');
+        }
+        return { ...parsed };
+    }
+
+    /**
+     * @description 校验既有受管成功回执，不扩大允许的状态集合。
+     * @param result 受管能力实际返回值。
+     * @returns 已收窄的任务身份与状态。
+     */
+    public readManagedTaskReceipt(result: unknown): {
+        /**
+         * @description 实际受管任务身份。
+         */
+        readonly taskId: string;
+        /**
+         * @description 保持既有 queued 或 succeeded 回执语义。
+         */
+        readonly taskStatus: 'queued' | 'succeeded';
+    } {
+        if (result == null || typeof result !== 'object' || Array.isArray(result)) {
+            throw new Error('cocos_mcp_managed_task_receipt_invalid');
+        }
+        const taskId: unknown = Reflect.get(result, 'taskId');
+        const taskStatus: unknown = Reflect.get(result, 'taskStatus');
+        if (typeof taskId !== 'string' || taskId.length === 0 || taskStatus !== 'queued' && taskStatus !== 'succeeded') {
+            throw new Error('cocos_mcp_managed_task_receipt_invalid');
+        }
+        return { taskId, taskStatus };
+    }
 }

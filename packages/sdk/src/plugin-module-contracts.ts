@@ -155,6 +155,23 @@ export interface IMcpCapabilityProgress {
  * @description 子插件能力执行上下文，由统一 Hub 注入调用关联信息。
  */
 export interface IMcpCapabilityInvocation {
+    /**
+     * @description 宿主签发的文本读一致性服务；不得从业务输入恢复或使用目录版本代替工程版本。
+     */
+    readonly textReadConsistency?: {
+        /**
+         * @description 宿主配置的工程路径，由读网关解析真实路径并核对。
+         */
+        readonly projectKey: string;
+        /**
+         * @description 等待调用时已接纳的 writer 完成；重试必须先释放资源锁。
+         */
+        waitForPriorWriters(): Promise<void>;
+        /**
+         * @description 返回同一 Hub 实例持有的真实单调工程版本。
+         */
+        getRevision(): number;
+    };
   /**
    * @description 当前 MCP bridge 连接的瞬时标识；插件互调为 `plugin:` + 调用方插件 id。
    */

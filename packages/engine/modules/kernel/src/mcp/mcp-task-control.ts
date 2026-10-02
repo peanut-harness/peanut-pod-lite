@@ -78,6 +78,22 @@ export class McpTaskControl {
     }
 
     /**
+     * @description 供 Hub 在回执观察失败时一次确认真实终态；从受信注册解析 owner，不改变公开绑定或任务状态。
+     * @param taskId 有效 queued 回执中的实际任务标识。
+     * @param capability 本次受信注册能力。
+     * @param connectionId 本次宿主已确认的连接身份。
+     * @returns 仅完全匹配的实际任务处于成功、失败或取消终态时返回 true；未知或非 owner 返回 false。
+     */
+    public async confirmTerminalForInvocation(taskId: string, capability: string, connectionId: string): Promise<boolean> {
+        const owner = this._resolveOwner?.(capability, connectionId) ?? null;
+        if (owner == null) {
+            return false;
+        }
+        const status = await this._execution.getOwnedStatus(taskId, owner);
+        return status?.status === 'succeeded' || status?.status === 'failed' || status?.status === 'cancelled';
+    }
+
+    /**
      * @description 按 Bridge 连接取消任务；未知任务与非 owner 返回同一不可用结果。
      */
     public async cancel(taskId: string, connectionId: string): Promise<ITaskCancelResult> {

@@ -99,3 +99,32 @@ test('successful read output requires per-file digest, byte count and revision e
     const { byteCount, ...withoutByteCount } = file;
     assert.equal(validator.validate(schema, { ...result, files: [{ ...withoutByteCount, bytes: byteCount }] }), false);
 });
+
+test('public nullable output accepts ordered partial failures and rejects failed content or wrong null unions', () => {
+    const schema = CoreTextFileIoContract.readOutputSchema();
+    const failed = { path: 'assets/missing.txt', status: 'failed', code: 'text_file_io_not_found' };
+    const result = { schemaVersion: 1, ok: false, consistent: false, revision: null, files: [failed] };
+    assert.equal(validator.validate(schema, result), true);
+    assert.equal(validator.validate(schema, { ...result, files: [{ ...failed, content: 'leak' }] }), false);
+    assert.equal(validator.validate(schema, { ...result, revision: 'null' }), false);
+    assert.equal(validator.validate(schema, { ...result, revision: 1.5 }), false);
+    assert.equal(validator.validate({ type: ['integer', 'null'] }, null), true);
+    assert.equal(validator.validate({ type: ['integer', 'null'] }, false), false);
+});
+
+test('Core dispatcher retains the trusted consistency object and does not derive it from business input', async () => {
+    const invocation = { connectionId: 'a'.repeat(32), textReadConsistency: {
+        projectKey: '/owned-test-project', waitForPriorWriters: async () => {}, getRevision: () => 7,
+    } };
+    const dispatcher = new CoreCocosMcpExecutionDispatcher([
+        { operations: ['asset.readText'], execute: async (request) => {
+            assert.equal(request.invocation, invocation);
+            assert.equal(request.invocation?.textReadConsistency, invocation.textReadConsistency);
+            return 'forwarded';
+        } },
+    ]);
+    assert.equal(await dispatcher.execute('asset.readText', { path: 'assets/a.txt' }, null, invocation), 'forwarded');
+    await assert.rejects(() => dispatcher.execute('asset.readText', {
+        path: 'assets/a.txt', textReadConsistency: { revision: 999 },
+    }, null, invocation), /schema_invalid/);
+});

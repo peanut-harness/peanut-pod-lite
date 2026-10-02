@@ -33,6 +33,23 @@ export interface ICoreCocosMcpExecutionRequest {
         readonly risk?: 'read' | 'write' | 'destructive';
         readonly resourceIds?: readonly string[];
         readonly hasLocalApproval?: boolean;
+        /**
+         * @description 宿主可信读服务，仅沿调用上下文传递，不从业务输入构造。
+         */
+        readonly textReadConsistency?: {
+            /**
+             * @description 工程真实路径。
+             */
+            readonly projectKey: string;
+            /**
+             * @description 等待此前接纳的 writer 完成。
+             */
+            waitForPriorWriters(): Promise<void>;
+            /**
+             * @description 获取实际工程时钟的当前版本。
+             */
+            getRevision(): number;
+        };
     };
 }
 

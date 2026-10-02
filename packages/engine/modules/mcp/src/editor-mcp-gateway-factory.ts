@@ -49,6 +49,7 @@ export function createEditorMcpExecuteOperation(
         ? new AutomaticMicroBatcher(managedTasks)
         : null;
     const resourceExecutor = new ResourceOperationTaskExecutor({
+        lockManager: router.getResourceLockManager(),
         plan: async (operation, input) => router.planManagedResourceOperation(operation as EditorMcpOperationId, input),
         execute: async (operation, input, executorContext) =>
             router.executeManagedResourceOperation(
@@ -81,7 +82,7 @@ export function createEditorMcpExecuteOperation(
                 operation,
                 input: decoded.input,
                 execution: decoded.execution,
-            });
+            }, invocation);
             return flattenResult(directResult as IEditorMcpActionResult);
         }
         taskSequence += 1;

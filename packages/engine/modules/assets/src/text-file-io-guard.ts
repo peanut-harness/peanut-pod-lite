@@ -216,6 +216,24 @@ export class TextFileIoGuard {
      * @returns 保留 BOM、换行、空文件和 Unicode 的单文件快照。
      */
     public readSnapshot(target: ITextFileIoTarget): ITextFileIoSnapshot {
+        const observation = this.readObservation(target);
+        if (observation.decodeError != null) {
+            throw new Error(observation.decodeError);
+        }
+        return observation;
+    }
+
+    /**
+     * @description 对有限原始字节形成独立摘要，非法文本只保留失败码和摘要供第二遍复核。
+     * @param target 经路径守卫解析的目标。
+     * @returns 实际源观察；身份变化仍拒绝，非法编码不公开内容。
+     */
+    public readObservation(target: ITextFileIoTarget): ITextFileIoSnapshot & {
+        /**
+         * @description 非法编码或二进制检查失败时的稳定码；内容为空。
+         */
+        readonly decodeError?: string;
+    } {
         const current = this._targets([target.path])[0];
         if (current == null) {
             throw new Error('text_file_io_target_invalid');
@@ -257,9 +275,19 @@ export class TextFileIoGuard {
                 throw new Error('text_file_io_snapshot_conflict');
             }
             const original = bytes.subarray(0, used);
-            return { path: current.path, exists: true, content: this._decode(original), byteCount: used,
+            let content: string | null = null;
+            let decodeError: string | undefined;
+            try {
+                content = this._decode(original);
+            } catch (error: unknown) {
+                if (!(error instanceof Error) || !error.message.startsWith('text_file_io_')) {
+                    throw error;
+                }
+                decodeError = error.message;
+            }
+            return { path: current.path, exists: true, content, byteCount: used,
                 sha256: createHash('sha256').update(original).digest('hex'), identity: this._identity(after),
-                mtimeMs: after.mtimeMs, ctimeMs: after.ctimeMs };
+                mtimeMs: after.mtimeMs, ctimeMs: after.ctimeMs, ...(decodeError == null ? {} : { decodeError }) };
         } catch (error: unknown) {
             if (error instanceof Error && error.message.startsWith('text_file_io_')) {
                 throw error;
@@ -282,10 +310,14 @@ export class TextFileIoGuard {
     /**
      * @description 计算包含包装字段及转义的完整响应容量，禁止截断后宣称成功。
      * @param envelope 完整线缆响应。
+     * @param trailingBytes NDJSON 换行等不属于 JSON 对象的额外编码字节。
      * @returns 无返回值。
      */
-    public assertOutputBudget(envelope: unknown): void {
-        this._jsonBudget(envelope, this._limits.maxOutputBytes);
+    public assertOutputBudget(envelope: unknown, trailingBytes = 0): void {
+        if (!Number.isSafeInteger(trailingBytes) || trailingBytes < 0) {
+            throw new Error('text_file_io_configuration_invalid');
+        }
+        this._jsonBudget(envelope, this._limits.maxOutputBytes - trailingBytes);
     }
 
     /**
