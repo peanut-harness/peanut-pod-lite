@@ -1,3 +1,8 @@
+import { TextWritePreparationSnapshot } from './text-write-preparation-snapshot.js';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { posix } from 'node:path';
+import { types as nodeTypes } from 'node:util';
+import { TextFileWriteResultProjection } from '@peanut/pod-protocol';
 import type { ITaskBatchReceipt, ITaskCancelResult, ITaskEvidenceEntry, ITaskEvidenceIndex, ITaskOwner, ITaskReceipt, ITaskRequest, ITaskResult, ITaskSnapshot, ITaskStatusSummary, ITaskTrace, TaskStatus } from '@peanut/pod-protocol';
 
 import { BatchCommitCoordinator } from './commit/batch-commit-coordinator.js';
@@ -90,6 +95,128 @@ interface IExecutionDiagnosticGroupRecord {
  * @description Runtime 统一执行服务骨架。
  */
 export class ExecutionRuntimeService implements IExecutionRuntimeService {
+    /**
+     * @description 仅真实 ResourceExecutor.plan 调用期间的异步隔离上下文，退出准备即失效。
+     */
+    private static readonly _textPreparationScope = new AsyncLocalStorage<{
+        request: Readonly<ITaskRequest>; input: object; signal: AbortSignal; active: boolean;
+        snapshot: readonly { object: object; keys: readonly string[]; values: readonly unknown[] }[];
+    }>();
+    /**
+     * @description 原 Error 对象的私有一次性来源账本；可见字符串属性、冻结标记和序列化副本均不能签发。
+     */
+    private static readonly _textPreparationRefusals = new WeakMap<object, {
+        request: Readonly<ITaskRequest>; input: object; signal: AbortSignal;
+        snapshot: readonly { object: object; keys: readonly string[]; values: readonly unknown[] }[];
+    }>();
+
+    /**
+     * @description 原 Error 在本 Host 类中只允许登记一次，重复登记会撤销旧证明。
+     */
+    private static readonly _seenTextPreparationErrors = new WeakSet<object>();
+
+    /**
+     * @description 仅供 Host Kernel 的真实同步 Guard 调用建立准备来源，不提供给 SDK 回调。
+     * @param request Kernel 捕获的原始受理请求。
+     * @param signal Kernel 捕获的 Runtime 自有信号。
+     * @returns Kernel 私有准备闭包；在向 Core 交上下文前冻结原请求，run 仅包住真实 Host Guard。
+     */
+    public static bindHostTextWriteGuardPreparation(request: Readonly<ITaskRequest>, signal: AbortSignal): {
+        run<T>(prepare: () => T): T;
+    } {
+        if (nodeTypes.isProxy(request)) throw new Error('text_file_io_preparation_input_unproven');
+        const payload: unknown = Object.getOwnPropertyDescriptor(request, 'payload')?.value;
+        const input: unknown = payload != null && typeof payload === 'object' && !nodeTypes.isProxy(payload)
+            ? Object.getOwnPropertyDescriptor(payload, 'input')?.value : undefined;
+        const snapshot = ExecutionRuntimeService._capturePreparationInput(input, request);
+        if (snapshot == null || input == null || typeof input !== 'object' || payload == null
+            || typeof payload !== 'object' || signal.aborted
+            || Object.getOwnPropertyDescriptor(request, 'kind')?.value !== 'editor-mcp.resource-operation'
+            || Object.getOwnPropertyDescriptor(payload, 'operation')?.value !== 'asset.writeText') {
+            throw new Error('text_file_io_preparation_input_unproven');
+        }
+        return Object.freeze({ run: <T>(prepare: () => T): T => {
+            if (signal.aborted || !ExecutionRuntimeService._matchesPreparationInput(snapshot)) {
+                throw new Error('text_file_io_preparation_input_unproven');
+            }
+            const scope = { request, input, signal, snapshot, active: true };
+            return ExecutionRuntimeService._textPreparationScope.run(scope, () => {
+                try { return prepare(); } finally { scope.active = false; }
+            });
+        } });
+    }
+
+    /**
+     * @description 为原 ResourceExecutor 的无写入 plan 建立调用局部作用域，绝不包住 worker 或 commit。
+     * @param request 当前原始受理请求。
+     * @param signal 当前 executor 的 Runtime 信号。
+     * @param prepare 原有规划算法。
+     * @returns 原规划算法的实际结果或原始异常。
+     */
+    public static async withTextWritePreparation<T>(request: Readonly<ITaskRequest>, signal: AbortSignal,
+        prepare: () => Promise<T>): Promise<T> {
+        if (nodeTypes.isProxy(request)) return prepare();
+        const payload: unknown = Object.getOwnPropertyDescriptor(request, 'payload')?.value;
+        const input: unknown = payload != null && typeof payload === 'object' && !nodeTypes.isProxy(payload)
+            ? Object.getOwnPropertyDescriptor(payload, 'input')?.value : undefined;
+        if (Object.getOwnPropertyDescriptor(request, 'kind')?.value !== 'editor-mcp.resource-operation'
+            || payload == null || typeof payload !== 'object' || nodeTypes.isProxy(payload)
+            || Object.getOwnPropertyDescriptor(payload, 'operation')?.value !== 'asset.writeText') return prepare();
+        const snapshot = ExecutionRuntimeService._capturePreparationInput(input, request);
+        if (snapshot == null) return prepare();
+        const scope = { request, input: input as object, signal, snapshot, active: true };
+        return ExecutionRuntimeService._textPreparationScope.run(scope, async () => {
+            try { return await prepare(); } finally { scope.active = false; }
+        });
+    }
+
+    /**
+     * @description 仅实际 Guard.prepare 的确定摘要冲突可在当前活动准备作用域内登记原 Error。
+     * @param failure Gateway 捕获的实际无写入异常。
+     * @param input 原 Guard 输入对象。
+     * @returns 无返回值；不修改异常或公开协议。
+     */
+    public static recordTextWritePreparationRefusal(failure: unknown, input: unknown): void {
+        if (failure == null || typeof failure !== 'object' || nodeTypes.isProxy(failure)
+            || !nodeTypes.isNativeError(failure)) return;
+        if (ExecutionRuntimeService._seenTextPreparationErrors.has(failure)) {
+            ExecutionRuntimeService._textPreparationRefusals.delete(failure);
+            return;
+        }
+        const scope = ExecutionRuntimeService._textPreparationScope.getStore();
+        if (scope?.active !== true || scope.input !== input || scope.signal.aborted
+            || Object.getOwnPropertyDescriptor(failure, 'message')?.value !== 'text_file_io_content_conflict'
+            || Object.getOwnPropertyDescriptor(failure, 'projectState') != null
+                && Object.getOwnPropertyDescriptor(failure, 'projectState')?.value !== 'unchanged'
+            || !ExecutionRuntimeService._matchesPreparationInput(scope.snapshot)) return;
+        ExecutionRuntimeService._seenTextPreparationErrors.add(failure);
+        ExecutionRuntimeService._textPreparationRefusals.set(failure, { request: scope.request,
+            input: scope.input, signal: scope.signal, snapshot: scope.snapshot });
+    }
+
+    /**
+     * @description 保存有限 JSON 输入的原引用及数据属性，不调用 getter，不记录或公开内容。
+     * @param input 原受理输入。
+     * @param request 原受理请求；同时冻结 requestId/pluginId/kind/payload 等原数据属性。
+     * @returns 数据属性快照；不支持的对象返回 null，继续保守普通失败。
+     */
+    private static _capturePreparationInput(input: unknown, request: Readonly<ITaskRequest>): readonly {
+        object: object; keys: readonly string[]; values: readonly unknown[];
+    }[] | null {
+        return TextWritePreparationSnapshot.capture(input, request);
+    }
+
+    /**
+     * @description 检查原受理输入及所有有限 files 数据属性未被替换或修改，绝不调用 accessor。
+     * @param snapshot 原私有快照。
+     * @returns 所有原引用和数据属性仍匹配时为 true。
+     */
+    private static _matchesPreparationInput(snapshot: readonly {
+        object: object; keys: readonly string[]; values: readonly unknown[];
+    }[]): boolean {
+        return TextWritePreparationSnapshot.matches(snapshot);
+    }
+
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
     private static readonly MAX_CONSECUTIVE_COMMITS_PER_PRIORITY: number = 2;
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
@@ -678,7 +805,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
             );
             this._completeGroup(commitTaskGroup, kind, this._controlPlane.finishTrace(completedTaskTrace), batchCommitSummary.outcomes);
         } catch (/* 保存当前流程捕获的异常或诊断信息，供后续处理或返回。 */ error) {
-            await this._failGroup(commitTaskGroup, kind, error);
+            await this._failGroup(commitTaskGroup, kind, error, commitReadyTasks);
         } finally {
             // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
             for (const taskId of commitTaskGroup.taskIds) {
@@ -732,8 +859,9 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
     }
 
     /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */
-    private async _failGroup(taskGroup: ITaskMergeGroup, kind: string, failure: unknown): Promise<void> {
-        const reason = typeof failure === 'string'
+    private async _failGroup(taskGroup: ITaskMergeGroup, kind: string, failure: unknown, acceptedTasks: readonly IAcceptedTask[] = []): Promise<void> {
+        const refusalTaskId = this._takeTextPreparationRefusal(failure, taskGroup, acceptedTasks);
+        const reason = refusalTaskId != null ? 'text_file_io_content_conflict' : typeof failure === 'string'
             ? failure
             : failure instanceof Error
               ? failure.message
@@ -741,6 +869,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         const projectState = this._readFailureProjectState(failure);
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         for (const taskId of taskGroup.taskIds) {
+            const textFileWrite = this._readTextWriteFailure(failure, acceptedTasks.find((task) => task.taskId === taskId), acceptedTasks);
             if (this._controlPlane.isCancelled(taskId)) {
                 this._controlPlane.finalize(taskId);
                 this._taskAbortControllers.delete(taskId);
@@ -754,7 +883,11 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
                 taskId,
                 ok: false,
                 status: 'failed',
-                data: { projectState },
+                data: { projectState: refusalTaskId === taskId ? 'unchanged' : projectState,
+                    ...(textFileWrite == null ? {} : { textFileWrite }),
+                    ...(refusalTaskId !== taskId || textFileWrite != null ? {} : { textWritePreparationRefusal: Object.freeze({
+                        schemaVersion: 1, code: 'text_file_io_content_conflict', phase: 'prepare_before_writer',
+                        projectState: 'unchanged', taskId }) }) },
                 changes: [],
                 trace: taskTrace,
                 error: {
@@ -766,6 +899,110 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
             this._taskAbortControllers.delete(taskId);
         }
         this._settleExecutionDiagnosticGroup(taskGroup.groupId);
+    }
+
+
+    /**
+     * @description 一次消费真实准备来源，绑定唯一受理 request/input/signal/task，任何组成员已进入写窗口则拒绝。
+     * @param failure 原 executor 异常。
+     * @param group 实际提交组。
+     * @param tasks 该组实际受理任务。
+     * @returns 唯一准备拒绝原任务标识，无法证明时为空。
+     */
+    private _takeTextPreparationRefusal(failure: unknown, group: ITaskMergeGroup,
+        tasks: readonly IAcceptedTask[]): string | null {
+        if (failure == null || typeof failure !== 'object' || nodeTypes.isProxy(failure)
+            || !nodeTypes.isNativeError(failure)) return null;
+        const proof = ExecutionRuntimeService._textPreparationRefusals.get(failure);
+        ExecutionRuntimeService._textPreparationRefusals.delete(failure);
+        if (proof == null || Object.getOwnPropertyDescriptor(failure, 'message')?.value !== 'text_file_io_content_conflict'
+            || Object.getOwnPropertyDescriptor(failure, 'taskFailures') != null
+            || Object.getOwnPropertyDescriptor(failure, 'projectState') != null
+                && Object.getOwnPropertyDescriptor(failure, 'projectState')?.value !== 'unchanged'
+            || !ExecutionRuntimeService._matchesPreparationInput(proof.snapshot)
+            || tasks.length !== group.taskIds.length || !this._hasExecutorManagedConcurrency(tasks)
+            || group.taskIds.some((id) => this._controlPlane.query(id)?.status !== 'waiting_commit')) return null;
+        const matches = tasks.filter((task) => task.request === proof.request);
+        const task = matches.length === 1 ? matches[0] : undefined;
+        if (task == null || !group.taskIds.includes(task.taskId) || task.request.kind !== 'editor-mcp.resource-operation'
+            || this._taskAbortControllers.get(task.taskId)?.signal !== proof.signal || proof.signal.aborted) return null;
+        const payload: unknown = task.request.payload;
+        if (payload == null || typeof payload !== 'object' || Array.isArray(payload)
+            || Object.getOwnPropertyDescriptor(payload, 'operation')?.value !== 'asset.writeText'
+            || Object.getOwnPropertyDescriptor(payload, 'input')?.value !== proof.input) return null;
+        return task.taskId;
+    }
+
+    /**
+     * @description 仅从原受理请求对象对应的失败项投影当前任务数据，拒绝跨任务路径及异常提供的容量。
+     * @param failure executor 的原始失败。
+     * @param task 当前实际受理任务。
+     * @param acceptedTasks 本提交窗口已有的受理任务。
+     * @returns 当前任务自己的有限附件；无法证明绑定时为空。
+     */
+    private _readTextWriteFailure(
+        failure: unknown,
+        task: IAcceptedTask | undefined,
+        acceptedTasks: readonly IAcceptedTask[],
+    ): import('@peanut/pod-protocol').ITextFileWriteResult | null {
+        if (failure == null || typeof failure !== 'object' || task == null) {
+            return null;
+        }
+        const entries: unknown = Object.getOwnPropertyDescriptor(failure, 'taskFailures')?.value;
+        if (!Array.isArray(entries) || entries.length < 1 || entries.length > acceptedTasks.length) {
+            return null;
+        }
+        const matches: unknown[] = [];
+        const seen = new Set<unknown>();
+        for (let index = 0; index < entries.length; index += 1) {
+            const entry: unknown = Object.getOwnPropertyDescriptor(entries, index)?.value;
+            if (entry == null || typeof entry !== 'object' || Array.isArray(entry)) {
+                return null;
+            }
+            const request: unknown = Object.getOwnPropertyDescriptor(entry, 'request')?.value;
+            const bound = acceptedTasks.filter((candidate) => candidate.request === request);
+            const declaredId: unknown = Object.getOwnPropertyDescriptor(entry, 'taskId')?.value;
+            if (bound.length !== 1 || seen.has(request) || declaredId !== undefined && declaredId !== bound[0]?.taskId) {
+                return null;
+            }
+            seen.add(request);
+            if (request === task.request) {
+                matches.push(Object.getOwnPropertyDescriptor(entry, 'textFileWrite')?.value);
+            }
+        }
+        if (matches.length !== 1 || task.request.kind !== 'editor-mcp.resource-operation') {
+            return null;
+        }
+        const payload: unknown = task.request.payload;
+        if (payload == null || typeof payload !== 'object' || Array.isArray(payload)
+            || Object.getOwnPropertyDescriptor(payload, 'operation')?.value !== 'asset.writeText') {
+            return null;
+        }
+        const input: unknown = Object.getOwnPropertyDescriptor(payload, 'input')?.value;
+        if (input == null || typeof input !== 'object' || Array.isArray(input)) {
+            return null;
+        }
+        const files: unknown = Object.getOwnPropertyDescriptor(input, 'files')?.value;
+        const paths: string[] = [];
+        const entriesInput: readonly unknown[] = Array.isArray(files) ? files : [input];
+        if (entriesInput.length < 1 || entriesInput.length > 32) {
+            return null;
+        }
+        for (const file of entriesInput) {
+            if (file == null || typeof file !== 'object' || Array.isArray(file)) {
+                return null;
+            }
+            const path: unknown = Object.getOwnPropertyDescriptor(file, 'path')?.value;
+            if (typeof path !== 'string' || path.includes('..') || path.length > 4096) {
+                return null;
+            }
+            paths.push(posix.normalize(path.trim().replace(/\\/gu, '/').replace(/^db:\/\//u, '')).replace(/^\.\//u, ''));
+        }
+        // 这里是失败附件的固定防御边界，不接受异常传入的配置或更大的文件数。
+        const result = TextFileWriteResultProjection.project(matches[0], {
+            maxFiles: paths.length, maxFileBytes: 1024 * 1024, maxOutputBytes: 4 * 1024 * 1024, paths,
+        });
+        return result != null && !result.ok ? result : null;
     }
 
     private _readFailureProjectState(
@@ -967,7 +1204,9 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         }
     }
 
-    /** @description 判断任务组是否由同一显式 executor 自行管理资源并发。 */
+    /**
+     * @description 判断任务组是否由同一显式 executor 自行管理资源并发。
+     */
     private _hasExecutorManagedConcurrency(tasks: readonly IAcceptedTask[]): boolean {
         if (tasks.length === 0) {
             return false;

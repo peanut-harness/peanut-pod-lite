@@ -1,3 +1,5 @@
+import { McpControlFlowRefusal } from '@peanut/pod-engine/kernel';
+import { EditorMcpLumenMetaSave } from './editor-mcp-lumen-meta-save.js';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -29,6 +31,7 @@ import type {
     ILumenCocosInfoMcpInput,
 } from '@peanut/pod-protocol';
 import {
+    LumenCocosVersion,
     LumenDefaultTemplateRoot,
     LumenHierarchyRefValidator,
     LumenNoopEditorRefreshAdapter,
@@ -89,6 +92,10 @@ export class EditorMcpLumenGateway {
      */
     private readonly _input: EditorMcpLumenInputCodec;
     /**
+     * @description Router 注入的真实 Host 版本；调用参数不得切换到另一原生桥。
+     */
+    private readonly _hostCocosVersion: string | null;
+    /**
      * @description 由 Router 注入的 Prefab / Scene 首次创建协调器。
      */
     private _creationCoordinator: EditorMcpAssetDbCreationCoordinator | null = null;
@@ -97,11 +104,13 @@ export class EditorMcpLumenGateway {
      * @description 创建网关。
      * @param resolveProjectRoot 返回当前项目绝对路径
      * @param messagePort 可选 AssetDB message 端口（测试注入）
+     * @param hostCocosVersion 受信 Runtime 的实际 Host 版本。
      */
-    public constructor(resolveProjectRoot: () => Promise<string>, messagePort: ILumenMessagePort | null = null) {
+    public constructor(resolveProjectRoot: () => Promise<string>, messagePort: ILumenMessagePort | null = null, hostCocosVersion: string | null = null) {
         this._resolveProjectRoot = resolveProjectRoot;
         this._messagePort = messagePort;
         this._input = new EditorMcpLumenInputCodec();
+        this._hostCocosVersion = hostCocosVersion;
     }
 
     /**
@@ -159,17 +168,8 @@ export class EditorMcpLumenGateway {
                 primary.push(...paths.filter((item): item is string => typeof item === 'string' && item.trim().length > 0));
             }
         }
-        // 同时刷父目录，避免 AssetDB/catalog 只见文件不见树。
-        const expanded = new Set<string>();
-        for (const pathValue of primary) {
-            expanded.add(pathValue);
-            const normalized = pathValue.replace(/\\/g, '/').replace(/\/+$/, '');
-            const slash = normalized.lastIndexOf('/');
-            if (slash > 0) {
-                expanded.add(normalized.slice(0, slash));
-            }
-        }
-        return [...expanded];
+        // 刷新适配器会核对祖先登记；不要把祖先升级成显式目录强刷。
+        return [...new Set(primary)];
     }
 
     /**
@@ -178,6 +178,7 @@ export class EditorMcpLumenGateway {
      * @param input 未受信输入
      */
     public validate(operation: EditorMcpOperationId, input: ContractPayload | undefined): void {
+        this._assertHostVersion(input);
         switch (operation) {
             case 'lumen.schema':
                 this._input.readSchemaInput(input);
@@ -519,6 +520,21 @@ export class EditorMcpLumenGateway {
         };
     }
 
+    /**
+     * @description 使用受信 Host 版本校验显式版本选择，防止通过参数切换旧版写入桥。
+     * @param input 未受信业务输入。
+     */
+    private _assertHostVersion(input: ContractPayload | undefined): void {
+        if (this._hostCocosVersion == null || typeof input?.cocosVersion !== 'string') {
+            return;
+        }
+        const requested = LumenCocosVersion.parse(input.cocosVersion);
+        const actual = LumenCocosVersion.parse(this._hostCocosVersion);
+        if (requested.compare(actual) !== 0) {
+            McpControlFlowRefusal.reject(`editor_mcp_lumen_host_version_mismatch:${requested.toString()}:${actual.toString()}`);
+        }
+    }
+
     private async _executeSchema(input: ILumenSchemaMcpInput): Promise<unknown> {
         if (Lumen24McpBridge.isCreator2x(input.cocosVersion)) {
             const projectRoot = await this._resolveProjectRoot();
@@ -600,15 +616,22 @@ export class EditorMcpLumenGateway {
             });
             return this._decorateWriteResult({ ...result }, result.prefab);
         }
-        const isHierarchyCreate = /\.(?:prefab|scene)$/iu.test(input.prefabRelativePath) && input.reset !== true;
-        if (isHierarchyCreate && this._creationCoordinator != null) {
+        const isHierarchyCreate = /\.(?:prefab|scene)$/iu.test(input.prefabRelativePath);
+        const isSourceCreate = /\.(?:mtl|anim|pmtl|rt)$/iu.test(input.prefabRelativePath);
+        const projectRoot = await this._resolveProjectRoot();
+        const nativeCreate = input.reset !== true && (isHierarchyCreate || isSourceCreate) &&
+            !existsSync(join(projectRoot, input.prefabRelativePath));
+        if (nativeCreate && this._creationCoordinator != null) {
             const session = await this._createSession(input.cocosVersion == null ? {} : { cocosVersion: input.cocosVersion });
-            const serialized = session.serializeHierarchyScaffold({
+            const options = {
                 prefabRelativePath: input.prefabRelativePath,
                 rootName: input.rootName ?? 'Root',
                 template: input.template ?? 'empty',
                 writeMetaIfMissing: false,
-            });
+            };
+            const serialized = isHierarchyCreate
+                ? session.serializeHierarchyScaffold(options)
+                : session.serializeStandaloneScaffold(options);
             const creation = await this._creationCoordinator.create({
                 targetPath: serialized.relativePath,
                 resourceType: serialized.kind,
@@ -904,6 +927,11 @@ export class EditorMcpLumenGateway {
             return this._decorateWriteResult({ ...result }, input.prefabRelativePath);
         }
         const session = await this._openPrefabSession(input.prefabRelativePath, input.cocosVersion);
+        for (const field of session.describeSchema(input.componentType).props ?? []) {
+            if (field.writable === false && Object.prototype.hasOwnProperty.call(input.props, field.apiName)) {
+                McpControlFlowRefusal.reject(`lumen_property_not_persistent:${input.componentType}.${field.apiName}`);
+            }
+        }
         session.setComponentProperty({
             nodePath: input.nodePath,
             componentType: input.componentType,
@@ -928,8 +956,13 @@ export class EditorMcpLumenGateway {
             return this._decorateWriteResult({ ...result }, input.prefabRelativePath);
         }
         const session = await this._openPrefabSession(input.prefabRelativePath, input.cocosVersion);
+        if (session.openedAssetKind === 'audio' && Object.prototype.hasOwnProperty.call(input.props, 'downloadMode')) {
+            McpControlFlowRefusal.reject('lumen_audio_property_not_editable:audio.downloadMode');
+        }
         session.setAssetProperty({ patch: input.props });
-        session.save();
+        await EditorMcpLumenMetaSave.save(
+            session, input.prefabRelativePath, this._messagePort ?? this._tryCreateCreatorMessagePort(),
+        );
         return this._decorateWriteResult(
             {
                 phase: session.phase,

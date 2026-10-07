@@ -285,9 +285,12 @@ export class LumenAssetDbEditorRefreshAdapter implements ILumenEditorRefreshAdap
             return;
         }
 
-        // 已登记脚本/文本：内容写盘即可，Creator 监视器会热更；
-        // 再 refresh-asset 会稳定触发 Assets 面板 Window「原资产不存在」。
+        // 脚本/文本由监视器热更；序列化资产必须导入当前字节后才能报告 ready。
+        // 使用原生 reimport，避免 refresh-asset 的 Assets Window changed 竞态。
         if (this._isTextDiskAsset(relativePath)) {
+            if (/\.(?:prefab|scene|mtl|anim|pmtl|rt)$/iu.test(relativePath)) {
+                await this._message.request('asset-db', 'reimport-asset', dbUrl);
+            }
             await this._settleAfterFileSync(projectRoot, relativePath, dbUrl);
             return;
         }
@@ -457,7 +460,7 @@ export class LumenAssetDbEditorRefreshAdapter implements ILumenEditorRefreshAdap
         }
         if (importer === 'image' || importer === 'auto-atlas') {
             await this._waitUntilAssetRegistered(dbUrl, 6000);
-            await this._waitUntilImageSubAssetsReady(dbUrl, 10000);
+            await this._waitUntilImageSubAssetsReady(dbUrl, metaPath, 10000);
             await this._waitAssetDbReady(2500);
             return;
         }
@@ -467,54 +470,46 @@ export class LumenAssetDbEditorRefreshAdapter implements ILumenEditorRefreshAdap
     /**
      * @description 等待 PNG 等图片资源的 texture / spriteFrame 子资源登记完成。
      * @param dbUrl 主资源 db URL。
+     * @param metaPath 当前图片 meta。
      * @param timeoutMs 最长等待毫秒。
      * @returns 无返回值。
      */
-    private async _waitUntilImageSubAssetsReady(dbUrl: string, timeoutMs: number): Promise<void> {
+    private async _waitUntilImageSubAssetsReady(dbUrl: string, metaPath: string, timeoutMs: number): Promise<void> {
+        const expected = this._readSubAssetUuids(JSON.parse(readFileSync(metaPath, 'utf8')));
         const deadline = Date.now() + timeoutMs;
         while (Date.now() < deadline) {
             const info = await this._queryAssetInfo(dbUrl);
-            if (info != null && this._readSpriteFrameUuid(info) != null) {
+            const actual = new Set(this._readSubAssetUuids(info));
+            if (info != null && expected.every((uuid) => actual.has(uuid))) {
                 return;
             }
             await new Promise<void>((resolve) => {
                 setTimeout(resolve, 100);
             });
         }
+        throw new Error(`lumen_asset_db_subassets_pending:${dbUrl}`);
     }
 
     /**
-     * @description 从 AssetDB 快照读取 SpriteFrame 子资源 UUID。
-     * @param value query-asset-info 返回值。
-     * @returns SpriteFrame UUID 或 null。
+     * @description 收集实际声明或登记的 UUID；支持 texture-only 图片与原生数组/字典子资源。
+     * @param value meta 或 AssetDB 快照。
+     * @returns 主资源和全部声明的子资源 UUID。
      */
-    private _readSpriteFrameUuid(value: unknown): string | null {
-        if (typeof value !== 'object' || value == null || Array.isArray(value)) {
-            return null;
+    private _readSubAssetUuids(value: unknown): readonly string[] {
+        if (value == null || typeof value !== 'object') {
+            return [];
+        }
+        if (Array.isArray(value)) {
+            return value.flatMap((item) => this._readSubAssetUuids(item));
         }
         const record = value as Record<string, unknown>;
-        if (typeof record.spriteFrameUuid === 'string' && record.spriteFrameUuid.length > 0) {
-            return record.spriteFrameUuid;
-        }
-        for (const collectionKey of ['subMetas', 'subAssets'] as const) {
-            const collection = record[collectionKey];
-            if (typeof collection !== 'object' || collection == null || Array.isArray(collection)) {
-                continue;
-            }
-            for (const [key, item] of Object.entries(collection as Record<string, unknown>)) {
-                const uuid = this._readAssetUuid(item);
-                if (uuid != null && uuid.includes('@f9941')) {
-                    return uuid;
-                }
-                if (key.toLowerCase().includes('spriteframe')) {
-                    const resolved = this._readAssetUuid(item);
-                    if (resolved != null) {
-                        return resolved;
-                    }
-                }
-            }
-        }
-        return this._readSpriteFrameUuid(record.asset);
+        const own = typeof record.uuid === 'string' ? [record.uuid] : [];
+        const children = ['subAssets', 'subMetas'].flatMap((key) => {
+            const collection = record[key];
+            return collection != null && typeof collection === 'object'
+                ? Object.values(collection).flatMap((item) => this._readSubAssetUuids(item)) : [];
+        });
+        return [...own, ...children, ...this._readSubAssetUuids(record.asset)];
     }
 
     /**
@@ -619,13 +614,13 @@ export class LumenAssetDbEditorRefreshAdapter implements ILumenEditorRefreshAdap
     /**
      * @description 判断是否为脚本/文本/Creator 序列化资产（已登记时禁止 refresh-asset）。
      *
-     * Prefab/Scene/Material 等与 `.ts` 一样：磁盘写后靠监视器热更；再 `refresh-asset`
-     * 会稳定触发 Assets 面板 Window「原资产不存在」。
+     * 脚本由监视器热更；Prefab/Scene/Material 等通过原生 reimport 同步导入产物。
+     * 不使用会触发 Assets Window 竞态的 `refresh-asset`。
      * @param relativePath 项目相对路径。
      * @returns 是否文本/序列化磁盘资源。
      */
     private _isTextDiskAsset(relativePath: string): boolean {
-        return /\.(tsx?|jsx?|mts|cts|mjs|cjs|md|txt|json|jsonc|prefab|scene|mtl|material|anim|effect|pmtl|fire)$/iu.test(
+        return /\.(tsx?|jsx?|mts|cts|mjs|cjs|md|txt|json|jsonc|prefab|scene|mtl|material|anim|effect|pmtl|rt|fire)$/iu.test(
             relativePath,
         );
     }

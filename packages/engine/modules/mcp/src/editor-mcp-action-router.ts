@@ -1,3 +1,5 @@
+import { EditorMcpTextWriteBatch } from './editor-mcp-text-write-batch.js';
+import type { IResourceOperationBatchContext } from './resource-operation-contracts.js';
 import { existsSync, realpathSync } from 'fs';
 import type {
     ContractPayload,
@@ -37,6 +39,8 @@ import { CAPABILITIES, type EditorMcpCapabilitySeed } from './editor-mcp-capabil
 import { ResourceOperationPlanner } from './resource-operation-planner.js';
 import { ResourceOperationTaskExecutor } from './resource-operation-task-executor.js';
 import { EditorMcpTextReadGateway } from './editor-mcp-text-read-gateway.js';
+import { EditorMcpTextWriteGateway, type IEditorMcpPreparedTextWrite } from './editor-mcp-text-write-gateway.js';
+import type { IResourceOperationTaskPlan } from './resource-operation-contracts.js';
 
 /**
  * @description 显式校验外部 MCP 输入，并通过受限 runtime grant 与插件服务执行 action。
@@ -114,6 +118,14 @@ export class EditorMcpActionRouter {
      * @description 不缓存的真实文本读取入口。
      */
     private readonly _textReader: EditorMcpTextReadGateway;
+    /**
+     * @description 仅当前调用的全批写准备与原有静默 writer 适配。
+     */
+    /**
+     * @description 复用原有AssetDB登记事务，文本批次只做一次最终提交。
+     */
+    private readonly _assetDbTransaction: EditorMcpAssetDbTransaction;
+    private readonly _textWriter: EditorMcpTextWriteGateway;
 
     /**
      * @description 创建一个新的 Editor MCP action router。
@@ -150,7 +162,7 @@ export class EditorMcpActionRouter {
             }
         });
         this._sceneGateway = new EditorMcpSceneGateway(runtime);
-        this._lumen = lumenGateway ?? new EditorMcpLumenGateway(async () => this._requireProjectPath());
+        this._lumen = lumenGateway ?? new EditorMcpLumenGateway(async () => this._requireProjectPath(), this._runtime.message ?? null, this._runtime.version.getCurrentVersion().raw);
         const assetDbTransaction = new EditorMcpAssetDbTransaction({
             requireProjectPath: async () => this._requireProjectPath(),
             requireMessage: () => this._requireMessage(),
@@ -172,6 +184,7 @@ export class EditorMcpActionRouter {
             this._sceneGateway.configureCreationCoordinator(creationCoordinator);
         }
         this._prefabOffline = new EditorMcpPrefabOfflineGateway();
+        this._assetDbTransaction = assetDbTransaction;
         this._silentAssets = new EditorMcpSilentAssetGateway({
             requireProjectPath: async () => this._requireProjectPath(),
             lumen: this._lumen,
@@ -196,10 +209,15 @@ export class EditorMcpActionRouter {
             sceneGateway: this._sceneGateway,
             isRecord: (value: unknown): value is Record<string, unknown> => this._isRecord(value),
         });
+        this._textWriter = new EditorMcpTextWriteGateway((input, beforeWrite, execution) =>
+            this._silentAssets._executeAssetWriteText(input, beforeWrite, execution));
         this._resourceTaskExecutor = new ResourceOperationTaskExecutor({
             plan: async (operation, input) => this.planManagedResourceOperation(operation as EditorMcpOperationId, input),
-            execute: async (operation, input, context) =>
-                this.executeManagedResourceOperation(operation as EditorMcpOperationId, input, context),
+            revalidate: async (operation, input, plan) =>
+                this.revalidateManagedResourceOperation(operation as EditorMcpOperationId, input, plan),
+            beginBatch: (plans, requests) => this.beginManagedBatch(plans, requests),
+            execute: async (operation, input, context, plan, batch) =>
+                this.executeManagedResourceOperation(operation as EditorMcpOperationId, input, context, plan, batch),
             lockManager: resourceLockManager,
         });
     }
@@ -298,6 +316,9 @@ export class EditorMcpActionRouter {
      */
     public plan(request: IEditorMcpOperationRequest): IEditorMcpActionPlan {
         this._validateOperationInput(request);
+        if (request.operation === 'asset.import' || request.operation === 'asset.importPlan') {
+            this._silentAssets.assertBoundedFontImportInput(request.input);
+        }
         const readOnly = this._isReadOnlyOperation(request.operation);
         let risk = this._riskForOperation(request.operation);
         if (request.operation === 'asset.import' && (request.input?.overwrite === true || request.input?.mode === 'override')) {
@@ -318,6 +339,9 @@ export class EditorMcpActionRouter {
      * @returns 查询结果
      */
     public async execute(request: IEditorMcpOperationRequest, invocation?: IMcpCapabilityInvocation): Promise<IEditorMcpActionResult> {
+        if (request.operation === 'asset.writeText') {
+            this._textWriter.assertInputBudget(request);
+        }
         this._validateOperationInput(request);
         const phase = this._runtime.version.getCurrentVersion().phase;
         if (ProductLineMcpPolicy.decide(phase, request.operation) === 'refuse') {
@@ -375,8 +399,49 @@ export class EditorMcpActionRouter {
         input: Readonly<Record<string, unknown>>,
     ): Promise<ReturnType<ResourceOperationPlanner['plan']>> {
         const projectRoot = await this._requireProjectPath();
-        const plan = this._taskPlanner.plan(projectRoot, operation, input);
+        const preparedTextWrite = operation === 'asset.writeText' ? this._textWriter.prepare(projectRoot, input) : undefined;
+        const plan = this._taskPlanner.plan(projectRoot, operation, input, preparedTextWrite);
         return Object.freeze({ ...plan, resourceKeys: this._textReader.writerKeys(projectRoot, plan.resourceKeys) });
+    }
+
+    /**
+     * @description 在剥离控制字段前核对完整文本写入输入，沿用统一容量来源。
+     * @param input 原始请求或业务输入。
+     * @returns 无返回值。
+     */
+    public assertTextWriteInputBudget(input: unknown): void {
+        this._textWriter.assertInputBudget(input);
+    }
+
+    /**
+     * @description 在既有 writer 锁内核对同一计划载荷，供单任务与联合批次共用。
+     * @param operation 原始 operation。
+     * @param input 原始业务输入。
+     * @param plan 排队前原始计划。
+     * @returns 无写入的整批重验。
+     */
+    public async revalidateManagedResourceOperation(
+        operation: EditorMcpOperationId,
+        input: Readonly<Record<string, unknown>>,
+        plan: IResourceOperationTaskPlan,
+    ): Promise<void> {
+        if (operation === 'asset.writeText') {
+            this._textWriter.revalidate(await this._requireProjectPath(), input, plan.preparedTextWrite);
+        }
+    }
+
+
+    /**
+     * @description 在原联合锁内委托唯一文本批次收口，不创建新的 writer 或事务。
+     * @param plans 原始有序任务计划。
+     * @param requests 原始请求，供局部失败映射。
+     * @returns 不进入业务 JSON 的内部上下文。
+     */
+    public async beginManagedBatch(
+        plans: readonly IResourceOperationTaskPlan[],
+        requests: readonly Readonly<import('@peanut/pod-protocol').ITaskRequest>[],
+    ): Promise<IResourceOperationBatchContext> {
+        return new EditorMcpTextWriteBatch(await this._requireProjectPath(), this._assetDbTransaction).begin(plans, requests);
     }
 
     /**
@@ -386,6 +451,8 @@ export class EditorMcpActionRouter {
         operation: EditorMcpOperationId,
         input: Readonly<Record<string, unknown>>,
         context?: import('@peanut/pod-sdk').IPluginTaskExecutorContext,
+        plan?: IResourceOperationTaskPlan,
+        batch?: IResourceOperationBatchContext,
     ): Promise<IEditorMcpActionResult> {
         const request: IEditorMcpOperationRequest = { operation, input };
         this._validateOperationInput(request);
@@ -396,10 +463,18 @@ export class EditorMcpActionRouter {
         if (planned.risk === 'destructive' && this._readConfirmDestructive(input) !== true) {
             McpControlFlowRefusal.reject('editor_mcp_destructive_confirmation_required');
         }
+        if (batch != null) {
+            if (plan?.preparedTextWrite == null) {
+                batch.textWrites.markOtherPossibleMutation();
+            }
+            const result = await this._executeDirect(request, context, plan?.preparedTextWrite, batch, plan);
+            const creation = this._readRequiredCreationEvidence(operation, input, result.data);
+            return creation == null ? result : { ...result, data: this._isRecord(result.data) ? { ...result.data, creation } : { value: result.data, creation } };
+        }
         const projectRoot = await this._requireProjectPath();
         const postflightMonitor = new ProjectLogPostflightMonitor();
         const logCheckpoint = postflightMonitor.checkpoint(projectRoot);
-        const result = await this._executeDirect(request, context);
+        const result = await this._executeDirect(request, context, plan?.preparedTextWrite);
         const creation = this._readRequiredCreationEvidence(operation, input, result.data);
         const postflight = postflightMonitor.readDelta(logCheckpoint);
         if (!postflight.logChecked || postflight.newErrorCount > 0 || postflight.newWarningCount > 0) {
@@ -432,7 +507,13 @@ export class EditorMcpActionRouter {
     private async _executeDirect(
         request: IEditorMcpOperationRequest,
         context?: import('@peanut/pod-sdk').IPluginTaskExecutorContext,
+        preparedTextWrite?: IEditorMcpPreparedTextWrite,
+        batch?: IResourceOperationBatchContext,
+        plan?: IResourceOperationTaskPlan,
     ): Promise<IEditorMcpActionResult> {
+        if (request.operation === 'asset.writeText') {
+            this._textWriter.assertInputBudget(request);
+        }
         this._validateOperationInput(request);
         const phase = this._runtime.version.getCurrentVersion().phase;
         if (ProductLineMcpPolicy.decide(phase, request.operation) === 'refuse') {
@@ -609,7 +690,8 @@ export class EditorMcpActionRouter {
             case 'asset.writeText':
                 return {
                     operation: request.operation,
-                    data: await this._silentAssets._executeAssetWriteText(request.input),
+                    data: await this._textWriter.execute(await this._requireProjectPath(), request.input, preparedTextWrite,
+                        batch?.textWrites, plan == null ? undefined : batch?.outcome(plan)),
                 };
             case 'asset.ensureSpriteFramesBatch':
                 return {
@@ -908,6 +990,7 @@ export class EditorMcpActionRouter {
             this._silentAssets._readAssetReimportInput(request.input);
         }
         if (request.operation === 'asset.writeText') {
+            this._textWriter.assertInputBudget(request.input);
             this._silentAssets._readAssetWriteTextInput(request.input);
         }
         if (request.operation === 'asset.ensureSpriteFramesBatch') {

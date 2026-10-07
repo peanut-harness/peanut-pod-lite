@@ -27,6 +27,8 @@ await pluginModule.dispatchMcpAction('cocos.call', { operation: 'asset.catalog.r
 
 定位：Creator 检视器能改的资产，经 lumen 改源文件 / `.meta`；不写 `library/`。当前已通 Prefab / Scene、`.mtl` / `.anim` / `.pmtl` / `.terrain`、图片 Texture / SpriteFrame `.meta`、Effect `.effect` / chunk、FBX / glTF `.meta`、Auto Atlas `.pac`、LabelAtlas `.labelatlas`、Animation Graph / Variant / Mask、RenderTexture `.rt`、Render Pipeline `.rpp`、Render Flow `.flow`、Render Stage `.stg`、音频 / 视频 / TTF / BitmapFont `.meta`、Spine / DragonBones `.meta`、CubeMap / TiledMap / 文件夹 Bundle `.meta`、粒子 / Sprite Atlas `.plist`、JSON / 文本 `.meta`、Buffer `.bin` `.meta`、脚本 `.ts` / `.js` `.meta`、instantiation dump `.mesh` / `.skeleton` / `.animation` / `.material` `.meta`；其余种类见 [`docs/LUMEN-ROADMAP.md`](./docs/LUMEN-ROADMAP.md)。
 
+音频 `downloadMode` 在已验证 Creator 3.8.3/3.8.7 的原生导入器中固定为 0，检视返回 `downloadModeWritable=false`；写请求在任何源/meta 保存和 commit 前明确拒绝。读取仍呈现实际 meta 值，不强制修改已有文件。显式 `cocosVersion` 必须匹配当前受信 Host 版本，不能用该参数切换旧版写入桥。
+
 管线：`schema` / `templates` → `scaffold` → `structure` / `assetSet` → **`lumen.commit`**（AssetDB + catalog）→ `compSet` / `bind*` → 必要时 `tree` / `inspect` 验收。
 
 完整步骤与黄金样例见 [`docs/LUMEN-AI-PLAYBOOK.md`](./docs/LUMEN-AI-PLAYBOOK.md)。  

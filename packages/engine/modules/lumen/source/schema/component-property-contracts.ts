@@ -101,6 +101,11 @@ export interface ILumenPropertyFieldSpec {
     readonly kind: LumenPropertyValueKind;
 
     /**
+     * @description 已验证的原生布尔枚举使用 0 / 1；仅内部规格标记，不改变公开 DTO。
+     */
+    readonly nativeBooleanEnum?: true;
+
+    /**
      * @description `componentRef` 时目标组件类型（如 `cc.Sprite`）。
      */
     readonly refComponentType?: string;
@@ -183,6 +188,17 @@ export interface ILumenPropertyDescriptor {
      * @description 值类型。
      */
     readonly kind: LumenPropertyValueKind;
+
+    /**
+     * @description 已验证不能原生持久化时为 false；省略不代表已通过全部原生字段验收。
+     */
+    readonly writable?: boolean;
+
+    /**
+     * @description 原生持久化写入拒绝原因；字段仍保留在完整目录中。
+     */
+    readonly writeRefusedReason?: 'native_runtime_only' | 'native_unsupported';
+
 
     /**
      * @description `componentRef` 时目标组件类型。

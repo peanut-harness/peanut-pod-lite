@@ -1,3 +1,8 @@
+import { realpathSync } from 'node:fs';
+import { types as nodeTypes } from 'node:util';
+import { TextFileIoGuard } from '@peanut/pod-engine/assets';
+import { CoreTextFileIoContract } from '@peanut/pod-engine/policy';
+import { ExecutionRuntimeService } from '@peanut/pod-engine/runtime';
 import type {
     ContractPayload,
     ITaskBatchReceipt,
@@ -7,6 +12,7 @@ import type {
     ITaskRequest,
     ITaskResult,
     ITaskSnapshot,
+    ITextFileIoLimits,
 } from '@peanut/pod-protocol';
 import type { ICocosRuntime, ITaskExecutor } from '@peanut/pod-engine/runtime';
 import type { IMcpCapabilityInvocation } from '@peanut/pod-sdk';
@@ -208,9 +214,12 @@ export class PluginTaskApi implements IPluginTaskApi {
                     throw new Error(`plugin_task_executor_inactive:${this._pluginId}:${kind}`);
                 }
                 const owner = this._runtime.execution.getOwner(task.taskId) ?? this._owner(kind);
+                const signal = this._runtime.execution.getTaskAbortSignal(task.taskId);
+                const prepareTextWrite = await this._createHostTextWritePreparation(task, signal);
                 const data = await executor(task.request, {
                     owner,
-                    signal: this._runtime.execution.getTaskAbortSignal(task.taskId),
+                    signal,
+                    ...(prepareTextWrite == null ? {} : { prepareTextWrite }),
                     enterCommitWindow: (): boolean => this._runtime.execution.enterTaskCommitWindow(task.taskId),
                     recordEvidence: (evidence): void => {
                         this._runtime.execution.recordEvidence(task.taskId, evidence);
@@ -228,17 +237,20 @@ export class PluginTaskApi implements IPluginTaskApi {
                     if (!this._active) {
                         throw new Error(`plugin_task_executor_inactive:${this._pluginId}:${kind}`);
                     }
-                    const contexts = tasks.map((task) => {
+                    const contexts = await Promise.all(tasks.map(async (task) => {
                         const owner = this._runtime.execution.getOwner(task.taskId) ?? this._owner(kind);
+                        const signal = this._runtime.execution.getTaskAbortSignal(task.taskId);
+                        const prepareTextWrite = await this._createHostTextWritePreparation(task, signal);
                         return {
                             owner,
-                            signal: this._runtime.execution.getTaskAbortSignal(task.taskId),
+                            signal,
+                            ...(prepareTextWrite == null ? {} : { prepareTextWrite }),
                             enterCommitWindow: (): boolean => this._runtime.execution.enterTaskCommitWindow(task.taskId),
                             recordEvidence: (evidence: Parameters<IPluginTaskExecutorContext['recordEvidence']>[0]): void => {
                                 this._runtime.execution.recordEvidence(task.taskId, evidence);
                             },
                         };
-                    });
+                    }));
                     const values = await batchExecutor(
                         tasks.map((task) => task.request),
                         contexts,
@@ -269,6 +281,63 @@ export class PluginTaskApi implements IPluginTaskApi {
         };
         this._executorDisposers.add(dispose);
         return dispose;
+    }
+
+    /**
+     * @description 为原受理文本任务绑定真实 Host 工程、信号及仅一次实际 Guard 检查。
+     * @param task Runtime 交给本 Kernel 的原受理任务。
+     * @param signal 本 Runtime 为该 taskId 创建的信号。
+     * @returns 内部同步准备端口；其它任务保持原上下文，不增加能力。
+     */
+    private async _createHostTextWritePreparation(task: Parameters<ITaskExecutor['execute']>[0],
+        signal: AbortSignal): Promise<IPluginTaskExecutorContext['prepareTextWrite']> {
+        const request = task.request;
+        if (nodeTypes.isProxy(request)) return undefined;
+        const payload: unknown = Object.getOwnPropertyDescriptor(request, 'payload')?.value;
+        if (Object.getOwnPropertyDescriptor(request, 'kind')?.value !== 'editor-mcp.resource-operation'
+            || payload == null || typeof payload !== 'object' || nodeTypes.isProxy(payload)
+            || Object.getOwnPropertyDescriptor(payload, 'operation')?.value !== 'asset.writeText') return undefined;
+        const originalInput: unknown = Object.getOwnPropertyDescriptor(payload, 'input')?.value;
+        const provenance = ExecutionRuntimeService.bindHostTextWriteGuardPreparation(request, signal);
+        const hostProject = await this._runtime.project.getProjectPath();
+        if (hostProject == null) throw new Error('text_file_io_host_project_unavailable');
+        const hostRoot = realpathSync(hostProject);
+        let used = false;
+        return (originRequest, projectRoot, input, limits, providedSignal) => {
+            if (used || !this._active || signal.aborted || originRequest !== request || providedSignal !== signal
+                || this._runtime.execution.getTaskAbortSignal(task.taskId) !== signal
+                || input !== originalInput || realpathSync(projectRoot) !== hostRoot) {
+                throw new Error('text_file_io_host_preparation_untrusted');
+            }
+            used = true;
+            const bounded = this._boundedTextWriteLimits(limits);
+            return provenance.run(() => {
+                try { return new TextFileIoGuard(hostRoot, bounded).prepareWrite(input); }
+                catch (error: unknown) {
+                    // 此 producer 仅在 Host 内部真正 Guard.prepareWrite 的 catch；SDK 无 record 回调。
+                    ExecutionRuntimeService.recordTextWritePreparationRefusal(error, input);
+                    throw error;
+                }
+            });
+        };
+    }
+
+    /**
+     * @description 检查容量为有限自有数据属性且只能收紧当前产品上限。
+     * @param limits Core 传递的原容量对象。
+     * @returns Host 核实后的有限容量值。
+     */
+    private _boundedTextWriteLimits(limits: ITextFileIoLimits): ITextFileIoLimits {
+        if (limits == null || typeof limits !== 'object' || nodeTypes.isProxy(limits)
+            || Reflect.ownKeys(limits).length !== 4) throw new Error('text_file_io_host_limits_untrusted');
+        const read = (key: keyof ITextFileIoLimits): number => {
+            const value: unknown = Object.getOwnPropertyDescriptor(limits, key)?.value;
+            if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1
+                || value > CoreTextFileIoContract.limits[key]) throw new Error('text_file_io_host_limits_untrusted');
+            return value;
+        };
+        return { maxFiles: read('maxFiles'), maxFileBytes: read('maxFileBytes'),
+            maxInputBytes: read('maxInputBytes'), maxOutputBytes: read('maxOutputBytes') };
     }
 
     /**

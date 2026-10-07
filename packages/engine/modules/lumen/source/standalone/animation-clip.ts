@@ -1,3 +1,4 @@
+import { LumenAnimationCurveTracks } from "./animation-curve-tracks";
 import { LumenJsonAssetIo } from "../io/json-asset";
 import { LumenCocosVersion } from "../schema/cocos-version";
 import { LumenStandaloneInspectQuery } from "./inspect-query";
@@ -220,6 +221,8 @@ export class LumenAnimationClipDocument {
         "lumen_animation_clip_raw_tracks_blocked:use_curves_or_events_or_pass_allowRawTracks_true",
       );
     }
+    const nativeTracks = patch.curves === undefined
+      ? null : LumenAnimationCurveTracks.encode(patch.curves);
     if (patch.name !== undefined) {
       if (typeof patch.name !== "string") {
         throw new Error("lumen_property_type:name:string");
@@ -254,6 +257,13 @@ export class LumenAnimationClipDocument {
     }
     if (patch.curves !== undefined) {
       this._applyCurves(patch.curves);
+      if (nativeTracks !== null && (nativeTracks.length > 0
+        || (Array.isArray(patch.curves) && patch.curves.length === 0))) {
+        this._record._tracks = nativeTracks;
+        if (nativeTracks.length === 0) {
+          this._record._keys = [];
+        }
+      }
     }
     if (patch.curveDatas !== undefined) {
       if (
@@ -330,6 +340,20 @@ export class LumenAnimationClipDocument {
    * @description 写回磁盘与最小 meta。
    * @param projectRoot 项目根
    * @param writeMetaIfMissing 缺少 meta 时是否创建
+   */
+  /**
+   * @description 序列化内存动画源文档，供原生首次创建。
+   * @returns 源 JSON 文本。
+   */
+  public serializeNativeSource(): string {
+    return `${JSON.stringify(this._record, null, 2)}\n`;
+  }
+
+  /**
+   * @description 写回源文档和 meta。
+   * @param projectRoot 工程根。
+   * @param writeMetaIfMissing 是否写入缺失 meta。
+   * @param cocosVersion Creator 版本。
    */
   public save(
     projectRoot: string,

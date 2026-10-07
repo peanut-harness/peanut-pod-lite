@@ -1,3 +1,4 @@
+import { EditorMcpTextWriteFailure } from './editor-mcp-text-write-failure.js';
 import type { EditorMcpOperationId, IEditorMcpActionResult, IMcpExecutionControl } from '@peanut/pod-protocol';
 import type { IGrantedRuntimeClientSet, IMcpCapabilityInvocation, IPluginManagedTaskApi } from '@peanut/pod-sdk';
 
@@ -51,11 +52,16 @@ export function createEditorMcpExecuteOperation(
     const resourceExecutor = new ResourceOperationTaskExecutor({
         lockManager: router.getResourceLockManager(),
         plan: async (operation, input) => router.planManagedResourceOperation(operation as EditorMcpOperationId, input),
-        execute: async (operation, input, executorContext) =>
+        revalidate: async (operation, input, plan) =>
+            router.revalidateManagedResourceOperation(operation as EditorMcpOperationId, input, plan),
+        beginBatch: (plans, requests) => router.beginManagedBatch(plans, requests),
+                execute: async (operation, input, executorContext, plan, batch) =>
             router.executeManagedResourceOperation(
                 operation as EditorMcpOperationId,
                 input,
                 executorContext,
+                plan,
+                batch,
             ),
     });
     let taskSequence = 0;
@@ -75,6 +81,9 @@ export function createEditorMcpExecuteOperation(
         invocation?: IMcpCapabilityInvocation,
     ): Promise<unknown> => {
         const operation = operationValue as EditorMcpOperationId;
+        if (operation === 'asset.writeText') {
+            router.assertTextWriteInputBudget({ operation, input: rawInput });
+        }
         const decoded = executionCodec.decode(rawInput);
         const plan = router.plan({ operation, input: decoded.input });
         if (plan.readOnly || managedTasks == null) {
@@ -134,7 +143,8 @@ async function executeManaged(
     }
     const taskResult = await managedTasks.wait<Record<string, unknown>>(receipt.taskId);
     if (taskResult == null || !taskResult.ok || taskResult.status !== 'succeeded') {
-        throw new Error(taskResult?.error?.code ?? 'editor_mcp_managed_task_failed');
+        throw EditorMcpTextWriteFailure.fromTaskResult(taskResult, receipt.taskId,
+                taskResult?.error?.code ?? 'editor_mcp_managed_task_failed');
     }
     const data = taskResult.data;
     if (data == null || typeof data.operation !== 'string' || !('data' in data)) {

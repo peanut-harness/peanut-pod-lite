@@ -420,6 +420,33 @@ export class LumenSession {
      * @param options 脚手架选项；目标必须尚不存在且不接受 reset。
      * @returns 可交给 AssetDB 创建屏障的规范化内容。
      */
+    public serializeStandaloneScaffold(options: ILumenScaffoldPrefabOptions): Readonly<{
+        relativePath: string; kind: 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture'; content: string;
+    }> {
+        const relativePath = normalize(options.prefabRelativePath).replace(/\\/g, '/');
+        if (options.reset === true || existsSync(join(this._projectRoot, relativePath)) ||
+            existsSync(`${join(this._projectRoot, relativePath)}.meta`)) {
+            throw new Error(`lumen_scaffold_target_exists:${relativePath}`);
+        }
+        const document = LumenStandaloneAsset.createEmpty(relativePath, options.rootName, options.template ?? 'empty');
+        if (document.serializeNativeSource == null) {
+            throw new Error(`lumen_native_source_scaffold_unsupported:${relativePath}`);
+        }
+        if (document.kind !== 'material' && document.kind !== 'animationClip' &&
+            document.kind !== 'physicsMaterial' && document.kind !== 'renderTexture') {
+            throw new Error(`lumen_native_source_scaffold_unsupported:${relativePath}`);
+        }
+        const content = document.serializeNativeSource();
+        this._adoptStandalone(document);
+        this._phase = 'scaffolded';
+        return Object.freeze({ relativePath, kind: document.kind, content });
+    }
+
+    /**
+     * @description 在内存中构造 Prefab / Scene，不创建工程文件。
+     * @param options 脚手架选项。
+     * @returns 可交给 AssetDB 创建屏障的内容。
+     */
     public serializeHierarchyScaffold(options: ILumenScaffoldPrefabOptions): ILumenSerializedHierarchyScaffold {
         const relativePath = normalize(options.prefabRelativePath).replace(/\\/g, '/');
         const absolutePath = join(this._projectRoot, relativePath);
@@ -847,6 +874,14 @@ export class LumenSession {
             patch,
         });
         this._phase = 'bound';
+    }
+
+    /**
+     * @description 返回仅 meta 编辑的独立副本，避免原生保存前先写磁盘触发重复导入。
+     * @returns meta 副本；层次或混合源文档返回 null。
+     */
+    public getNativeMetaSnapshot(): Record<string, unknown> | null {
+        return this._standalone?.getNativeMetaSnapshot?.() ?? null;
     }
 
     /**

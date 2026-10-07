@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
 
 import type { IAssetImportMessagePort } from "./asset-import-batch-executor";
+import { NativeImportSpriteFrame } from "./native-import-sprite-frame";
 import { SpriteFrameMetaBuilder } from "./sprite-frame-meta-builder";
 
 export { SpriteFrameMetaBuilder } from "./sprite-frame-meta-builder";
@@ -124,6 +125,9 @@ export class EnsureSpriteFramesBatchService {
         rawPath.trim(),
         refreshRoot == null,
       );
+      if (item.status === "ensured" && refreshRoot == null) {
+        await this._canonicalizeNewFrame(projectRoot, item);
+      }
       items.push(item);
       if (item.status === "already") {
         already += 1;
@@ -147,9 +151,33 @@ export class EnsureSpriteFramesBatchService {
         if (uuid != null) {
           items[index] = { ...item, spriteFrameUuid: uuid };
         }
+        await this._canonicalizeNewFrame(projectRoot, items[index]);
+
       }
     }
     return { already, ensured, errors, skipped, items };
+  }
+
+  /**
+   * @description 仅本批新帧执行原生规范化；位于旧逐项错误转录之外，保留必需请求的原错误对象。
+   * @param projectRoot 工程根。
+   * @param item 本批新建帧结果。
+   * @returns 无。
+   */
+  private async _canonicalizeNewFrame(
+    projectRoot: string,
+    item: ISpriteFrameEnsureItemResult,
+  ): Promise<void> {
+    if (item.spriteFrameUuid == null) {
+      throw new Error("lumen_sprite_frame_not_ready");
+    }
+    const native = new NativeImportSpriteFrame(
+      this._message,
+      SPRITE_FRAME_READY_ATTEMPTS * SPRITE_FRAME_READY_DELAY_MS,
+      "lumen_sprite_frame",
+    );
+    await native.ready();
+    await native.canonicalizeNewFrame(projectRoot, item.dbUrl, item.spriteFrameUuid);
   }
 
   /**

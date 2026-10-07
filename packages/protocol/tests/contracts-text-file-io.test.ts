@@ -1,3 +1,4 @@
+import { TextFileWriteResultProjection } from '../src/index.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
@@ -58,4 +59,31 @@ test('text contracts accept legacy writes and distinguish missing evidence from 
     assert.equal('beforeSha256' in missingBeforeDigest, false);
     assert.equal(limits.maxFiles, 32);
     assert.equal(Object.keys(conflicting).length + Object.keys(missing).length, 2);
+});
+
+test('shared failure projection rejects fabricated verified, private data, foreign paths, getters and over-budget DTOs', () => {
+    const limits = { maxFiles: 32, maxFileBytes: 1048576, maxOutputBytes: 4194304, paths: ['assets/a.txt'] };
+    const value = { schemaVersion: 1, ok: false, projectState: 'may_have_changed',
+        files: [{ path: 'assets/a.txt', status: 'written_unverified', bytes: null, beforeSha256: 'absent', sha256: null, uuid: null }] };
+    assert.ok(TextFileWriteResultProjection.project(value, limits));
+    for (const changed of [
+        { ...value, ok: true, projectState: 'verified' },
+        { ...value, content: 'private source' },
+        { ...value, files: [{ ...value.files[0], path: '/private/project/a.txt' }] },
+        { ...value, files: [{ ...value.files[0], path: 'assets/other.txt' }] },
+        { ...value, files: [{ ...value.files[0], status: 'verified' }] },
+        { ...value, files: [{ ...value.files[0], bytes: 1048577 }] },
+        { ...value, files: [{ ...value.files[0], code: 'Error: /private/path' }] },
+        { ...value, files: [{ ...value.files[0], status: 'not_started', sha256: 'a'.repeat(64) }] },
+    ]) {
+        assert.equal(TextFileWriteResultProjection.project(changed, limits), null);
+    }
+    let accesses = 0;
+    const getter = Object.defineProperty({ ...value }, 'files', { get: () => { accesses += 1; return value.files; }, enumerable: true });
+    assert.equal(TextFileWriteResultProjection.project(getter, limits), null);
+    assert.equal(accesses, 0);
+    assert.equal(TextFileWriteResultProjection.project(value, { ...limits, maxOutputBytes: 10 }), null);
+    const complete = { ...value, ok: true, projectState: 'verified', files: [{ ...value.files[0], status: 'verified',
+        bytes: 0, sha256: 'a'.repeat(64), uuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' }] };
+    assert.ok(TextFileWriteResultProjection.project(complete, limits)?.ok);
 });

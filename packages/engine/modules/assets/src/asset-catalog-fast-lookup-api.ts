@@ -1,3 +1,5 @@
+import { join } from 'path';
+
 import type { AssetCatalogBucket, IAssetCatalogEntry } from './catalog-types';
 import { AssetCatalogPathResolver } from './asset-catalog-path-resolver';
 import { AssetCatalogQueryGateway } from './asset-catalog-query-gateway';
@@ -48,6 +50,32 @@ export interface IAssetCatalogMcpSummaryResult {
     readonly counts: IAssetCatalogSummary['counts'];
     /** @description 冲突数。 */
     readonly conflictCount: number;
+}
+
+/**
+ * @description 尚未初始化目录的明确只读响应，不伪造摘要或写缓存。
+ */
+export interface IAssetCatalogMcpSummaryUnavailableResult {
+    /**
+     * @description 当前无有效摘要。
+     */
+    readonly available: false;
+    /**
+     * @description 明确拒绝本次读取。
+     */
+    readonly availability: 'refused';
+    /**
+     * @description 稳定的初始化状态码。
+     */
+    readonly code: 'asset_catalog_not_initialized';
+    /**
+     * @description 不包含本机路径的状态说明。
+     */
+    readonly message: 'asset_catalog_not_initialized';
+    /**
+     * @description 需要另行审批的初始化操作。
+     */
+    readonly recommendedAction: 'asset.catalog.refresh';
 }
 
 /**
@@ -120,9 +148,20 @@ export class AssetCatalogFastLookupApi {
      * @param cwd 工作目录。
      * @returns MCP summary 结果。
      */
-    public summary(projectRoot: string, cwd: string = process.cwd()): IAssetCatalogMcpSummaryResult {
-        const outputDirectory = this._resolveOutput(projectRoot, cwd);
-        const summary = this._store.readSummary(outputDirectory);
+    public summary(projectRoot: string, cwd: string = process.cwd()): IAssetCatalogMcpSummaryResult | IAssetCatalogMcpSummaryUnavailableResult {
+        const outputDirectory = join(this._paths.resolveProjectRoot(projectRoot, cwd), AssetCatalogPathResolver.defaultOutputRelativePath);
+        let summary: IAssetCatalogSummary;
+        try {
+            summary = this._store.readSummary(outputDirectory);
+        } catch (error: unknown) {
+            if (error instanceof Error && Reflect.get(error, 'code') === 'ENOENT'
+                && Reflect.get(error, 'syscall') === 'open'
+                && Reflect.get(error, 'path') === join(outputDirectory, AssetCatalogStore.summaryFileName)) {
+                return { available: false, availability: 'refused', code: 'asset_catalog_not_initialized',
+                    message: 'asset_catalog_not_initialized', recommendedAction: 'asset.catalog.refresh' };
+            }
+            throw error;
+        }
         this._summaryGeneratedAtByOutput.set(outputDirectory, summary.generatedAt);
         return {
             generatedAt: summary.generatedAt,

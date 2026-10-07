@@ -224,7 +224,27 @@ export class LumenJsonAssetDocument {
      * @param projectRoot 项目根
      * @param writeMetaIfMissing 缺少 meta 时是否创建
      */
-    public save(
+    /**
+     * @description 序列化内存源文档，交给原生首次创建接口。
+     * @returns 源 JSON 文本；不包含伪造的 AssetDB 登记。
+     */
+    public serializeNativeSource(): string {
+        return `${JSON.stringify(this._record, null, 2)}\n`;
+    }
+
+    /**
+     * @description 写回源文档和 meta。
+     * @param projectRoot 工程根。
+     * @param writeMetaIfMissing 是否写入缺失 meta。
+     * @param cocosVersion Creator 版本。
+     */
+    /**
+   * @description 写回源文档和 meta。
+   * @param projectRoot 工程根。
+   * @param writeMetaIfMissing 是否写入缺失 meta。
+   * @param cocosVersion Creator 版本。
+   */
+  public save(
         projectRoot: string,
         writeMetaIfMissing: boolean = true,
         cocosVersion: LumenCocosVersion = LumenCocosVersion.DEFAULT,

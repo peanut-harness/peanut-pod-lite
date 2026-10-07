@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
+import { AssetCatalogStore } from '../src/asset-catalog-store';
 import { AssetCatalogBuilder } from '../src/asset-catalog-builder';
 import { AssetCatalogFastLookupApi } from '../src/asset-catalog-fast-lookup-api';
 import { AssetCatalogQueryService } from '../src/asset-catalog-query-service';
@@ -300,6 +301,7 @@ test('refresh service writes catalog files under .peanut-ai', (): void => {
 
         const api = new AssetCatalogFastLookupApi();
         const summary = api.summary(root, root);
+        assert.ok('counts' in summary);
         assert.equal(summary.counts.config, 1);
         const lookup = api.lookup(root, { type: 'config', name: 'note', limit: 5 }, root);
         assert.equal(lookup.count, 1);
@@ -345,6 +347,65 @@ test('rebuilds catalog from AssetDB query-assets snapshots', async (): Promise<v
         assert.equal(result.document.counts.spriteFrame, 1);
         assert.equal(result.document.uuidMap[scriptUuid]?.compressedUuid, '79507hR0StOJa3BMfKeopzG');
         assert.equal(result.document.uuidMap[`${imageUuid}@f9941`]?.type, 'spriteFrame');
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+
+test('cold summary is explicit and readonly; approved refresh restores actual counts', () => {
+    const root = mkdtempSync(join(tmpdir(), 'peanut-catalog-cold-'));
+    try {
+        mkdirSync(join(root, 'assets'));
+        const api = new AssetCatalogFastLookupApi();
+        const unavailable = api.summary(root, root);
+        assert.deepEqual(unavailable, { available: false, availability: 'refused', code: 'asset_catalog_not_initialized',
+            message: 'asset_catalog_not_initialized', recommendedAction: 'asset.catalog.refresh' });
+        assert.equal(existsSync(join(root, '.peanut-ai')), false);
+        assert.equal('counts' in unavailable, false);
+        assert.equal('generatedAt' in unavailable, false);
+        writeFileSync(join(root, 'assets/note.json'), '{"test":true}');
+        writeFileSync(join(root, 'assets/note.json.meta'), JSON.stringify({ importer: 'json', uuid: 'fcd35f06-7b24-4a02-902c-9f5c8a39b063' }));
+        const refreshed = api.refresh(root, root);
+        const before = readFileSync(refreshed.summaryPath);
+        const summary = api.summary(root, root);
+        assert.ok('counts' in summary);
+        assert.equal(summary.counts.config, 1);
+        assert.equal(summary.generatedAt, refreshed.generatedAt);
+        assert.deepEqual(readFileSync(refreshed.summaryPath), before);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('corrupt summary is not classified as an uninitialized catalog', () => {
+    const root = mkdtempSync(join(tmpdir(), 'peanut-catalog-corrupt-'));
+    try {
+        mkdirSync(join(root, 'assets'));
+        mkdirSync(join(root, '.peanut-ai/asset-catalog'), { recursive: true });
+        writeFileSync(join(root, '.peanut-ai/asset-catalog/summary.json'), '{');
+        assert.throws(() => new AssetCatalogFastLookupApi().summary(root, root), /catalog_json_invalid/u);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('permission, IO and other ENOENT retain their original errors', (context) => {
+    const root = mkdtempSync(join(tmpdir(), 'peanut-catalog-errors-'));
+    try {
+        mkdirSync(join(root, 'assets'));
+        const store = new AssetCatalogStore();
+        const api = new AssetCatalogFastLookupApi(undefined, store);
+        for (const fields of [
+            { code: 'EACCES', syscall: 'open', path: join(root, '.peanut-ai/asset-catalog/summary.json') },
+            { code: 'EIO', syscall: 'open', path: join(root, '.peanut-ai/asset-catalog/summary.json') },
+            { code: 'ENOENT', syscall: 'open', path: join(root, '.peanut-ai/asset-catalog/other.json') },
+        ]) {
+            const failure = Object.assign(new Error('original-store-failure'), fields);
+            const mocked = context.mock.method(store, 'readSummary', () => { throw failure; });
+            assert.throws(() => api.summary(root, root), (error: unknown) => error === failure);
+            mocked.mock.restore();
+        }
     } finally {
         rmSync(root, { recursive: true, force: true });
     }

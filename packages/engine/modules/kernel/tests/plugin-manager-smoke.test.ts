@@ -3,9 +3,9 @@ import test from 'node:test';
 
 import { RuntimeFacade } from '@peanut/pod-engine/runtime';
 
-import { PluginManagerApp } from '../src/app/plugin-manager-app';
-import { PluginManagerSmokeHarness } from '../src/integration/plugin-manager-smoke-harness';
-import type { IPluginActivateContext, IPluginModule, IPluginRegisterContext, IPluginTaskApi } from '../src/shared/plugin-manager-contracts';
+import { PluginManagerApp } from '../src/app/plugin-manager-app.js';
+import { PluginManagerSmokeHarness } from '../src/integration/plugin-manager-smoke-harness.js';
+import type { IPluginActivateContext, IPluginModule, IPluginRegisterContext, IPluginTaskApi } from '../src/shared/plugin-manager-contracts.js';
 
 class ManagedTaskPluginModule implements IPluginModule {
     public readonly manifest = {

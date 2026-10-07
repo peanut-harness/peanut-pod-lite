@@ -1,7 +1,14 @@
+import { EditorMcpAssetDbDeletionCoordinator } from './editor-mcp-asset-db-deletion-coordinator.js';
+import { EditorMcpNativeFileMove } from './editor-mcp-native-file-move.js';
+import { EditorMcpAssetReimport } from './editor-mcp-asset-reimport.js';
+import { EditorMcpTextWriteOutcome } from './editor-mcp-text-write-outcome.js';
+import { EditorMcpTextWriteRecovery } from './editor-mcp-text-write-recovery.js';
+import { EditorMcpTextWriteSession } from './editor-mcp-text-write-session.js';
+import type { IEditorMcpTextWriteExecution } from './editor-mcp-text-write-gateway.js';
 /**
  * @description 静默资产生命周期与 import / waitReady 编排（从 action-router peel）。
  */
-import { existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import type {
@@ -20,7 +27,8 @@ import type {
     IAssetWaitReadyMcpInput,
     IAssetWriteTextMcpInput,
 } from '@peanut/pod-protocol';
-import { CompatibleUuid } from '@peanut/pod-engine/assets';
+import { CompatibleUuid, TextFileIoGuard } from '@peanut/pod-engine/assets';
+import { CoreTextFileIoContract } from '@peanut/pod-engine/policy';
 import type { IGrantedRuntimeClientSet } from '@peanut/pod-sdk';
 import {
     FileAssetDependencyIndex,
@@ -35,6 +43,8 @@ import {
 import {
     AssetImportBatchExecutor,
     AssetImportPlanner,
+    type IAssetImportPlan,
+    type IAssetImportPlannerOptions,
     EnsureSpriteFramesBatchService,
     LumenAssetDbReadyWaiter,
     LumenResourceWriteLock,
@@ -333,6 +343,10 @@ export class EditorMcpSilentAssetGateway {
             // create → AssetDB ready → then rename/move. Do NOT refresh-asset here:
             // pre-move force refresh + disk rename still races Assets panel on 3.8.x.
             await this._awaitNewAssetReadyWithoutForceRefresh([fromRelativePath]);
+            if (/\.(?:ttf|otf|woff2?)$/iu.test(fromRelativePath) && this._host.runtime.message != null) {
+                return EditorMcpNativeFileMove.execute(projectRoot, fromRelativePath, toRelativePath,
+                    this._host.runtime.message, this._host.assetDbTransaction);
+            }
             const result = new SilentAssetMoveRename().moveOrRename({
                 projectRoot,
                 fromRelativePath,
@@ -421,8 +435,12 @@ export class EditorMcpSilentAssetGateway {
                 const refresh = await this._awaitAssetDbRefreshBarrier(this._lifecycleRefreshPathsAfterDelete(request.paths),);
                 return { ...result, refresh, source: 'editor.assetdb' };
             }
+            const message = this._host.runtime.message;
+            if (message == null) throw new Error('editor_mcp_asset_delete_message_unavailable');
+            const deletion = new EditorMcpAssetDbDeletionCoordinator(projectRoot, message);
             let result;
             try {
+                await deletion.prepare(request.paths);
                 result = new SilentAssetDelete().delete({
                     projectRoot,
                     relativePaths: request.paths,
@@ -439,9 +457,7 @@ export class EditorMcpSilentAssetGateway {
                 throw error instanceof Error ? error : new Error(message);
             }
             FileAssetDependencyIndex.invalidate(projectRoot);
-            const refresh = await this._awaitNewAssetReadyWithoutForceRefresh(
-                this._lifecycleRefreshPathsAfterDelete(request.paths),
-            );
+            const refresh = await deletion.commit(result.deleted);
             return { ...result, refresh };
         });
     }
@@ -463,109 +479,183 @@ export class EditorMcpSilentAssetGateway {
     }
 
     /**
-     * @description 静默重新导入：薄层封装，等价 `lumen.refresh` 的静默 `refresh-asset`（磁盘为真源刷入 library，无弹窗）。
+     * @description 调用原生 reimport-asset 重新导入已登记资源，并校验源字节和身份；外部新增文件使用 lumen.refresh 扫描入库。
      * @param input 未校验输入。
-     * @returns lumen.refresh 的执行结果。
+     * @returns 原生重导入与登记校验回执。
      */
     public async _executeAssetReimport(input: ContractPayload | undefined): Promise<unknown> {
         const request = this._readAssetReimportInput(input);
-        const imageOnly = request.paths.length > 0 && request.paths.every((pathValue) => this._isImageSidecarAsset(pathValue));
-        if (imageOnly) {
-            // 3.8.x：对刚静默 rename/move 的图片做 refresh-asset 会稳定打出
-            // texture/spriteFrame Window「原资产不存在」。监视器已对齐磁盘时跳过 refresh。
-            const waitMs = 4500;
-            await new Promise<void>((resolve) => {
-                setTimeout(resolve, waitMs);
-            });
-            return {
-                phase: 'editor_refreshed',
-                triggered: false,
-                waitedMs: waitMs,
-                paths: request.paths,
-                via: 'watcher_settle_skip_refresh_for_images',
-            };
-        }
-        return this._awaitAssetDbRefreshBarrier(request.paths);
+        return EditorMcpAssetReimport.execute(
+            await this._host.requireProjectPath(), request.paths,
+            this._host.runtime.message ?? null, this._host.assetDbTransaction,
+        );
     }
 
     /**
      * @description 静默写入 UTF-8 文本资产：补齐目录 meta → 写盘 → 一次合并 lumen.refresh（禁止 save-asset）。
      * @param input 未校验输入。
+     * @param beforeWrite 受管执行器提供的原始计划重验；在原有资源锁内第一项变化前调用。
      * @returns 写入与刷新回执。
      */
-    public async _executeAssetWriteText(input: ContractPayload | undefined): Promise<unknown> {
+    public async _executeAssetWriteText(
+        input: ContractPayload | undefined,
+        beforeWrite?: () => void,
+        execution?: IEditorMcpTextWriteExecution,
+    ): Promise<unknown> {
         const request = this._readAssetWriteTextInput(input);
         const projectRoot = await this._host.requireProjectPath();
         const message = this._host.runtime.message;
         const pathGuard = new SilentAssetCreateFolder();
         const lockKeys = request.files.map((file) => normalizeResourceLockKey(file.path));
+        const guard = new TextFileIoGuard(projectRoot, CoreTextFileIoContract.limits);
+        const prepared = execution?.files ?? guard.prepareWrite(input);
+        const outcome = execution?.outcome ?? new EditorMcpTextWriteOutcome(projectRoot, prepared, this._host.assetDbTransaction);
+        const session = execution?.session ?? new EditorMcpTextWriteSession([{ taskId: '', outcome }]);
         return LumenResourceWriteLock.shared().runExclusiveMany(lockKeys, async () => {
-            const createdDirectories: string[] = [];
-            const written: string[] = [];
-            for (const file of request.files) {
-                const parentRelative = dirname(file.path).replace(/\\/g, '/');
-                if (parentRelative.length > 0 && parentRelative !== '.' && parentRelative.startsWith('assets')) {
-                    const ensured = pathGuard.ensureDirectoryMetas({
-                        projectRoot,
-                        relativePath: parentRelative,
-                    });
+            try {
+                if (beforeWrite != null) {
+                    beforeWrite();
+                } else {
+                    guard.revalidateWrite(input, prepared);
+                }
+                if (message == null) {
+                    throw new Error('text_file_io_assetdb_unavailable');
+                }
+                const existingUuids: (string | undefined)[] = [];
+                const recoveries: (EditorMcpTextWriteRecovery | null)[] = [];
+                for (let index = 0; index < prepared.length; index += 1) {
+                    const file = prepared[index];
+                    if (file == null) {
+                        throw new Error('text_file_io_stage_index_invalid');
+                    }
+                    let raw: unknown;
+                    try {
+                        raw = await message.request('asset-db', 'query-asset-info', `db://${file.path}`);
+                    } catch (error: unknown) {
+                        const target = guard.prepareRead({ path: file.path })[0];
+                        if (target != null) {
+                            outcome.attempt(index, guard.readSnapshot(target));
+                        }
+                        throw error;
+                    }
+                    if (raw === null) {
+                        const recovery = session.prepareRecovery(projectRoot, file);
+                        recoveries.push(recovery);
+                        existingUuids.push(undefined);
+                    } else {
+                        const registration = await this._host.assetDbTransaction.queryTextRegistration(file.path);
+                        if (registration == null) {
+                            throw new Error('text_file_io_registration_unknown');
+                        }
+                        const own = session.files.get(file.absolutePath);
+                        if (own != null && (own.uuid !== registration.uuid || own.metaIdentity !== registration.metaIdentity || own.metaSha256 !== registration.metaSha256)) {
+                            throw new Error('text_file_io_meta_identity_conflict');
+                        }
+                        outcome.expectRegistration(index, registration);
+                        recoveries.push(null);
+                        existingUuids.push(registration.uuid);
+                    }
+                }
+                if (beforeWrite != null) {
+                    beforeWrite();
+                } else {
+                    guard.revalidateWrite(input, prepared);
+                }
+                const createdDirectories: string[] = [];
+                const written: string[] = [];
+                for (let index = 0; index < prepared.length; index += 1) {
+                    const file = prepared[index];
+                    if (file == null) {
+                        throw new Error('text_file_io_stage_index_invalid');
+                    }
+                    const single = { path: file.requestedPath, content: file.content,
+                        ...(file.expectedSha256 == null ? {} : { expectedSha256: file.expectedSha256 }) };
+                    guard.revalidateWrite(single, [file], session);
+                    const target = guard.prepareRead({ path: file.path })[0];
+                    if (target == null) {
+                        throw new Error('text_file_io_target_invalid');
+                    }
+                    outcome.attempt(index, guard.readSnapshot(target));
+                    const parentRelative = dirname(file.path).replace(/\\/gu, '/');
+                    const needsDirectoryMutation = Object.keys(file.parentDirectories).some((path) =>
+                        path !== join(realpathSync(projectRoot), 'assets') && (!existsSync(path) || !existsSync(path + '.meta')));
+                    if (needsDirectoryMutation) {
+                        outcome.markPossibleMutation(index);
+                    }
+                    const ensured = pathGuard.ensureDirectoryMetas({ projectRoot, relativePath: parentRelative });
+                    session.rememberDirectories(file, ensured.createdDirectories.map((path) => join(realpathSync(projectRoot), path)));
                     for (const dir of ensured.createdDirectories) {
                         if (!createdDirectories.includes(dir)) {
                             createdDirectories.push(dir);
                         }
                     }
-                }
-                const absolutePath = join(projectRoot, file.path);
-                const dbUrl = `db://${file.path}`;
-                const existing =
-                    message == null
-                        ? null
-                        : await message.request<Record<string, unknown> | null>('asset-db', 'query-asset-info', dbUrl);
-                if (message != null && existing == null) {
-                    const recoveryDirectory = join(projectRoot, 'temp', '.peanut-write-text-recovery', CompatibleUuid.create());
-                    const orphanPaths = [absolutePath, `${absolutePath}.meta`].filter((candidate) => existsSync(candidate));
-                    const backups = orphanPaths.map((orphanPath) => ({
-                        originalPath: orphanPath,
-                        backupPath: join(recoveryDirectory, orphanPath.endsWith('.meta') ? 'asset.meta' : 'asset'),
-                    }));
-                    try {
-                        if (backups.length > 0) {
-                            mkdirSync(recoveryDirectory, { recursive: true });
-                            for (const backup of backups) {
-                                renameSync(backup.originalPath, backup.backupPath);
-                            }
+                    // 目录补齐后仍按原始显式条件在实际提交点核验。
+                    guard.revalidateWrite(single, [file], session);
+                    const absolutePath = join(projectRoot, file.path);
+                    const recovery = recoveries[index];
+                    if (recovery != null) {
+                        const current = await message.request('asset-db', 'query-asset-info', `db://${file.path}`);
+                        if (current !== null) {
+                            throw new Error('text_file_io_registration_changed');
                         }
-                        await message.request('asset-db', 'create-asset', dbUrl, file.content);
-                        rmSync(recoveryDirectory, { recursive: true, force: true });
-                    } catch (error) {
-                        for (const backup of backups) {
-                            if (existsSync(backup.backupPath) && !existsSync(backup.originalPath)) {
-                                renameSync(backup.backupPath, backup.originalPath);
+                        // 查询等待可能收到外部修改，只有已核验的新目录导入可接受。
+                        await session.rememberImportedDirectories(file, this._host.assetDbTransaction, realpathSync(projectRoot));
+                        guard.revalidateWrite(single, [file], session);
+                        outcome.markPossibleMutation(index);
+                        outcome.retainRecovery(() => recovery.release());
+                        try {
+                            recovery.move();
+                            await message.request('asset-db', 'create-asset', `db://${file.path}`, file.content);
+                        } catch (error: unknown) {
+                            try {
+                                if (await message.request('asset-db', 'query-asset-info', `db://${file.path}`) === null) {
+                                    recovery.restore();
+                                }
+                            } catch {
+                                // 未知 AssetDB 状态保留全部恢复材料及原始失败。
                             }
+                            throw error;
                         }
-                        rmSync(recoveryDirectory, { recursive: true, force: true });
-                        throw error;
+                    } else {
+                        const registration = await this._host.assetDbTransaction.queryTextRegistration(file.path, existingUuids[index]);
+                        if (registration == null) {
+                            throw new Error('text_file_io_registration_unknown');
+                        }
+                        outcome.expectRegistration(index, registration);
+                        guard.revalidateWrite(single, [file], session);
+                        outcome.markPossibleMutation(index);
+                        writeFileSync(absolutePath, file.content, 'utf8');
                     }
-                } else {
-                    writeFileSync(absolutePath, file.content, 'utf8');
+                    await session.rememberImportedDirectories(file, this._host.assetDbTransaction, realpathSync(projectRoot));
+                    outcome.rememberWrite(index, session);
+                    written.push(file.path);
+                    // 只在实际读回和身份核验后登记可允许后续请求使用的自变更。
+                    const snapshot = await outcome.readBack(index, existingUuids[index]);
+                    session.rememberFile(file, snapshot, outcome.identityProof(index));
                 }
-                written.push(file.path);
+                const dirReady = createdDirectories.length > 0 ? await this._awaitNewAssetReadyWithoutForceRefresh(createdDirectories) : null;
+                const transaction = execution?.session == null ? await this._host.assetDbTransaction.commit(written, {
+                    textVerification: true,
+                    beforePossibleMutation: () => {
+                        for (let index = 0; index < prepared.length; index += 1) {
+                            outcome.markPossibleMutation(index);
+                        }
+                    },
+                }) : null;
+                for (let index = 0; index < prepared.length; index += 1) {
+                    const file = prepared[index];
+                    if (file != null) {
+                        session.rememberFile(file, await outcome.readBack(index, existingUuids[index]), outcome.identityProof(index));
+                    }
+                }
+                return { written, createdDirectories,
+                    byteCount: request.files.reduce((sum, file) => sum + Buffer.byteLength(file.content, 'utf8'), 0),
+                    dirReady, refresh: transaction?.refresh ?? null,
+                    metaReady: (transaction?.registrations ?? []).map((registration) => registration.dbPath.slice('db://'.length)),
+                    transaction, ...outcome.result(false) };
+            } catch (error: unknown) {
+                throw session.failure(error);
             }
-            // 新建目录只 waitReady（禁止 force refresh-asset）；文件走 barrier 登记。
-            const dirReady =
-                createdDirectories.length > 0
-                    ? await this._awaitNewAssetReadyWithoutForceRefresh(createdDirectories)
-                    : null;
-            const transaction = await this._host.assetDbTransaction.commit(written);
-            return {
-                written,
-                createdDirectories,
-                byteCount: request.files.reduce((sum, file) => sum + Buffer.byteLength(file.content, 'utf8'), 0),
-                dirReady,
-                refresh: transaction.refresh,
-                metaReady: transaction.registrations.map((registration) => registration.dbPath.slice('db://'.length)),
-                transaction,
-            };
         });
     }
 
@@ -574,14 +664,14 @@ export class EditorMcpSilentAssetGateway {
      * @param input 未校验输入。
      * @returns 已规范化的文件列表。
      */
-    public _readAssetWriteTextInput(input: ContractPayload | undefined): { files: readonly { path: string; content: string }[] } {
+    public _readAssetWriteTextInput(input: ContractPayload | undefined): { files: readonly { path: string; content: string; expectedSha256?: string }[] } {
         if (input == null || !this._host.isRecord(input)) {
             throw new Error('editor_mcp_asset_writeText_input_required');
         }
         const pathGuard = new SilentAssetPathGuard();
         /** @description 仅允许常见文本扩展，避免误写二进制。 */
         const allowedExt = /\.(?:ts|mts|cts|js|mjs|cjs|json|md|txt|html|htm|css|scss|less|yaml|yml|xml|csv)$/iu;
-        const normalizeOne = (pathValue: unknown, contentValue: unknown): { path: string; content: string } => {
+        const normalizeOne = (pathValue: unknown, contentValue: unknown, expected: unknown, hasExpected: boolean): { path: string; content: string; expectedSha256?: string } => {
             if (typeof pathValue !== 'string' || pathValue.trim().length === 0) {
                 throw new Error('editor_mcp_asset_writeText_path_required');
             }
@@ -592,9 +682,16 @@ export class EditorMcpSilentAssetGateway {
             if (!allowedExt.test(normalized)) {
                 throw new Error(`editor_mcp_asset_writeText_extension_refused:${normalized}`);
             }
-            return { path: normalized, content: contentValue };
+            if (hasExpected && (typeof expected !== 'string' || !/^(?:[0-9a-fA-F]{64}|absent)(?![\s\S])/u.test(expected))) {
+                throw new Error('text_file_io_write_entry_invalid');
+            }
+            return { path: normalized, content: contentValue,
+                ...(hasExpected && typeof expected === 'string' ? { expectedSha256: expected.toLowerCase() } : {}) };
         };
 
+        if (Object.prototype.hasOwnProperty.call(input, 'files') && !Array.isArray(input.files)) {
+            throw new Error('editor_mcp_asset_writeText_files_invalid');
+        }
         if (Array.isArray(input.files)) {
             if (input.files.length === 0) {
                 throw new Error('editor_mcp_asset_writeText_files_empty');
@@ -603,11 +700,11 @@ export class EditorMcpSilentAssetGateway {
                 if (entry == null || !this._host.isRecord(entry)) {
                     throw new Error('editor_mcp_asset_writeText_files_invalid');
                 }
-                return normalizeOne(entry.path, entry.content);
+                return normalizeOne(entry.path, entry.content, entry.expectedSha256, Object.prototype.hasOwnProperty.call(entry, 'expectedSha256'));
             });
             return { files };
         }
-        return { files: [normalizeOne(input.path, input.content)] };
+        return { files: [normalizeOne(input.path, input.content, input.expectedSha256, Object.prototype.hasOwnProperty.call(input, 'expectedSha256'))] };
     }
 
     /**
@@ -719,11 +816,42 @@ export class EditorMcpSilentAssetGateway {
      */
     public async _executeAssetImportPlan(input: ContractPayload | undefined): Promise<unknown> {
         const request = this._readAssetImportPlanInput(input);
-        const plan = new AssetImportPlanner().plan(request.sources, {
+        const plan = this._planImport(request.sources, {
             dependencyMap: request.dependencyMap,
             expandClosure: request.expandClosure !== false,
         });
         return this._attachImportPlanTicket(plan);
+    }
+
+    /**
+     * @description 仅对含 FNT 的原输入执行无写入计划校验，使已知不支持声明在提交受管任务前拒绝。
+     * @param input 原公开导入输入。
+     * @returns 无。
+     */
+    public assertBoundedFontImportInput(input: ContractPayload | undefined): void {
+        const request = this._readAssetImportPlanInput(input);
+        if (!request.sources.some(source => /\.fnt$/iu.test(source))) { return; }
+        this._planImport(request.sources, {
+            dependencyMap: request.dependencyMap,
+            expandClosure: request.expandClosure !== false,
+        });
+    }
+
+    /**
+     * @description 在账本或原生写入前标记有限 FNT 不支持输入为诚实控制流拒绝；原生执行后的失败不在此转换。
+     * @param sources 已解析源路径。
+     * @param options 原计划选项。
+     * @returns 原完整计划。
+     */
+    private _planImport(sources: readonly string[], options: IAssetImportPlannerOptions): IAssetImportPlan {
+        try {
+            return new AssetImportPlanner().plan(sources, options);
+        } catch (error: unknown) {
+            if (error instanceof Error && error.message.startsWith('asset_import_fnt_')) {
+                McpControlFlowRefusal.reject(error.message);
+            }
+            throw error;
+        }
     }
 
     /**
@@ -774,8 +902,7 @@ export class EditorMcpSilentAssetGateway {
             }
             const projectRoot = await this._host.requireProjectPath();
             const ledger = new ManagedAssetLedger(projectRoot);
-            const planner = new AssetImportPlanner();
-            const planned = planner.plan(request.sources, {
+            const planned = this._planImport(request.sources, {
                 dependencyMap: request.dependencyMap,
                 expandClosure: request.expandClosure !== false,
             });

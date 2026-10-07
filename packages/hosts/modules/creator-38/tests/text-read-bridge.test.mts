@@ -135,6 +135,15 @@ test('actual Creator main, Core dispatcher and factory share Hub revision, prior
         writeFileSync(join(project, 'peanut-plugins/installed.json'), JSON.stringify({ schemaVersion: 2,
             plugins: [{ pluginId, activeVersion: '0.2.0', versions: [{ version: '0.2.0', installPath }] }] }));
         await load();
+        const coldSummary: unknown = await invoke('peanut.editor-mcp.asset-catalog-summary', {}, connection);
+        assert.deepEqual(JSON.parse(JSON.stringify(coldSummary)), { available: false, availability: 'refused',
+            code: 'asset_catalog_not_initialized', message: 'asset_catalog_not_initialized', recommendedAction: 'asset.catalog.refresh' });
+        const smoke = JSON.parse(readFileSync(join(project, 'peanut-plugins/runtime/smoke-results.json'), 'utf8'));
+        const coldSmoke = smoke.results.find((item: { name: string }) => item.name === 'peanut.editor-mcp.asset-catalog-summary');
+        assert.equal(coldSmoke.ok, false);
+        assert.equal(coldSmoke.refused, true);
+        assert.equal(coldSmoke.skipped, true);
+        assert.equal(coldSmoke.error, 'asset_catalog_not_initialized');
         const first: unknown = await invoke('peanut.editor-mcp.asset-read-text', { paths: ['assets/a.ts', 'assets/missing.ts'] }, connection);
         assert.ok(new CoreMcpInputValidator().validate(CoreTextFileIoContract.readOutputSchema(), first));
         assert.ok(isRecord(first));

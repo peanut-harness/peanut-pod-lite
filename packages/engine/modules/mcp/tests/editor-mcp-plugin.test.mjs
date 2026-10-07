@@ -167,6 +167,7 @@ async function createActivePluginModule(options = {}) {
         options.lumenGateway ?? createLumenGatewayStub(),
     );
     const messageRequests = [];
+    const nativeReimported = new Set();
     let selectedIds = ['node-a'];
     await pluginModule.activate({
         plugin: { id: 'peanut.editor-mcp' },
@@ -243,6 +244,15 @@ async function createActivePluginModule(options = {}) {
                     if (target === 'asset-db' && message === 'query-ready') {
                         return true;
                     }
+                    if (target === 'asset-db' && message === 'reimport-asset') {
+                        const dbPath = String(args[0]);
+                        const metaPath = join(options.projectPath, `${dbPath.replace(/^db:\/\//u, '')}.meta`);
+                        const meta = JSON.parse(readFileSync(metaPath, 'utf8'));
+                        meta.imported = true;
+                        writeFileSync(metaPath, JSON.stringify(meta));
+                        nativeReimported.add(dbPath);
+                        return undefined;
+                    }
                     if (target === 'asset-db' && message === 'query-asset-info') {
                         const dbPath = typeof args[0] === 'string' ? args[0] : '';
                         if (dbPath === 'db://assets') {
@@ -255,7 +265,7 @@ async function createActivePluginModule(options = {}) {
                             return null;
                         }
                         const meta = JSON.parse(readFileSync(metaPath, 'utf8'));
-                        return { uuid: meta.uuid, importer: meta.importer ?? '' };
+                        return { uuid: meta.uuid, importer: meta.importer ?? '', ...(nativeReimported.has(dbPath) ? { imported: true } : {}) };
                     }
                     if (target === 'asset-db' && message === 'create-asset') {
                         const dbPath = typeof args[0] === 'string' ? args[0] : '';
@@ -268,7 +278,7 @@ async function createActivePluginModule(options = {}) {
                         const uuid = dbPath.includes('__peanut_assetdb_register_')
                             ? 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
                             : 'cccccccc-dddd-4eee-8fff-000000000000';
-                        const importer = dbPath.endsWith('.scene') ? 'scene' : dbPath.endsWith('.prefab') ? 'prefab' : 'json';
+                        const importer = ({ '.scene': 'scene', '.prefab': 'prefab', '.mtl': 'material', '.anim': 'animation-clip', '.pmtl': 'physics-material', '.rt': 'render-texture' })[dbPath.slice(dbPath.lastIndexOf('.'))] ?? 'json';
                         writeFileSync(`${absolutePath}.meta`, JSON.stringify({ uuid, importer }));
                         const parentPath = dirname(absolutePath);
                         if (parentPath !== join(projectPath, 'assets')) {
@@ -1215,17 +1225,19 @@ test('Editor MCP lumen gateway scaffolds and builds structure on a real project'
         });
         assert.equal(audioInspect.data.kind, 'audio');
         assert.equal(audioInspect.data.asset.downloadMode, 0);
-        const audioSet = await pluginModule.dispatchMcpAction('cocos.call', {
+        const audioMetaBefore = readFileSync(join(root, 'assets/Click.wav.meta'));
+        await assert.rejects(pluginModule.dispatchMcpAction('cocos.call', {
             operation: 'lumen.assetSet',
             input: { assetRelativePath: 'assets/Click.wav', props: { downloadMode: 'DOM_AUDIO' } },
-        });
-        assert.equal(audioSet.data.kind, 'audio');
+        }), /lumen_audio_property_not_editable:audio.downloadMode/);
+        assert.deepEqual(readFileSync(join(root, 'assets/Click.wav.meta')), audioMetaBefore);
         const audioAgain = await pluginModule.dispatchMcpAction('cocos.call', {
             operation: 'lumen.inspect',
             input: { assetRelativePath: 'assets/Click.wav' },
         });
-        assert.equal(audioAgain.data.asset.downloadMode, 1);
-        assert.equal(audioAgain.data.asset.downloadModeName, 'DOM_AUDIO');
+        assert.equal(audioAgain.data.asset.downloadMode, 0);
+        assert.equal(audioAgain.data.asset.downloadModeWritable, false);
+        assert.equal(audioAgain.data.asset.downloadModeName, 'WEB_AUDIO');
         assert.equal(readFileSync(join(root, 'assets/Click.wav'), 'utf8'), 'wav-source');
 
         const videoInspect = await pluginModule.dispatchMcpAction('cocos.call', {
@@ -1742,7 +1754,7 @@ test('Editor MCP plugin should execute silent asset lifecycle on disk', async ()
         );
 
         const refreshCalls = [];
-        const { pluginModule } = await createActivePluginModule({
+        const { pluginModule, messageRequests } = await createActivePluginModule({
             projectPath: root,
             lumenGateway: {
                 validate() {},
@@ -1784,7 +1796,9 @@ test('Editor MCP plugin should execute silent asset lifecycle on disk', async ()
             input: { paths: ['assets/out/Renamed.png'] },
         });
         assert.equal(reimport.data.phase, 'editor_refreshed');
-        assert.equal(reimport.data.via, 'watcher_settle_skip_refresh_for_images');
+        assert.equal(reimport.data.via, 'assetdb_native_reimport');
+        assert.deepEqual(messageRequests.filter((entry) => entry.target === 'asset-db' && entry.message === 'reimport-asset')
+            .map((entry) => entry.args), [['db://assets/out/Renamed.png']]);
 
         await pluginModule.dispatchMcpAction('cocos.call', {
             operation: 'asset.delete',

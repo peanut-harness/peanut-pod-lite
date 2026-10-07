@@ -3,6 +3,8 @@ import { tmpdir } from 'os';
 import { basename, join } from 'path';
 
 import { LumenAssetDbReadyWaiter } from '../io/asset-db-ready-waiter';
+import { TiledMapImportImages } from './tiled-map-import-images';
+import { BitmapFontImportFrames } from './bitmap-font-import-frames';
 import { AssetImportPlanner, type IAssetImportPlan, type IAssetImportPlannerOptions } from './asset-import-planner';
 
 /**
@@ -148,8 +150,14 @@ export class AssetImportBatchExecutor {
         }
         const concurrency = this._readConcurrency(request.concurrency, 4);
         const imported: IAssetImportItemResult[] = [];
+        const tiledImages = new TiledMapImportImages(this._message, this._readyTimeoutMs);
+        tiledImages.validate(plan, request.projectRoot, target);
+        const fontImages = new BitmapFontImportFrames(this._message, this._readyTimeoutMs);
+        fontImages.validate(plan, request.projectRoot, target);
         for (let layerIndex = 0; layerIndex < plan.layers.length; layerIndex += 1) {
             const layer = [...(plan.layers[layerIndex] ?? [])];
+            await tiledImages.beforeLayer(layer, imported, request.projectRoot, target);
+            await fontImages.beforeLayer(layer, imported, request.projectRoot, target);
             const layerResults: Array<IAssetImportItemResult | undefined> = new Array(layer.length);
             await this._mapWithConcurrency(
                 layer.map((item, index) => ({ item, index })),
@@ -157,6 +165,9 @@ export class AssetImportBatchExecutor {
                 async ({ item, index }) => {
                     const plannedTargetDbPath = this._planner.joinDbPath(target, basename(item.source));
                     const result = await this._importOne(item.source, plannedTargetDbPath, overwrite);
+                    if (result == null) {
+                        throw new Error(`asset_import_native_result_missing:${plannedTargetDbPath}`);
+                    }
                     // Creator rename 时以返回 url 为准，避免账本记错目标。
                     const actualTargetDbPath = this._readActualTargetDbPath(result, plannedTargetDbPath);
                     layerResults[index] = {
@@ -173,8 +184,16 @@ export class AssetImportBatchExecutor {
                 }
             }
             if (request.refreshAfter !== false) {
-                await this._refreshAndWait(target);
+                if (fontImages.appliesTo(layer)) {
+                    await fontImages.refresh(target);
+                } else if (tiledImages.appliesTo(layer)) {
+                    await tiledImages.refresh(target);
+                } else {
+                    await this._refreshAndWait(target);
+                }
             }
+            await tiledImages.afterLayer(layer, imported, request.projectRoot);
+            await fontImages.afterLayer(layer, imported, request.projectRoot);
         }
         const batch: IAssetImportBatchResult = {
             imported,
@@ -212,7 +231,7 @@ export class AssetImportBatchExecutor {
     }
 
     /**
-     * @description 导入单个文件。
+     * @description 使用已声明主导入方法；异常直接传播，不向其它方法盲重放。
      * @param source 源路径。
      * @param targetDbPath 目标 db 路径。
      * @param overwrite 是否覆盖。
@@ -224,11 +243,7 @@ export class AssetImportBatchExecutor {
         const staged = overwrite ? null : this._stageSourceWithoutMeta(source);
         const importSource = staged?.filePath ?? source;
         try {
-            try {
-                return await this._message.request('asset-db', 'import-asset', importSource, targetDbPath, options);
-            } catch {
-                return await this._message.request('asset-db', 'import', importSource, targetDbPath, options);
-            }
+            return await this._message.request('asset-db', 'import-asset', importSource, targetDbPath, options);
         } finally {
             staged?.cleanup();
         }
@@ -260,20 +275,12 @@ export class AssetImportBatchExecutor {
     }
 
     /**
-     * @description 刷新目标目录并等待 AssetDB ready。
+     * @description 必需原生刷新后等待 AssetDB ready；异常直接传播，不吞掉或重放。
      * @param target 目标目录。
      */
     private async _refreshAndWait(target: string): Promise<void> {
         const directory = target.endsWith('/') ? target : `${target}/`;
-        try {
-            await this._message.request('asset-db', 'refresh-asset', directory);
-        } catch {
-            try {
-                await this._message.request('asset-db', 'refresh', directory);
-            } catch {
-                // 部分宿主仅支持 refresh-asset。
-            }
-        }
+        await this._message.request('asset-db', 'refresh-asset', directory);
         await new LumenAssetDbReadyWaiter(this._message).wait({
             timeoutMs: this._readyTimeoutMs,
             intervalMs: 100,
@@ -281,24 +288,34 @@ export class AssetImportBatchExecutor {
     }
 
     /**
-     * @description 有限并发映射。
+     * @description 有限并发映射；首个失败停止取新项并等待全部在途项结束后传播原错误。
      * @param items 输入。
      * @param concurrency 并发。
      * @param worker 工作函数。
      */
     private async _mapWithConcurrency<T>(items: readonly T[], concurrency: number, worker: (item: T) => Promise<void>): Promise<void> {
         let cursor = 0;
+        let failed = false;
+        let firstError: unknown;
         const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-            while (cursor < items.length) {
+            while (!failed && cursor < items.length) {
                 const index = cursor;
                 cursor += 1;
                 const item = items[index];
                 if (item != null) {
-                    await worker(item);
+                    try {
+                        await worker(item);
+                    } catch (error: unknown) {
+                        if (!failed) {
+                            failed = true;
+                            firstError = error;
+                        }
+                    }
                 }
             }
         });
         await Promise.all(runners);
+        if (failed) { throw firstError; }
     }
 
     /**

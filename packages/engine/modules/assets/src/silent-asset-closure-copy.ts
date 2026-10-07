@@ -1,10 +1,12 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { constants, copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'fs';
+import type { Stats } from 'fs';
 import { basename, dirname, join, posix, resolve } from 'path';
 
 import { CocosUuidCodec } from './cocos-uuid-codec.js';
 import { CompatibleUuid } from './compatible-uuid.js';
 import { FileAssetDependencyIndex } from './file-asset-dependency-index.js';
 import { SilentAssetCreateFolder } from './silent-asset-create-folder.js';
+import { SilentAssetPathGuard } from './silent-asset-path-guard.js';
 
 /**
  * @description 静默依赖闭包复制请求（磁盘为真源，不调会弹窗的 AssetDB 覆盖写入）。
@@ -107,7 +109,7 @@ export class SilentAssetClosureCopy {
      * @returns 复制结果（含 uuid 映射与拓扑序）。
      */
     public copy(request: ISilentAssetClosureCopyRequest): ISilentAssetClosureCopyResult {
-        const projectRoot = resolve(request.projectRoot);
+        const projectRoot = realpathSync(resolve(request.projectRoot));
         const seeds = request.seedRelativePaths.map((pathValue) => this._normalizeAssetPath(pathValue));
         const targetRoot = this._normalizeAssetPath(request.targetDirectoryRelative);
         if (!targetRoot.startsWith('assets/') && targetRoot !== 'assets') {
@@ -119,22 +121,41 @@ export class SilentAssetClosureCopy {
             }
         }
 
+        for (const seed of seeds) {
+            if (this._sourceStat(projectRoot, seed).isDirectory() && (targetRoot === seed || targetRoot.startsWith(`${seed}/`))) {
+                throw new Error(`silent_copy_target_inside_source:${targetRoot}`);
+            }
+        }
+        this._assertTargetAncestor(projectRoot, targetRoot);
         FileAssetDependencyIndex.invalidate(projectRoot);
         const { closurePaths, unresolvedUuids, refsByPath } = this._expandClosure(projectRoot, seeds);
         const order = this._topoSort(closurePaths, refsByPath);
         const pathMap = this._buildPathMap(order, targetRoot);
         for (const toPath of Object.values(pathMap)) {
-            if (existsSync(join(projectRoot, toPath))) {
+            if (this._pathExists(join(projectRoot, toPath)) || this._pathExists(join(projectRoot, `${toPath}.meta`))) {
                 throw new Error(`silent_copy_target_exists:${toPath}`);
             }
         }
 
+        const uuidMap = new Map<string, string>();
+        const sourceMetas = new Map<string, unknown>();
+        for (const fromPath of order) {
+            this._sourceStat(projectRoot, fromPath);
+            const metaPath = `${fromPath}.meta`;
+            if (this._pathExists(join(projectRoot, metaPath))) {
+                if (!this._sourceStat(projectRoot, metaPath).isFile()) {
+                    throw new Error(`silent_copy_meta_not_regular:${metaPath}`);
+                }
+                const meta: unknown = JSON.parse(readFileSync(join(projectRoot, metaPath), 'utf8'));
+                sourceMetas.set(fromPath, meta);
+                this._registerMetaUuidMappings(meta, uuidMap);
+            }
+        }
         new SilentAssetCreateFolder().ensureDirectoryMetas({
             projectRoot,
             relativePath: targetRoot,
         });
 
-        const uuidMap = new Map<string, string>();
         const items: ISilentAssetClosureCopyItem[] = [];
 
         for (const fromPath of order) {
@@ -145,18 +166,19 @@ export class SilentAssetClosureCopy {
             const fromAbsolute = join(projectRoot, fromPath);
             const toAbsolute = join(projectRoot, toPath);
             mkdirSync(dirname(toAbsolute), { recursive: true });
-            copyFileSync(fromAbsolute, toAbsolute);
+            if (this._sourceStat(projectRoot, fromPath).isDirectory()) {
+                mkdirSync(toAbsolute);
+            } else {
+                copyFileSync(fromAbsolute, toAbsolute, constants.COPYFILE_EXCL);
+            }
 
-            const metaFrom = `${fromAbsolute}.meta`;
             const metaTo = `${toAbsolute}.meta`;
             let fromUuid = '';
             let toUuid = '';
-            if (existsSync(metaFrom)) {
-                const metaText = readFileSync(metaFrom, 'utf8');
-                const metaJson = JSON.parse(metaText) as unknown;
-                this._registerMetaUuidMappings(metaJson, uuidMap);
+            if (sourceMetas.has(fromPath)) {
+                const metaJson = sourceMetas.get(fromPath);
                 const remapped = this._remapJsonUuids(metaJson, uuidMap);
-                writeFileSync(metaTo, `${JSON.stringify(remapped, null, 2)}\n`, 'utf8');
+                writeFileSync(metaTo, `${JSON.stringify(remapped, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' });
                 fromUuid = this._readMetaUuid(metaJson);
                 toUuid = this._readMetaUuid(remapped);
             }
@@ -205,6 +227,25 @@ export class SilentAssetClosureCopy {
             const current = queue.shift();
             if (current == null) {
                 break;
+            }
+            const metaPath = `${current}.meta`;
+            if (this._pathExists(join(projectRoot, metaPath)) && !this._sourceStat(projectRoot, metaPath).isFile()) {
+                throw new Error(`silent_copy_meta_not_regular:${metaPath}`);
+            }
+            if (this._sourceStat(projectRoot, current).isDirectory()) {
+                refsByPath.set(current, new Set());
+                for (const name of readdirSync(join(projectRoot, current)).sort()) {
+                    if (name.endsWith('.meta')) {
+                        continue;
+                    }
+                    const child = this._normalizeAssetPath(posix.join(current, name));
+                    this._sourceStat(projectRoot, child);
+                    if (!closure.has(child)) {
+                        closure.add(child);
+                        queue.push(child);
+                    }
+                }
+                continue;
             }
             const result = this._dependencyIndex.query(projectRoot, {
                 dbPath: `db://${current}`,
@@ -477,11 +518,54 @@ export class SilentAssetClosureCopy {
      * @returns 规范化路径。
      */
     private _normalizeAssetPath(pathValue: string): string {
-        const trimmed = pathValue.trim().replace(/\\/g, '/').replace(/^db:\/\//u, '');
-        const normalized = posix.normalize(trimmed).replace(/^\.\//u, '');
-        if (normalized.includes('..')) {
-            throw new Error(`silent_copy_path_escape:${pathValue}`);
+        return new SilentAssetPathGuard().normalize(pathValue);
+    }
+
+    /**
+     * @description 验证闭包只含工程内实际目录或普通文件，不跟随链接。
+     * @param projectRoot 已解析的工程根。
+     * @param relativePath 规范化后的资源路径。
+     * @returns 实际磁盘类型。
+     */
+    private _sourceStat(projectRoot: string, relativePath: string): Stats {
+        const absolute = join(projectRoot, relativePath);
+        const value = lstatSync(absolute);
+        if (value.isSymbolicLink() || (!value.isDirectory() && !value.isFile()) || realpathSync(absolute) !== absolute) {
+            throw new Error(`silent_copy_source_not_regular:${relativePath}`);
         }
-        return normalized;
+        return value;
+    }
+
+    /**
+     * @description 拒绝指向其它物理位置的目标祖先，检查发生在创建前。
+     * @param projectRoot 已解析的工程根。
+     * @param target 目标相对路径。
+     * @returns 无。
+     */
+    private _assertTargetAncestor(projectRoot: string, target: string): void {
+        let absolute = join(projectRoot, target);
+        while (!this._pathExists(absolute)) {
+            absolute = dirname(absolute);
+        }
+        if (realpathSync(absolute) !== absolute || !lstatSync(absolute).isDirectory()) {
+            throw new Error(`silent_copy_target_alias:${target}`);
+        }
+    }
+
+    /**
+     * @description 检查目录项本身是否存在，保留悬空链接并传播非 ENOENT 错误。
+     * @param absolute 完整磁盘路径。
+     * @returns 目录项是否存在。
+     */
+    private _pathExists(absolute: string): boolean {
+        try {
+            lstatSync(absolute);
+            return true;
+        } catch (error) {
+            if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+                return false;
+            }
+            throw error;
+        }
     }
 }

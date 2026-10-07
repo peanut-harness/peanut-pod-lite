@@ -48,6 +48,7 @@ test('PluginModuleBase exposes subclass manifest fields for host validation', ()
     assert.equal(module.manifest.id, 'sdk.smoke.plugin');
     assert.equal(module.manifest.version, '0.0.1');
     assert.equal(module.manifest.main, './index.js');
+    assert.ok(module.manifest.permissions.assetDb);
     assert.equal(module.manifest.permissions.assetDb.read, true);
     assert.equal(module.manifest.permissions.assetDb.write, false);
 });
@@ -79,6 +80,10 @@ test('managed task SDK contracts inject owner outside enqueue input and preserve
     const api: IPluginManagedTaskApi = {
         registerExecutor: () => (): void => {},
         enqueue: async () => ({ taskId: 'sdk-managed-task', status: 'queued' }),
+        enqueueBatch: async (requests) => ({
+            batchId: 'sdk-managed-batch',
+            receipts: requests.map((_request, index) => ({ taskId: 'sdk-managed-batch:' + index, status: 'queued' as const })),
+        }),
         wait: async () => null,
     };
 

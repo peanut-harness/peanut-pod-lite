@@ -947,13 +947,21 @@ test('setComponentProperty writes 3D camera light and mesh fields', (): void => 
                 rect: { x: 0, y: 0, width: 1, height: 1 },
             },
         });
+        session.save();
+        const beforeLight = session.inspectNode('/Root/Sun');
+        const baseline = JSON.parse(readFileSync(join(root, 'assets/world/SceneKit.prefab'), 'utf8')) as Array<Record<string, unknown>>;
+        const initialLight = baseline.find((entry) => entry.__type__ === 'cc.DirectionalLight');
+        assert.ok(initialLight != null);
+        assert.throws(() => session.setComponentProperty({
+            nodePath: '/Root/Sun',
+            componentType: 'cc.DirectionalLight',
+            patch: { intensity: 3.5, color: { r: 255, g: 240, b: 200, a: 255 } },
+        }), /lumen_property_not_persistent:cc.DirectionalLight.intensity/);
+        assert.deepEqual(session.inspectNode('/Root/Sun'), beforeLight);
         session.setComponentProperty({
             nodePath: '/Root/Sun',
             componentType: 'cc.DirectionalLight',
-            patch: {
-                intensity: 3.5,
-                color: { r: 255, g: 240, b: 200, a: 255 },
-            },
+            patch: { color: { r: 255, g: 240, b: 200, a: 255 } },
         });
         session.setComponentProperty({
             nodePath: '/Root/Box',
@@ -973,7 +981,8 @@ test('setComponentProperty writes 3D camera light and mesh fields', (): void => 
         assert.equal(camera._far, 2000);
         const light = prefab.find((entry) => entry.__type__ === 'cc.DirectionalLight');
         assert.ok(light != null);
-        assert.equal(light._intensity, 3.5);
+        assert.equal(light._intensity, initialLight._intensity);
+        assert.deepEqual(light._color, { __type__: 'cc.Color', r: 255, g: 240, b: 200, a: 255 });
         const mesh = prefab.find((entry) => entry.__type__ === 'cc.MeshRenderer');
         assert.ok(mesh != null);
         const materials = mesh._materials as Array<{ __uuid__: string }>;
@@ -1290,15 +1299,15 @@ test('comp-set writes nodeRef and componentRef as __id__', (): void => {
         assert.equal(scrollView.props.content, contentChild.path);
 
         const schema = session.describeSchema('cc.ScrollView');
-        assert.ok('props' in schema);
+        assert.ok('props' in schema && schema.props != null);
         const contentProp = schema.props.find((prop) => prop.apiName === 'content');
         assert.equal(contentProp?.kind, 'nodeRef');
         const barProp = schema.props.find((prop) => prop.apiName === 'verticalScrollBar');
         assert.equal(barProp?.kind, 'componentRef');
         assert.equal(barProp?.refComponentType, 'cc.ScrollBar');
 
-        assert.ok(session.describeSchema().components.includes('cc.SafeArea'));
-        assert.ok(session.describeSchema().components.includes('cc.BlockInputEvents'));
+        assert.ok(session.describeSchema().components?.includes('cc.SafeArea'));
+        assert.ok(session.describeSchema().components?.includes('cc.BlockInputEvents'));
     } finally {
         rmSync(root, { recursive: true, force: true });
     }
@@ -1490,6 +1499,7 @@ test('schema covers spine / motion streak / polygon and encodes vec2List', (): v
     try {
         const session = new LumenSession({ projectRoot: root });
         const components = session.describeSchema().components;
+        assert.ok(components != null);
         for (const type of [
             'sp.Skeleton',
             'dragonBones.ArmatureDisplay',
@@ -1527,18 +1537,18 @@ test('schema covers spine / motion streak / polygon and encodes vec2List', (): v
         assert.equal(components.includes('cc.IKConstraint'), false);
 
         const spine = session.describeSchema('sp.Skeleton');
-        assert.ok('props' in spine);
+        assert.ok('props' in spine && spine.props != null);
         const cacheMode = spine.props.find((prop) => prop.apiName === 'defaultCacheMode');
         assert.equal(cacheMode?.kind, 'enum');
         assert.ok((cacheMode?.enumHints?.length ?? 0) >= 3);
 
         const layout = session.describeSchema('cc.Layout');
-        assert.ok('props' in layout);
+        assert.ok('props' in layout && layout.props != null);
         assert.ok(layout.props.some((prop) => prop.apiName === 'cellSize'));
         assert.ok(layout.props.some((prop) => prop.apiName === 'startAxis'));
 
         const particle = session.describeSchema('cc.ParticleSystem');
-        assert.ok('props' in particle);
+        assert.ok('props' in particle && particle.props != null);
         const shape = particle.props.find((prop) => prop.apiName === 'shapeModule');
         assert.equal(shape?.kind, 'objectPatch');
         assert.ok((shape?.nestedProps?.length ?? 0) > 0);
@@ -1551,7 +1561,8 @@ test('schema covers spine / motion streak / polygon and encodes vec2List', (): v
             template: 'empty',
         });
         session.attachComponent({ nodePath: '/Root', builtinType: 'cc.PolygonCollider2D' });
-        session.setComponentProperty({
+        const polygonBefore = session.inspectNode('/Root');
+        assert.throws(() => session.setComponentProperty({
             nodePath: '/Root',
             componentType: 'cc.PolygonCollider2D',
             patch: {
@@ -1561,6 +1572,18 @@ test('schema covers spine / motion streak / polygon and encodes vec2List', (): v
                     { x: 0, y: 3 },
                 ],
                 threshold: 0.5,
+            },
+        }), /lumen_property_not_persistent:cc.PolygonCollider2D.threshold/);
+        assert.deepEqual(session.inspectNode('/Root'), polygonBefore);
+        session.setComponentProperty({
+            nodePath: '/Root',
+            componentType: 'cc.PolygonCollider2D',
+            patch: {
+                points: [
+                    { x: -2, y: -2 },
+                    { x: 2, y: -2 },
+                    { x: 0, y: 3 },
+                ],
             },
         });
         session.attachComponent({ nodePath: '/Root', builtinType: 'cc.BlockInputEvents' });
@@ -1657,7 +1680,7 @@ test('schema covers spine / motion streak / polygon and encodes vec2List', (): v
             { x: 2, y: -2 },
             { x: 0, y: 3 },
         ]);
-        assert.equal(poly.props.threshold, 0.5);
+        assert.equal(poly.props.threshold, null);
         assert.ok(inspected.components.some((component) => component.type === 'cc.BlockInputEvents'));
 
         const ps = fx.components.find((component) => component.type === 'cc.ParticleSystem');
@@ -3457,15 +3480,18 @@ test('audio video ttf and bitmap font meta inspect and patch without touching so
             assert.equal(audio.downloadMode, 0);
             assert.equal(audio.downloadModeName, 'WEB_AUDIO');
         }
-        session.setAssetProperty({ patch: { downloadMode: 'DOM_AUDIO' } });
-        session.save();
+        const audioMetaBefore = readFileSync(`${audioPath}.meta`);
+        assert.throws(() => session.setAssetProperty({ patch: { downloadMode: 'DOM_AUDIO' } }),
+            /lumen_audio_property_not_editable:audio.downloadMode/);
+        assert.deepEqual(readFileSync(`${audioPath}.meta`), audioMetaBefore);
         assert.equal(readFileSync(audioPath, 'utf8'), 'wav-bytes');
         const verifyAudio = new LumenSession({ projectRoot: root });
         verifyAudio.openPrefab('assets/sfx/Click.wav');
         const audioAgain = verifyAudio.inspectAsset();
         if (audioAgain.kind === 'audio') {
-            assert.equal(audioAgain.downloadMode, 1);
-            assert.equal(audioAgain.downloadModeName, 'DOM_AUDIO');
+            assert.equal(audioAgain.downloadMode, 0);
+            assert.equal(audioAgain.downloadModeWritable, false);
+            assert.equal(audioAgain.downloadModeName, 'WEB_AUDIO');
         }
 
         session.openPrefab('assets/fx/Intro.mp4');

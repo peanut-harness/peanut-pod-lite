@@ -1,3 +1,6 @@
+import { types as nodeTypes } from 'node:util';
+import { TextFileWriteResultProjection } from '@peanut/pod-protocol';
+import { CoreTextFileIoContract } from '@peanut/pod-engine/policy';
 import type {
     IMcpFailureDetails,
     McpFailureCategory,
@@ -55,7 +58,14 @@ export class McpFailurePresenter {
             return embedded;
         }
         const code = McpFailurePresenter._safeCode(error);
-        const classification = McpFailurePresenter._classify(code);
+        const uncertain = error != null && typeof error === 'object' && !nodeTypes.isProxy(error)
+            && nodeTypes.isNativeError(error)
+            && Object.getOwnPropertyDescriptor(error, 'projectState')?.value === 'unknown';
+        // 保守状态仅限制分类，不赋予安全拒绝信任，也不影响诊断记录。
+        const classification = uncertain
+            ? McpFailurePresenter._details('execution_failed',
+                'The operation failed without a safely confirmed final project state.', false, 'unknown', 'stop')
+            : McpFailurePresenter._classify(code);
         return Object.freeze({
             schemaVersion: 1,
             code,
@@ -91,9 +101,11 @@ export class McpFailurePresenter {
         ) {
             return null;
         }
+        const textFileWrite = TextFileWriteResultProjection.project(record.textFileWrite, CoreTextFileIoContract.limits);
         return Object.freeze({
             schemaVersion: 1,
             code: record.code,
+            ...(textFileWrite != null && !textFileWrite.ok ? { textFileWrite } : {}),
             category: record.category,
             reason: record.reason,
             retryable: record.retryable,
@@ -115,7 +127,15 @@ export class McpFailurePresenter {
      * @returns 安全错误码。
      */
     private static _safeCode(error: unknown): string {
-        const message = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+        let message = '';
+        if (typeof error === 'string') {
+            message = error;
+        } else if (error != null && typeof error === 'object' && !nodeTypes.isProxy(error)
+            && nodeTypes.isNativeError(error)) {
+            // 只改变实际 native Error 跨 VM 的稳定码读取；不为普通对象或证明赋予信任。
+            const ownMessage: unknown = Object.getOwnPropertyDescriptor(error, 'message')?.value;
+            if (typeof ownMessage === 'string') message = ownMessage;
+        }
         if (/^[a-z0-9._:-]+$/u.test(message)) {
             return message;
         }

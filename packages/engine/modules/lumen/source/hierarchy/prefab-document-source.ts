@@ -67,6 +67,23 @@ export class LumenPrefabDocumentSource {
     }
 
     /**
+     * @description 仅为归属 Prefab 的规格节点构造所有权条目；普通 Scene 节点不引用场景资源自身。
+     * @param isPrefab 节点所在文档是否为 Prefab。
+     * @returns Prefab 所有权条目；Scene 返回空条目列表。
+     */
+    public createNodePrefabInfoEntries(isPrefab: boolean): PrefabEntry[] {
+        if (!isPrefab) {
+            return [];
+        }
+        return [{
+            __type__: 'cc.PrefabInfo',
+            root: { __id__: 1 },
+            asset: { __id__: 0 },
+            fileId: LumenPrefabIdTools.createFileId(),
+        }];
+    }
+
+    /**
      * @description 创建仅含场景根与默认 SceneGlobals 的空场景条目。
      * @param rootName 根节点名
      * @returns Scene 条目

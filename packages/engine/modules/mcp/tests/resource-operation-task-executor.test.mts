@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import type { ITaskRequest } from '@peanut/pod-protocol';
+import type { IPluginTaskExecutorContext } from '@peanut/pod-sdk';
+
 import { ResourceLockManager } from '@peanut/pod-engine/runtime';
 
 import { ResourceOperationPlanner } from '../src/resource-operation-planner.js';
 import { ResourceOperationTaskExecutor } from '../src/resource-operation-task-executor.js';
 
-function request(id, input, timeoutMs) {
+function request(id: string, input: Readonly<Record<string, unknown>>, timeoutMs?: number): ITaskRequest {
     return {
         requestId: id,
         pluginId: 'peanut.editor-mcp',
@@ -19,7 +22,7 @@ function request(id, input, timeoutMs) {
     };
 }
 
-function context() {
+function context(): IPluginTaskExecutorContext {
     return {
         owner: {
             pluginId: 'peanut.editor-mcp',
@@ -33,33 +36,46 @@ function context() {
     };
 }
 
-function executor(started, gates = new Map(), lockManager = new ResourceLockManager()) {
+function executor(started: string[], gates: ReadonlyMap<string, ReturnType<typeof gate>> = new Map(), lockManager = new ResourceLockManager()) {
     return new ResourceOperationTaskExecutor({
         lockManager,
         plan: async (_operation, input) => ({
-            projectKey: input.project,
+            projectKey: stringField(input, 'project'),
             operation: 'lumen.setProps',
-            resourceKeys: [input.resource],
+            resourceKeys: [stringField(input, 'resource')],
             requiresProjectWriter: input.writer === true,
         }),
         execute: async (_operation, input) => {
-            started.push(input.id);
-            await gates.get(input.id)?.promise;
+            started.push(stringField(input, 'id'));
+            await gates.get(stringField(input, 'id'))?.promise;
             return { id: input.id };
         },
     });
 }
 
+/**
+ * @description 校验测试输入字段而不绕过未知输入类型。
+ * @param input 任务业务输入。
+ * @param key 字段名。
+ * @returns 已核实的字符串。
+ */
+function stringField(input: Readonly<Record<string, unknown>>, key: string): string {
+    const value = input[key];
+    assert.equal(typeof value, 'string');
+    assert.ok(typeof value === 'string');
+    return value;
+}
+
 function gate() {
-    let release;
+    let release: (() => void) | undefined;
     return {
-        promise: new Promise((resolve) => { release = resolve; }),
-        release: () => release(),
+        promise: new Promise<void>((resolve) => { release = resolve; }),
+        release: (): void => { assert.ok(release); release(); },
     };
 }
 
 test('resource executor preserves FIFO for the same resource', async () => {
-    const started = [];
+    const started: string[] = [];
     const firstGate = gate();
     const instance = executor(started, new Map([['first', firstGate]]));
     const first = instance.execute(request('first', { id: 'first', project: '/p', resource: 'asset:a' }), context());
@@ -73,7 +89,7 @@ test('resource executor preserves FIFO for the same resource', async () => {
 });
 
 test('resource executor permits disjoint resources in one project concurrently', async () => {
-    const started = [];
+    const started: string[] = [];
     const firstGate = gate();
     const secondGate = gate();
     const instance = executor(started, new Map([['first', firstGate], ['second', secondGate]]));
@@ -87,7 +103,7 @@ test('resource executor permits disjoint resources in one project concurrently',
 });
 
 test('resource executor isolates project writer lanes across projects', async () => {
-    const started = [];
+    const started: string[] = [];
     const firstGate = gate();
     const secondGate = gate();
     const instance = executor(started, new Map([['first', firstGate], ['second', secondGate]]));
@@ -101,7 +117,7 @@ test('resource executor isolates project writer lanes across projects', async ()
 });
 
 test('resource executor shares the project writer lane across executor instances', async () => {
-    const started = [];
+    const started: string[] = [];
     const firstGate = gate();
     const lockManager = new ResourceLockManager();
     const firstExecutor = executor(started, new Map([['first', firstGate]]), lockManager);
@@ -140,14 +156,14 @@ test('resource executor releases locks after worker failure', async () => {
         failed.execute(request('failed', { id: 'failed', project: '/p', resource: 'asset:a' }), context()),
         /expected_failure/u,
     );
-    const started = [];
+    const started: string[] = [];
     const recovered = executor(started, new Map(), lockManager);
     await recovered.execute(request('recovered', { id: 'recovered', project: '/p', resource: 'asset:a', writer: true }), context());
     assert.deepEqual(started, ['recovered']);
 });
 
 test('resource executor times out before commit and removes its waiter', async () => {
-    const started = [];
+    const started: string[] = [];
     const firstGate = gate();
     const lockManager = new ResourceLockManager();
     const instance = executor(started, new Map([['first', firstGate]]), lockManager);
@@ -265,8 +281,8 @@ test('resource executor records exactly one authoritative postflight on success 
 test('resource batch bounds prepare concurrency and records one batch postflight', async () => {
     let activePlans = 0;
     let maxActivePlans = 0;
-    const committed = [];
-    const evidence = [];
+    const committed: unknown[] = [];
+    const evidence: Array<Parameters<IPluginTaskExecutorContext['recordEvidence']>[0] & { index: number }> = [];
     const instance = new ResourceOperationTaskExecutor({
         plan: async (_operation, input) => {
             activePlans += 1;
@@ -289,7 +305,7 @@ test('resource batch bounds prepare concurrency and records one batch postflight
         request(`batch-${index}`, { id: `item-${index}`, project: '/p', resource: `asset:${index}`, writer: true }));
     const contexts = requests.map((_, index) => ({
         ...context(),
-        recordEvidence: (entry) => evidence.push({ index, ...entry }),
+        recordEvidence: (entry: Parameters<IPluginTaskExecutorContext['recordEvidence']>[0]) => evidence.push({ index, ...entry }),
     }));
 
     const results = await instance.executeBatch(requests, contexts, 'batch:bounded');
@@ -301,7 +317,7 @@ test('resource batch bounds prepare concurrency and records one batch postflight
 });
 
 test('resource batch holds its union resource set through the full commit window', async () => {
-    const started = [];
+    const started: string[] = [];
     const firstGate = gate();
     const lockManager = new ResourceLockManager();
     const batch = executor(started, new Map([['first', firstGate]]), lockManager);
@@ -336,7 +352,7 @@ test('resource batch reports conservative project state across failure boundarie
             [context()],
             'batch:prepare',
         ),
-        (error) => error instanceof Error && error.message === 'prepare_failed' && error.projectState === 'unchanged',
+        (error) => error instanceof Error && error.message === 'prepare_failed' && Reflect.get(error, 'projectState') === 'unchanged',
     );
 
     const mayHaveChanged = new ResourceOperationTaskExecutor({
@@ -356,7 +372,7 @@ test('resource batch reports conservative project state across failure boundarie
             [context()],
             'batch:commit',
         ),
-        (error) => error instanceof Error && error.message === 'commit_failed' && error.projectState === 'may_have_changed',
+        (error) => error instanceof Error && error.message === 'commit_failed' && Reflect.get(error, 'projectState') === 'may_have_changed',
     );
 
     const rolledBack = new ResourceOperationTaskExecutor({
@@ -376,7 +392,7 @@ test('resource batch reports conservative project state across failure boundarie
             [context()],
             'batch:rollback',
         ),
-        (error) => error instanceof Error && error.message === 'commit_rolled_back' && error.projectState === 'rolled_back',
+        (error) => error instanceof Error && error.message === 'commit_rolled_back' && Reflect.get(error, 'projectState') === 'rolled_back',
     );
 
     const cancelled = executor([], new Map());
@@ -388,12 +404,12 @@ test('resource batch reports conservative project state across failure boundarie
         ),
         (error) => error instanceof Error
             && error.message === 'editor_mcp_batch_cancelled_before_commit'
-            && error.projectState === 'unchanged',
+            && Reflect.get(error, 'projectState') === 'unchanged',
     );
 });
 
 test('resource batch yields to control work at the 200ms safe item boundary', async () => {
-    const committed = [];
+    const committed: unknown[] = [];
     let observedCommittedCount = -1;
     const instance = new ResourceOperationTaskExecutor({
         plan: async (_operation, input) => ({
@@ -424,4 +440,65 @@ test('resource batch yields to control work at the 200ms safe item boundary', as
 
     assert.equal(observedCommittedCount, 1);
     assert.deepEqual(committed, ['first', 'second']);
+});
+
+test('single executor retains the exact immutable prepare through queued revalidation and worker', async () => {
+    const lockManager = new ResourceLockManager();
+    const lease = await lockManager.acquireSet({ projectKey: '/p', resourceKeys: ['asset:a'], requiresProjectWriter: true });
+    const plan = Object.freeze({ projectKey: '/p', operation: 'asset.writeText', resourceKeys: Object.freeze(['asset:a']), requiresProjectWriter: true });
+    const planned = gate();
+    const seen: string[] = [];
+    const instance = new ResourceOperationTaskExecutor({
+        lockManager,
+        plan: async () => { planned.release(); return plan; },
+        revalidate: async (_operation, _input, actual) => { assert.equal(actual, plan); seen.push('revalidate'); },
+        execute: async (_operation, _input, _context, actual) => { assert.equal(actual, plan); seen.push('worker'); return true; },
+    });
+    const pending = instance.execute(request('queued', {}), { ...context(), enterCommitWindow: () => { seen.push('commit'); return true; } });
+    try {
+        await planned.promise;
+        assert.deepEqual(seen, []);
+    } finally { lease.release(); }
+    assert.equal(await pending, true);
+    assert.deepEqual(seen, ['revalidate', 'commit', 'worker']);
+});
+
+test('last batch revalidation failure runs no worker or commit and releases the complete union lock', async () => {
+    const lockManager = new ResourceLockManager();
+    const seen: string[] = [];
+    let commits = 0;
+    const instance = new ResourceOperationTaskExecutor({
+        lockManager,
+        plan: async (_operation, input) => ({ projectKey: '/p', operation: 'asset.writeText', resourceKeys: [stringField(input, 'id')], requiresProjectWriter: true }),
+        revalidate: async (_operation, input) => {
+            const id = stringField(input, 'id'); seen.push(id);
+            if (id === 'last') throw new Error('text_file_io_snapshot_conflict');
+        },
+        execute: async () => { seen.push('worker'); return true; },
+    });
+    await assert.rejects(instance.executeBatch([request('first', { id: 'first' }), request('last', { id: 'last' })],
+        [context(), context()].map((item) => ({ ...item, enterCommitWindow: () => { commits += 1; return true; } })), 'batch:revalidate'),
+        (error: unknown) => error instanceof Error && error.message === 'text_file_io_snapshot_conflict' && Reflect.get(error, 'projectState') === 'unchanged');
+    assert.deepEqual(seen, ['first', 'last']);
+    assert.equal(commits, 0);
+    const lease = await lockManager.acquireSet({ projectKey: '/p', resourceKeys: ['first', 'last'], requiresProjectWriter: true }, { timeoutMs: 100 });
+    lease.release();
+});
+
+test('batch failure retains original error and task attachment while releasing original union lease', async () => {
+    const lock = new ResourceLockManager();
+    const failure = Object.assign(new Error('injected_write_failure'), { projectState: 'may_have_changed',
+        taskFailures: [{ requestId: 'first', marker: 'owned' }] });
+    const instance = new ResourceOperationTaskExecutor({
+        lockManager: lock,
+        plan: async () => ({ projectKey: '/owned', operation: 'lumen.setProps', resourceKeys: ['asset:owned'], requiresProjectWriter: true }),
+        execute: async () => { throw failure; },
+    });
+    await assert.rejects(instance.executeBatch([request('first', {})], [context()], 'owned'), (error: unknown) => {
+        assert.equal(error, failure);
+        assert.equal(Reflect.get(error as object, 'taskFailures'), failure.taskFailures);
+        return true;
+    });
+    const lease = await lock.acquireSet({ projectKey: '/owned', resourceKeys: ['asset:owned'], requiresProjectWriter: true });
+    lease.release();
 });

@@ -16,6 +16,18 @@ export class CoreTextFileIoContract {
     });
 
     /**
+     * @description 精确识别允许使用文本 I/O 请求容量的公开业务与一级工具名。
+     * @param name 未受信工具名。
+     * @returns 是否属于公开文本读写；其它工具保持原请求上限。
+     */
+    public static isTextFileIoCapability(name: unknown): boolean {
+        return typeof name === 'string' && [
+            'asset.readText', 'peanut.editor-mcp.asset-read-text',
+            'asset.writeText', 'peanut.editor-mcp.asset-write-text',
+        ].includes(name);
+    }
+
+    /**
      * @description 生成 path 与 paths 严格二选一的输入；字节、真实路径和重复项由执行前守卫校验。
      * @param limits 调用方注入的容量配置；默认使用产品容量。
      * @returns 公开只读输入契约。
@@ -56,7 +68,7 @@ export class CoreTextFileIoContract {
         const expectedSha256: ICoreMcpJsonSchema = {
             type: 'string',
             pattern: '^(?:[0-9a-fA-F]{64}|absent)(?![\\s\\S])',
-            description: '可选写入前 SHA-256（64 位十六进制）或 absent；省略保持原行为，全批在首次写入前再次复核。',
+            description: '可选写入前 SHA-256（64 位十六进制）或 absent；省略不额外声明摘要条件；内部冻结排队前身份和源摘要，整批在第一项变化前重验。',
         };
         return {
             path,

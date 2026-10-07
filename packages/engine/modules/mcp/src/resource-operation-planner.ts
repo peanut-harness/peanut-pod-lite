@@ -3,6 +3,7 @@ import { platform } from 'node:process';
 
 import { extractWriteResources, normalizeResourceKey } from '@peanut/pod-engine/policy';
 
+import type { IEditorMcpPreparedTextWrite } from './editor-mcp-text-write-gateway.js';
 import type { IResourceOperationTaskPlan } from './resource-operation-contracts.js';
 import { ResourceOperationClosureResolver } from './resource-operation-closure-resolver.js';
 
@@ -30,12 +31,14 @@ export class ResourceOperationPlanner {
      * @param projectRoot 当前 Cocos 工程根目录。
      * @param operation 稳定 MCP operation。
      * @param input 已校验业务输入。
+     * @param preparedTextWrite 内部签发的调用局部全批准备；不改变原业务输入。
      * @returns 可直接交给共享调度器的不可变计划。
      */
     public plan(
         projectRoot: string,
         operation: string,
         input: Readonly<Record<string, unknown>> | null | undefined,
+        preparedTextWrite?: IEditorMcpPreparedTextWrite,
     ): IResourceOperationTaskPlan {
         const safeInput = input ?? {};
         const requiresProjectWriter = this._requiresProjectWriter(operation, safeInput);
@@ -43,6 +46,7 @@ export class ResourceOperationPlanner {
         const includeAssetSidecars = requiresProjectWriter || operation === 'lumen.scaffold' || creationTarget != null;
         const derivedResources = [
             ...extractWriteResources(operation, safeInput),
+            ...(preparedTextWrite?.files.map((file) => file.path) ?? []),
             ...this._deriveDestinationResources(operation, safeInput),
             ...this._deriveUuidResources(safeInput),
         ];
@@ -69,12 +73,13 @@ export class ResourceOperationPlanner {
             resourceKeys: Object.freeze([...resourceKeys].sort()),
             requiresProjectWriter,
             closure,
+            ...(preparedTextWrite == null ? {} : { preparedTextWrite }),
             ...(creationTarget == null ? {} : { workerManagedCommitWindow: true }),
         });
     }
 
     /**
-     * @description 识别必须走 AssetDB 首次创建屏障的 Prefab / Scene 目标。
+     * @description 识别必须走 AssetDB 首次创建屏障的六类序列化目标。
      * @param operation operation。
      * @param input 已校验输入。
      * @returns 创建目标或 null。
@@ -90,7 +95,7 @@ export class ResourceOperationPlanner {
             return null;
         }
         const target = this._readString(input.prefabRelativePath) ?? this._readString(input.assetRelativePath);
-        if (target == null || !/\.(?:prefab|scene)$/iu.test(target)) {
+        if (target == null || !/\.(?:prefab|scene|mtl|anim|pmtl|rt)$/iu.test(target)) {
             return null;
         }
         return target;

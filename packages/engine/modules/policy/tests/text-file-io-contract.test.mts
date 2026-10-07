@@ -128,3 +128,12 @@ test('Core dispatcher retains the trusted consistency object and does not derive
         path: 'assets/a.txt', textReadConsistency: { revision: 999 },
     }, null, invocation), /schema_invalid/);
 });
+
+test('only four exact text IO names use the enlarged transport request budget', () => {
+    for (const name of ['asset.readText', 'peanut.editor-mcp.asset-read-text', 'asset.writeText', 'peanut.editor-mcp.asset-write-text']) {
+        assert.equal(CoreTextFileIoContract.isTextFileIoCapability(name), true);
+    }
+    for (const name of [null, {}, 'asset.writeText.extra', 'peanut.editor-mcp.asset-write-text ', 'peanut.example.write-text']) {
+        assert.equal(CoreTextFileIoContract.isTextFileIoCapability(name), false);
+    }
+});

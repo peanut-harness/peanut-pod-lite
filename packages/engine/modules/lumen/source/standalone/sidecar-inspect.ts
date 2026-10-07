@@ -1,7 +1,7 @@
 import type { ILumenCompressSettingsSnapshot } from './compress-settings';
 
 /**
- * @description AudioClip `downloadMode` Inspector 快照。不做播放器预览。
+ * @description AudioClip 原生 meta 快照；Creator 3.8 导入器固定加载模式，不做播放器预览。
  */
 export interface ILumenAudioMetaInspect {
     /** @description 项目相对路径。 */
@@ -12,10 +12,14 @@ export interface ILumenAudioMetaInspect {
     readonly uuid: string;
     /** @description meta importer。 */
     readonly importer: string;
-    /** @description Web 加载模式：`0` Web Audio，`1` DOM Audio。 */
+    /** @description 读取已存储的加载模式；3.8 原生导入器固定为 `0`，不承诺可写。 */
     readonly downloadMode: number;
     /** @description 加载模式名；未知数值时为 `null`。 */
     readonly downloadModeName: string | null;
+    /**
+     * @description 策展表是否允许编辑加载模式；3.8 原生能力校验为只读。
+     */
+    readonly downloadModeWritable: boolean;
 }
 
 /**

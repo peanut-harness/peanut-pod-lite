@@ -1,0 +1,80 @@
+import assert from 'node:assert/strict';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import test from 'node:test';
+import { RuntimeFacade } from '@peanut/pod-engine/runtime';
+import { LumenSession } from '@peanut/pod-engine/lumen';
+import { EditorMcpActionRouter } from '../src/editor-mcp-action-router.js';
+
+/**
+ * @description 真实 Lumen/Router 夹具；任何原生调用都令本用例失败，拒绝前必须完全不写盘。
+ * @param version 受信 Host 与工程版本。
+ * @returns Router、源/meta 原字节和清理入口。
+ * @oopException 测试夹具。
+ */
+function fixture(version: string) {
+    const root = mkdtempSync(join(tmpdir(), 'peanut-ui-threshold-router-'));
+    mkdirSync(join(root, 'assets'));
+    mkdirSync(join(root, 'temp/logs'), { recursive: true });
+    writeFileSync(join(root, 'package.json'), JSON.stringify({ creator: { version } }));
+    writeFileSync(join(root, 'temp/logs/project.log'), '');
+    const path = 'assets/Fields.prefab';
+    const seed = new LumenSession({ projectRoot: root, cocosVersion: version });
+    seed.scaffoldPrefab({ prefabRelativePath: path, rootName: 'Fields', template: 'empty' });
+    seed.attachComponent({ nodePath: '/Fields', builtinType: 'cc.PolygonCollider2D' });
+    seed.save();
+    const before = [path, path + '.meta'].map(p => readFileSync(join(root, p)));
+    const runtime = new RuntimeFacade(version, { allowMemoryPanelWindowProviderFallback: true });
+    const calls: string[] = [];
+    const router = new EditorMcpActionRouter({
+        version: runtime.version, designSources: [], native: {},
+        projectRead: { getProjectPath: async () => root, getProjectName: async () => 'PolygonFieldsFixture' },
+        message: {
+            request: async <TData = unknown,>(_target: string, method: string): Promise<TData> => {
+                calls.push(method);
+                throw new Error('threshold-refusal-must-precede-native-message:' + method);
+            },
+            send: async () => {}, broadcast: async () => {},
+        },
+    });
+    return {
+        root, path, calls, router,
+        unchanged: () => {
+            for (const [i, p] of [path, path + '.meta'].entries()) assert.deepEqual(readFileSync(join(root, p)), before[i]);
+            assert.equal(readFileSync(join(root, 'temp/logs/project.log'), 'utf8'), '');
+            assert.deepEqual(calls, []);
+        },
+        clean: () => { runtime.execution.dispose(); rmSync(root, { recursive: true, force: true }); },
+    };
+}
+
+for (const version of ['3.8.7']) {
+    for (const props of [{ threshold: 0.5 }, { density: 3, threshold: 0.5 }]) {
+        test(version + ' nonpersistent Polygon patch refuses before save/commit: ' + JSON.stringify(props), async () => {
+            const f = fixture(version);
+            try {
+                await assert.rejects(f.router.execute({ operation: 'lumen.compSet', input: {
+                    prefabRelativePath: f.path, nodePath: '/Fields', componentType: 'cc.PolygonCollider2D', props, autoCommit: true,
+                } }), (error: unknown) => {
+                    assert.equal(error instanceof Error && Reflect.get(error, 'isMcpControlFlowRefusal'), true);
+                    assert.equal(error instanceof Error ? error.message : null, 'lumen_property_not_persistent:cc.PolygonCollider2D.threshold');
+                    return true;
+                });
+                f.unchanged();
+            } finally { f.clean(); }
+        });
+    }
+    test(version + ' caller cannot select legacy Host bridge for nonpersistent Polygon', async () => {
+        const f = fixture(version);
+        try {
+            await assert.rejects(f.router.execute({ operation: 'lumen.compSet', input: {
+                prefabRelativePath: f.path, nodePath: '/Fields', componentType: 'cc.PolygonCollider2D', props: { threshold: 0.5 }, cocosVersion: '2.4.16', autoCommit: true,
+            } }), (error: unknown) => {
+                assert.equal(error instanceof Error && Reflect.get(error, 'isMcpControlFlowRefusal'), true);
+                assert.equal(error instanceof Error ? error.message : null, 'editor_mcp_lumen_host_version_mismatch:2.4.16:' + version);
+                return true;
+            }); f.unchanged();
+        } finally { f.clean(); }
+    });
+}

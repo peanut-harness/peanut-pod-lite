@@ -1,5 +1,6 @@
 import assert from 'assert/strict';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { request as httpRequest } from 'node:http';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import test from 'node:test';
@@ -7,6 +8,7 @@ import test from 'node:test';
 import { CocosMcpHub } from '../src/mcp/cocos-mcp-hub';
 import { McpHubInvocationContext } from '../src/mcp/mcp-hub-control.js';
 import { CoreTextFileIoContract } from '@peanut/pod-engine/policy';
+import { EditorMcpToolCatalog } from '../../mcp/src/editor-mcp-tool-catalog.js';
 import { PluginManagerApp } from '../src/app/plugin-manager-app';
 import { MacOsKeychainPluginProtectedKeyProvider, type IMacOsKeychainCommandRunner } from '../src/shared/plugin-protected-key-api';
 import { ProjectRevisionClock, ProjectWriterBarrier, RuntimeFacade } from '@peanut/pod-engine/runtime';
@@ -1505,4 +1507,130 @@ test('Cocos MCP Hub explicit batches preserve item task ids and isolate batch ow
         runtime.execution.dispose();
         rmSync(projectPath, { recursive: true, force: true });
     }
+});
+
+test('write and read transport aliases enforce exact whole-request byte limits including ignored controls', async (): Promise<void> => {
+    const context = new McpHubInvocationContext(() => null, async () => null, () => '/owned-fixture',
+        () => ({ revision: 0, activeWriters: 0 }), async () => {}, () => {});
+    async function* chunk(buffer: Buffer): AsyncGenerator<Buffer> { yield buffer; }
+    for (const name of ['asset.writeText', 'peanut.editor-mcp.asset-write-text', 'asset.readText', 'peanut.editor-mcp.asset-read-text']) {
+        const payload = { action: 'call', name, input: { path: 'assets/雪🙂.txt', content: '' }, ignoredControl: 'whole-envelope' };
+        const bytes = Buffer.from(JSON.stringify(payload));
+        const limit = Buffer.concat([bytes, Buffer.alloc(CoreTextFileIoContract.limits.maxInputBytes - bytes.length, 32)]);
+        assert.deepEqual(await context.readPayload(chunk(limit)), payload);
+        await assert.rejects(context.readPayload(chunk(Buffer.concat([limit, Buffer.from(' ')]))), /request_too_large/u);
+        async function* split(): AsyncGenerator<Buffer> {
+            for (let index = 0; index < bytes.length; index += 1) yield bytes.subarray(index, index + 1);
+        }
+        assert.deepEqual(await context.readPayload(split()), payload);
+    }
+    const oversizedLegacy = Buffer.from(JSON.stringify({ action: 'call', name: 'asset.writeText.extra', input: {}, padding: 'x'.repeat(128 * 1024) }));
+    await assert.rejects(context.readPayload(chunk(oversizedLegacy)), /request_too_large/u);
+});
+
+test('authenticated chunked HTTP write keeps real approval checks and accepts approved text beyond legacy 128 KiB', async (): Promise<void> => {
+    const projectPath = mkdtempSync(join(tmpdir(), 'peanut-hub-text-write-http-'));
+    mkdirSync(join(projectPath, 'temp/logs'), { recursive: true });
+    writeFileSync(join(projectPath, 'temp/logs/project.log'), '');
+    const manager = new PluginManagerApp(new RuntimeFacade('3.8.7'));
+    const hub = new CocosMcpHub(() => manager, { projectPath, port: 0 });
+    const definition = new EditorMcpToolCatalog().buildDefinitions([{ operation: 'asset.writeText', readOnly: false, risk: 'write', requiresInput: true, description: '写入文本', lane: 'lumen-offline' }])[0];
+    assert.ok(definition);
+    let calls = 0;
+    manager.getMcpCapabilityRegistry().register('peanut.editor-mcp', definition, async () => { calls += 1; return { taskId: 'owned-http-fixture', taskStatus: 'succeeded', postflight: { verified: true } }; });
+    const connectionId = 'a'.repeat(32);
+    try {
+        await hub.setPluginExposure('peanut.editor-mcp', 'all');
+        await hub.start();
+        const descriptor: unknown = JSON.parse(readFileSync(join(projectPath, '.peanut-ai/cocos-mcp.json'), 'utf8'));
+        assert.ok(typeof descriptor === 'object' && descriptor != null);
+        const token: unknown = Reflect.get(descriptor, 'token');
+        assert.ok(typeof token === 'string');
+        const port = hub.getPort();
+        assert.ok(typeof port === 'number');
+        const post = (payload: unknown, authenticated = true): Promise<unknown> => new Promise((resolveResponse, reject) => {
+            const bytes = Buffer.from(JSON.stringify(payload));
+            const request = httpRequest({ hostname: '127.0.0.1', port, path: '/mcp', method: 'POST',
+                headers: { 'content-type': 'application/json', ...(authenticated ? { 'x-peanut-mcp-token': token } : {}) } }, (response) => {
+                const chunks: Buffer[] = [];
+                response.on('data', (chunk: Buffer) => chunks.push(chunk));
+                response.on('end', () => {
+                    try {
+                        const body = Buffer.concat(chunks).toString('utf8');
+                        resolveResponse({ status: response.statusCode, body: body.length === 0 ? null : JSON.parse(body) });
+                    }
+                    catch (error: unknown) { reject(error); }
+                });
+                response.on('error', reject);
+            });
+            request.on('error', reject);
+            request.setTimeout(5000, () => request.destroy(new Error('owned_http_timeout')));
+            const unicode = bytes.indexOf(Buffer.from('雪'));
+            assert.ok(unicode > 0);
+            request.write(bytes.subarray(0, unicode + 1));
+            request.write(bytes.subarray(unicode + 1, unicode + 2));
+            request.end(bytes.subarray(unicode + 2));
+        });
+        const input = { path: 'assets/雪🙂.txt', content: 'x'.repeat(256 * 1024) };
+        const unauthenticated = await post({ action: 'call', name: definition.name, input, connectionId }, false);
+        assert.ok(typeof unauthenticated === 'object' && unauthenticated != null);
+        assert.notEqual(Reflect.get(unauthenticated, 'status'), 200);
+        assert.equal(calls, 0);
+        const pending = await post({ action: 'call', name: definition.name, input, connectionId });
+        assert.ok(typeof pending === 'object' && pending != null);
+        const pendingBody: unknown = Reflect.get(pending, 'body');
+        assert.ok(typeof pendingBody === 'object' && pendingBody != null);
+        const plan: unknown = Reflect.get(pendingBody, 'result');
+        assert.ok(typeof plan === 'object' && plan != null);
+        const planId: unknown = Reflect.get(plan, 'planId');
+        assert.ok(typeof planId === 'string');
+        assert.equal(calls, 0);
+        const approval = hub.approvePlanAndIssueToken(planId, ['db://assets/雪🙂.txt']);
+        assert.ok(approval);
+        const result = await post({ action: 'call', name: definition.name, input: { ...input, approvalToken: approval.approvalToken }, connectionId });
+        assert.ok(typeof result === 'object' && result != null);
+        assert.equal(Reflect.get(result, 'status'), 200);
+        assert.equal(calls, 1);
+    } finally {
+        await hub.stop();
+        rmSync(projectPath, { recursive: true, force: true });
+    }
+});
+
+test('actual Hub HTTP and NDJSON preserve nullable per-file failure attachment and omit private unknown fields', async (): Promise<void> => {
+    const projectPath = mkdtempSync(join(tmpdir(), 'pod-text-failure-hub-'));
+    const runtime = new RuntimeFacade('3.8.7');
+    const manager = new PluginManagerApp(runtime);
+    const hub = new CocosMcpHub(() => manager, { projectPath });
+    const attachment = { schemaVersion: 1, ok: false, projectState: 'may_have_changed',
+        files: [{ path: 'assets/a.txt', status: 'written_unverified', bytes: null, beforeSha256: 'absent', sha256: null, uuid: null }] };
+    manager.getMcpCapabilityRegistry().register('peanut.example', {
+        name: 'peanut.example.text-failure', description: '受控文本失败附件。', category: 'cocos',
+        inputSchema: { type: 'object', additionalProperties: false }, readOnly: true, risk: 'read',
+    }, async () => {
+        throw Object.assign(new Error('text_file_io_verification_failed'), { mcpFailure: {
+            schemaVersion: 1, code: 'text_file_io_verification_failed', category: 'execution_failed',
+            reason: 'Text write verification failed.', retryable: false, state: 'may_have_changed',
+            recommendedAction: 'query_state_before_retry', textFileWrite: attachment,
+            content: 'private source', absoluteBackupPath: '/private/recovery',
+        } });
+    });
+    try {
+        await hub.start();
+        const port = hub.getPort(); assert.ok(typeof port === 'number');
+        const descriptor = JSON.parse(readFileSync(join(projectPath, '.peanut-ai/cocos-mcp.json'), 'utf8')) as Record<string, unknown>;
+        assert.ok(typeof descriptor.token === 'string');
+        for (const stream of [false, true]) {
+            const response: Response = await fetch('http://127.0.0.1:' + port + '/mcp', {
+                method: 'POST', headers: { 'content-type': 'application/json', 'x-peanut-mcp-token': descriptor.token },
+                body: JSON.stringify({ action: 'call', name: 'peanut.example.text-failure', input: {}, connectionId: 'c'.repeat(32), stream }),
+            });
+            const raw: string = await response.text();
+            const body = JSON.parse(stream ? raw.trim().split('\n').pop() ?? '{}' : raw) as { ok: boolean; failure: { textFileWrite: unknown } };
+            assert.equal(body.ok, false);
+            assert.deepEqual(body.failure.textFileWrite, attachment);
+            assert.equal(raw.includes('private source'), false);
+            assert.equal(raw.includes('/private/recovery'), false);
+        }
+    } finally { await hub.stop(); runtime.execution.dispose(); rmSync(projectPath, { recursive: true, force: true }); }
 });

@@ -112,6 +112,16 @@ export interface ILumenStandaloneAssetDocument {
      * @param cocosVersion Creator 版本（决定 meta `ver`）
      */
     save(projectRoot: string, writeMetaIfMissing?: boolean, cocosVersion?: LumenCocosVersion): void;
+    /**
+     * @description 仅编辑 meta 的文档返回独立内存快照，供原生 AssetDB 单次保存；混合源文档不提供。
+     * @returns 可原生提交的 meta 副本，或 null。
+     */
+    getNativeMetaSnapshot?(): Record<string, unknown> | null;
+    /**
+     * @description 提供新源资产的内存内容，首次创建交给 Creator；不提前写源或 meta。
+     * @returns Creator 源 JSON 文本。
+     */
+    serializeNativeSource?(): string;
 }
 
 /**

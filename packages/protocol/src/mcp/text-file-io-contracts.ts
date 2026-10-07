@@ -251,3 +251,124 @@ export interface ITextFileWriteResult {
      */
     readonly files: readonly ITextFileWriteOutcome[];
 }
+
+/**
+ * @description 失败结果投影的调用方容量和任务路径边界。
+ */
+export interface ITextFileWriteProjectionLimits {
+    /**
+     * @description 调用方实际允许的文件数量。
+     */
+    readonly maxFiles: number;
+    /**
+     * @description 单文件实际字节上限。
+     */
+    readonly maxFileBytes: number;
+    /**
+     * @description 整个投影的 UTF-8 JSON 字节上限。
+     */
+    readonly maxOutputBytes: number;
+    /**
+     * @description 原始受理任务的有序路径；提供后必须逐项匹配。
+     */
+    readonly paths?: readonly string[];
+}
+
+/**
+ * @description 共享纯投影器，只公开有限逐文件证据，不执行访问器或拷贝源码。
+ */
+export class TextFileWriteResultProjection {
+    /**
+     * @description 校验并重建有限公共 DTO，未知结构失败关闭。
+     * @param value 未受信附件。
+     * @param limits 当前任务或公开传输容量。
+     * @returns 独立安全投影；无效数据返回 null。
+     */
+    public static project(value: unknown, limits: ITextFileWriteProjectionLimits): ITextFileWriteResult | null {
+        try {
+            if (![limits.maxFiles, limits.maxFileBytes, limits.maxOutputBytes].every((n) => Number.isSafeInteger(n) && n > 0)
+                || !this._record(value, ['schemaVersion', 'ok', 'projectState', 'files'])
+                || value.schemaVersion !== 1 || typeof value.ok !== 'boolean'
+                || typeof value.projectState !== 'string' || !['not_started', 'unchanged', 'may_have_changed', 'verified'].includes(value.projectState)
+                || !Array.isArray(value.files) || value.files.length < 1 || value.files.length > limits.maxFiles
+                || Reflect.ownKeys(value.files).length !== value.files.length + 1
+                || limits.paths != null && limits.paths.length !== value.files.length) {
+                return null;
+            }
+            const files: ITextFileWriteOutcome[] = [];
+            for (let index = 0; index < value.files.length; index += 1) {
+                const descriptor = Object.getOwnPropertyDescriptor(value.files, index);
+                const file: unknown = descriptor?.value;
+                if (descriptor?.get != null || descriptor?.set != null
+                    || !this._record(file, ['path', 'status', 'bytes', 'beforeSha256', 'sha256', 'uuid', 'code'])
+                    || typeof file.path !== 'string' || file.path.length > 4096 || !file.path.startsWith('assets/')
+                    || file.path.split('/').some((part) => part === '' || part === '.' || part === '..')
+                    || /[\\\u0000-\u001f]/u.test(file.path) || file.path.endsWith('.meta')
+                    || limits.paths != null && limits.paths[index] !== file.path
+                    || typeof file.status !== 'string' || !['verified', 'written_unverified', 'failed', 'not_started'].includes(file.status)
+                    || file.bytes !== null && (!Number.isSafeInteger(file.bytes) || typeof file.bytes !== 'number' || file.bytes < 0 || file.bytes > limits.maxFileBytes)
+                    || !this._hash(file.beforeSha256, true) || !this._hash(file.sha256, false)
+                    || file.uuid !== null && (typeof file.uuid !== 'string' || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/iu.test(file.uuid))
+                    || file.code !== undefined && (typeof file.code !== 'string' || !/^[a-z][a-z0-9_]{0,127}$/u.test(file.code))) {
+                    return null;
+                }
+                if (file.status === 'verified' && (file.bytes === null || file.beforeSha256 === null || file.sha256 === null || file.uuid === null)
+                    || file.status === 'not_started' && (file.bytes !== null || file.sha256 !== null || file.uuid !== null)) {
+                    return null;
+                }
+                files.push({ path: file.path, status: file.status as TextFileWriteStatus, bytes: file.bytes as number | null,
+                    beforeSha256: file.beforeSha256 as string | null, sha256: file.sha256 as string | null,
+                    uuid: file.uuid as string | null, ...(typeof file.code === 'string' ? { code: file.code } : {}) });
+            }
+            const allVerified = files.every((file) => file.status === 'verified');
+            if (value.ok !== allVerified || value.ok !== (value.projectState === 'verified')
+                || !value.ok && files.some((file) => file.status === 'verified')
+                || value.projectState === 'not_started' && files.some((file) => file.status !== 'not_started')
+                || value.projectState === 'unchanged' && files.some((file) => file.status === 'written_unverified')) {
+                return null;
+            }
+            const result: ITextFileWriteResult = { schemaVersion: 1, ok: value.ok,
+                projectState: value.projectState as ITextFileWriteResult['projectState'], files };
+            const json = JSON.stringify(result);
+            let bytes = 0;
+            for (const char of json) {
+                const point = char.codePointAt(0) ?? 0;
+                bytes += point < 0x80 ? 1 : point < 0x800 ? 2 : point < 0x10000 ? 3 : 4;
+                if (bytes > limits.maxOutputBytes) {
+                    return null;
+                }
+            }
+            return result;
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * @description 校验纯数据对象及有限允许字段，不读取访问器。
+     * @param value 候选对象。
+     * @param keys 允许的公共键。
+     * @returns 是否为安全记录。
+     */
+    private static _record(value: unknown, keys: readonly string[]): value is Record<string, unknown> {
+        if (value === null || typeof value !== 'object' || Array.isArray(value)
+            || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) {
+            return false;
+        }
+        return Reflect.ownKeys(value).every((key) => {
+            const descriptor = Object.getOwnPropertyDescriptor(value, key);
+            return typeof key === 'string' && keys.includes(key) && descriptor?.enumerable === true
+                && descriptor.get == null && descriptor.set == null;
+        });
+    }
+
+    /**
+     * @description 校验真实摘要及明确不存在标记。
+     * @param value 候选摘要。
+     * @param absent 是否允许不存在。
+     * @returns 是否有效。
+     */
+    private static _hash(value: unknown, absent: boolean): boolean {
+        return value === null || typeof value === 'string' && (/^[0-9a-f]{64}$/u.test(value) || absent && value === 'absent');
+    }
+}

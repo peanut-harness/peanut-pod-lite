@@ -56,7 +56,7 @@ export class CompatiblePluginNetworkTransport implements IPluginNetworkTransport
         resolve: (value: IPluginNetworkResponse) => void,
         reject: (reason: Error) => void,
     ): void {
-        const chunks: INodeBuffer[] = [];
+        const chunks: ReturnType<typeof Buffer.from>[] = [];
         response.on('data', (chunk: Uint8Array): void => {
             chunks.push(Buffer.from(chunk));
         });

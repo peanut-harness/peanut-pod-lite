@@ -19,6 +19,7 @@ import type {
   ITaskOwner,
   ITaskReceipt,
   ITaskRequest,
+  ITextFileIoLimits,
   ITaskResult,
   ITaskSnapshot,
   PanelId,
@@ -27,6 +28,35 @@ import type {
   TaskId,
   TaskMergePolicy,
 } from "@peanut/pod-protocol";
+
+/**
+ * @description SDK 自包含的内部 Host Guard 准备结构，仅描述本次调用的数据，不签发执行或拒绝证明。
+ * 与真实 Guard 的目标及准备字段结构一致；不引入 Engine 依赖，不替代 writer 内重验或最终后验。
+ */
+interface IPluginHostTextWritePreparedFile {
+  /** @description 真实目标对应的规范 assets 路径。 */
+  readonly path: string;
+  /** @description 已确认位于实际资产根内的物理绝对路径。 */
+  readonly absolutePath: string;
+  /** @description 准备时目标是否存在。 */
+  readonly exists: boolean;
+  /** @description 现有文件的设备与 inode 标识；不存在时为空。 */
+  readonly identity: string | null;
+  /** @description 保留原始请求的规范路径，不替换排队前解析来源。 */
+  readonly requestedPath: string;
+  /** @description 原有父级链的路径和设备 inode 身份。 */
+  readonly parentIdentity: string;
+  /** @description 原父级链已有或缺失目录的身份，不用后续快照替换。 */
+  readonly parentDirectories: Readonly<Record<string, string | null>>;
+  /** @description 已校验可无损编码的原始 UTF-8 内容。 */
+  readonly content: string;
+  /** @description 输入内容的实际字节数。 */
+  readonly byteCount: number;
+  /** @description 准备时真实源摘要或 absent，不是写后证据。 */
+  readonly beforeSha256: string;
+  /** @description 可选的调用方预期源摘要或 absent。 */
+  readonly expectedSha256?: string;
+}
 
 /**
  * @description 由宿主补充插件身份的受管任务入队请求。
@@ -53,6 +83,17 @@ export interface IPluginTaskExecutorContext {
    * @description 记录经过 allow-list 筛选的任务证据。
    */
   recordEvidence(evidence: ITaskEvidenceEntry): void;
+  /**
+   * @description 可选内部 Host Guard 端口；仅固定原文本任务提供，不接收回调、异常或外部证明。
+   * @param request 必须为 Host 捕获的同一原受理 request。
+   * @param projectRoot Core 当前实际工程根，Host 必须与自己的工程根核对。
+   * @param input 必须与原受理 request.payload.input 为同一对象。
+   * @param limits Core 的统一容量；Host 仅允许等于或收紧产品上限。
+   * @param signal 必须为该任务原 Host-own signal，不允许复制上下文替换信号。
+   * @returns 实际 Host Guard.prepareWrite 的无写入准备；原异常原样传递。
+   */
+  prepareTextWrite?(request: Readonly<ITaskRequest>, projectRoot: string, input: unknown, limits: ITextFileIoLimits,
+    signal: AbortSignal): readonly IPluginHostTextWritePreparedFile[];
 }
 
 /**
@@ -333,6 +374,17 @@ export interface IAssetCatalogClient {
     readonly generatedAt: string;
     readonly counts: Readonly<Record<string, number>>;
     readonly conflictCount: number;
+  } | {
+    /** @description 目录尚未初始化，没有可用摘要。 */
+    readonly available: false;
+    /** @description 明确拒绝本次读取，不伪造成功摘要。 */
+    readonly availability: 'refused';
+    /** @description 稳定的目录初始化状态码。 */
+    readonly code: 'asset_catalog_not_initialized';
+    /** @description 不含本机路径的状态说明。 */
+    readonly message: 'asset_catalog_not_initialized';
+    /** @description 初始化需另行执行的实际操作标识。 */
+    readonly recommendedAction: 'asset.catalog.refresh';
   };
   lookup(
     projectRoot: string,

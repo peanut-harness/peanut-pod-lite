@@ -435,6 +435,9 @@ test('task control plane should cancel only before the commit window', (): void 
     controlPlane.enterCommitWindow(committingTask.taskId);
 
     assert.deepEqual(controlPlane.cancel(queuedTask.taskId), { taskId: queuedTask.taskId, cancelled: true });
+    assert.equal(controlPlane.getResult(queuedTask.taskId)?.status, 'cancelled');
+    assert.equal(controlPlane.getResult(queuedTask.taskId)?.error?.code, 'task_cancelled');
+    assert.deepEqual(controlPlane.getResult(queuedTask.taskId)?.changes, []);
     assert.deepEqual(controlPlane.cancel(committingTask.taskId), {
         taskId: committingTask.taskId,
         cancelled: false,
@@ -1349,4 +1352,58 @@ async function waitForQueueSnapshot(
     }
 
     return executionRuntimeService.inspectQueue();
+}
+
+for (const variant of ['valid', 'valid-no-declared-id', 'foreign-id', 'foreign-request', 'shared-request', 'foreign-path', 'duplicate', 'oversized', 'private-field']) {
+    test('actual Runtime preserves only own accepted text failure: ' + variant, async (): Promise<void> => {
+        const ledger = new TaskLedger();
+        const registry = new TaskExecutorRegistry();
+        const kind = 'editor-mcp.resource-operation';
+        const pluginId = 'peanut.failure-projection';
+        const reject = async (tasks: readonly import('../src/execution/ingress/task-ingress.js').IAcceptedTask[]): Promise<never> => {
+            const entries = tasks.map((task, index) => ({
+                request: task.request, taskId: task.taskId,
+                textFileWrite: { schemaVersion: 1, ok: false, projectState: index === 0 ? 'may_have_changed' : 'not_started',
+                    files: [{ path: 'assets/' + index + '.txt', status: index === 0 ? 'written_unverified' : 'not_started',
+                        bytes: null, beforeSha256: null, sha256: null, uuid: null }] },
+            }));
+            const entry = entries[0];
+            assert.ok(entry);
+            if (variant === 'valid-no-declared-id') entries.forEach((item) => Reflect.deleteProperty(item, 'taskId'));
+            if (variant === 'shared-request') entries.forEach((item) => { item.request = entry.request; });
+            if (variant === 'foreign-id') entry.taskId = 'foreign-task';
+            if (variant === 'foreign-request') entry.request = { ...entry.request };
+            if (variant === 'foreign-path') {
+                const file = entry.textFileWrite.files[0]; assert.ok(file); file.path = 'assets/other.txt';
+            }
+            if (variant === 'duplicate') entries.push(entry);
+            if (variant === 'oversized') Reflect.set(entry.textFileWrite.files[0] ?? {}, 'bytes', 1048577);
+            if (variant === 'private-field') Reflect.set(entry.textFileWrite, 'content', 'private source');
+            throw Object.assign(new Error('text_file_io_verification_failed'), { projectState: 'may_have_changed', taskFailures: entries });
+        };
+        registry.register(pluginId, kind, { concurrency: 'executor_managed',
+            execute: async (task: import('../src/execution/ingress/task-ingress.js').IAcceptedTask) => reject([task]),
+            executeBatch: async (tasks: readonly import('../src/execution/ingress/task-ingress.js').IAcceptedTask[]) => reject(tasks) });
+        const service = new ExecutionRuntimeService(new TaskIngress(), new TaskScheduler(ledger), ledger, new WorkerPool(), new TaskMerger(),
+            new ResourceLockManager(), new BatchCommitCoordinator(new RuntimeTaskCommitDispatcher(registry, pluginId)),
+            new TracePipeline(), new TimeoutAndCancelController(), registry);
+        try {
+            const requests: ITaskRequest[] = [0, 1].map((index) => ({ requestId: 'failure-' + index, pluginId,
+                scope: 'project', priority: 'normal', kind, mergePolicy: 'batch_commit',
+                payload: { operation: 'asset.writeText', input: { path: 'assets/' + index + '.txt', content: 'new' } } }));
+            const receipt = await service.submitBatch(requests);
+            for (let index = 0; index < receipt.receipts.length; index += 1) {
+                const taskId = receipt.receipts[index]?.taskId; assert.ok(taskId);
+                const result = await service.getResult(taskId);
+                assert.equal(result?.ok, false);
+                assert.equal(result?.status, 'failed');
+                const data = result?.data as Record<string, unknown> | undefined;
+                const own = data?.textFileWrite as { files: { path: string }[] } | undefined;
+                const bindingInvalid = ['foreign-id', 'foreign-request', 'shared-request', 'duplicate'].includes(variant);
+                if (['valid', 'valid-no-declared-id'].includes(variant) || !bindingInvalid && index === 1) {
+                    assert.equal(own?.files[0]?.path, 'assets/' + index + '.txt');
+                } else assert.equal(own, undefined);
+            }
+        } finally { service.dispose(); }
+    });
 }

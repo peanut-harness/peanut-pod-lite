@@ -303,6 +303,14 @@ export class LumenImageMetaDocument {
     }
 
     /**
+     * @description 返回图片 meta 的独立内存副本，供 AssetDB 提交，不写源或缓存。
+     * @returns meta 副本。
+     */
+    public getNativeMetaSnapshot(): Record<string, unknown> {
+        return this._cloneRecord(this._meta);
+    }
+
+    /**
      * @description 原子写回图片 `.meta`，不改图片源文件与缓存目录。
      * @param projectRoot Creator 项目根
      * @param writeMetaIfMissing 图片必须已有 meta；该参数仅用于统一文档契约

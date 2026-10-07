@@ -625,9 +625,18 @@ async function runStartupSmokeAndWriteReport() {
             }
             // Prefer empty input; skip tools that need required fields (they fail with schema errors).
             const result = await entry.handler({}, { connectionId: 'creator-local', resourceIds: [] });
-            item.ok = true;
             item.resultType = result === null ? 'null' : Array.isArray(result) ? 'array' : typeof result;
             item.preview = previewSmokeValue(result);
+            if (name === 'peanut.editor-mcp.asset-catalog-summary'
+                && result?.available === false && result?.availability === 'refused'
+                && result?.code === 'asset_catalog_not_initialized'
+                && result?.recommendedAction === 'asset.catalog.refresh') {
+                item.error = result.code;
+                item.refused = true;
+                item.skipped = true;
+            } else {
+                item.ok = true;
+            }
         } catch (error) {
             const message = normalizeError(error);
             item.error = message;

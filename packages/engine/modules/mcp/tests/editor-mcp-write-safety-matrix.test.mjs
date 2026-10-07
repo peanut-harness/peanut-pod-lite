@@ -1,10 +1,10 @@
 import assert from 'assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import test from 'node:test';
 
-import { EditorMcpPluginModule } from '../dist/index.js';
+import { EditorMcpActionRouter, EditorMcpPluginModule } from '../dist/index.js';
 import { CoreTextFileIoContract } from '../../policy/dist/index.js';
 
 function createCatalogLookupStub() {
@@ -67,11 +67,20 @@ function createCatalogLookupStub() {
 async function activateRouter(options = {}) {
     const importCalls = [];
     const projectPath = options.projectPath ?? mkdtempSync(join(tmpdir(), 'peanut-editor-mcp-matrix-'));
+    mkdirSync(join(projectPath, 'assets'), { recursive: true });
     mkdirSync(join(projectPath, 'temp', 'logs'), { recursive: true });
     writeFileSync(join(projectPath, 'temp', 'logs', 'project.log'), '', 'utf8');
     const handlers = new Map();
     const definitions = new Map();
     const pluginModule = new EditorMcpPluginModule(createCatalogLookupStub());
+    if (options.creatorMessageContext != null) {
+        const previousEditor = globalThis.Editor;
+        globalThis.Editor = { Project: { path: projectPath }, Message: { request: options.messageHandler } };
+        options.creatorMessageContext.after(() => {
+            if (previousEditor === undefined) delete globalThis.Editor;
+            else globalThis.Editor = previousEditor;
+        });
+    }
     await pluginModule.activate({
         plugin: { id: 'peanut.editor-mcp' },
         runtime: {
@@ -183,24 +192,29 @@ test('matrix: asset.importPlan expands Spine closure and layers leaf-first', asy
     );
 });
 
-test('matrix: asset.writeText creates a new text asset before it exists on disk', async () => {
+test('matrix: asset.writeText creates a new text asset before it exists on disk', async (context) => {
     const projectPath = mkdtempSync(join(tmpdir(), 'peanut-mcp-write-text-new-'));
     const relativePath = 'assets/generated/NewController.ts';
     const absolutePath = join(projectPath, relativePath);
     let registered = false;
     const { pluginModule, importCalls } = await activateRouter({
         projectPath,
+        creatorMessageContext: context,
         messageHandler: async (_target, message, dbUrl, content) => {
             if (message === 'query-asset-info') {
-                return registered || String(dbUrl).endsWith('/') ? { uuid: 'registered' } : null;
+                const queried = join(projectPath, String(dbUrl).slice('db://'.length));
+                if (existsSync(queried) && lstatSync(queried).isDirectory() && existsSync(queried + '.meta')) {
+                    return JSON.parse(readFileSync(queried + '.meta', 'utf8'));
+                }
+                return registered || String(dbUrl).endsWith('/') ? { uuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' } : null;
             }
             if (message === 'create-asset') {
                 assert.equal(existsSync(absolutePath), false);
                 mkdirSync(join(projectPath, 'assets/generated'), { recursive: true });
                 writeFileSync(absolutePath, content, 'utf8');
-                writeFileSync(`${absolutePath}.meta`, '{"uuid":"registered"}\n', 'utf8');
+                writeFileSync(`${absolutePath}.meta`, '{"uuid":"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee","importer":"typescript"}\n', 'utf8');
                 registered = true;
-                return { uuid: 'registered' };
+                return { uuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' };
             }
             if (message === 'query-ready') {
                 return true;
@@ -219,7 +233,7 @@ test('matrix: asset.writeText creates a new text asset before it exists on disk'
     assert.equal(importCalls.some((entry) => entry.message === 'refresh-asset' && entry.args[0] === `db://${relativePath}`), false);
 });
 
-test('matrix: asset.writeText recovers an unregistered disk orphan without overwrite prompts', async () => {
+test('matrix: asset.writeText recovers an unregistered disk orphan without overwrite prompts', async (context) => {
     const projectPath = mkdtempSync(join(tmpdir(), 'peanut-mcp-write-text-orphan-'));
     const relativePath = 'assets/generated/RecoveredController.ts';
     const absolutePath = join(projectPath, relativePath);
@@ -228,11 +242,19 @@ test('matrix: asset.writeText recovers an unregistered disk orphan without overw
     writeFileSync(`${absolutePath}.meta`, '{"uuid":"stale"}\n', 'utf8');
     let registered = false;
     let failCreate = true;
+    let nativeReimported = false;
     const { pluginModule, importCalls } = await activateRouter({
         projectPath,
+        creatorMessageContext: context,
         messageHandler: async (_target, message, dbUrl, content) => {
             if (message === 'query-asset-info') {
-                return registered || String(dbUrl).endsWith('/') ? { uuid: 'registered' } : null;
+                const queried = join(projectPath, String(dbUrl).slice('db://'.length));
+                if (existsSync(queried) && lstatSync(queried).isDirectory() && existsSync(queried + '.meta')) {
+                    return JSON.parse(readFileSync(queried + '.meta', 'utf8'));
+                }
+                return registered ? { uuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', importer: 'typescript',
+                    imported: nativeReimported } : String(dbUrl).endsWith('/')
+                    ? { uuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' } : null;
             }
             if (message === 'create-asset') {
                 assert.equal(existsSync(absolutePath), false);
@@ -241,9 +263,15 @@ test('matrix: asset.writeText recovers an unregistered disk orphan without overw
                     throw new Error('simulated_create_failure');
                 }
                 writeFileSync(absolutePath, content, 'utf8');
-                writeFileSync(`${absolutePath}.meta`, '{"uuid":"registered"}\n', 'utf8');
+                writeFileSync(`${absolutePath}.meta`, '{"uuid":"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee","importer":"typescript"}\n', 'utf8');
                 registered = true;
-                return { uuid: 'registered' };
+                return { uuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' };
+            }
+            if (message === 'reimport-asset') {
+                assert.equal(dbUrl, `db://${relativePath}`);
+                assert.equal(readFileSync(absolutePath, 'utf8'), 'export const recovered = true;\n');
+                nativeReimported = true;
+                return undefined;
             }
             if (message === 'query-ready') {
                 return true;
@@ -269,6 +297,8 @@ test('matrix: asset.writeText recovers an unregistered disk orphan without overw
 
     assert.equal(readFileSync(absolutePath, 'utf8'), 'export const recovered = true;\n');
     assert.equal(importCalls.filter((entry) => entry.message === 'create-asset').length, 2);
+    assert.equal(importCalls.filter((entry) => entry.message === 'reimport-asset').length, 1);
+    assert.equal(nativeReimported, true);
     assert.equal(importCalls.some((entry) => entry.message === 'refresh-asset' && entry.args[0] === `db://${relativePath}`), false);
 });
 
@@ -837,4 +867,60 @@ test('matrix: scene.queryNodeWithNodes resolves flat hierarchy paths', async () 
     assert.equal(leaf.message, 'scene_query_node_ok');
     const miss = gateway.queryNodeWithNodes({ path: 'Missing' }, nodes);
     assert.equal(miss.message, 'scene_query_node_not_found');
+});
+
+test('matrix: public direct write retains expectedSha256 and rejects whole batch before any directory or meta', async () => {
+    const f = await activateRouter();
+    try {
+        writeFileSync(join(f.projectPath, 'assets/a.txt'), 'original');
+        writeFileSync(join(f.projectPath, 'assets/a.txt.meta'), '{"uuid":"kept"}');
+        const input = { files: [{ path: 'assets/new/sub.txt', content: 'first' },
+            { path: 'assets/a.txt', content: 'last', expectedSha256: 'f'.repeat(64) }] };
+        await assert.rejects(f.pluginModule.dispatchMcpAction('cocos.call', { operation: 'asset.writeText', input }), /content_conflict/u);
+        assert.equal(existsSync(join(f.projectPath, 'assets/new')), false);
+        assert.equal(readFileSync(join(f.projectPath, 'assets/a.txt'), 'utf8'), 'original');
+        assert.equal(readFileSync(join(f.projectPath, 'assets/a.txt.meta'), 'utf8'), '{"uuid":"kept"}');
+        assert.deepEqual(f.importCalls, []);
+        const flat = f.handlers.get('peanut.editor-mcp.asset-write-text');
+        assert.ok(flat);
+        await assert.rejects(flat({ path: 'assets/a.txt', content: '', approvalToken: '\n'.repeat(2 * 1024 * 1024) }), /json_bytes_exceeded/u);
+        assert.deepEqual(f.importCalls, []);
+    } finally {
+        await f.pluginModule.deactivate('manual_disable');
+        rmSync(f.projectPath, { recursive: true, force: true });
+    }
+});
+
+test('matrix: public direct writer rechecks the whole original batch after initial preparation', async () => {
+    const f = await activateRouter();
+    const original = EditorMcpActionRouter.prototype.planManagedResourceOperation;
+    let release;
+    let entered;
+    const gate = new Promise((resolve) => { release = resolve; });
+    const prepared = new Promise((resolve) => { entered = resolve; });
+    EditorMcpActionRouter.prototype.planManagedResourceOperation = async function (...args) {
+        const plan = await original.apply(this, args);
+        if (args[0] === 'asset.writeText') { entered(); await gate; }
+        return plan;
+    };
+    let pending;
+    try {
+        writeFileSync(join(f.projectPath, 'assets/a.txt'), 'original');
+        pending = assert.rejects(f.pluginModule.dispatchMcpAction('cocos.call', { operation: 'asset.writeText',
+            input: { files: [{ path: 'assets/new/sub.txt', content: 'first' }, { path: 'assets/a.txt', content: 'last' }] } }),
+            /snapshot_conflict/u);
+        await prepared;
+        writeFileSync(join(f.projectPath, 'assets/a.txt'), 'external');
+        release();
+        await pending;
+        assert.equal(existsSync(join(f.projectPath, 'assets/new')), false);
+        assert.equal(readFileSync(join(f.projectPath, 'assets/a.txt'), 'utf8'), 'external');
+        assert.deepEqual(f.importCalls, []);
+    } finally {
+        release();
+        if (pending) await pending;
+        EditorMcpActionRouter.prototype.planManagedResourceOperation = original;
+        await f.pluginModule.deactivate('manual_disable');
+        rmSync(f.projectPath, { recursive: true, force: true });
+    }
 });

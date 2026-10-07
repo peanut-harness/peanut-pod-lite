@@ -219,3 +219,37 @@ const sync = LumenDefaultTemplateRoot.ensurePluginCache(pluginCacheDir);
 1. **`fileId` 重写**：`cloneFromTemplate` / `cloneSubtreeForEmbed` 必须为全部本地 `fileId` 重新生成，禁止复用 `default_prefab` 模板 id（否则同 prefab 多 Button 等实例会触发 `generatePrefabUUIDMap … already exist`）。
 2. **覆盖写原子性**：`save` 先写同目录临时文件再 `rename`，避免半截 JSON；覆盖已有 `.prefab` 时不要删 `.meta`。验证脚本只 `rm` `.prefab`；否则 Creator `library/<old-uuid>.json` 会成孤儿，编辑器 soft-reload 仍读旧撞号内容。
 3. **不写 `library/` / `temp/`**：索引走 `@peanut/pod-engine/assets`；Import / soft-reload 交给 Creator。若仍见旧撞号日志：关掉 prefab 页签 → 确认磁盘 fileId 已唯一 → 清无对应 orphan library → 从资源管理器重开。
+
+在实际验证的 Creator 3.8.3 / 3.8.7 中，`cc.UITransform.priority` 是已弃用的运行时排序属性，不经原生场景序列化持久化。完整属性目录仍保留该字段并标记 `writable: false`、`writeRefusedReason: native_runtime_only`；`comp-set` 在任何补丁变化和保存前拒绝它（包括混合补丁）。尺寸与锚点的六个公开属性保持可写。运行时排序应使用引擎的节点 sibling 顺序；本条不声明已实现新的原生排序操作。
+
+SpriteAtlas XML `.plist` 导入会从 `frames` / `metadata` 中的 `textureFileName`、`realTextureFileName` 发现同目录贴图，先导入贴图并等待原生就绪，再导入图集。默认依赖闭包无需调用方重复提供这张依赖表；声明的贴图缺失、越界路径或未知 XML 实体会在原生调用前拒绝。这里仅支持同目录文件名和 XML 内建/数值文本实体，不读取外部 DTD，不将粒子 plist 当作图集，也不声明所有 plist 格式或贴图字段已经过原生验收。
+
+在实测 Creator 3.8.3 / 3.8.7 中，`cc.Mask.spriteFrame` 的原生 getter 读取同节点 Sprite。Lumen 在整补丁校验后复用唯一自有 Sprite，或通过原挂载流程创建载体，将图片引用存入 Sprite 的序列化字段；不留下不能驱动该 getter 的 Mask 影子字段。检视读取真实载体，外部所有者或重复 Sprite 在变更前拒绝。完整 Mask 五字段目录保留；本条不承诺所有遮罩类型、像素裁剪效果或未实测版本。
+
+EditBox 的占位文本、正文和占位样式在实测 Creator 3.8.3 / 3.8.7 中由自有 Label 承载，背景由原生 Sprite 承载。完整13字段目录保持；Lumen 对整补丁和所有现有载体先验证，再沿原节点组件工厂创建缺失载体并写入真实持久字段，检视从同一载体读取。外部、重复或共享同一文本载体的引用在变更前拒绝，原背景和普通字段语义保留。本条不外推其他版本或全部输入模式、物理键盘、导出平台。
+
+实际 Creator 3.8.3 / 3.8.7 的 `cc.Camera.targetDisplay` 不存在原生持久化字段或运行时属性：公开写入形成的影子值在真正场景加载后丢失。完整15字段目录保留它并标记 `writable: false`、`writeRefusedReason: native_unsupported`；整补丁在保存、原生调用和任何字段变化前拒绝（包括混合补丁）。其余14字段及 Canvas 的真实 Camera 引用保持原契约。本条仅承诺已实测版本，不外推导出 player、其他版本或多屏显示支持。
+
+AnimationClip 的 `curves` 数值简写支持 `{ path, property, keys, values, component?, interpolate? }`：严格递增的非负有限时间，有限标量或一致的二至四维数值向量。写入现代 RealTrack / VectorTrack，同时保留原 Inspector 曲线回读；空数组清空轨道。`component` 是可选组件路径，`interpolate: false` 使用常量插值。原样 legacy `modifiers` / `data` 描述保持原兼容路径，不据此承诺原生轨道运动；字符串、对象或其它曲线类型不在本次数值简写范围。当前真实运行验证针对 Creator 3.8.3 / 3.8.7，不能外推其它版本。
+
+Creator 3.8.3 / 3.8.7 的 Button COLOR 初始状态会同步到实际 target 的唯一自有 Sprite：disabled 使用 disabledColor，enabled 使用 normalColor。原节点/组件引用解析和 clickEvents 创建、替换、清理流程完整保留；整补丁先在独立内存文档校验，再检查目标/Sprite 所有权与共享冲突，通过后才改原文档。不强制引擎生命周期，不为 NONE / SPRITE / SCALE 或未实测版本应用此颜色映射；缺少 Sprite 不自动创建载体。未知版本、完整状态值域及长时运行仍需原生验证。
+
+TMX 导入仅自动处理已验证的有限 orthogonal 1.0–1.4、内联 tileset、CSV 与同目录 PNG 子集。计划器解码 XML 内建/数值实体并拒绝 DTD、自定义实体、URI、路径逃逸、符号/硬链接和外部 TSX/infinite/compression；单 seed 展开 PNG 并分层先导入。执行器在原 writer/资源锁内，经公开 save-asset-meta 和严格原生刷新/ready 准备 SpriteFrame，保持 PNG 源字节、主及既有子 UUID，拒绝原生改名的依赖目标。TMX 导入后核对实际主身份、原源字节及 library 的全部帧引用；必需保存/刷新/查询错误保留原对象，不吞掉、不重放或回滚。普通非 TMX 流程、Guard/完整公开 DTO/原锁和取消边界保持。该子集之外和更广外部 TOCTOU/容量仍需原生证据，不因字段存在宣称完整 TMX 格式或整体稳定。
+
+BMFont 单 seed 导入仅明确支持已验证的单页文本 FNT 与同目录 leaf PNG：计划阶段验证文本、page 声明和普通文件身份，拒绝嵌套/URI/逃逸/符号与硬链接/不支持的语法，不静默压平声明路径，不改字体原字节。图片先导入，FNT 与 TMX 共用原生 SpriteFrame 准备职责：严格 ready、公开 save-asset-meta、存活父目录刷新和实际 UUID 查询，保持图片源、主和既有子 UUID。FNT 导入后验证 BitmapFont 主身份、源摘要、library 的 frame/atlasName 引用，并只读复核图片与帧仍登记；缺帧或漂移不得返回 allSucceeded，必需原生错误原对象向上传播，不补救保存、重放或回滚。写前不支持输入用 MCP control-flow refusal，Guard/全 legacy DTO/原 writer、资源锁与取消保持。3.8.3/3.8.7 的嵌套 page 对照已经失败，不能据文档名称外推跨目录或全部字体格式/值域；未知版本、更广 TOCTOU/容量及最终资源矩阵仍需原生证据。项目无 Prettier/ESLint 脚本，增量风格、strict 和 source-conformance 不宣称全仓格式/lint通过。
+
+BMFont 已验证原字体末尾 letter 辅助标记，包含引号和反斜杠；只接受与 char ID 匹配的单个 Unicode 字符，不改字体原字节、不将其它语法假定支持。含 FNT 的原输入在 MCP 提交托管任务前执行无写入计划校验，防止已知路径/语法拒绝经失败任务重建后丢失控制流标记；执行期原计划校验继续保留，晚期原生错误不得标为未改变。原生再次验证以新隔离工程当前制品结果为准，旧失败不改为通过。
+
+FNT/TMX 共享图片准备在新增 SpriteFrame 的公开 meta 保存/存活父刷新后，对该已登记 PNG 执行一次原生 reimport，冻结全部 meta 语义值并核对源文件、主/既有子 UUID 和真实帧登记；规范化输出由原生导入器生成，不在物理侧重写或排序 meta。真实已证版本为 Creator 3.8.3/3.8.7：公开重导入得到 Texture-first 顺序，第二次字节稳定，字体/地图 library 引用和源字节保持。已有帧及消费者后验仍仅查询，不增加补救重放；必需原生错误原对象传播，晚期失败保持保守未知状态。首冷导入验证以新正式制品隔离工程实测为准。
+
+Creator 3.8.3/3.8.7 实际公开 `import-asset` 在合法源的原生权限失败时返回 null、日志记录 EACCES；此回执不代表成功，也没有可假称收到的原生 Error 对象。批处理立即拒绝 null/undefined，并以明确资源路径失败停止继续取源；全部已准入项结束后才向调用方传播首个失败，原 writer/资源锁保持至此。主 import/refresh 如真正抛异常则直接保留该原对象，不改发另一消息、不吞刷新异常；原生 void refresh 的 null 回执不编造 bool 成功。正常结果顺序、真实改名 URL、Guard/完整 legacy DTO/取消和保守 unknown/may_have_changed 不变，不盲回滚/重放。原权限边界193条 project error行并非193独立incident，96个copyfile失败及原raw完整保留，模型未当真实终态后写证明。正式新包原生部分失败验收以新隔离工程结果为准。
+
+实际 Creator 3.8.3 / 3.8.7 的 DirectionalLight、SphereLight、SpotLight 不存在目录 `intensity` 对应的原生序列化或运行时属性：源码和 library 中的 `_intensity` 影子值在真正挂载后丢失。三类完整20/6/11字段目录保留该字段并标记 `writable: false`、`writeRefusedReason: native_unsupported`；整补丁写前拒绝，MCP 由受信 Host 版本阻止调用方切旧版绕过，不保存或提交。原生 `illuminance` / `luminance` / `luminousFlux` 有不同单位，本条不将它们猜作别名、不承诺新的光度写接口；其余34字段保持原契约，未知版本不外推。
+
+Creator 3.8.3 / 3.8.7 的 MeshRenderer 完整十二字段目录保留。`bakeSettings` 声明实际 `cc.ModelBakeSettings` 内嵌类型，公开烘焙属性写原生序列化别名，沿用原内嵌条目分配与引用生命周期。未知版本不外推；该类型补全不代表烘焙输出、全部反射探针或光照像素已验证。
+
+Creator 3.8.3 / 3.8.7 的 MeshRenderer `receiveShadow` 保留公开 boolean，持久化为原生 `_shadowReceivingMode` 的精确 0 / 1，inspect 按相同映射回读；烘焙设置内部同名布尔字段不变。未知版本及未知原生模式不猜测归一化。此映射不代表全部阴影参数、光照像素或导出 player 已验证。
+
+实际 Creator 3.8.7 的 `cc.PolygonCollider2D.threshold` 是运行时辅助属性：公开 source/library 保存0.5后，真正 Scene 加载实例仍恢复默认1。完整8字段目录保留该项并标记 `writable: false`、`writeRefusedReason: native_runtime_only`；single/mixed补丁在任何变化、保存或提交前拒绝，MCP沿原受信Host版本契约防调用方切旧版绕过。其余7字段及Box/Circle字段保持原行为。本条只覆盖已实测3.8.7；3.8.3安装缺失与其他未知版本仍保留验证缺口，不据静态声明外推。原生 Polygon public `worldPoints` 不含offset，而shape/AABB/raycast包含offset，按各公开对象的实际身份分别核对，不改官方引擎或输入点造一致。
+
+公开 `asset.ensureSpriteFramesBatch` 的本批新帧在原 writer/资源锁窗口内，保存、刷新和就绪后使用与 FNT/TMX 相同的强制原生规范化职责：一次 `reimport-asset`，冻结完整磁盘 meta 语义、PNG 字节/物理身份、主和已有 Texture 子 UUID，并验证真实 SpriteFrame 登记，再报告 ensured。只接受原生输出，不在产品中排序或改写 meta。inline 与 refreshRoot 两条路线均覆盖；already、skipped 和原逐项 legacy DTO/counts 保持。新增必需 ready/query/reimport 错误直接传播原对象，不经旧 alias 重试或错误字符串转录；未知状态仍由原任务模型保守处理，不回滚或重放。离线公开协议测试不作 native 通过，首次冷导入须另绑定确切新包和暖态原字节实测。

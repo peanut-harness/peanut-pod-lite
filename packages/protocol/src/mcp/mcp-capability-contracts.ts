@@ -1,3 +1,4 @@
+import type { ITextFileWriteResult } from './text-file-io-contracts.js';
 import type { ContractPayload } from '../shared/common-contracts.js';
 import type { LocalizedText } from '../plugin/plugin-contracts.js';
 import type { ITaskExecutionControl } from '../task/task-control-contracts.js';
@@ -78,6 +79,10 @@ export type McpFailureRecommendedAction =
  * @description MCP Hub 对调用方返回的安全失败详情。
  */
 export interface IMcpFailureDetails extends ContractPayload {
+    /**
+     * @description 可选的安全逐文件失败证据，不包含源码或本机路径。
+     */
+    readonly textFileWrite?: ITextFileWriteResult;
     /**
      * @description 失败详情协议版本。
      */

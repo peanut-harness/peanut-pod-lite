@@ -3,6 +3,8 @@ import { dirname, join } from 'path';
 
 import { CompatibleUuid, SilentAssetCreateFolder } from '@peanut/pod-engine/assets';
 import { LumenDeepClone } from './deep-clone';
+import { LumenNativeComponentBinding } from './native-component-binding';
+import { LumenButtonColorBinding } from './button-color-binding';
 import { LumenAtomicFileWriter } from '../io/atomic-file-writer';
 import {
     LumenComponentPropertySchema,
@@ -714,11 +716,28 @@ export class LumenPrefabDocument {
      * @param patch 公开属性补丁，如 `{ string: "Hello", fontSize: 28 }`
      */
     public setComponentProperty(nodePath: string, componentType: string, patch: Readonly<Record<string, unknown>>): void {
+        if (LumenButtonColorBinding.apply(this, nodePath, componentType, this._propertySchema,
+            document => document._writeComponentProperty(nodePath, componentType, patch))) {
+            return;
+        }
+        this._writeComponentProperty(nodePath, componentType, patch);
+    }
+
+    /**
+     * @description 原属性codec与引用/EventHandler流程；仅受测Button先在独立内存文档验证。
+     * @param nodePath 实际节点路径。
+     * @param componentType 实际组件类型。
+     * @param patch 完整公开补丁。
+     */
+    private _writeComponentProperty(nodePath: string, componentType: string, patch: Readonly<Record<string, unknown>>): void {
         const nodeIndex = this.findNodeIndex(nodePath);
         const componentIndex = this.findComponentIndex(nodeIndex, componentType);
         const component = this._entries[componentIndex];
         if (component == null) {
             throw new Error('lumen_component_missing');
+        }
+        if (LumenNativeComponentBinding.apply(this, nodePath, componentType, patch, this._propertySchema)) {
+            return;
         }
         this._propertySchema.applyComponentPatch(
             componentType,
@@ -735,29 +754,7 @@ export class LumenPrefabDocument {
             (entryIndex) => this._entries[entryIndex] ?? null,
         );
         if ('clickEvents' in patch) {
-            const referencedClickEventIds = new Set<number>();
-            for (const entry of this._entries) {
-                for (const eventRef of Array.isArray(entry.clickEvents) ? entry.clickEvents : []) {
-                    if (eventRef == null || typeof eventRef !== 'object' || Array.isArray(eventRef)) {
-                        continue;
-                    }
-                    const id = (eventRef as { __id__?: unknown }).__id__;
-                    if (typeof id === 'number') {
-                        referencedClickEventIds.add(id);
-                    }
-                }
-            }
-            const staleIds = new Set(
-                this._entries.flatMap((entry, index) => {
-                    if (entry.__type__ !== 'cc.ClickEvent' || referencedClickEventIds.has(index)) {
-                        return [];
-                    }
-                    return [index];
-                }),
-            );
-            if (staleIds.size > 0) {
-                this._entries = LumenPrefabIdTools.compactEntries(this._entries, staleIds).entries;
-            }
+            this._entries = LumenPrefabIdTools.removeUnusedClickEvents(this._entries);
         }
     }
 
@@ -1340,7 +1337,7 @@ export class LumenPrefabDocument {
             throw new Error('lumen_node_name_empty');
         }
         const nodeIndex = this._entries.length;
-        const prefabInfoIndex = nodeIndex + 1;
+        const prefabInfoIndex = this.assetKind === 'prefab' ? nodeIndex + 1 : null;
         const components = spec.components ?? ['cc.UITransform'];
         for (const componentType of components) {
             this._propertySchema.assertBuiltinAttachAllowed(componentType);
@@ -1355,7 +1352,7 @@ export class LumenPrefabDocument {
             _children: [],
             _active: true,
             _components: [],
-            _prefab: { __id__: prefabInfoIndex },
+            _prefab: prefabInfoIndex == null ? null : { __id__: prefabInfoIndex },
             _lpos: { __type__: 'cc.Vec3', x: 0, y: 0, z: 0 },
             _lrot: { __type__: 'cc.Quat', x: 0, y: 0, z: 0, w: 1 },
             _lscale: { __type__: 'cc.Vec3', x: 1, y: 1, z: 1 },
@@ -1363,12 +1360,7 @@ export class LumenPrefabDocument {
             _euler: { __type__: 'cc.Vec3', x: 0, y: 0, z: 0 },
             _id: '',
         });
-        this._entries.push({
-            __type__: 'cc.PrefabInfo',
-            root: { __id__: 1 },
-            asset: { __id__: 0 },
-            fileId: LumenPrefabIdTools.createFileId(),
-        });
+        this._entries.push(...LumenPrefabDocument._source.createNodePrefabInfoEntries(prefabInfoIndex != null));
         for (const componentType of components) {
             this._attachComponent(nodeIndex, this._createBuiltinComponent(componentType, nodeIndex));
         }

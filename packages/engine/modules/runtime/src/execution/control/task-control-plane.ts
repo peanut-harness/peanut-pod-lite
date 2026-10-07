@@ -212,7 +212,16 @@ export class TaskControlPlane {
         }
         this._ledger.updateStatus(taskId, 'cancelled');
         this._timeoutAndCancelController.finalize(taskId);
-        this._markTerminal(taskId);
+        // 取消即发布可查询的终态结果；队列移除或计划异常均不能留下无结果的 cancelled 状态。
+        this.setResult({
+            taskId,
+            ok: false,
+            status: 'cancelled',
+            changes: [],
+            trace: this.finishTrace(this.appendTrace(this.createTrace(taskId, snapshot.kind),
+                'cancel', 'Task cancelled before commit', 'skipped', 'task_cancelled')),
+            error: { code: 'task_cancelled', message: 'task_cancelled' },
+        });
         return { taskId, cancelled: true };
     }
 

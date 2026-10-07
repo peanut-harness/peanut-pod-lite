@@ -247,6 +247,14 @@ export class LumenModelMetaDocument {
     }
 
     /**
+     * @description 返回模型 meta 的独立内存副本，供 AssetDB 提交，不写源或缓存。
+     * @returns meta 副本。
+     */
+    public getNativeMetaSnapshot(): Record<string, unknown> {
+        return this._cloneRecord(this._meta);
+    }
+
+    /**
      * @description 原子写回模型 `.meta`，不改模型源与缓存目录。
      * @param projectRoot Creator 项目根
      * @param writeMetaIfMissing 模型必须已有 meta

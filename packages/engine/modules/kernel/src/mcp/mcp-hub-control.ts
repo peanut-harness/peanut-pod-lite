@@ -304,7 +304,7 @@ export class McpHubInvocationContext {
      */
     private readonly _terminalTasks = new Set<string>();
     /**
-     * @description 非文本读取动作保持既有 128 KiB 请求上限。
+     * @description 非公开文本读写动作保持既有 128 KiB 请求上限。
      */
     private static readonly _legacyInputBytes = 128 * 1024;
     /**
@@ -477,13 +477,19 @@ export class McpHubInvocationContext {
 
     /**
      * @description 先按实际原始字节限流，再一次解码 JSON，避免跨网络分块损坏 Unicode 路径。
-     * @param request 当前 HTTP 请求字节迭代器。
+     * @param request HTTP 调用方拥有的借用字节输入；读取器不提前 return 或销毁流，拒绝回执及连接结束由调用方负责。
      * @returns 经完整编码容量检查的对象请求。
      */
     public async readPayload(request: AsyncIterable<unknown>): Promise<Record<string, unknown>> {
         const chunks: ReturnType<typeof Buffer.from>[] = [];
         let byteCount = 0;
-        for await (const chunk of request) {
+        const iterator = request[Symbol.asyncIterator]();
+        while (true) {
+            const next = await iterator.next();
+            if (next.done) {
+                break;
+            }
+            const chunk: unknown = next.value;
             if (typeof chunk !== 'string' && !(chunk instanceof Uint8Array)) {
                 throw new Error('cocos_mcp_hub_payload_invalid');
             }
@@ -505,9 +511,9 @@ export class McpHubInvocationContext {
             throw new Error('cocos_mcp_hub_payload_invalid');
         }
         const name: unknown = Reflect.get(parsed, 'name');
-        const isTextRead = Reflect.get(parsed, 'action') === 'call'
-            && (name === 'asset.readText' || name === 'peanut.editor-mcp.asset-read-text');
-        if (!isTextRead && byteCount > McpHubInvocationContext._legacyInputBytes) {
+        const isTextCall = Reflect.get(parsed, 'action') === 'call'
+            && CoreTextFileIoContract.isTextFileIoCapability(name);
+        if (!isTextCall && byteCount > McpHubInvocationContext._legacyInputBytes) {
             throw new Error('cocos_mcp_hub_request_too_large');
         }
         return { ...parsed };

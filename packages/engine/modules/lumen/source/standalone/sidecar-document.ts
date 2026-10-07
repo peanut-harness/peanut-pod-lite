@@ -196,6 +196,14 @@ export class LumenSidecarMetaDocument {
     }
 
     /**
+     * @description 仅 meta 文档提供副本；含源编辑时保持完整 save 行为。
+     * @returns 可单独原生保存的 meta 副本，或 null。
+     */
+    public getNativeMetaSnapshot(): Record<string, unknown> | null {
+        return this._entry.writeSource === true ? null : this._io.cloneRecord(this._meta);
+    }
+
+    /**
      * @description 写回 `.meta`；`writeSource` 种类同时写源文件。
      * @param projectRoot 项目根
      * @param writeMetaIfMissing sidecar 必须已有 meta
@@ -236,6 +244,11 @@ export class LumenSidecarMetaDocument {
         const copied: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(snapshot)) {
             copied[key] = value;
+        }
+        if (this._entry.assetKind === 'audio') {
+            copied.downloadModeWritable = this._entry.fields.some(
+                (field) => field.apiName === 'downloadMode' && field.writable,
+            );
         }
         const boxed: unknown = copied;
         return boxed as ILumenSidecarMetaInspect;

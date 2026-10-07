@@ -1,4 +1,7 @@
 import { LumenCocosVersion } from './cocos-version';
+import { LumenNativeMeshPropertySchema } from './native-mesh-property-schema';
+import { LumenNativeComponentPersistence } from './native-component-persistence';
+import { LumenNativeComponentBinding } from '../hierarchy/native-component-binding';
 import { LumenCuratedSchemaCatalog } from './catalog';
 import type { ILumenCuratedTypeLifecycle } from './codec';
 import type { LumenEngineSerializableCatalog } from './engine-serializable-probe';
@@ -22,7 +25,6 @@ export type {
     ILumenPropertyRefResolver,
     LumenPropertyValueKind,
 } from './component-property-contracts';
-
 
 /**
  * @description 基于 `bundled/schema/` 策展 JSON 的可编辑属性表（按 Creator 版本门控）。
@@ -259,6 +261,7 @@ export class LumenComponentPropertySchema {
         resolveEntry?: (entryIndex: number) => Record<string, unknown> | null,
     ): void {
         this._assertPropsOwnerAllowed(componentType);
+        this._assertComponentPatchPersistent(componentType, patch);
         const specs = this._specsIncludingDiscovered(componentType, component, resolveEntry);
         const byApi = new Map(specs.map((spec) => [spec.apiName, spec]));
         const occupiedForWrite = new Set([
@@ -323,6 +326,7 @@ export class LumenComponentPropertySchema {
         refResolver?: ILumenPropertyRefResolver,
     ): Record<string, unknown> {
         this._assertPropsOwnerAllowed(componentType);
+        this._assertComponentPatchPersistent(componentType, patch);
         const specs = this._specsIncludingDiscovered(componentType, existing);
         const byApi = new Map(specs.map((spec) => [spec.apiName, spec]));
         const occupiedForWrite = new Set([
@@ -376,7 +380,9 @@ export class LumenComponentPropertySchema {
     ): Record<string, unknown> {
         const snapshot: Record<string, unknown> = {};
         for (const spec of this._specsIncludingDiscovered(componentType, component, resolveEntry)) {
-            const raw = component[spec.serializedName];
+            const raw = LumenNativeComponentBinding.readField(
+                componentType, component, spec.serializedName, this._version.toString(), resolveEntry,
+            );
             snapshot[spec.apiName] = this._decodeValue(
                 spec,
                 raw,
@@ -415,6 +421,32 @@ export class LumenComponentPropertySchema {
             this._applyEncoded(encoded, existing, spec, rawValue, apiName);
         }
         return encoded;
+    }
+
+    /**
+     * @description 已实测版本中不能通过序列化持久化的运行时或原生不支持字段。
+     * @param componentType 组件类型。
+     * @param apiName 公开属性名。
+     * @returns 是否拒绝离线写入；未实测版本不外推此原生结论。
+     */
+    private _isNativeNonPersistentField(componentType: string, apiName: string): boolean {
+        return LumenNativeComponentPersistence.isNonPersistent(this._version, componentType, apiName);
+    }
+
+    /**
+     * @description 整个补丁写前核对原生持久化边界，混合补丁不得留下前半段变化。
+     * @param componentType 组件类型。
+     * @param patch 公开属性补丁。
+     */
+    private _assertComponentPatchPersistent(
+        componentType: string,
+        patch: Readonly<Record<string, unknown>>,
+    ): void {
+        for (const apiName of Object.keys(patch)) {
+            if (this._isNativeNonPersistentField(componentType, apiName)) {
+                throw new Error(`lumen_property_not_persistent:${componentType}.${apiName}`);
+            }
+        }
     }
 
     /**
@@ -564,12 +596,11 @@ export class LumenComponentPropertySchema {
      * @returns 规格列表
      */
     private _availableSpecs(componentType: string): readonly ILumenPropertyFieldSpec[] {
-        const builtin = this._catalog().componentFields(componentType);
-        const specs = builtin ?? this._scriptSchemas.get(componentType);
+        const specs = this._catalog().componentFields(componentType) ?? this._scriptSchemas.get(componentType);
         if (specs == null) {
             return [];
         }
-        return specs.filter((spec) => this._isFieldAvailable(spec));
+        return LumenNativeMeshPropertySchema.forVersion(this._version, componentType, specs.filter((spec) => this._isFieldAvailable(spec)));
     }
 
     /**
@@ -648,6 +679,10 @@ export class LumenComponentPropertySchema {
             apiName: spec.apiName,
             serializedName: spec.serializedName,
             kind: spec.kind,
+            ...(this._isNativeNonPersistentField(ownerKey, spec.apiName)
+                ? { writable: false, writeRefusedReason: ['cc.UITransform', 'cc.PolygonCollider2D'].includes(ownerKey)
+                    ? 'native_runtime_only' : 'native_unsupported' }
+                : {}),
             ...(spec.refComponentType != null ? { refComponentType: spec.refComponentType } : {}),
             ...(spec.embeddedType != null ? { embeddedType: spec.embeddedType } : {}),
             ...(spec.nestedFields != null
@@ -1161,7 +1196,7 @@ export class LumenComponentPropertySchema {
                 if (typeof value !== 'boolean') {
                     throw new Error(`lumen_property_type:${apiName}:boolean`);
                 }
-                return value;
+                return LumenNativeMeshPropertySchema.encodeBoolean(spec, value);
             case 'size':
                 return this._valueParser.asSize(value);
             case 'vec2':
@@ -1505,7 +1540,7 @@ export class LumenComponentPropertySchema {
                     this._referenceDecoder.decodeIdRef(item, pathForNodeIndex, spec.refComponentType ?? null),
                 );
             default:
-                return raw === undefined ? null : raw;
+                return LumenNativeMeshPropertySchema.decodeBoolean(spec, raw === undefined ? null : raw);
         }
     }
 

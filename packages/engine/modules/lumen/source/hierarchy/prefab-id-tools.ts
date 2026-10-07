@@ -8,6 +8,38 @@ import type { PrefabEntry } from '../types';
  */
 export class LumenPrefabIdTools {
     /**
+     * @description 按原全局引用扫描清理未引用ClickEvent条目，保持原压缩与重映射语义。
+     * @param entries 当前条目数组。
+     * @returns 原数组或完成原引用重映射后的数组。
+     */
+    public static removeUnusedClickEvents(entries: PrefabEntry[]): PrefabEntry[] {
+        const referencedClickEventIds = new Set<number>();
+        for (const entry of entries) {
+            for (const eventRef of Array.isArray(entry.clickEvents) ? entry.clickEvents : []) {
+                if (eventRef == null || typeof eventRef !== 'object' || Array.isArray(eventRef)) {
+                    continue;
+                }
+                const id = (eventRef as { __id__?: unknown }).__id__;
+                if (typeof id === 'number') {
+                    referencedClickEventIds.add(id);
+                }
+            }
+        }
+        const staleIds = new Set(
+            entries.flatMap((entry, index) => {
+                if (entry.__type__ !== 'cc.ClickEvent' || referencedClickEventIds.has(index)) {
+                    return [];
+                }
+                return [index];
+            }),
+        );
+        if (staleIds.size > 0) {
+            return this.compactEntries(entries, staleIds).entries;
+        }
+        return entries;
+    }
+
+    /**
      * @description 生成 Prefab 本地 fileId（22 位）。
      * @returns fileId 字符串
      */

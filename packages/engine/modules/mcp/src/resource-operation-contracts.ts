@@ -1,3 +1,5 @@
+import type { IEditorMcpPreparedTextWrite } from './editor-mcp-text-write-gateway.js';
+
 /**
  * @description 单个写任务的项目级资源调度计划。
  */
@@ -26,6 +28,10 @@ export interface IResourceOperationTaskPlan {
      * @description 首次创建任务由 worker 在真正发布前开启 commit 窗口。
      */
     readonly workerManagedCommitWindow?: boolean;
+    /**
+     * @description 内部签发且只供当前调用的不可变文本写准备，不进入业务 payload 或任务证据。
+     */
+    readonly preparedTextWrite?: IEditorMcpPreparedTextWrite;
 }
 
 /**
@@ -52,4 +58,26 @@ export interface IResourceOperationClosureSummary {
      * @description 无法映射到项目资源的序列化 UUID；仍会作为 UUID 锁键保守互斥。
      */
     readonly unresolvedUuids: readonly string[];
+}
+
+/**
+ * @description 联合 writer 调用的内部上下文；业务 JSON 不允许提供或覆盖。
+ */
+export interface IResourceOperationBatchContext {
+    /**
+     * @description 当前批次已经证实的文本自变更。
+     */
+    readonly textWrites: import('./editor-mcp-text-write-session.js').EditorMcpTextWriteSession;
+    /**
+     * @description 通过原计划对象查找原始账本。
+     */
+    outcome(plan: IResourceOperationTaskPlan): import('./editor-mcp-text-write-outcome.js').EditorMcpTextWriteOutcome | undefined;
+    /**
+     * @description 全部 worker 后执行唯一最终内容、身份和日志收口。
+     */
+    finish(results: readonly unknown[]): Promise<readonly unknown[]>;
+    /**
+     * @description 保留当前调用各任务自己的失败结果。
+     */
+    failure(error: unknown): Error;
 }

@@ -587,7 +587,7 @@
                     "apiName": "downloadMode",
                     "serializedName": "downloadMode",
                     "kind": "enumNumber",
-                    "writable": true,
+                    "writable": false,
                     "default": 0,
                     "aliases": { "WEB_AUDIO": 0, "DOM_AUDIO": 1 },
                     "nameField": "downloadModeName",

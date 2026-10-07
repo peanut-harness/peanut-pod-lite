@@ -321,8 +321,8 @@ export const EDITOR_MCP_CAPABILITY_SEEDS: readonly EditorMcpCapabilitySeed[] = [
         readOnly: false,
         risk: 'write',
         description: {
-            'en-US': 'Thin wrapper around the same silent refresh-asset path as lumen.refresh (disk truth -> library, no dialog).',
-            'zh-CN': '薄层封装，等价 lumen.refresh 的静默 refresh-asset（磁盘为真源刷入 library，无弹窗）。',
+            'en-US': 'Reimport existing registered assets through native reimport-asset, verifying their source bytes and UUIDs. Use lumen.refresh to discover externally added files.',
+            'zh-CN': '经原生 reimport-asset 重新导入已登记资源，并校验源字节和 UUID。外部新增文件请使用 lumen.refresh 扫描入库。',
         },
         requiresInput: false,
     },

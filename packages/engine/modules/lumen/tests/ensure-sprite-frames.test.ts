@@ -75,7 +75,7 @@ test("EnsureSpriteFramesBatchService reports already / ensured / failed", async 
 
     const imageUuid = "11111111-2222-4333-8444-555555555555";
     /** @type {Map<string, Record<string, unknown>>} */
-    const metas = new Map([
+    const metas = new Map<string, Record<string, unknown>>([
       [
         "db://assets/ui/bg.png",
         {
@@ -100,6 +100,9 @@ test("EnsureSpriteFramesBatchService reports already / ensured / failed", async 
         },
       ],
     ]);
+    for (const [url, meta] of metas) {
+      writeFileSync(join(root, url.replace("db://", "")) + ".meta", JSON.stringify(meta));
+    }
     /** @type {Map<string, unknown>} */
     const infos = new Map();
     let saveCount = 0;
@@ -112,14 +115,27 @@ test("EnsureSpriteFramesBatchService reports already / ensured / failed", async 
           return metas.get(dbUrl) ?? null;
         }
         if (messageName === "query-asset-info") {
-          return infos.get(dbUrl) ?? metas.get(dbUrl) ?? null;
+          if (dbUrl.endsWith("@f9941")) {
+            return { uuid: dbUrl, type: "cc.SpriteFrame", imported: true, invalid: false };
+          }
+          const meta = metas.get(dbUrl);
+          return meta == null ? null : { ...meta, url: dbUrl, type: "cc.ImageAsset", imported: true, invalid: false };
+
         }
         if (messageName === "save-asset-meta") {
           saveCount += 1;
           const parsed = JSON.parse(String(args[1])) as Record<string, unknown>;
           metas.set(dbUrl, parsed);
+          writeFileSync(join(root, dbUrl.replace("db://", "")) + ".meta", JSON.stringify(parsed));
           infos.set(dbUrl, parsed);
           return true;
+        }
+        if (messageName === "query-ready") { return true; }
+        if (messageName === "reimport-asset") {
+          const meta = metas.get(dbUrl);
+          assert.ok(meta);
+          writeFileSync(join(root, dbUrl.replace("db://", "")) + ".meta", JSON.stringify(meta));
+          return undefined;
         }
         if (messageName === "refresh-asset") {
           return true;

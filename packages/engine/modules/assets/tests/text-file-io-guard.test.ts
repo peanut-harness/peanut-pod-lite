@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { linkSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, linkSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import test, { type TestContext } from 'node:test';
@@ -333,4 +333,65 @@ test('business fields never fall back to prototype accessors and valid own JSON 
     assert.equal(guard.prepareWrite(nullPrototype)[0]?.byteCount, 3);
     assert.equal(guard.prepareRead({ paths: ['assets/a.txt'] })[0]?.path, 'assets/a.txt');
     assert.equal(state(root), before);
+});
+
+test('write revalidation freezes source identity and missing parent topology without rebasing', (context) => {
+    const { root, guard } = fixture(context);
+    const input = { files: [{ path: 'assets/new/sub.txt', content: 'first' }, { path: 'assets/a.txt', content: 'last' }] };
+    const prepared = guard.prepareWrite(input);
+    guard.revalidateWrite(input, prepared);
+    writeFileSync(join(root, 'assets/a.txt'), 'external');
+    const external = state(root);
+    assert.throws(() => guard.revalidateWrite(input, prepared), /snapshot_conflict/u);
+    assert.equal(state(root), external);
+    writeFileSync(join(root, 'assets/a.txt'), 'original');
+    mkdirSync(join(root, 'assets/new'));
+    const parentChanged = state(root);
+    assert.throws(() => guard.revalidateWrite(input, prepared), /snapshot_conflict/u);
+    assert.equal(state(root), parentChanged);
+});
+
+test('write preparation and revalidation refuse read-only files and parents without write probes', (context) => {
+    const { root, guard } = fixture(context);
+    const input = { path: 'assets/a.txt', content: 'new' };
+    const prepared = guard.prepareWrite(input);
+    chmodSync(join(root, 'assets/a.txt'), 0o444);
+    const before = state(root);
+    assert.throws(() => guard.prepareWrite(input), /write_permission_refused/u);
+    assert.throws(() => guard.revalidateWrite(input, prepared), /write_permission_refused/u);
+    assert.equal(state(root), before);
+    chmodSync(join(root, 'assets/a.txt'), 0o644);
+    chmodSync(join(root, 'assets'), 0o555);
+    try {
+        assert.throws(() => guard.prepareWrite({ path: 'assets/new.txt', content: '' }), /write_permission_refused/u);
+        assert.equal(state(root), before);
+    } finally { chmodSync(join(root, 'assets'), 0o755); }
+});
+
+test('original missing parents accept only exact writer-proven physical directories and reject later same-path replacement', (context) => {
+    const { root, guard } = fixture(context);
+    const input = { path: 'assets/created/a.txt', content: 'a' };
+    const original = guard.prepareWrite(input);
+    mkdirSync(join(root, 'assets/created'));
+    assert.throws(() => guard.revalidateWrite(input, original), /snapshot_conflict/u);
+    const info = lstatSync(join(root, 'assets/created'));
+    const delta = { files: new Map<string, { identity: string | null; sha256: string }>(),
+        directories: new Map([[join(root, 'assets/created'), `${info.dev}:${info.ino}`]]) };
+    assert.equal(guard.revalidateWrite(input, original, delta).length, 1);
+    renameSync(join(root, 'assets/created'), join(root, 'assets/created-old'));
+    mkdirSync(join(root, 'assets/created'));
+    assert.throws(() => guard.revalidateWrite(input, original, delta), /snapshot_conflict/u);
+    assert.equal(original[0]?.exists, false);
+    assert.equal(original[0]?.beforeSha256, 'absent');
+});
+
+test('proven earlier batch bytes do not silently rebase explicit original absent/hash conditions', (context) => {
+    const { root, guard } = fixture(context);
+    const input = { path: 'assets/new.txt', content: 'new', expectedSha256: 'absent' };
+    const original = guard.prepareWrite(input);
+    writeFileSync(join(root, 'assets/new.txt'), 'new');
+    const current = guard.prepareWrite({ path: 'assets/new.txt', content: 'new' })[0];
+    assert.ok(current);
+    const delta = { files: new Map([[current.absolutePath, { identity: current.identity, sha256: current.beforeSha256 }]]), directories: new Map<string, string>() };
+    assert.throws(() => guard.revalidateWrite(input, original, delta), /content_conflict/u);
 });

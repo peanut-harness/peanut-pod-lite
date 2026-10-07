@@ -210,13 +210,14 @@ test('resource closure resolves meta UUIDs and transitive serialized dependencie
 test('AssetDB creation publishes in-memory prefab only after parent registration and commit entry', async (): Promise<void> => {
     const projectRoot = mkdtempSync(join(tmpdir(), 'peanut-assetdb-create-success-'));
     mkdirSync(join(projectRoot, 'assets'), { recursive: true });
-    const registrations = new Map<string, Record<string, unknown>>();
+    const registrations = new Map<string, Record<string, unknown>>([['db://assets', { uuid: 'assets-root' }]]);
     const calls: string[] = [];
     const targetDbPath = 'db://assets/generated/Demo.prefab';
     const targetUuid = '11111111-2222-4333-8444-555555555555';
     let commitEntered = false;
     const message: IEditorMcpAssetDbTransactionMessagePort = {
         request: async (_target, messageName, pathValue, contentValue): Promise<unknown> => {
+            if (messageName === 'query-ready') return true;
             const dbPath = typeof pathValue === 'string' ? pathValue : '';
             calls.push(`${messageName}:${dbPath}`);
             if (messageName === 'query-asset-info') {
@@ -230,6 +231,7 @@ test('AssetDB creation publishes in-memory prefab only after parent registration
                 if (dbPath.includes('__peanut_assetdb_register_')) {
                     registrations.set(dbPath, { uuid: 'probe-uuid', subAssets: {} });
                     registrations.set('db://assets/generated', { uuid: 'parent-uuid', subAssets: {} });
+                    writeFileSync(join(projectRoot, 'assets/generated.meta'), JSON.stringify({ uuid: 'parent-uuid' }));
                     return { uuid: 'probe-uuid' };
                 }
                 assert.equal(commitEntered, true);
@@ -331,17 +333,26 @@ test('AssetDB creation rejects an existing target without publishing', async ():
 test('AssetDB creation cancels before publication and removes its empty parent directory', async (): Promise<void> => {
     const projectRoot = mkdtempSync(join(tmpdir(), 'peanut-assetdb-create-cancel-'));
     mkdirSync(join(projectRoot, 'assets'), { recursive: true });
-    const registrations = new Map<string, Record<string, unknown>>();
+    const registrations = new Map<string, Record<string, unknown>>([['db://assets', { uuid: 'assets-root' }]]);
     let mainPublished = false;
     const message: IEditorMcpAssetDbTransactionMessagePort = {
         request: async (_target, messageName, pathValue): Promise<unknown> => {
+            if (messageName === 'query-ready') return true;
             const dbPath = typeof pathValue === 'string' ? pathValue : '';
             if (messageName === 'query-asset-info') return registrations.get(dbPath) ?? null;
             if (messageName === 'create-asset') {
                 if (!dbPath.includes('__peanut_assetdb_register_')) mainPublished = true;
                 registrations.set(dbPath, { uuid: 'probe-uuid', subAssets: {} });
                 registrations.set('db://assets/cancelled', { uuid: 'parent-uuid', subAssets: {} });
+                registrations.set('parent-uuid', { uuid: 'parent-uuid', subAssets: {} });
+                writeFileSync(join(projectRoot, 'assets/cancelled.meta'), JSON.stringify({ uuid: 'parent-uuid' }));
                 return { uuid: 'probe-uuid' };
+            }
+            if (messageName === 'refresh-asset') {
+                assert.equal(dbPath, 'db://assets');
+                registrations.delete('db://assets/cancelled');
+                registrations.delete('parent-uuid');
+                return null;
             }
             if (messageName === 'delete-asset') {
                 registrations.delete(dbPath);
@@ -374,6 +385,8 @@ test('AssetDB creation cancels before publication and removes its empty parent d
         );
         assert.equal(mainPublished, false);
         assert.equal(existsSync(join(projectRoot, 'assets/cancelled')), false);
+        assert.equal(registrations.get('db://assets/cancelled'), undefined);
+        assert.equal(registrations.get('parent-uuid'), undefined);
     } finally {
         rmSync(projectRoot, { recursive: true, force: true });
     }
@@ -387,6 +400,7 @@ test('AssetDB creation rolls back an owned publication that remains registration
     let deleted = false;
     const message: IEditorMcpAssetDbTransactionMessagePort = {
         request: async (_target, messageName, pathValue, contentValue): Promise<unknown> => {
+            if (messageName === 'query-ready') return true;
             const dbPath = typeof pathValue === 'string' ? pathValue : '';
             if (messageName === 'query-asset-info') {
                 if (dbPath === 'db://assets/generated') return { uuid: 'parent-uuid', subAssets: {} };
@@ -446,6 +460,7 @@ test('AssetDB creation refuses cleanup when published ownership does not match',
     let published = false;
     const message: IEditorMcpAssetDbTransactionMessagePort = {
         request: async (_target, messageName, pathValue): Promise<unknown> => {
+            if (messageName === 'query-ready') return true;
             const dbPath = typeof pathValue === 'string' ? pathValue : '';
             if (messageName === 'query-asset-info') {
                 if (dbPath === 'db://assets') return { uuid: 'assets-root', subAssets: {} };
@@ -485,4 +500,25 @@ test('AssetDB creation refuses cleanup when published ownership does not match',
     } finally {
         rmSync(projectRoot, { recursive: true, force: true });
     }
+});
+
+test('text registration requires actual matching ordinary bounded meta and query exceptions stay unknown', async (context) => {
+    const root = mkdtempSync(join(tmpdir(), 'pod-text-meta-'));
+    context.after(() => rmSync(root, { recursive: true, force: true }));
+    mkdirSync(join(root, 'assets'));
+    const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    writeFileSync(join(root, 'assets/a.txt'), 'a');
+    const meta = join(root, 'assets/a.txt.meta');
+    writeFileSync(meta, JSON.stringify({ uuid, importer: 'text' }));
+    let unavailable = false;
+    const transaction = new EditorMcpAssetDbTransaction({ requireProjectPath: async () => root,
+        requireMessage: () => ({ request: async () => { if (unavailable) throw new Error('injected_query_unknown'); return { uuid, importer: 'text' }; } }),
+        refreshForCommit: async () => ({ settled: true }) });
+    assert.equal((await transaction.queryTextRegistration('assets/a.txt', uuid))?.uuid, uuid);
+    writeFileSync(meta, JSON.stringify({ uuid: 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff', importer: 'text' }));
+    await assert.rejects(transaction.queryTextRegistration('assets/a.txt'), /uuid_conflict/u);
+    writeFileSync(meta, 'x'.repeat(1024 * 1024 + 1));
+    await assert.rejects(transaction.queryTextRegistration('assets/a.txt'), /meta_unsafe/u);
+    unavailable = true;
+    await assert.rejects(transaction.queryTextRegistration('assets/a.txt'), /injected_query_unknown/u);
 });

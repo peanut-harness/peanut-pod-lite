@@ -1,4 +1,6 @@
+export { TextFileWriteResultProjection } from './mcp/text-file-io-contracts.js';
 export type {
+    ITextFileWriteProjectionLimits,
     ITextFileIoLimits,
     TextFileReadInput,
     TextFileExpectedSha256,

@@ -1,5 +1,6 @@
+import { EditorMcpLumenGateway } from '../dist/editor-mcp-lumen-gateway.js';
 import assert from 'assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -8,7 +9,8 @@ import { CocosMcpHub, PluginManagerApp } from '@peanut/pod-engine/kernel';
 import { RuntimeFacade } from '@peanut/pod-engine/runtime';
 import { McpTaskControl } from '../../kernel/dist/mcp/mcp-task-control.js';
 
-import { createPluginModule, EditorMcpActionRouter } from '../dist/index.js';
+import { EditorMcpToolCatalog } from '../dist/editor-mcp-tool-catalog.js';
+import { createPluginModule, createEditorMcpExecuteOperation, EditorMcpActionRouter } from '../dist/index.js';
 
 test('Editor MCP plugin should expose 84 Lite operations without a Pro plugin', async () => {
     const projectPath = mkdtempSync(join(tmpdir(), 'peanut-editor-mcp-managed-host-'));
@@ -609,3 +611,178 @@ test('actual plugin path reads text through the Hub and waits for its admitted m
         rmSync(projectPath, { recursive: true, force: true });
     }
 });
+
+for (const assembly of ['plugin', 'factory']) {
+    test(`actual ${assembly} managed writer keeps original preparation and rejects queued external edit before worker`, async () => {
+        const projectPath = mkdtempSync(join(tmpdir(), 'peanut-managed-text-write-'));
+        mkdirSync(join(projectPath, 'assets'));
+        mkdirSync(join(projectPath, 'temp/logs'), { recursive: true });
+        writeFileSync(join(projectPath, 'temp/logs/project.log'), '');
+        writeFileSync(join(projectPath, 'assets/a.txt'), 'original');
+        writeFileSync(join(projectPath, 'assets/a.txt.meta'), '{"uuid":"kept"}');
+        const runtime = new RuntimeFacade('3.8.7', { allowMemoryPanelWindowProviderFallback: true });
+        await runtime.project.configure(projectPath, 'ManagedTextWrite');
+        const manager = new PluginManagerApp(runtime, undefined, undefined, undefined, projectPath);
+        const plugin = createPluginModule();
+        const originalPlan = EditorMcpActionRouter.prototype.planManagedResourceOperation;
+        const originalRevalidate = EditorMcpActionRouter.prototype.revalidateManagedResourceOperation;
+        const originalWorker = EditorMcpActionRouter.prototype.executeManagedResourceOperation;
+        let release;
+        let entered;
+        const gate = new Promise((resolve) => { release = resolve; });
+        const prepared = new Promise((resolve) => { entered = resolve; });
+        let firstPlan;
+        let workers = 0;
+        let checks = 0;
+        let factory;
+        let managed;
+        let taskId;
+        const originalActivate = plugin.activate.bind(plugin);
+        plugin.activate = async (context) => {
+            if (assembly === 'plugin') return originalActivate(context);
+            assert.ok(context.tasks?.managed);
+            factory = createEditorMcpExecuteOperation(context.runtime, context.tasks.managed);
+            const definition = new EditorMcpToolCatalog().buildDefinitions([{ operation: 'asset.writeText', readOnly: false, risk: 'write', requiresInput: true, description: '写入文本', lane: 'lumen-offline' }])[0];
+            assert.ok(definition && context.mcp);
+            context.mcp.register(definition, (input, invocation) => factory('asset.writeText', input, invocation));
+        };
+        EditorMcpActionRouter.prototype.planManagedResourceOperation = async function (...args) {
+            const plan = await originalPlan.apply(this, args);
+            if (args[0] === 'asset.writeText') {
+                firstPlan = plan;
+                assert.ok(plan.preparedTextWrite && Object.isFrozen(plan.preparedTextWrite));
+                entered(); await gate;
+            }
+            return plan;
+        };
+        EditorMcpActionRouter.prototype.revalidateManagedResourceOperation = async function (...args) {
+            checks += 1;
+            assert.equal(args[2], firstPlan);
+            return originalRevalidate.apply(this, args);
+        };
+        EditorMcpActionRouter.prototype.executeManagedResourceOperation = async function (...args) {
+            workers += 1;
+            return originalWorker.apply(this, args);
+        };
+        try {
+            manager.registerManifest({ manifest: plugin.manifest, installPath: 'plugins/peanut.editor-mcp', trustLevel: 'builtin' });
+            manager.attachModule(plugin.manifest.id, plugin);
+            await manager.activatePlugin(plugin.manifest.id);
+            managed = manager.getManagedTaskApi(plugin.manifest.id);
+            assert.ok(managed);
+            const input = { files: [{ path: 'assets/new/sub.txt', content: 'first' },
+                { path: 'assets/a.txt', content: 'last' }], execution: { mode: 'async' } };
+            const invocation = { connectionId: 'a'.repeat(32) };
+            manager.getMcpCapabilityRegistry().setPluginExposure(plugin.manifest.id, 'all');
+            const receipt = await manager.getMcpCapabilityRegistry().invoke('peanut.editor-mcp.asset-write-text', input, invocation);
+            taskId = receipt.taskId;
+            assert.equal(receipt.taskStatus, 'queued');
+            await prepared;
+            writeFileSync(join(projectPath, 'assets/a.txt'), 'external');
+            release();
+            const result = await managed.wait(taskId);
+            assert.equal(result.ok, false);
+            assert.equal(result.status, 'failed');
+            assert.match(result.error.code, /snapshot_conflict/u);
+            assert.equal(checks, 1);
+            assert.equal(workers, 0);
+            assert.equal(existsSync(join(projectPath, 'assets/new')), false);
+            assert.equal(readFileSync(join(projectPath, 'assets/a.txt'), 'utf8'), 'external');
+            assert.equal(readFileSync(join(projectPath, 'assets/a.txt.meta'), 'utf8'), '{"uuid":"kept"}');
+        } finally {
+            release();
+            if (managed && taskId) await managed.wait(taskId);
+            factory?.dispose();
+            await manager.deactivatePlugin(plugin.manifest.id, 'manual_disable');
+            EditorMcpActionRouter.prototype.planManagedResourceOperation = originalPlan;
+            EditorMcpActionRouter.prototype.revalidateManagedResourceOperation = originalRevalidate;
+            EditorMcpActionRouter.prototype.executeManagedResourceOperation = originalWorker;
+            rmSync(projectPath, { recursive: true, force: true });
+        }
+    });
+}
+
+for (const assembly of ['plugin', 'factory']) {
+    test('actual ' + assembly + ' preserves real Runtime partial-write failure for sync and queued terminal results', async () => {
+        const projectPath = mkdtempSync(join(tmpdir(), 'pod-managed-write-failure-'));
+        mkdirSync(join(projectPath, 'assets'));
+        mkdirSync(join(projectPath, 'temp/logs'), { recursive: true });
+        writeFileSync(join(projectPath, 'temp/logs/project.log'), '');
+        const file = join(projectPath, 'assets/a.txt');
+        const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+        writeFileSync(file, 'original');
+        writeFileSync(file + '.meta', JSON.stringify({ uuid, importer: 'text' }));
+        const previousEditor = globalThis.Editor;
+        globalThis.Editor = { Project: { path: projectPath }, Message: { request: async (_target, message) => {
+            if (message === 'query-ready') return true;
+            if (message === 'query-asset-info') return { uuid, importer: 'text' };
+            return true;
+        } } };
+        const runtime = new RuntimeFacade('3.8.7', { allowMemoryPanelWindowProviderFallback: true });
+        await runtime.project.configure(projectPath, 'PartialFailure');
+        const manager = new PluginManagerApp(runtime, undefined, undefined, undefined, projectPath);
+        const plugin = createPluginModule();
+        const originalActivate = plugin.activate.bind(plugin);
+        let factory;
+        plugin.activate = async (context) => {
+            if (assembly === 'plugin') return originalActivate(context);
+            factory = createEditorMcpExecuteOperation(context.runtime, context.tasks.managed);
+            const definition = new EditorMcpToolCatalog().buildDefinitions([{ operation: 'asset.writeText', readOnly: false, risk: 'write',
+                requiresInput: true, description: '写入文本', lane: 'lumen-offline' }])[0];
+            context.mcp.register(definition, (input, invocation) => factory('asset.writeText', input, invocation));
+        };
+        const originalBegin = EditorMcpActionRouter.prototype.beginManagedBatch;
+        const originalRequests = [];
+        EditorMcpActionRouter.prototype.beginManagedBatch = async function (...args) {
+            const batch = await originalBegin.apply(this, args);
+            return { ...batch, failure: (error) => {
+                const failure = batch.failure(error);
+                assert.equal(failure.taskFailures.length, args[1].length);
+                failure.taskFailures.forEach((entry, index) => {
+                    assert.equal(entry.request, args[1][index]);
+                    assert.equal(Object.hasOwn(entry, 'taskId'), false);
+                    assert.equal(entry.textFileWrite.files[0].path, 'assets/a.txt');
+                    originalRequests.push(entry.request);
+                });
+                return failure;
+            } };
+        };
+        const originalRefresh = EditorMcpLumenGateway.prototype.refreshForCommit;
+        EditorMcpLumenGateway.prototype.refreshForCommit = async () => { throw new Error('injected_refresh_failure'); };
+        try {
+            manager.registerManifest({ manifest: plugin.manifest, installPath: 'plugins/peanut.editor-mcp', trustLevel: 'builtin' });
+            manager.attachModule(plugin.manifest.id, plugin);
+            await manager.activatePlugin(plugin.manifest.id);
+            manager.getMcpCapabilityRegistry().setPluginExposure(plugin.manifest.id, 'all');
+            const invocation = { connectionId: 'e'.repeat(32) };
+            await assert.rejects(manager.getMcpCapabilityRegistry().invoke('peanut.editor-mcp.asset-write-text',
+                { path: 'assets/a.txt', content: 'sync-written' }, invocation), (error) => {
+                assert.equal(error.mcpFailure.taskStatus, 'failed');
+                assert.equal(error.mcpFailure.textFileWrite.ok, false);
+                assert.equal(error.mcpFailure.textFileWrite.files[0].status, 'written_unverified');
+                assert.equal(error.mcpFailure.textFileWrite.files[0].uuid, uuid);
+                assert.equal(JSON.stringify(error.mcpFailure).includes(projectPath), false);
+                return true;
+            });
+            const receipt = await manager.getMcpCapabilityRegistry().invoke('peanut.editor-mcp.asset-write-text',
+                { path: 'assets/a.txt', content: 'async-written', execution: { mode: 'async' } }, invocation);
+            assert.equal(receipt.taskStatus, 'queued');
+            const result = await manager.getManagedTaskApi(plugin.manifest.id).wait(receipt.taskId);
+            assert.equal(result.ok, false);
+            assert.equal(result.status, 'failed');
+            assert.equal(result.data.textFileWrite.files[0].status, 'written_unverified');
+            assert.equal(originalRequests.length, 2);
+            assert.notEqual(originalRequests[0], originalRequests[1]);
+            assert.equal(readFileSync(file, 'utf8'), 'async-written');
+            assert.equal(JSON.parse(readFileSync(file + '.meta', 'utf8')).uuid, uuid);
+        } finally {
+            factory?.dispose();
+            await manager.deactivatePlugin(plugin.manifest.id, 'manual_disable');
+            runtime.execution.dispose();
+            EditorMcpLumenGateway.prototype.refreshForCommit = originalRefresh;
+            EditorMcpActionRouter.prototype.beginManagedBatch = originalBegin;
+            globalThis.Editor = previousEditor;
+            rmSync(projectPath, { recursive: true, force: true });
+        }
+    });
+}

@@ -1,7 +1,9 @@
-import { existsSync, rmSync, statSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { createHash } from 'node:crypto';
+import { closeSync, constants, existsSync, fstatSync, lstatSync, openSync, readSync, realpathSync, rmSync, statSync } from 'node:fs';
+import { dirname, join, sep } from 'node:path';
 
-import { CompatibleUuid, FileAssetDependencyIndex } from '@peanut/pod-engine/assets';
+import { AssetMetaParser, CompatibleUuid, FileAssetDependencyIndex } from '@peanut/pod-engine/assets';
+import { EditorMcpAssetReimport } from './editor-mcp-asset-reimport.js';
 
 /**
  * @description AssetDB 事务所需的最小消息端口。
@@ -56,6 +58,14 @@ export interface IEditorMcpAssetDbRegistrationEvidence {
      */
     readonly metaPresent: boolean;
     /**
+     * @description 文本严格模式下实际meta物理身份。
+     */
+    readonly metaIdentity?: string;
+    /**
+     * @description 文本严格模式下实际meta字节摘要。
+     */
+    readonly metaSha256?: string;
+    /**
      * @description AssetDB 返回的子资源 UUID。
      */
     readonly subAssetUuids: readonly string[];
@@ -91,6 +101,14 @@ export interface IEditorMcpAssetDbTransactionEvidence {
  * @description AssetDB 事务选项。
  */
 export interface IEditorMcpAssetDbTransactionOptions {
+    /**
+     * @description 文本 writer 专用严格身份与失败关闭模式；其它资源默认不变。
+     */
+    readonly textVerification?: boolean;
+    /**
+     * @description 在文本登记探针可能变化前通知原调用账本。
+     */
+    readonly beforePossibleMutation?: () => void;
     /**
      * @description 是否先执行 commit 级 refresh；默认 true。
      */
@@ -128,6 +146,16 @@ export class EditorMcpAssetDbTransaction {
      */
     public constructor(host: IEditorMcpAssetDbTransactionHost) {
         this._host = host;
+    }
+
+    /**
+     * @description 在原 writer 收口内重新导入已登记代码，复用实际原生调用与源身份校验。
+     * @param paths 已存在且已通过写后登记的工程相对资源路径。
+     * @returns 已核验的原生重导入回执。
+     */
+    public async reimportRegistered(paths: readonly string[]): Promise<unknown> {
+        return EditorMcpAssetReimport.execute(await this._host.requireProjectPath(), paths,
+            this._host.requireMessage(), this);
     }
 
     /**
@@ -171,11 +199,23 @@ export class EditorMcpAssetDbTransaction {
                 registrations: Object.freeze([]),
             });
         }
-        const registrationProbes = await this._createRegistrationProbes(message, projectRoot, normalizedPaths);
+        const registrationProbes = await this._createRegistrationProbes(message, projectRoot, normalizedPaths, options);
+        let firstFailure: unknown;
         try {
             const refresh = options.refresh === false
                 ? null
                 : await this._host.refreshForCommit(normalizedPaths.map((dbPath) => dbPath.slice('db://'.length)));
+            if (options.textVerification === true) {
+                const body = this._isRecord(refresh) && this._isRecord(refresh.result) ? refresh.result : refresh;
+                const settle = this._isRecord(body) ? body.settle : null;
+                if (!this._isRecord(body) || body.ok === false || body.ready === false || body.settled === false
+                    || this._hasTextRefreshFailure(refresh) || this._hasTextRefreshFailure(body)
+                    || this._isRecord(refresh) && refresh.barrier === true && !this._isRecord(settle)
+                    || settle != null && (!this._isRecord(settle) || settle.ready !== true || settle.pending !== 0
+                        || settle.softFailCount !== 0 || settle.overBudget !== false || this._hasTextRefreshFailure(settle))) {
+                    throw new Error('text_file_io_refresh_not_settled');
+                }
+            }
             const requireMeta = options.requireMeta !== false;
             const timeoutMs = this._boundedInteger(options.timeoutMs, 8000, 100, 60_000);
             const pollIntervalMs = this._boundedInteger(options.pollIntervalMs, 100, 20, 1000);
@@ -187,7 +227,7 @@ export class EditorMcpAssetDbTransaction {
                 const registrations: IEditorMcpAssetDbRegistrationEvidence[] = [];
                 const pending: string[] = [];
                 for (const dbPath of normalizedPaths) {
-                    const evidence = await this._queryRegistration(message, projectRoot, dbPath, requireMeta);
+                    const evidence = await this._queryRegistration(message, projectRoot, dbPath, requireMeta, options.textVerification === true);
                     if (evidence == null) {
                         pending.push(dbPath);
                     } else {
@@ -209,9 +249,87 @@ export class EditorMcpAssetDbTransaction {
                 });
             }
             throw new Error(`editor_mcp_assetdb_registration_pending:${lastPending.join(',')}`);
+        } catch (error: unknown) {
+            firstFailure = error;
+            throw error;
         } finally {
-            await this._removeRegistrationProbes(message, projectRoot, registrationProbes);
+            try {
+                await this._removeRegistrationProbes(message, projectRoot, registrationProbes, options.textVerification === true);
+            } catch (cleanupError: unknown) {
+                if (firstFailure == null) {
+                    throw cleanupError;
+                }
+                if (firstFailure instanceof Error) {
+                    Object.assign(firstFailure, { probeCleanupFailure: cleanupError });
+                }
+            }
             FileAssetDependencyIndex.invalidate(projectRoot);
+        }
+    }
+
+
+    /**
+     * @description 文本专用登记校验，查询异常是未知而不是未登记，逐次读回安全 meta。
+     * @param pathValue 规范资产路径。
+     * @param expectedUuid 已有 UUID；提供时必须保持。
+     * @returns 实际登记证据；明确未登记返回 null。
+     */
+    public async queryTextRegistration(pathValue: string, expectedUuid?: string): Promise<IEditorMcpAssetDbRegistrationEvidence | null> {
+        const projectRoot = await this._host.requireProjectPath();
+        const evidence = await this._queryRegistration(this._host.requireMessage(), projectRoot, this._normalizeDbPath(pathValue), true, true);
+        if (evidence != null && expectedUuid != null && evidence.uuid !== expectedUuid) {
+            throw new Error('text_file_io_uuid_conflict');
+        }
+        return evidence;
+    }
+
+    /**
+     * @description 有限无链接读取实际 meta 并核实前后物理身份和内容。
+     * @param projectRoot 真实工程。
+     * @param relativePath 规范资产路径。
+     * @param uuid AssetDB 实际 UUID。
+     */
+    private _verifyTextMeta(projectRoot: string, relativePath: string, uuid: string): { readonly identity: string; readonly sha256: string } {
+        const path = join(projectRoot, relativePath + '.meta');
+        const root = realpathSync(projectRoot);
+        const info = lstatSync(path);
+        if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1 || info.size > 1024 * 1024
+            || realpathSync(path) !== path || !path.startsWith(join(root, 'assets') + sep)) {
+            throw new Error('text_file_io_meta_unsafe');
+        }
+        const fd = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+        try {
+            const before = fstatSync(fd);
+            if (before.dev !== info.dev || before.ino !== info.ino || before.size !== info.size) {
+                throw new Error('text_file_io_meta_changed');
+            }
+            const bytes = Buffer.alloc(before.size + 1);
+            let used = 0;
+            while (used < bytes.length) {
+                const count = readSync(fd, bytes, used, bytes.length - used, null);
+                if (count === 0) {
+                    break;
+                }
+                used += count;
+            }
+            const after = fstatSync(fd);
+            const current = lstatSync(path);
+            if (used !== before.size || after.size !== before.size || after.mtimeMs !== before.mtimeMs || after.ctimeMs !== before.ctimeMs
+                || current.dev !== before.dev || current.ino !== before.ino || current.mtimeMs !== before.mtimeMs || current.ctimeMs !== before.ctimeMs) {
+                throw new Error('text_file_io_meta_changed');
+            }
+            const raw = bytes.subarray(0, used);
+            const text = raw.toString('utf8');
+            if (!Buffer.from(text, 'utf8').equals(raw)) {
+                throw new Error('text_file_io_meta_invalid');
+            }
+            const meta = new AssetMetaParser().parse(text, relativePath + '.meta');
+            if (meta.uuid !== uuid) {
+                throw new Error('text_file_io_uuid_conflict');
+            }
+            return { identity: `${before.dev}:${before.ino}`, sha256: createHash('sha256').update(raw).digest('hex') };
+        } finally {
+            closeSync(fd);
         }
     }
 
@@ -241,10 +359,11 @@ export class EditorMcpAssetDbTransaction {
         message: IEditorMcpAssetDbTransactionMessagePort,
         projectRoot: string,
         dbPaths: readonly string[],
+        options: IEditorMcpAssetDbTransactionOptions = {},
     ): Promise<readonly string[]> {
         const directories = new Set<string>();
         for (const dbPath of dbPaths) {
-            if ((await this._queryRegistration(message, projectRoot, dbPath, false)) != null) {
+            if ((await this._queryRegistration(message, projectRoot, dbPath, false, options.textVerification === true)) != null) {
                 continue;
             }
             const relativePath = dbPath.slice('db://'.length);
@@ -266,11 +385,18 @@ export class EditorMcpAssetDbTransaction {
             for (const directory of [...directories].sort()) {
                 const marker = CompatibleUuid.create().replace(/-/gu, '');
                 const probeDbPath = `${directory}/__peanut_assetdb_register_${marker}.json`;
+                options.beforePossibleMutation?.();
                 probes.push(probeDbPath);
                 await message.request('asset-db', 'create-asset', probeDbPath, '{"schemaVersion":1}\n');
             }
         } catch (error: unknown) {
-            await this._removeRegistrationProbes(message, projectRoot, probes);
+            try {
+                await this._removeRegistrationProbes(message, projectRoot, probes, options.textVerification === true);
+            } catch (cleanupError: unknown) {
+                if (error instanceof Error) {
+                    Object.assign(error, { probeCleanupFailure: cleanupError });
+                }
+            }
             throw error;
         }
         return Object.freeze(probes);
@@ -287,9 +413,14 @@ export class EditorMcpAssetDbTransaction {
         message: IEditorMcpAssetDbTransactionMessagePort,
         projectRoot: string,
         probeDbPaths: readonly string[],
+        strict = false,
     ): Promise<void> {
         for (const probeDbPath of probeDbPaths) {
-            await message.request('asset-db', 'delete-asset', probeDbPath).catch(() => undefined);
+            if (strict) {
+                await message.request('asset-db', 'delete-asset', probeDbPath);
+            } else {
+                await message.request('asset-db', 'delete-asset', probeDbPath).catch(() => undefined);
+            }
             const relativePath = probeDbPath.slice('db://'.length);
             rmSync(join(projectRoot, relativePath), { force: true });
             rmSync(join(projectRoot, `${relativePath}.meta`), { force: true });
@@ -309,12 +440,20 @@ export class EditorMcpAssetDbTransaction {
         projectRoot: string,
         dbPath: string,
         requireMeta: boolean,
+        strict = false,
     ): Promise<IEditorMcpAssetDbRegistrationEvidence | null> {
         let raw: unknown;
         try {
             raw = await message.request('asset-db', 'query-asset-info', dbPath);
-        } catch {
+        } catch (error: unknown) {
+            if (strict) {
+                throw error;
+            }
             return null;
+        }
+        if (strict && raw !== null && (!this._isRecord(raw) || typeof raw.uuid !== 'string'
+            || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/iu.test(raw.uuid))) {
+            throw new Error('text_file_io_registration_invalid');
         }
         if (!this._isRecord(raw) || typeof raw.uuid !== 'string' || raw.uuid.trim().length === 0) {
             return null;
@@ -324,12 +463,14 @@ export class EditorMcpAssetDbTransaction {
         if (requireMeta && !metaPresent) {
             return null;
         }
+        const meta = strict && requireMeta ? this._verifyTextMeta(projectRoot, relativePath, raw.uuid.trim()) : null;
         return Object.freeze({
             dbPath,
             uuid: raw.uuid.trim(),
             importer: typeof raw.importer === 'string' ? raw.importer : '',
             metaPresent,
-            subAssetUuids: Object.freeze(this._collectSubAssetUuids(raw.subAssets)),
+            ...(meta == null ? {} : { metaIdentity: meta.identity, metaSha256: meta.sha256 }),
+            subAssetUuids: Object.freeze(strict ? [] : this._collectSubAssetUuids(raw.subAssets)),
         });
     }
 
@@ -387,6 +528,21 @@ export class EditorMcpAssetDbTransaction {
             return fallback;
         }
         return Math.min(maximum, Math.max(minimum, Math.floor(value)));
+    }
+
+    /**
+     * @description 拒绝实际刷新返回中明确的失败、错误对象或非零错误计数。
+     * @param value 原刷新或 settle 返回。
+     * @returns 是否已有明确失败证据。
+     */
+    private _hasTextRefreshFailure(value: unknown): boolean {
+        if (!this._isRecord(value)) {
+            return false;
+        }
+        return value.ok === false || value.ready === false || value.settled === false
+            || value.error != null && value.error !== '' && value.error !== false
+            || value.errors != null && (!Array.isArray(value.errors) || value.errors.length > 0)
+            || value.errorCount != null && value.errorCount !== 0;
     }
 
     /**

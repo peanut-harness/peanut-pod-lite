@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, readdirSync, rmdirSync, rmSync } from 'node:fs';
+import { EditorMcpCreatedParentCleanup } from './editor-mcp-created-parent-cleanup.js';
+import { existsSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { CompatibleUuid, FileAssetDependencyIndex } from '@peanut/pod-engine/assets';
@@ -74,7 +75,7 @@ export interface IEditorMcpAssetDbCreationEvidence {
     /**
      * @description 资源种类。
      */
-    readonly resourceType: 'prefab' | 'scene';
+    readonly resourceType: 'prefab' | 'scene' | 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture';
     /**
      * @description AssetDB 主资源 UUID。
      */
@@ -124,7 +125,7 @@ export interface IEditorMcpAssetDbCreationFailureEvidence {
     /**
      * @description 资源种类。
      */
-    readonly resourceType: 'prefab' | 'scene';
+    readonly resourceType: 'prefab' | 'scene' | 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture';
     /**
      * @description 清理摘要。
      */
@@ -168,7 +169,7 @@ export interface IEditorMcpAssetDbCreationRequest {
     /**
      * @description 资源种类。
      */
-    readonly resourceType: 'prefab' | 'scene';
+    readonly resourceType: 'prefab' | 'scene' | 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture';
     /**
      * @description 可选内存内容；提供时协调器调用 `create-asset`。
      */
@@ -240,6 +241,8 @@ export class EditorMcpAssetDbCreationCoordinator {
         }
         try {
             this._throwIfCancelled(request.lifecycle);
+            await this._waitForAssetDbReady(message, request);
+            this._throwIfCancelled(request.lifecycle);
             parentPreparation = await this._prepareParent(message, projectRoot, targetDbPath, request);
             phase = 'parent_ready';
             this._throwIfCancelled(request.lifecycle);
@@ -276,20 +279,59 @@ export class EditorMcpAssetDbCreationCoordinator {
             if (error instanceof EditorMcpAssetDbCreationError) {
                 throw error;
             }
-            const cleanup = published || phase === 'publishing'
-                ? await this._cleanupPublishedTarget(message, projectRoot, targetDbPath, publicationResponse)
-                : this._emptyCleanup(true);
-            if (!published && parentPreparation != null) {
-                this._cleanupCreatedDirectories(projectRoot, parentPreparation.createdDirectories);
+            let targetCleanup = this._emptyCleanup(true);
+            let targetCleanupError: unknown = null;
+            if (published || phase === 'publishing') {
+                try { targetCleanup = await this._cleanupPublishedTarget(message, projectRoot, targetDbPath, publicationResponse); }
+                catch (cleanupError: unknown) { targetCleanup = this._emptyCleanup(false); targetCleanupError = cleanupError; }
             }
+            const parentCleanup = targetCleanup.complete && parentPreparation != null
+                ? await parentPreparation.cleanup.cleanup() : null;
+            const cleanup = Object.freeze({
+                attempted: targetCleanup.attempted || parentCleanup?.attempted === true,
+                complete: targetCleanup.complete && (parentCleanup?.complete ?? true),
+                ownershipMismatch: targetCleanup.ownershipMismatch || parentCleanup?.ownershipMismatch === true,
+            });
             FileAssetDependencyIndex.invalidate(projectRoot);
             const state: EditorMcpAssetDbCreationProjectState = cleanup.complete ? 'unchanged' : 'may_have_changed';
             const detail = error instanceof Error ? error.message : String(error);
             const code = detail.includes('registration_pending')
                 ? 'editor_mcp_asset_create_registration_pending'
                 : detail;
-            throw this._failure(code, phase, targetDbPath, request.resourceType, cleanup, state);
+            const failure = this._failure(code, phase, targetDbPath, request.resourceType, cleanup, state);
+            Object.defineProperty(failure, 'originalError', { value: error });
+            if (parentCleanup?.error != null || targetCleanupError != null) Object.defineProperty(failure, 'cleanupError', { value: parentCleanup?.error ?? targetCleanupError });
+            throw failure;
         }
+    }
+
+    /**
+     * @description 在任何父目录变更前等待 AssetDB 初始化；只有明确 true 才允许发布。
+     */
+    private async _waitForAssetDbReady(
+        message: IEditorMcpAssetDbTransactionMessagePort,
+        request: IEditorMcpAssetDbCreationRequest,
+    ): Promise<void> {
+        const timeoutMs = this._boundedInteger(request.timeoutMs, 60_000, 100, 60_000);
+        const pollIntervalMs = this._boundedInteger(request.pollIntervalMs, 100, 20, 1000);
+        const deadline = Date.now() + timeoutMs;
+        while (Date.now() <= deadline) {
+            this._throwIfCancelled(request.lifecycle);
+            const ready = await message.request('asset-db', 'query-ready');
+            this._throwIfCancelled(request.lifecycle);
+            if (ready === true) {
+                return;
+            }
+            if (ready !== false) {
+                throw new Error('editor_mcp_asset_create_ready_response_invalid');
+            }
+            const remainingMs = deadline - Date.now();
+            if (remainingMs <= 0) {
+                break;
+            }
+            await new Promise<void>((resolveDelay) => setTimeout(resolveDelay, Math.min(pollIntervalMs, remainingMs)));
+        }
+        throw new Error('editor_mcp_asset_create_ready_pending');
     }
 
     /**
@@ -305,8 +347,11 @@ export class EditorMcpAssetDbCreationCoordinator {
         const parentRelativePath = dirname(targetRelativePath).replace(/\\/gu, '/');
         const parentDbPath = `db://${parentRelativePath}`;
         const createdDirectories = this._collectMissingDirectories(projectRoot, parentRelativePath);
-        mkdirSync(join(projectRoot, parentRelativePath), { recursive: true });
+        const parentCleanup = new EditorMcpCreatedParentCleanup(projectRoot, message, {
+            timeoutMs: request.timeoutMs, pollIntervalMs: request.pollIntervalMs,
+        });
         try {
+            await parentCleanup.create(createdDirectories);
             if ((await this._host.transaction.queryRegistration(parentDbPath, false)) == null) {
                 const probeDbPath = `${parentDbPath}/__peanut_assetdb_register_${CompatibleUuid.create().replace(/-/gu, '')}.json`;
                 try {
@@ -333,11 +378,19 @@ export class EditorMcpAssetDbCreationCoordinator {
                     );
                 }
             }
+            await parentCleanup.sealRegistration();
         } catch (error: unknown) {
-            this._cleanupCreatedDirectories(projectRoot, createdDirectories);
-            throw error;
+            const result = await parentCleanup.cleanup();
+            if (result.complete) throw error;
+            const detail = error instanceof Error ? error.message : String(error);
+            const failure = this._failure(detail, 'reserved', targetDbPath, request.resourceType,
+                Object.freeze({ attempted: result.attempted, complete: false, ownershipMismatch: result.ownershipMismatch }),
+                'may_have_changed');
+            Object.defineProperty(failure, 'originalError', { value: error });
+            if (result.error != null) Object.defineProperty(failure, 'cleanupError', { value: result.error });
+            throw failure;
         }
-        return Object.freeze({ parentDbPath, createdDirectories: Object.freeze(createdDirectories) });
+        return Object.freeze({ parentDbPath, createdDirectories: Object.freeze(createdDirectories), cleanup: parentCleanup });
     }
 
     /**
@@ -381,11 +434,16 @@ export class EditorMcpAssetDbCreationCoordinator {
         if (registration == null && responseUuid == null) {
             return Object.freeze({ attempted: false, complete: false, ownershipMismatch: false });
         }
-        await message.request('asset-db', 'delete-asset', targetDbPath).catch(() => undefined);
+        await message.request('asset-db', 'delete-asset', targetDbPath);
         const targetRelativePath = targetDbPath.slice('db://'.length);
         const targetAbsolutePath = join(projectRoot, targetRelativePath);
         const stillRegistered = await this._host.transaction.queryRegistration(targetDbPath, false);
-        const complete = stillRegistered == null && !existsSync(targetAbsolutePath) && !existsSync(`${targetAbsolutePath}.meta`);
+        let knownUuidsAbsent = true;
+        const knownUuids = new Set([responseUuid, registration?.uuid, ...(registration?.subAssetUuids ?? [])]);
+        for (const uuid of knownUuids) {
+            if (uuid != null && (await message.request('asset-db', 'query-asset-info', uuid)) != null) knownUuidsAbsent = false;
+        }
+        const complete = stillRegistered == null && knownUuidsAbsent && !existsSync(targetAbsolutePath) && !existsSync(`${targetAbsolutePath}.meta`);
         return Object.freeze({ attempted: true, complete, ownershipMismatch: false });
     }
 
@@ -406,19 +464,6 @@ export class EditorMcpAssetDbCreationCoordinator {
     }
 
     /**
-     * @description 仅删除本事务创建且仍为空的目录与其 sidecar。
-     */
-    private _cleanupCreatedDirectories(projectRoot: string, directories: readonly string[]): void {
-        for (const relativePath of [...directories].reverse()) {
-            const absolutePath = join(projectRoot, relativePath);
-            if (existsSync(absolutePath) && readdirSync(absolutePath).length === 0) {
-                rmdirSync(absolutePath);
-                rmSync(`${absolutePath}.meta`, { force: true });
-            }
-        }
-    }
-
-    /**
      * @description 在发布窗口前响应任务取消。
      */
     private _throwIfCancelled(lifecycle: IEditorMcpAssetDbCreationLifecycle | undefined): void {
@@ -430,10 +475,10 @@ export class EditorMcpAssetDbCreationCoordinator {
     /**
      * @description 规范化并校验 Prefab / Scene 目标。
      */
-    private _normalizeTarget(pathValue: string, resourceType: 'prefab' | 'scene'): string {
+    private _normalizeTarget(pathValue: string, resourceType: 'prefab' | 'scene' | 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture'): string {
         const normalized = pathValue.trim().replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '');
         const dbPath = normalized.startsWith('db://') ? normalized : `db://${normalized}`;
-        const extension = resourceType === 'prefab' ? '.prefab' : '.scene';
+        const extension = { prefab: '.prefab', scene: '.scene', material: '.mtl', animationClip: '.anim', physicsMaterial: '.pmtl', renderTexture: '.rt' }[resourceType];
         if (!dbPath.startsWith('db://assets/') || !dbPath.toLowerCase().endsWith(extension)) {
             throw new Error(`editor_mcp_asset_create_target_invalid:${pathValue}`);
         }
@@ -471,7 +516,7 @@ export class EditorMcpAssetDbCreationCoordinator {
         message: string,
         phase: EditorMcpAssetDbCreationPhase,
         targetDbPath: string,
-        resourceType: 'prefab' | 'scene',
+        resourceType: 'prefab' | 'scene' | 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture',
         cleanup: IEditorMcpAssetDbCreationCleanupEvidence,
         projectState: EditorMcpAssetDbCreationProjectState = cleanup.complete ? 'unchanged' : 'may_have_changed',
     ): EditorMcpAssetDbCreationError {
@@ -508,4 +553,8 @@ interface IParentPreparation {
      * @description 本事务创建的目录。
      */
     readonly createdDirectories: readonly string[];
+    /**
+     * @description 本次目录所有权与原生删除确认；不能被下一次调用复用。
+     */
+    readonly cleanup: EditorMcpCreatedParentCleanup;
 }

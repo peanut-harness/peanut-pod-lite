@@ -1,3 +1,4 @@
+import { EditorMcpTextWriteFailure } from './editor-mcp-text-write-failure.js';
 import type { EditorMcpActionId, EditorMcpOperationId, IEditorMcpActionPlan, IEditorMcpActionResult, IEditorMcpCapabilityDescriptor } from '@peanut/pod-protocol';
 import { AssetCatalogFastLookupApi, type IAssetCatalogFastLookup } from '@peanut/pod-engine/assets';
 import { PluginModuleBase } from '@peanut/pod-sdk';
@@ -91,11 +92,17 @@ export class EditorMcpPluginModule extends PluginModuleBase {
         if (managedTasks != null) {
             const resourceExecutor = new ResourceOperationTaskExecutor({
                 plan: async (operation, input) => this._requireRouter().planManagedResourceOperation(operation as EditorMcpOperationId, input),
-                execute: async (operation, input, executorContext) =>
+                lockManager: this._requireRouter().getResourceLockManager(),
+                revalidate: async (operation, input, plan) =>
+                    this._requireRouter().revalidateManagedResourceOperation(operation as EditorMcpOperationId, input, plan),
+                beginBatch: (plans, requests) => this._requireRouter().beginManagedBatch(plans, requests),
+                execute: async (operation, input, executorContext, plan, batch) =>
                     this._requireRouter().executeManagedResourceOperation(
                         operation as EditorMcpOperationId,
                         input,
                         executorContext,
+                        plan,
+                        batch,
                     ),
             });
             managedTasks.registerExecutor(
@@ -176,6 +183,9 @@ export class EditorMcpPluginModule extends PluginModuleBase {
             throw new Error(`editor_mcp_capability_unsupported:${name}`);
         }
         try {
+            if (operation === 'asset.writeText') {
+                router.assertTextWriteInputBudget({ operation, input });
+            }
             const decoded = this._executionCodec.decode(this._isRecord(input) ? input : {});
             const requestInput = decoded.input;
             const plan = router.plan({ operation, input: requestInput });
@@ -239,7 +249,8 @@ export class EditorMcpPluginModule extends PluginModuleBase {
         }
         const taskResult = await managedTasks.wait<Record<string, unknown>>(receipt.taskId);
         if (taskResult == null || !taskResult.ok || taskResult.status !== 'succeeded') {
-            throw new Error(taskResult?.error?.code ?? 'editor_mcp_managed_task_failed');
+            throw EditorMcpTextWriteFailure.fromTaskResult(taskResult, receipt.taskId,
+                taskResult?.error?.code ?? 'editor_mcp_managed_task_failed');
         }
         const data = taskResult.data;
         if (data == null || typeof data.operation !== 'string' || !('data' in data)) {

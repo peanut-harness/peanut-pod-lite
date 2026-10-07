@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from 'fs';
 import { basename, dirname, extname, join, resolve } from 'path';
 
+import { TiledMapImportSource } from './tiled-map-import-source';
+import { BitmapFontImportSource } from './bitmap-font-import-source';
+
 /**
  * @description 导入规划中的资产角色。
  */
@@ -113,7 +116,8 @@ export class AssetImportPlanner {
                 const normalized = this._normalize(discovered);
                 if (aliases.has(normalized) && normalized !== source) {
                     refs.add(aliases.get(normalized) ?? normalized);
-                } else if (existsSync(normalized) && !aliases.has(normalized)) {
+                } else if (!aliases.has(normalized) &&
+                    (existsSync(normalized) || ['.plist', '.tmx', '.fnt'].includes(extname(source).toLowerCase()))) {
                     missingDependencies.push({ source, dependency: normalized });
                 }
             }
@@ -304,6 +308,12 @@ export class AssetImportPlanner {
         if (extension === '.atlas') {
             return this._readAtlasPages(source);
         }
+        if (extension === '.tmx') {
+            return TiledMapImportSource.images(source);
+        }
+        if (extension === '.plist') {
+            return this._readSpriteAtlasPages(source);
+        }
         if (extension === '.fnt') {
             return this._readBmFontPages(source);
         }
@@ -370,20 +380,72 @@ export class AssetImportPlanner {
     }
 
     /**
+     * @description 从 SpriteAtlas XML 的 metadata 发现同目录贴图；不解析粒子 plist 或外部 DTD。
+     * @param source 图集源文件路径。
+     * @returns 去重后的贴图依赖；声明缺失文件交由导入前 missing 检查拒绝。
+     */
+    private _readSpriteAtlasPages(source: string): readonly string[] {
+        if (!existsSync(source)) {
+            return [];
+        }
+        const xml = readFileSync(source, 'utf8').replace(/<!--[\s\S]*?-->/gu, '');
+        if (!/<key>\s*frames\s*<\/key>\s*<dict>/u.test(xml)) {
+            return [];
+        }
+        const metadata = /<key>\s*metadata\s*<\/key>\s*<dict>([\s\S]*?)<\/dict>/u.exec(xml)?.[1];
+        const matches = [...(metadata ?? '').matchAll(
+            /<key>\s*(?:realTextureFileName|textureFileName)\s*<\/key>\s*<string>([^<]*)<\/string>/gu,
+        )];
+        if (matches.length === 0) {
+            throw new Error(`asset_import_plist_texture_missing:${source}`);
+        }
+        const pages = matches.map((match) => {
+            const name = this._decodePlistTextureName(match[1] ?? '');
+            if (name.length === 0 || name === '.' || name === '..' ||
+                /[/\\:\u0000-\u001f\u007f]/u.test(name) || basename(name) !== name) {
+                throw new Error(`asset_import_plist_texture_path_invalid:${source}`);
+            }
+            return join(dirname(source), name);
+        });
+        return [...new Set(pages)];
+    }
+
+    /**
+     * @description 只解码 XML 内建与数值文本实体一次，不展开自定义实体或外部引用。
+     * @param value 原始文件名文本。
+     * @returns 解码后的文件名；非法实体在任何原生操作前拒绝。
+     */
+    private _decodePlistTextureName(value: string): string {
+        if (/&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[\da-fA-F]+);)/u.test(value)) {
+            throw new Error('asset_import_plist_entity_invalid');
+        }
+        const entities: Readonly<Record<string, string>> = {
+            amp: '&', lt: '<', gt: '>', quot: '"', apos: "'",
+        };
+        return value.replace(/&([^;]+);/gu, (_match: string, entity: string): string => {
+            const literal = entities[entity];
+            if (literal != null) {
+                return literal;
+            }
+            const point = entity.startsWith('#x')
+                ? Number.parseInt(entity.slice(2), 16)
+                : Number.parseInt(entity.slice(1), 10);
+            if (!Number.isInteger(point) || point <= 0 || point > 0x10ffff ||
+                (point >= 0xd800 && point <= 0xdfff)) {
+                throw new Error('asset_import_plist_entity_invalid');
+            }
+            return String.fromCodePoint(point);
+        });
+    }
+
+    /**
      * @description 读取 BMFont `file=` 贴图引用。
      * @param source `.fnt` 路径。
      * @returns 贴图绝对路径。
      */
     private _readBmFontPages(source: string): readonly string[] {
-        try {
-            const directory = dirname(source);
-            const matches = [
-                ...readFileSync(source, 'utf8').matchAll(/\bfile=["']([^"']+)["']/giu),
-            ];
-            return matches.map((match) => resolve(directory, match[1] ?? ''));
-        } catch {
-            return [];
-        }
+        if (!existsSync(source)) { return []; }
+        return [BitmapFontImportSource.read(source).image];
     }
 
     /**

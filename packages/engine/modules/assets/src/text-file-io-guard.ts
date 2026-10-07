@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
-import { closeSync, constants, fstatSync, lstatSync, openSync, readSync, realpathSync, type Stats } from 'fs';
-import { isAbsolute, join, posix, relative, resolve, sep } from 'path';
+import { accessSync, closeSync, constants, fstatSync, lstatSync, openSync, readSync, realpathSync, type Stats } from 'fs';
+import { dirname, isAbsolute, join, posix, relative, resolve, sep } from 'path';
 import { TextDecoder } from 'util';
 
 /**
@@ -90,6 +90,18 @@ export interface ITextFileIoSnapshot {
  */
 export interface ITextFileIoPreparedWrite extends ITextFileIoTarget {
     /**
+     * @description 原始请求路径，保留内部链接在排队前的解析来源。
+     */
+    readonly requestedPath: string;
+    /**
+     * @description 已存在父级链的路径及设备 inode；新目录出现也属于身份变化。
+     */
+    readonly parentIdentity: string;
+    /**
+     * @description 原始父级链的已有及缺失目录身份；不得用后续准备替换。
+     */
+    readonly parentDirectories: Readonly<Record<string, string | null>>;
+    /**
      * @description 已验证可无损 UTF-8 编码的原样内容。
      */
     readonly content: string;
@@ -165,7 +177,7 @@ export class TextFileIoGuard {
      * @description 校验整批写入与源条件，保持 files 优先；全程不创建文件、目录或 meta。
      * @param input 未受信业务输入。
      * @param envelope 完整请求，用于把控制字段及忽略字段也计入预算。
-     * @returns 有序准备信息，取得 writer 后必须重新调用以重验全批。
+     * @returns 有序不可变准备信息，取得 writer 后须用 revalidateWrite 核对原始基线。
      */
     public prepareWrite(input: unknown, envelope: unknown = input): readonly ITextFileIoPreparedWrite[] {
         this.assertInputBudget(envelope);
@@ -201,13 +213,153 @@ export class TextFileIoGuard {
             if (entry == null) {
                 throw new Error('text_file_io_write_entry_invalid');
             }
+            const parentIdentity = this._writeParentIdentity(target);
             const snapshot = this.readSnapshot(target);
             if (entry.expectedSha256 != null && entry.expectedSha256 !== snapshot.sha256) {
                 throw new Error('text_file_io_content_conflict');
             }
-            return Object.freeze({ ...target, content: entry.content, byteCount: Buffer.byteLength(entry.content, 'utf8'),
+            return Object.freeze({ ...target, requestedPath: this._normalizePath(entry.path), parentIdentity, parentDirectories: this._writeParentDirectories(target),
+                content: entry.content, byteCount: Buffer.byteLength(entry.content, 'utf8'),
                 beforeSha256: snapshot.sha256, ...(entry.expectedSha256 != null ? { expectedSha256: entry.expectedSha256 } : {}) });
         }));
+    }
+
+    /**
+     * @description 重验整批并比较排队前原始身份，不能用重新准备的基线替代核对。
+     * @param input 原始业务输入。
+     * @param prepared 首次无副作用准备结果。
+     * @returns 全批当前准备结果；任何变化在第一项写入前拒绝。
+     */
+    public revalidateWrite(
+        input: unknown,
+        prepared: readonly ITextFileIoPreparedWrite[],
+        delta?: {
+            /**
+             * @description 由当前批次实际读回并核实身份的目标变化。
+             */
+            readonly files: ReadonlyMap<string, { readonly identity: string | null; readonly sha256: string }>;
+            /**
+             * @description 当前批次同步创建且核实的目录物理身份。
+             */
+            readonly directories: ReadonlyMap<string, string>;
+        },
+    ): readonly ITextFileIoPreparedWrite[] {
+        const current = this.prepareWrite(input);
+        if (current.length !== prepared.length || current.some((file, index) => {
+            const before = prepared[index];
+            if (before == null || file.requestedPath !== before.requestedPath || file.path !== before.path
+                || file.absolutePath !== before.absolutePath || file.expectedSha256 !== before.expectedSha256
+                || file.content !== before.content || file.byteCount !== before.byteCount) {
+                return true;
+            }
+            const own = delta?.files.get(file.absolutePath);
+            const sourceMatches = file.exists === before.exists && file.identity === before.identity && file.beforeSha256 === before.beforeSha256;
+            if (!sourceMatches && (own == null || own.identity !== file.identity || own.sha256 !== file.beforeSha256)) {
+                return true;
+            }
+            if (file.parentIdentity === before.parentIdentity) {
+                return false;
+            }
+            if (delta == null) {
+                return true;
+            }
+            return Object.entries(before.parentDirectories).some(([path, identity]) =>
+                file.parentDirectories[path] !== (identity ?? delta.directories.get(path) ?? null));
+        })) {
+            throw new Error('text_file_io_snapshot_conflict');
+        }
+        return current;
+    }
+
+
+    /**
+     * @description 有限保存原始父级链，包括当时不存在的目录；仅供本次 writer 重验。
+     * @param target 真实写入目标。
+     * @returns 冻结的路径和物理身份记录。
+     */
+    private _writeParentDirectories(target: ITextFileIoTarget): Readonly<Record<string, string | null>> {
+        const root = this._assetRoot();
+        const identities: Record<string, string | null> = {};
+        let parent = dirname(target.absolutePath);
+        while (this._inside(root, parent)) {
+            try {
+                const info = lstatSync(parent);
+                if (!info.isDirectory() || realpathSync(parent) !== parent) {
+                    throw new Error('text_file_io_snapshot_conflict');
+                }
+                identities[parent] = this._identity(info);
+            } catch (error: unknown) {
+                if (!(error instanceof Error) || Reflect.get(error, 'code') !== 'ENOENT') {
+                    throw error;
+                }
+                identities[parent] = null;
+            }
+            if (parent === root) {
+                break;
+            }
+            parent = dirname(parent);
+        }
+        return Object.freeze(identities);
+    }
+
+    /**
+     * @description 核实写权限并保存全部已有父级物理身份，全程不创建目录或探针。
+     * @param target 已解析并限制在真实资产根中的目标。
+     * @returns 规范父级链的身份摘要。
+     */
+    private _writeParentIdentity(target: ITextFileIoTarget): string {
+        const root = this._assetRoot();
+        let parent = dirname(target.absolutePath);
+        let nearest: string | null = null;
+        const identities: string[] = [];
+        try {
+            if (target.exists) {
+                const file = lstatSync(target.absolutePath);
+                if (file.nlink !== 1) {
+                    throw new Error('text_file_io_hardlink_refused');
+                }
+                if ((file.mode & 0o222) === 0) {
+                    throw new Error('text_file_io_write_permission_refused');
+                }
+                accessSync(target.absolutePath, constants.W_OK);
+            }
+            while (this._inside(root, parent)) {
+                let info: Stats | null = null;
+                try {
+                    info = lstatSync(parent);
+                } catch (error: unknown) {
+                    if (!(error instanceof Error) || Reflect.get(error, 'code') !== 'ENOENT') {
+                        throw error;
+                    }
+                }
+                if (info != null) {
+                    if (!info.isDirectory() || realpathSync(parent) !== parent) {
+                        throw new Error('text_file_io_snapshot_conflict');
+                    }
+                    identities.push(`${parent}:${this._identity(info)}`);
+                    if (nearest == null) {
+                        nearest = parent;
+                        if ((info.mode & 0o222) === 0) {
+                            throw new Error('text_file_io_write_permission_refused');
+                        }
+                        accessSync(parent, constants.W_OK | constants.X_OK);
+                    }
+                }
+                if (parent === root) {
+                    break;
+                }
+                parent = dirname(parent);
+            }
+            if (nearest == null || parent !== root) {
+                throw new Error('text_file_io_snapshot_conflict');
+            }
+            return createHash('sha256').update(identities.join('\n')).digest('hex');
+        } catch (error: unknown) {
+            if (error instanceof Error && error.message.startsWith('text_file_io_')) {
+                throw error;
+            }
+            throw new Error('text_file_io_write_permission_refused');
+        }
     }
 
     /**
