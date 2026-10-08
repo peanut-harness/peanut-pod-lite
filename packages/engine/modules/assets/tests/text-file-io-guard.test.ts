@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { chmodSync, linkSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, linkSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import test, { type TestContext } from 'node:test';
@@ -374,9 +374,10 @@ test('original missing parents accept only exact writer-proven physical director
     const original = guard.prepareWrite(input);
     mkdirSync(join(root, 'assets/created'));
     assert.throws(() => guard.revalidateWrite(input, original), /snapshot_conflict/u);
-    const info = lstatSync(join(root, 'assets/created'));
+    const createdDirectory = realpathSync(join(root, 'assets/created'));
+    const info = lstatSync(createdDirectory);
     const delta = { files: new Map<string, { identity: string | null; sha256: string }>(),
-        directories: new Map([[join(root, 'assets/created'), `${info.dev}:${info.ino}`]]) };
+        directories: new Map([[createdDirectory, `${info.dev}:${info.ino}`]]) };
     assert.equal(guard.revalidateWrite(input, original, delta).length, 1);
     renameSync(join(root, 'assets/created'), join(root, 'assets/created-old'));
     mkdirSync(join(root, 'assets/created'));
