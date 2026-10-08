@@ -33,6 +33,7 @@
         "internalDependencies": [
             "@peanut/pod-engine/assets",
             "@peanut/pod-engine/installation",
+            "@peanut/pod-engine/policy",
             "@peanut/pod-engine/runtime"
         ]
     }
