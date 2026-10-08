@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { copyFileSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, lstatSync, mkdirSync, mkdtempSync, realpathSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -13,7 +13,7 @@ class Fixture {
     /**
      * @description 独占工程根。
      */
-    public readonly root = mkdtempSync(join(tmpdir(), 'peanut-public-ensure-canonical-'));
+    public readonly root = realpathSync(mkdtempSync(join(tmpdir(), 'peanut-public-ensure-canonical-')));
     /**
      * @description PNG 主身份。
      */

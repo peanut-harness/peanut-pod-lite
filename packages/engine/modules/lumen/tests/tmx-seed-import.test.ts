@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, realpathSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 
@@ -18,7 +18,7 @@ class Fixture {
     /**
      * @description 本用例独占临时根。
      */
-    public readonly root = mkdtempSync(join(tmpdir(), 'peanut-tmx-seed-'));
+    public readonly root = realpathSync(mkdtempSync(join(tmpdir(), 'peanut-tmx-seed-')));
     /**
      * @description 模拟工程资产根。
      */

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, realpathSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -63,7 +63,7 @@ test("SpriteFrameMetaBuilder builds f9941 subMeta from image meta", () => {
 });
 
 test("EnsureSpriteFramesBatchService reports already / ensured / failed", async () => {
-  const root = mkdtempSync(join(tmpdir(), "lumen-ensure-sf-"));
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "lumen-ensure-sf-")));
   try {
     mkdirSync(join(root, "assets", "ui"), { recursive: true });
     const pngPath = join(root, "assets", "ui", "bg.png");
