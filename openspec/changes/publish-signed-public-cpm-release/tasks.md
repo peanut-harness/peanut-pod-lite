@@ -4,7 +4,7 @@
 
 - [x] 1.1 `[repo: cpm-install] [paths: release-manifest.mjs, runtime-manifest.mjs, bootstrap.mjs, install.sh, install.ps1, tests/**] [depends: none] [serial] [owner: coordinator]` 记录当前空 manifest、脚本 exit 1、已有 Ed25519/runtime 校验和原子安装正负行为，补齐不会修改真实用户目录的基线 fixture；以仓库测试通过并保存稳定错误码清单验收。
 - [x] 1.2 `[repo: cpm-install + peanut-pod-lite] [paths: protocol fixtures/schema docs] [depends: 1.1] [serial] [owner: coordinator]` 定义 CLI release 与 Lite product catalog 的规范化签名 payload、固定字段顺序、渠道、不可变版本和双锚轮换规则，提交跨仓共享测试向量但不提交私钥；以两仓 verifier 对同一向量给出一致结果、篡改任一受签字段均失败验收。
-- [x] 1.3 `[repo: peanut-pod-lite] [paths: package.json, packages/engine/modules/creator-plugin/**manifest**, packages/hosts/modules/creator-38/package.json, scripts/**, tests/**] [depends: 1.2] [serial] [owner: coordinator]` 统一 Lite release version/source identity，定义 Host/Core release descriptor schema 与兼容画像字段，消除脚本内独立硬编码版本；以生成检查证明 Host、Core、目录名与 descriptor 版本一致且现有 83/45 catalog 不漂移验收。
+- [x] 1.3 `[repo: peanut-pod-lite] [paths: package.json, packages/engine/modules/creator-plugin/**manifest**, packages/hosts/modules/creator-38/package.json, scripts/**, tests/**] [depends: 1.2] [serial] [owner: coordinator]` 统一 Lite release version/source identity，定义 Host/Core release descriptor schema 与兼容画像字段，消除脚本内独立硬编码版本；以生成检查证明 Host、Core、目录名与 descriptor 版本一致且现有 84/39/45 catalog 不漂移验收。
 
 ## 2. 完成公共 CPM runtime 与原子引导安装
 
@@ -23,13 +23,13 @@
 ## 4. 建立受控构建、签名与候选发布门禁
 
 - [x] 4.1 `[repo: cpm-install] [paths: release scripts/workflows, policy docs, tests/**] [depends: 2.4, 3.2] [serial] [owner: coordinator]` 建立 CLI runtime 构建、SBOM/许可证清单、不可变上传、回读摘要和受控 Ed25519 签名流程，确保 fork/普通 CI 无法读取私钥且日志/artifact 不泄密；以无密钥 dry-run、临时测试键签名、secret scan 和重复版本拒绝验收。
-- [x] 4.2 `[repo: peanut-pod-lite] [paths: release scripts/workflows, docs/INSTALLATION.md, tests/**] [depends: 3.1, 3.4] [serial] [owner: coordinator]` 建立 Lite Host/Core 候选构建、descriptor 校验、双 Creator profile 声明和产品 catalog 签名输入输出，发布过程只消费已验证 artifact 而不从邻仓现场重建；以 `npm run verify`、`npm run pack`、候选摘要回读和私钥缺失 fail-closed 验收。
+- [ ] 4.2 `[repo: peanut-pod-lite] [paths: release scripts/workflows, docs/INSTALLATION.md, tests/**] [depends: 3.1, 3.4] [serial] [owner: coordinator]` 建立 Lite Host/Core 候选构建、descriptor 校验、双 Creator profile 声明和产品 catalog 签名输入输出，发布过程只消费已验证 artifact 而不从邻仓现场重建；以 `npm run verify`、`npm run pack`、候选摘要回读和私钥缺失 fail-closed 验收。
 - [ ] 4.3 `[repo: cpm-install + peanut-pod-lite] [paths: candidate release storage/evidence manifests] [depends: 4.1, 4.2] [serial] [owner: integration]` 上传不可变 candidate/beta CLI 与 Host/Core archive，冻结所有 URL、SHA、目录包 digest、source commit 与签名输入，但保持 stable manifest 不变；以从候选 HTTPS 端点回读全部字节并与 evidence manifest 完全一致验收。
 
 ## 5. 完成跨平台与 Creator 独立验收
 
 - [ ] 5.1 `[repo: cpm-install] [paths: tests/e2e/**, release evidence] [depends: 4.3] [parallel: bootstrap-e2e] [owner: bootstrap-e2e]` 在干净 macOS/Linux Bash 与 Windows PowerShell 环境运行首次安装、升级、坏签名、坏摘要、恶意 archive、断点故障和恢复矩阵；以每个平台 current 身份正确、旧版本可恢复、失败路径零暂存残留验收。
-- [ ] 5.2 `[repo: peanut-pod-lite + cpm-install] [paths: packages/hosts/modules/creator-38/scripts/**, release evidence] [depends: 4.3] [parallel: creator-e2e] [owner: creator-e2e]` 仅通过候选 CPM 对 Creator 3.8.3 与 3.8.7 干净工程安装 Lite，运行只读、审批写入和原子创建矩阵，证明 Host/Core/catalog 身份一致、83/45 能力不漂移、Pro 缺失不阻塞且日志零新增 error/warn。
+- [ ] 5.2 `[repo: peanut-pod-lite + cpm-install] [paths: packages/hosts/modules/creator-38/scripts/**, release evidence] [depends: 4.3] [parallel: creator-e2e] [owner: creator-e2e]` 仅通过候选 CPM 对 Creator 3.8.3 与 3.8.7 干净工程安装 Lite，运行只读、审批写入和原子创建矩阵，证明 Host/Core/catalog 身份一致、84/39/45 能力不漂移、Pro 缺失不阻塞且日志零新增 error/warn。
 - [ ] 5.3 `[repo: peanut-agent-qa] [paths: CPM independent-host workflow/evidence] [depends: 5.1, 5.2] [serial] [owner: independent-qa]` 从公开候选端点独立下载，不读取相邻 checkout 或本地 build，复验 CLI 安装、Lite 激活、失败恢复和证据脱敏；以仓外报告绑定同一 CLI/Host/Core digest 且无 token/私钥验收。
 
 ## 6. 激活 stable、回读并收口知识

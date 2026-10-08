@@ -12,8 +12,8 @@ const fixtureRoot = resolve(import.meta.dirname, '../../packages/hosts/modules/c
 const sourceCommit = 'b'.repeat(40);
 const baseUrl = 'https://releases.peanut-harness.dev/lite/0.2.0';
 const profiles = [
-    { version: '3.8.3', operationCount: 83, readOperationCount: 38, writeOperationCount: 45 },
-    { version: '3.8.7', operationCount: 83, readOperationCount: 38, writeOperationCount: 45 },
+    { version: '3.8.3', operationCount: 84, readOperationCount: 39, writeOperationCount: 45 },
+    { version: '3.8.7', operationCount: 84, readOperationCount: 39, writeOperationCount: 45 },
 ];
 
 test.after(async () => rm(fixtureRoot, { recursive: true, force: true }));

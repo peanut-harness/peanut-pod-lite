@@ -10,7 +10,7 @@ import { readRootReleaseVersion } from './release-identity.mts';
 
 const PRODUCT_ID = 'peanut.pod-lite';
 const CREATOR_PROFILES = Object.freeze(['3.8.3', '3.8.7']);
-const OPERATION_COUNTS = Object.freeze({ operationCount: 83, readOperationCount: 38, writeOperationCount: 45 });
+const OPERATION_COUNTS = Object.freeze({ operationCount: 84, readOperationCount: 39, writeOperationCount: 45 });
 // 与 cpm-install `dev-signing.mjs` 相同的公开种子：开发密钥人人可复现，仅在 CPM_DEV_KEYS=1 时被信任且永不用于 stable。
 const LITE_PRODUCT_DEV_SEED = 'peanut-harness/lite-product-dev/v1';
 const PKCS8_ED25519_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex');

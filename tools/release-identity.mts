@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 const PRODUCT_ID = 'peanut.pod-lite';
 const CREATOR_PROFILES = Object.freeze([
-    Object.freeze({ version: '3.8.3', operationCount: 83, readOperationCount: 38, writeOperationCount: 45 }),
-    Object.freeze({ version: '3.8.7', operationCount: 83, readOperationCount: 38, writeOperationCount: 45 }),
+    Object.freeze({ version: '3.8.3', operationCount: 84, readOperationCount: 39, writeOperationCount: 45 }),
+    Object.freeze({ version: '3.8.7', operationCount: 84, readOperationCount: 39, writeOperationCount: 45 }),
 ]);
 
 const VERSION_TARGETS = Object.freeze([

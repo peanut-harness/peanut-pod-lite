@@ -7,7 +7,7 @@
 1. **关闭目标 Creator 项目。** 不得在旧宿主仍持有插件目录或运行期服务时覆盖安装。
 2. **安装 Lite 宿主扩展。** 使用 `packages/hosts/modules/creator-38/release/peanut-pod-lite-host-*/` 安装到项目 `extensions/peanut-pod-lite-host/`。该原生 Creator 扩展从 CPM `peanut-plugins/installed.json` 读取活动版本，完整校验后加载必需的 `peanut.pod-lite` 与可选的 `peanut.cocos-mcp-pro`；不扫描旧插件目录。
 3. **通过 CPM 安装 Core 能力包。** 安装器必须先校验目录包、原子写入插件目录和 schema v2 活动版本索引，再允许 Creator host 加载。不得手工伪造成功索引。
-4. **启动 Creator 并等待宿主就绪。** 打开方式遵循 Hub `knowledge/cocos-creator-open.md`：3.x 用 `--project <abs> --nologin`；本工程已有 GUI 则 attach，不要再 spawn / 强杀；装宿主扩展后必须重启 Creator。只接受 `query-status` 返回 `ready: true`（gateway 接入后 `tools` 应为 83）且日志出现 `lite_host_ready`；未就绪时不得继续能力验收。
+4. **启动 Creator 并等待宿主就绪。** 打开方式遵循 Hub `knowledge/cocos-creator-open.md`：3.x 用 `--project <abs> --nologin`；本工程已有 GUI 则 attach，不要再 spawn / 强杀；装宿主扩展后必须重启 Creator。只接受 `query-status` 返回 `ready: true` 且日志出现 `lite_host_ready`；未就绪时不得继续能力验收。
 5. **运行只读冒烟测试。** 验证 `editor.queryVersion`、`editor.queryProject`、`editor.querySelection`、`scene.getCurrent`、`scene.getHierarchy`、`builder.queryPlatforms`、`builder.querySchema`、`builder.queryDefaultConfig` 与 `preview.query`；失败时停止，不继续任何写入测试。
 6. **运行本地审批写入测试。** 先申请一次性审批租约，再执行一个可恢复的原生写操作；Core 不接受在线签名计划作为替代审批。
 7. **运行原子创建矩阵。** 对 3.8.3 与 3.8.7 分别执行 `verify-managed-task-live.mts`，要求同一候选 Host/Core 身份下 Prefab/Scene 首次创建、同目标竞争、commit 前取消、UUID/`.meta`、唯一 postflight、零探针残留和日志增量全部通过。其它 3.8 补丁不得借此自动开放写入。
@@ -40,7 +40,7 @@ npm exec -- tsx packages/hosts/modules/creator-38/scripts/verify-throughput-soak
 
 ### 发布候选（维护者）
 
-`npm run release:candidate -- --base-url <immutable-https-dir> --channel beta --out <signing-input.json>` 先跑完整 `npm run verify` 与 `npm run pack`，再从 archive 字节重新核对 descriptor、Host/Core 摘要和 3.8.3/3.8.7 的 83/38/45 画像，并要求 `sourceCommit` 等于干净 HEAD，最后输出 `lite-product-v1` 签名输入。签名只消费该输入：`tsx tools/release-candidate.mts sign --input <file>` 仅从 `LITE_PRODUCT_SIGNING_KEY` 读取产品私钥，缺失即失败（`--dry-run` 只输出待签 payload）；上传到不可变地址后用 `readback --input <file>` 回读核对 SHA-256。开发测试可用 `sign --dev-key` 以内置开发密钥签名（公开种子派生，仅在 CPM 设置 `CPM_DEV_KEYS=1` 时被信任，拒绝 stable）。live 验收脚本带 `--release-descriptor release/peanut.pod-lite-<v>/lite-release-descriptor.json` 时会拒绝与候选身份不一致的 `query-status.artifacts`。
+`npm run release:candidate -- --base-url <immutable-https-dir> --channel beta --out <signing-input.json>` 先跑完整 `npm run verify` 与 `npm run pack`，再从 archive 字节重新核对 descriptor、Host/Core 摘要和 3.8.3/3.8.7 的 84/39/45 画像，并要求 `sourceCommit` 等于干净 HEAD，最后输出 `lite-product-v1` 签名输入。签名只消费该输入：`tsx tools/release-candidate.mts sign --input <file>` 仅从 `LITE_PRODUCT_SIGNING_KEY` 读取产品私钥，缺失即失败（`--dry-run` 只输出待签 payload）；上传到不可变地址后用 `readback --input <file>` 回读核对 SHA-256。开发测试可用 `sign --dev-key` 以内置开发密钥签名（公开种子派生，仅在 CPM 设置 `CPM_DEV_KEYS=1` 时被信任，拒绝 stable）。live 验收脚本带 `--release-descriptor release/peanut.pod-lite-<v>/lite-release-descriptor.json` 时会拒绝与候选身份不一致的 `query-status.artifacts`。
 
 禁止在内部 module 目录单独安装依赖；仓库只维护根 lockfile。可选宿主发布物位于 `packages/hosts/modules/creator-24/release/` 与 `packages/hosts/modules/creator-30-35/release/`。
 

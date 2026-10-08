@@ -4,8 +4,8 @@
     "kind": "tooling-plugin",
     "displayName": "Peanut Editor MCP",
     "description": {
-        "en-US": "Cocos Creator MCP capability router for the 83 Lite operations and Lumen asset editing.",
-        "zh-CN": "提供 83 个 Lite 操作与 Lumen 资产源文件编辑的 Cocos Creator MCP capability 路由器。"
+        "en-US": "Cocos Creator MCP capability router for the 84 Lite operations and Lumen asset editing.",
+        "zh-CN": "提供 84 个 Lite 操作与 Lumen 资产源文件编辑的 Cocos Creator MCP capability 路由器。"
     },
     "icon": "./assets/icon.png",
     "main": "./peanut.editor-mcp.bundle.js",

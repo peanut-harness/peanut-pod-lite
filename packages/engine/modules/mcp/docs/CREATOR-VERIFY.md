@@ -19,7 +19,7 @@ npm run pack
 刷新或重启目标编辑器后，必须同时满足：
 
 - `query-status` 返回 `ready: true`。
-- `list-tools` 返回 83 个 Lite operation，且不包含 Pro operation。
+- `list-tools` 返回 84 个 Lite operation，且不包含 Pro operation。
 - `query-status.artifacts`、`host-status.json.artifacts` 与 `smoke-results.json.artifacts` 完全一致；记录宿主 `mainDigest`、Lite `packageDigest`/`packedAt`，有 Pro 时同时记录 Pro package digest。
 - `project.log` 出现本轮 `lite_host_ready`，之后没有新增启动错误。
 - 宿主版本与工程版本均为已验证的 `3.8.3` 或 `3.8.7`；缺失、不一致或其它 3.8 补丁版本时写入保持关闭。
@@ -37,7 +37,7 @@ npm run pack
 
 结果必须来自 MCP 响应和本轮 `project.log` 增量；报告缺少产物摘要或摘要与待验 release 不一致时，本轮证据无效。
 
-完整验收按 `Creator38MigrationWorkstreamCatalog` 的固定分母记录，不得只报告 83 项总数：Editor/Scene/Prefab 21、Asset read 15、Asset write 12、Preview/Builder/Reference 9、Lumen 26。每项证据至少包含 operation、输入 fixture、MCP 结果、日志增量和清理结果；Node parity 测试只证明冻结契约，不替代本节的 Creator 3.8.x 精确补丁版本证据。
+完整验收按 `Creator38MigrationWorkstreamCatalog` 的固定分母记录，不得只报告 84 项总数：Editor/Scene/Prefab 21、Asset read 16、Asset write 12、Preview/Builder/Reference 9、Lumen 26。每项证据至少包含 operation、输入 fixture、MCP 结果、日志增量和清理结果；Node parity 测试只证明冻结契约，不替代本节的 Creator 3.8.x 精确补丁版本证据。
 
 ## 4. 静默资源写入
 

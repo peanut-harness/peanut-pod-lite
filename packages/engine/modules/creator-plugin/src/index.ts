@@ -60,7 +60,7 @@ export interface ICoreCocosCreatorHostActivateContext {
      */
     readonly runtime?: ICoreCocosCreatorReadRuntime;
     /**
-     * @description Creator 宿主裁剪后的完整 grant 集合；存在时自动接入 EditorMcp gateway（83 项）。
+     * @description Creator 宿主裁剪后的完整 grant 集合；存在时自动接入 EditorMcp gateway（84 项）。
      */
     readonly grantedRuntime?: IGrantedRuntimeClientSet;
     /**
@@ -80,11 +80,11 @@ export interface ICoreCocosCreatorHostActivateContext {
      */
     readonly approvalLeases?: McpApprovalLeaseStore;
     /**
-     * @description 直接注入的 83 项网关执行函数。
+     * @description 直接注入的 84 项网关执行函数。
      */
     readonly executeOperation?: EditorMcpGatewayExecute;
     /**
-     * @description 可选网关端口；存在时注册全部 83 项 Lite 公开操作。
+     * @description 可选网关端口；存在时注册全部 84 项 Lite 公开操作。
      */
     readonly gateway?: CoreCocosMcpGatewayPort;
     /**
@@ -269,7 +269,7 @@ function requireReadRuntime(runtime: ICoreCocosCreatorReadRuntime | undefined): 
  * @description 判断工具是否应注册；始终排除 preview.capture 与 snowb。
  * @param definition 工具定义。
  * @param operations 当前适配器支持的 operation。
- * @param gatewayEnabled 是否走 83 项网关路径。
+ * @param gatewayEnabled 是否走 84 项网关路径。
  * @returns 是否注册。
  */
 function isRegisterable(

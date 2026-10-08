@@ -25,7 +25,7 @@ export function isProExclusiveCocosOperation(operation: unknown): boolean {
 }
 
 /**
- * @description 返回 Lite 公开的 83 个 operation（排除 preview.capture 与 snowb）。
+ * @description 返回 Lite 公开的 84 个 operation（排除 preview.capture 与 snowb）。
  * @returns 冻结的公开 operation 列表。
  */
 export function listLitePublicOperations(): readonly CoreCocosMcpPublicOperation[] {
@@ -36,7 +36,7 @@ export function listLitePublicOperations(): readonly CoreCocosMcpPublicOperation
 }
 
 /**
- * @description 把 Editor MCP 路由器接到 Core dispatcher 的适配器；覆盖全部 83 个 Lite 公开 operation。
+ * @description 把 Editor MCP 路由器接到 Core dispatcher 的适配器；覆盖全部 84 个 Lite 公开 operation。
  */
 export class EditorMcpGatewayAdapter implements ICoreCocosMcpExecutionAdapter {
     /** @description 此适配器覆盖的 Lite 公开 operation。 */

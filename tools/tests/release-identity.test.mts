@@ -16,8 +16,8 @@ test('root version drives Host, Core, release directory, and descriptor identity
     assert.equal(coreManifest.version, identity.version);
     assert.equal(coreManifest.engines.host, `^${identity.version}`);
     assert.deepEqual(identity.creatorProfiles, [
-        { version: '3.8.3', operationCount: 83, readOperationCount: 38, writeOperationCount: 45 },
-        { version: '3.8.7', operationCount: 83, readOperationCount: 38, writeOperationCount: 45 },
+        { version: '3.8.3', operationCount: 84, readOperationCount: 39, writeOperationCount: 45 },
+        { version: '3.8.7', operationCount: 84, readOperationCount: 39, writeOperationCount: 45 },
     ]);
 
     const artifact = { archive: 'artifact.tgz', sha256: 'a'.repeat(64), packageDigest: 'b'.repeat(64) };

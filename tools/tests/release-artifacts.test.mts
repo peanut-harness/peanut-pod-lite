@@ -44,8 +44,8 @@ test('same source and version produce identical descriptor, digests, archives, a
         productId: 'peanut.pod-lite',
         version: '0.2.0',
         creatorProfiles: [
-            { version: '3.8.3', operationCount: 83, readOperationCount: 38, writeOperationCount: 45 },
-            { version: '3.8.7', operationCount: 83, readOperationCount: 38, writeOperationCount: 45 },
+            { version: '3.8.3', operationCount: 84, readOperationCount: 39, writeOperationCount: 45 },
+            { version: '3.8.7', operationCount: 84, readOperationCount: 39, writeOperationCount: 45 },
         ],
     };
     const shared = {

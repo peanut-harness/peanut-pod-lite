@@ -1,6 +1,6 @@
 {
     "name": "@peanut/pod-engine/mcp",
-    "description": "Editor MCP capability plugin for the 83 Lite operations and lumen asset source editing.",
+    "description": "Editor MCP capability plugin for the 84 Lite operations and lumen asset source editing.",
     "version": "0.1.116",
     "private": true,
     "type": "module",

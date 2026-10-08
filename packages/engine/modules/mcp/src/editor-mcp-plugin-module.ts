@@ -40,7 +40,7 @@ export class EditorMcpPluginModule extends PluginModuleBase {
         displayName: 'Peanut Editor MCP',
         description: {
             'en-US': 'Cocos Creator MCP capability router for the 83 Lite operations and lumen asset editing.',
-            'zh-CN': '包含 83 项 Lite 操作与 lumen 资产源文件编辑的 Cocos Creator MCP capability 路由器。',
+            'zh-CN': '包含 84 项 Lite 操作与 lumen 资产源文件编辑的 Cocos Creator MCP capability 路由器。',
         },
         icon: './assets/icon.png' as const,
         main: './peanut.editor-mcp.bundle.js',
