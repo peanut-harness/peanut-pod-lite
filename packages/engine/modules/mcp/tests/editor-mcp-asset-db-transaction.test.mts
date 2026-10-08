@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -503,7 +503,7 @@ test('AssetDB creation refuses cleanup when published ownership does not match',
 });
 
 test('text registration requires actual matching ordinary bounded meta and query exceptions stay unknown', async (context) => {
-    const root = mkdtempSync(join(tmpdir(), 'pod-text-meta-'));
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'pod-text-meta-')));
     context.after(() => rmSync(root, { recursive: true, force: true }));
     mkdirSync(join(root, 'assets'));
     const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
