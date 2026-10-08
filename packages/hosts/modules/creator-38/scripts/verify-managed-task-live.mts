@@ -37,11 +37,19 @@ const catalog = await request({ action: 'catalog' });
 markStage('cancellation');
 const cancelShared = `${root}/cancel-shared.json`;
 const cancelTarget = `${root}/cancel-target.json`;
+const cancelSharedContent = JSON.stringify({ runId, source: 'stable-blocker-baseline', padding: 'x'.repeat(32 * 1024) });
+const cancelSharedBaseline = await approvedWrite(owner, [cancelShared], {
+    path: cancelShared,
+    content: cancelSharedContent,
+    execution: { mode: 'async' },
+});
+const cancelSharedBaselineStatus = await waitForTerminal(cancelSharedBaseline.taskId, owner);
+assert.equal(cancelSharedBaselineStatus.status, 'succeeded');
 const blockers = [];
 for (let index = 0; index < 5; index += 1) {
     blockers.push(await approvedWrite(owner, [cancelShared], {
         path: cancelShared,
-        content: JSON.stringify({ runId, index, padding: 'x'.repeat(32 * 1024) }),
+        content: cancelSharedContent,
         execution: { mode: 'async' },
     }));
 }
@@ -56,6 +64,9 @@ const nonOwnerCancel = await requestFailure({ action: 'task.cancel', taskId: can
 const ownerCancel = await request({ action: 'task.cancel', taskId: cancellable.taskId, connectionId: owner });
 const cancelledStatus = await waitForTerminal(cancellable.taskId, owner);
 const blockerStatuses = await Promise.all(blockers.map((blocker) => waitForTerminal(blocker.taskId, owner)));
+if (blockerStatuses.some((status) => status.status !== 'succeeded')) {
+    console.error(`managed-task-live:cancellation-blockers:${JSON.stringify(blockerStatuses)}`);
+}
 assert.equal(nonOwnerCancel.error, 'cocos_mcp_task_unavailable');
 assert.equal(ownerCancel.cancelled, true);
 assert.equal(cancelledStatus.status, 'cancelled');
@@ -64,9 +75,17 @@ assert.equal(existsSync(join(projectPath, cancelTarget)), false);
 
 markStage('fifo');
 const fifoPath = `${root}/fifo.json`;
+const fifoFirstContent = JSON.stringify({ runId, order: 'first', padding: 'a'.repeat(8 * 1024) });
+const fifoBaseline = await approvedWrite(owner, [fifoPath], {
+    path: fifoPath,
+    content: fifoFirstContent,
+    execution: { mode: 'async' },
+});
+const fifoBaselineStatus = await waitForTerminal(fifoBaseline.taskId, owner);
+assert.equal(fifoBaselineStatus.status, 'succeeded');
 const fifoFirst = await approvedWrite(owner, [fifoPath], {
     path: fifoPath,
-    content: JSON.stringify({ runId, order: 'first', padding: 'a'.repeat(8 * 1024) }),
+    content: fifoFirstContent,
     execution: { mode: 'async' },
 });
 const fifoSecond = await approvedWrite(owner, [fifoPath], {
@@ -78,6 +97,9 @@ const [fifoFirstStatus, fifoSecondStatus] = await Promise.all([
     waitForTerminal(fifoFirst.taskId, owner),
     waitForTerminal(fifoSecond.taskId, owner),
 ]);
+if (fifoFirstStatus.status !== 'succeeded' || fifoSecondStatus.status !== 'succeeded') {
+    console.error(`managed-task-live:fifo-statuses:${JSON.stringify([fifoFirstStatus, fifoSecondStatus])}`);
+}
 assert.equal(fifoFirstStatus.status, 'succeeded');
 assert.equal(fifoSecondStatus.status, 'succeeded');
 assert.equal(JSON.parse(readFileSync(join(projectPath, fifoPath), 'utf8')).order, 'second');
@@ -150,11 +172,19 @@ const raceIdentity = readCreatedIdentity(projectPath, racePath, 'prefab');
 
 const cancelCreateBlockerPath = `${root}/cancel-create-blocker.json`;
 const cancelCreateTarget = `${root}/Cancelled.prefab`;
+const cancelCreateBlockerContent = JSON.stringify({ runId, source: 'stable-create-blocker-baseline', padding: 'c'.repeat(32 * 1024) });
+const cancelCreateBlockerBaseline = await approvedWrite(owner, [cancelCreateBlockerPath], {
+    path: cancelCreateBlockerPath,
+    content: cancelCreateBlockerContent,
+    execution: { mode: 'async' },
+});
+const cancelCreateBlockerBaselineStatus = await waitForTerminal(cancelCreateBlockerBaseline.taskId, owner);
+assert.equal(cancelCreateBlockerBaselineStatus.status, 'succeeded');
 const createBlockers = [];
 for (let index = 0; index < 5; index += 1) {
     createBlockers.push(await approvedWrite(owner, [cancelCreateBlockerPath], {
         path: cancelCreateBlockerPath,
-        content: JSON.stringify({ runId, index, padding: 'c'.repeat(32 * 1024) }),
+        content: cancelCreateBlockerContent,
         execution: { mode: 'async' },
     }));
 }
@@ -167,6 +197,9 @@ const cancelCreate = await approvedOperation(owner, 'peanut.editor-mcp.lumen-sca
 const cancelCreateResult = await request({ action: 'task.cancel', taskId: cancelCreate.taskId, connectionId: owner });
 const cancelCreateStatus = await waitForTerminal(cancelCreate.taskId, owner);
 const createBlockerStatuses = await Promise.all(createBlockers.map((blocker) => waitForTerminal(blocker.taskId, owner)));
+if (createBlockerStatuses.some((status) => status.status !== 'succeeded')) {
+    console.error(`managed-task-live:cancellation-create-blockers:${JSON.stringify(createBlockerStatuses)}`);
+}
 assert.equal(cancelCreateResult.cancelled, true);
 assert.equal(cancelCreateStatus.status, 'cancelled');
 assert.equal(existsSync(join(projectPath, cancelCreateTarget)), false);
@@ -176,7 +209,11 @@ assert.ok(createBlockerStatuses.every((status) => status.status === 'succeeded')
 markStage('evidence');
 const creationTaskIds = [prefabCreate.taskId, sceneCreate.taskId, raceFirst.taskId, raceSecond.taskId];
 const successfulTaskIds = [
+    cancelSharedBaseline.taskId,
     ...blockers.map((blocker) => blocker.taskId),
+    cancelCreateBlockerBaseline.taskId,
+    ...createBlockers.map((blocker) => blocker.taskId),
+    fifoBaseline.taskId,
     fifoFirst.taskId,
     fifoSecond.taskId,
     parallelA.taskId,

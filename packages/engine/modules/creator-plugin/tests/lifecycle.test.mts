@@ -49,7 +49,7 @@ test('directory module satisfies all host lifecycle phases and releases tool reg
     plugin.dispose();
 });
 
-test('grantedRuntime + services auto-wires EditorMcp gateway and registers 83 tools', async () => {
+test('grantedRuntime + services auto-wires EditorMcp gateway and registers 84 tools', async () => {
     const plugin = createPluginModule();
     const logger = { info: (_message: string) => {} };
     const registered = new Set<string>();
@@ -109,13 +109,13 @@ test('grantedRuntime + services auto-wires EditorMcp gateway and registers 83 to
             },
         },
     });
-    assert.equal(registered.size, 83);
+    assert.equal(registered.size, 84);
     assert.equal([...registered].some((name) => name.includes('preview-capture') || name.includes('snowb')), false);
     await plugin.deactivate();
     plugin.dispose();
 });
 
-test('gateway mock registers all 83 Lite public tools and never preview.capture or snowb', async () => {
+test('gateway mock registers all 84 Lite public tools and never preview.capture or snowb', async () => {
     const plugin = createPluginModule();
     const logger = { info: (_message: string) => {} };
     const registered = new Map<string, { operation: string; readOnly: boolean }>();
@@ -155,9 +155,9 @@ test('gateway mock registers all 83 Lite public tools and never preview.capture 
             },
         },
     });
-    assert.equal(registered.size, 83);
+    assert.equal(registered.size, 84);
     assert.equal([...registered.values()].some((item) => item.operation === 'preview.capture' || item.operation.includes('snowb')), false);
-    assert.equal([...registered.values()].filter((item) => item.readOnly).length, 38);
+    assert.equal([...registered.values()].filter((item) => item.readOnly).length, 39);
     assert.equal([...registered.values()].filter((item) => !item.readOnly).length, 45);
     const versionTool = [...registered.entries()].find(([, item]) => item.operation === 'editor.queryVersion');
     assert.notEqual(versionTool, undefined);
