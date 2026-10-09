@@ -96,6 +96,103 @@ test('catalog merges versions, searches names, and only counts higher releases a
     assert.equal(panel.run("hasPackageUpdate({version:'unknown',installedActiveVersion:'1.0.0'})"), false);
 });
 
+test('trusted catalog snapshots render channel, Creator compatibility, and installed versions without inventing a local package path', () => {
+    const panel = createPanelHarness();
+    const installed = packageFixture({ pluginId: 'peanut.example', version: '1.0.0', installedActiveVersion: '1.0.0', packagePath: '/local/v1' });
+    const state = stateFixture({
+        packageCatalog: [installed],
+        selectedPackagePath: '/local/v1',
+        selectedPluginId: 'peanut.example',
+        trustedCatalog: {
+            status: 'available', channel: 'stable', generatedAt: '2026-10-09T00:00:00.000Z',
+            products: [{ productId: 'peanut.example', version: '2.0.0', channel: 'stable', creatorProfiles: ['3.8.3', '3.8.7'] }],
+        },
+    });
+    panel.context.state = state;
+    panel.run('uiState.trustedProductKey = "peanut.example@2.0.0"; render(state)');
+    const release = panel.run('getPackageCatalogEntries(state).find((item) => item.trustedCatalog)');
+    assert.equal(release.packagePath, null);
+    assert.equal(release.installedActiveVersion, '1.0.0');
+    assert.equal(release.channel, 'stable');
+    assert.match(panel.nodes.get('#trustedCatalogStatus').textContent, /已验证目录/u);
+    assert.match(panel.nodes.get('#packageCatalog').innerHTML, /peanut\.example/u);
+    assert.equal(panel.nodes.get('#packageSelectionTitle').textContent, 'peanut.example');
+    assert.match(panel.nodes.get('#packageSelectionMeta').innerHTML, /3\.8\.3, 3\.8\.7/u);
+    assert.equal(panel.nodes.get('#installPackageButton').hidden, false);
+    assert.equal(panel.nodes.get('#installPackageButton').textContent, '更新');
+});
+
+test('bridge-backed Creator driver carries the trusted catalog snapshot into the visible product list', async () => {
+    const panel = createPanelHarness();
+    const driver = panel.run(`createBridgeBackedDriver({
+        __bridgeMode: 'host',
+        request: async (request) => ({
+            ok: true,
+            payload: request.event === 'pluginManager.snapshot' ? {
+                runtimeRecords: [], failureItems: [],
+                packageCatalog: [${JSON.stringify(packageFixture({ pluginId: 'peanut.example', version: '1.0.0', packagePath: '/local/v1' }))}],
+                trustedCatalog: { status: 'available', channel: 'stable', generatedAt: '2026-10-09T00:00:00.000Z', products: [{ productId: 'peanut.example', version: '2.0.0', channel: 'stable', creatorProfiles: ['3.8.3'] }] },
+                recentPackagePaths: [], kernelReloadSupported: true,
+                preferences: { locale: 'zh-CN', packageFilter: 'all', packageCatalogSort: 'plugin-id-asc', selectedPluginId: null, selectedPackagePath: '/local/v1' },
+                executionDiagnosticsSnapshot: { currentGroups: [], recentGroups: [] },
+            } : { installedPackageSnapshot: null, incident: null },
+        }),
+    })`);
+    const state = await driver.refresh();
+    assert.equal(state.trustedCatalog.status, 'available');
+    assert.equal(state.trustedCatalog.products[0].productId, 'peanut.example');
+    panel.context.bridgeState = state;
+    panel.run("uiState.packageChannel = 'release'; render(bridgeState)");
+    assert.match(panel.nodes.get('#trustedCatalogStatus').textContent, /已验证目录/u);
+    assert.match(panel.nodes.get('#packageCatalog').innerHTML, /peanut\.example/u);
+});
+
+test('trusted catalog install action sends only the selected product identity through the Host bridge', async () => {
+    const panel = createPanelHarness();
+    const driver = panel.run(`createBridgeBackedDriver({
+        __bridgeMode: 'host',
+        request: async (request) => request.event === 'pluginManager.package.download'
+            ? { ok: true, payload: { accepted: true } }
+            : { ok: true, payload: { runtimeRecords: [], failureItems: [], packageCatalog: [], trustedCatalog: { status: 'available', channel: 'stable', generatedAt: '2026-10-09T00:00:00.000Z', products: [] }, recentPackagePaths: [], kernelReloadSupported: true, preferences: {}, executionDiagnosticsSnapshot: { currentGroups: [], recentGroups: [] } } },
+    })`);
+    const result = await driver.downloadTrustedCatalogPackage('peanut.example', '2.0.0');
+    assert.equal(result.status, 'ready');
+    assert.equal(result.lastPackageActionSummary, 'peanut.example@2.0.0');
+    assert.equal(result.lastError, null);
+});
+
+test('unavailable or stale trusted catalog keeps local and installed package entries visible with a clear state', () => {
+    const panel = createPanelHarness();
+    const local = packageFixture({ sourceKind: 'local', packagePath: '/local/v1', installedActiveVersion: '1.0.0' });
+    const installed = packageFixture({ pluginId: 'acceptance.remote-tool', version: '0.1.0', sourceKind: 'installed', packagePath: '/installed/acceptance.remote-tool/0.1.0', installedActiveVersion: '0.1.0' });
+    const unavailable = stateFixture({ packageCatalog: [local, installed], trustedCatalog: { status: 'unavailable', channel: null, generatedAt: null, products: [] } });
+    panel.context.unavailable = unavailable;
+    panel.context.state = unavailable;
+    panel.run('render(unavailable)');
+    assert.match(panel.nodes.get('#trustedCatalogStatus').textContent, /在线目录不可用/u);
+    panel.run("uiState.packageChannel = 'development'; render(unavailable)");
+    assert.match(panel.nodes.get('#packageCatalog').innerHTML, /test\.plugin/u);
+    assert.match(panel.nodes.get('#packageCatalog').innerHTML, /acceptance\.remote-tool/u);
+    assert.equal(panel.run('getPackageCatalogEntries(unavailable).some((item) => item.sourceKind === "installed")'), true);
+    assert.equal(panel.run('getPackageCatalogEntries(unavailable).length'), 2);
+    const stale = stateFixture({ packageCatalog: [local], trustedCatalog: {
+        status: 'stale', channel: 'stable', generatedAt: '2026-10-01T00:00:00.000Z',
+        products: [{ productId: 'cached.plugin', version: '1.2.0', channel: 'stable', creatorProfiles: ['3.8.3'] }],
+    } });
+    panel.context.stale = stale;
+    panel.run("uiState.packageChannel = 'release'; render(stale)");
+    assert.match(panel.nodes.get('#trustedCatalogStatus').textContent, /可能已过期/u);
+    assert.equal(panel.run('getPackageCatalogEntries(stale).some((item) => item.pluginId === "cached.plugin")'), true);
+    const installedVersion = packageFixture({ pluginId: 'cached.plugin', version: '1.2.0', sourceKind: 'installed', packagePath: '/installed/cached.plugin/1.2.0', installedActiveVersion: '1.2.0' });
+    const staleInstalled = stateFixture({ packageCatalog: [installedVersion], trustedCatalog: stale.trustedCatalog });
+    panel.context.staleInstalled = staleInstalled;
+    assert.equal(panel.run('getPackageCatalogEntries(staleInstalled).filter((item) => item.pluginId === "cached.plugin").length'), 1);
+    assert.equal(panel.run('getPackageCatalogEntries(staleInstalled).find((item) => item.pluginId === "cached.plugin").trustedCatalog'), true);
+    panel.run("uiState.packageChannel = 'development'; render(stale)");
+    assert.equal(panel.nodes.get('#trustedCatalogStatus').hidden, true);
+    assert.equal(panel.run('getPackageCatalogEntries(stale).some((item) => item.trustedCatalog)'), false);
+});
+
 test('runtime-only plugin retains description and lifecycle controls without an installable package', () => {
     const panel = createPanelHarness();
     const record = { pluginId: 'test.runtime', displayName: 'Real runtime', version: '1.0.0', state: 'active', description: { 'zh-CN': '实际运行记录简介' } };

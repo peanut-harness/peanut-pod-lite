@@ -11,6 +11,7 @@ import type {
     IPluginManagerInstalledPackageSnapshotPayload,
     IPluginManagerMcpHubPayload,
     IPluginManagerPanelPreferencesPayload,
+    IPluginManagerSnapshotPayload,
     IPluginPackageCatalogItemPayload,
 } from './plugin-manager-panel-contracts.js';
 
@@ -192,6 +193,10 @@ export interface IPluginManagerPanelBrowserWindow extends IPanelBridgeBrowserWin
         planPackage: (packagePath: string) => Promise<IPluginManagerPanelUiState>;
         /** @description 定义调用方可传递或读取的契约字段，保持模块边界的数据一致性。 */
         installPackage: (packagePath: string) => Promise<IPluginManagerPanelUiState>;
+        /**
+         * @description 下载并通过 Creator Host 的 CPM 事务安装已验签目录版本。
+         */
+        downloadTrustedCatalogPackage: (productId: string, version: string) => Promise<IPluginManagerPanelUiState>;
         /** @description 定义调用方可传递或读取的契约字段，保持模块边界的数据一致性。 */
         upgradePackage: (packagePath: string) => Promise<IPluginManagerPanelUiState>;
         /** @description 定义调用方可传递或读取的契约字段，保持模块边界的数据一致性。 */
@@ -253,6 +258,8 @@ export interface IPluginManagerPanelUiState {
      * @description 当前可选 package source 列表。
      */
     readonly packageCatalog: readonly IPluginPackageCatalogItemPayload[];
+
+    readonly trustedCatalog?: IPluginManagerSnapshotPayload['trustedCatalog'];
 
     /**
      * @description 当前持久化保存的最近使用 package 路径列表。
@@ -347,4 +354,3 @@ export interface IPluginManagerPanelUiState {
      */
     readonly selectedExecutionGroupId: string | null;
 }
-

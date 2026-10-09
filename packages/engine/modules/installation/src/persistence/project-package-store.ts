@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { closeSync, cpSync, existsSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from 'fs';
+import { closeSync, existsSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 
 import type { IPluginInstallPlan, IPluginInstallResult, IPluginManifest, IPluginPackageInspection, IPluginPackageMeta, IPluginRepairResult, IPluginUninstallResult } from '@peanut/pod-protocol';
@@ -182,7 +182,7 @@ export class ProjectPackageStore {
             const installedVersionPath = join(this._layout.pluginsPath, installPlan.pluginId, installPlan.version);
             mkdirSync(join(this._layout.stagingPath, installPlan.pluginId), { recursive: true });
             rmSync(stagingVersionPath, { recursive: true, force: true });
-            cpSync(installPlan.packagePath, stagingVersionPath, { recursive: true, force: false });
+            this._copyPackageTree(installPlan.packagePath, stagingVersionPath);
             mkdirSync(join(this._layout.pluginsPath, installPlan.pluginId), { recursive: true });
             rmSync(installedVersionPath, { recursive: true, force: true });
             renameSync(stagingVersionPath, installedVersionPath);
@@ -709,6 +709,28 @@ export class ProjectPackageStore {
      */
     private _isPluginVersion(version: string): boolean {
         return /^\d+\.\d+\.\d+$/.test(version);
+    }
+
+    /**
+     * @description 使用 Creator 所带 Node 版本均支持的文件 API 复制已校验的目录包。
+     */
+    private _copyPackageTree(sourcePath: string, destinationPath: string): void {
+        mkdirSync(destinationPath, { recursive: true });
+        for (const entry of readdirSync(sourcePath, { withFileTypes: true })) {
+            const entrySourcePath = join(sourcePath, entry.name);
+            const entryDestinationPath = join(destinationPath, entry.name);
+            if (entry.isSymbolicLink()) {
+                throw new Error(`Cannot install package containing a symbolic link: ${entrySourcePath}`);
+            }
+            if (entry.isDirectory()) {
+                this._copyPackageTree(entrySourcePath, entryDestinationPath);
+                continue;
+            }
+            if (!entry.isFile()) {
+                throw new Error(`Cannot install package containing a special file: ${entrySourcePath}`);
+            }
+            writeFileSync(entryDestinationPath, readFileSync(entrySourcePath));
+        }
     }
 
     /** @description 原子写入项目安装索引，避免编辑器中断留下半截 JSON。 */

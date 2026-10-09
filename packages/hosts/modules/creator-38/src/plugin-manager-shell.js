@@ -10,12 +10,27 @@ const { PluginPanelActivator } = require('@peanut/pod-hosts');
 
 const EXTENSION_NAME = 'peanut-pod-lite-host';
 const BUILTIN_PLUGIN_MANAGER_PANEL_ID = 'builtin.plugin-manager.panel';
+const POD_PRO_PACKAGE_ID = 'peanut.cocos-mcp-pro';
+const PRO_MUTATION_EVENTS = new Set([
+    'pluginManager.package.install',
+    'pluginManager.package.installAndActivate',
+    'pluginManager.package.download',
+    'pluginManager.package.upgrade',
+    'pluginManager.package.upgradeAndActivate',
+    'pluginManager.package.switchVersion',
+    'pluginManager.package.repair',
+    'pluginManager.storage.reconcile',
+]);
 
 let pluginPanelActivator = null;
 let creatorContext = null;
 let loaded = false;
+let installTrustedCatalogPackage = null;
 
-async function ensureLoaded(context) {
+async function ensureLoaded(context, options = {}) {
+    if (typeof options.installTrustedCatalogPackage === 'function') {
+        installTrustedCatalogPackage = options.installTrustedCatalogPackage;
+    }
     if (context != null) {
         creatorContext = context;
     }
@@ -27,6 +42,7 @@ async function ensureLoaded(context) {
             creatorContext,
             sceneScriptPackageName: EXTENSION_NAME,
             activateInstalledPackages: false,
+            readTrustedCatalog: options.readTrustedCatalog,
         });
         await pluginPanelActivator.load();
         loaded = true;
@@ -84,6 +100,47 @@ async function pickDirectory() {
     }
 }
 
+async function pickAuthoringDirectory() {
+    try {
+        const electron = require('electron');
+        const result = await electron.dialog.showOpenDialog({
+            title: 'Select an empty plugin project directory',
+            properties: ['openDirectory', 'createDirectory'],
+        });
+        if (result?.canceled || !Array.isArray(result.filePaths) || result.filePaths.length === 0) return null;
+        return result.filePaths[0];
+    } catch {
+        return null;
+    }
+}
+
+async function requireProEntitlement() {
+    if (typeof getEditor()?.Message?.request !== 'function') throw new Error('peanut_account_bridge_unavailable');
+    await getEditor().Message.request(EXTENSION_NAME, 'assert-pro-entitlement');
+}
+
+async function authorizeProMutation(request) {
+    if (!PRO_MUTATION_EVENTS.has(request.event)) return;
+    if (request.event === 'pluginManager.package.download') {
+        if (request.payload?.productId === POD_PRO_PACKAGE_ID || request.payload?.pluginId === POD_PRO_PACKAGE_ID) await requireProEntitlement();
+        return;
+    }
+    if (request.event === 'pluginManager.storage.reconcile') {
+        const installedPro = requirePluginPanelActivator().getEditorEntry().getPluginManager().getInstalledPackageSnapshot(POD_PRO_PACKAGE_ID);
+        if (installedPro != null) await requireProEntitlement();
+        return;
+    }
+    const pluginId = request.payload?.pluginId ?? request.payload?.productId;
+    if (pluginId === POD_PRO_PACKAGE_ID) {
+        await requireProEntitlement();
+        return;
+    }
+    const packagePath = request.payload?.packagePath;
+    if (typeof packagePath !== 'string' || packagePath.length === 0) return;
+    const inspection = await requirePluginPanelActivator().getEditorEntry().getPluginManager().inspectPackage(packagePath);
+    if (inspection.manifest?.id === POD_PRO_PACKAGE_ID) await requireProEntitlement();
+}
+
 const shellMethods = {
     async openPanel() {
         await ensureLoaded();
@@ -115,6 +172,24 @@ const shellMethods = {
                 ok: true,
                 payload: { packagePath: await pickDirectory() },
             };
+        }
+        if (request.event === 'pluginManager.authoring.pickDirectory') {
+            return {
+                requestId: request.id,
+                ok: true,
+                payload: { targetDirectory: await pickAuthoringDirectory() },
+            };
+        }
+        await authorizeProMutation(request);
+        if (request.event === 'pluginManager.package.download') {
+            const productId = request.payload?.productId;
+            const version = request.payload?.version;
+            if (typeof productId !== 'string' || typeof version !== 'string' || !/^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/u.test(productId) || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(version)) {
+                throw new Error('plugin_catalog_product_identity_invalid');
+            }
+            if (installTrustedCatalogPackage == null) throw new Error('plugin_catalog_install_unavailable');
+            const installed = await installTrustedCatalogPackage({ productId, version });
+            return { requestId: request.id, ok: true, payload: { accepted: true, installed } };
         }
         if (request.event === 'pluginManager.kernel.reload') {
             await requirePluginPanelActivator().methods.reloadKernelNow?.();
@@ -201,11 +276,11 @@ const editorExtensionMethods = {
 module.exports = {
     getPluginManagerKernel,
     EXTENSION_NAME,
-    async loadPluginManagerShell(context) {
+    async loadPluginManagerShell(context, options = {}) {
         // Do not activateInstalledPackages here: peanut.pod-lite is loaded by the
         // CPM host path (activateCore). Plugin Manager package activation expects
         // legacy scoped MCP capability names and conflicts with the Lite catalog.
-        await ensureLoaded(context);
+        await ensureLoaded(context, options);
     },
     async unloadPluginManagerShell() {
         if (!loaded) {
@@ -215,6 +290,7 @@ module.exports = {
         loaded = false;
         pluginPanelActivator = null;
         creatorContext = null;
+        installTrustedCatalogPackage = null;
     },
     getPluginManagerMethods() {
         return {

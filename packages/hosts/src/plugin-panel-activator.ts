@@ -8,6 +8,7 @@ import {
     PluginManagerEditorExtensionModule,
     type IPluginManagerEditorEntryOptions,
     type IPluginManagerEditorExtensionMethods,
+    type IPluginManagerTrustedCatalogPayload,
 } from '@peanut/pod-engine/kernel';
 
 /**
@@ -34,6 +35,11 @@ export interface IPluginPanelActivatorOptions extends Omit<IPluginManagerEditorE
      * @description 缺失真实 panel host bridge 时是否允许自动退回 memory provider；省略时在 bridge 缺失时自动开启。
      */
     readonly allowMemoryPanelWindowProviderFallback?: boolean;
+
+    /**
+     * @description 只读取宿主已经验签的 Peanut 目录快照；面板模块不自行访问网络。
+     */
+    readonly readTrustedCatalog?: () => Promise<IPluginManagerTrustedCatalogPayload> | IPluginManagerTrustedCatalogPayload;
 }
 
 /**
@@ -78,7 +84,9 @@ export class PluginPanelActivator {
         this._projectName = this._resolveProjectName(hostGlobal);
         this._editorExtensionModule = new PluginManagerEditorExtensionModule({
             ...options,
-            builtinPanelRegistration: createBuiltinPluginManagerPanelRegistration(),
+            builtinPanelRegistration: createBuiltinPluginManagerPanelRegistration({
+                readTrustedCatalog: options.readTrustedCatalog,
+            }),
             packaging,
             pluginPackageModuleResolver: projectPath == null ? undefined : new NodePluginPackageModuleResolver(),
             developmentControl: options.developmentControl ?? (projectPath == null ? undefined : { projectPath }),

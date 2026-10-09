@@ -144,12 +144,23 @@ const PANEL_TRANSLATIONS = {
         'package.selectionCopy': 'Select a plugin from the list to see its version and source.',
         'package.details': 'Package details',
         'package.version': 'Version',
+        'package.availableVersion': 'Available version',
         'package.listName': 'Name',
         'package.versionHistory': 'Versions',
         'package.source': 'Source',
+        'package.channel': 'Channel',
         'package.installedVersion': 'Installed version',
         'package.installed': 'Installed',
         'package.updateAvailable': 'Update available',
+        'package.availableOnline': 'Available online',
+        'package.trustedCatalog': 'Verified Peanut catalog',
+        'package.catalogUnavailable': 'Online catalog unavailable. Local packages and installed versions remain available.',
+        'package.catalogStale': 'Showing the last verified catalog snapshot. It may be out of date.',
+        'package.catalogAvailable': 'Verified catalog · {channel} · updated {generatedAt}',
+        'package.channel.stable': 'Stable',
+        'package.channel.beta': 'Beta',
+        'package.creatorProfiles': 'Creator compatibility',
+        'package.remoteInstallPending': 'Online installation is not available yet.',
         'package.localPackage': 'Local package',
         'package.moreOptions': 'More options',
         'package.advancedActions': 'More',
@@ -366,12 +377,23 @@ const PANEL_TRANSLATIONS = {
         'package.selectionCopy': '从列表选择插件，查看它的版本和来源。',
         'package.details': '插件详情',
         'package.version': '版本',
+        'package.availableVersion': '可用版本',
         'package.listName': '名称',
         'package.versionHistory': '版本',
         'package.source': '来源',
+        'package.channel': '渠道',
         'package.installedVersion': '已安装版本',
         'package.installed': '已安装',
         'package.updateAvailable': '有可用更新',
+        'package.availableOnline': '线上可用',
+        'package.trustedCatalog': '已验证的 Peanut 目录',
+        'package.catalogUnavailable': '在线目录不可用。本地包和已安装版本仍可用。',
+        'package.catalogStale': '正在显示上次验签通过的目录快照，数据可能已过期。',
+        'package.catalogAvailable': '已验证目录 · {channel} · 更新于 {generatedAt}',
+        'package.channel.stable': '稳定版',
+        'package.channel.beta': '测试版',
+        'package.creatorProfiles': 'Creator 兼容范围',
+        'package.remoteInstallPending': '线上安装暂不可用。',
         'package.localPackage': '本地插件',
         'package.moreOptions': '更多选项',
         'package.advancedActions': '更多',
@@ -664,6 +686,7 @@ const elements = {
     pluginMcpExposureControl: getPanelElementById('pluginMcpExposureControl'),
     pluginMcpExposureSelect: getPanelElementById('pluginMcpExposureSelect'),
     packageCatalog: getPanelElementById('packageCatalog'),
+    trustedCatalogStatus: getPanelElementById('trustedCatalogStatus'),
     packageSelectionPanel: getPanelElementById('packageSelectionPanel'),
     packageDetailTabs: getPanelElementById('packageDetailTabs'),
     packageRuntimeTab: getPanelElementById('packageRuntimeTab'),
@@ -725,6 +748,7 @@ const uiState = {
     packageChannel: 'release',
     packageDetailTab: 'description',
     runtimeSelectionId: null,
+    trustedProductKey: null,
     localPackagePath: '',
     packageCatalogSort: 'plugin-id-asc',
     executionPriorityFilter: 'all',
@@ -1073,6 +1097,10 @@ function bindActions(panelDriver) {
     });
     elements.installPackageButton?.addEventListener('click', () => {
         const selected = getSelectedPackageEntry(latestRenderedState);
+        if (selected?.trustedCatalog) {
+            void panelDriver.downloadTrustedCatalogPackage(selected.pluginId, selected.version);
+            return;
+        }
         const packagePath = selected?.runtimeOnly ? '' : selected?.packagePath ?? uiState.localPackagePath;
         if (!packagePath || latestRenderedState?.status === 'loading') return;
         if (selected?.installedActiveVersion != null) {
@@ -1266,6 +1294,9 @@ function createWindowBackedDriver() {
         async installPackage(packagePath) {
             return window.pluginManagerPanelUiActions.installPackage(packagePath);
         },
+        async downloadTrustedCatalogPackage(productId, version) {
+            return window.pluginManagerPanelUiActions.downloadTrustedCatalogPackage(productId, version);
+        },
         async upgradePackage(packagePath) {
             return window.pluginManagerPanelUiActions.upgradePackage(packagePath);
         },
@@ -1311,6 +1342,7 @@ function createBridgeBackedDriver(panelBridge) {
         runtimeRecords: [],
         failureItems: [],
         packageCatalog: [],
+        trustedCatalog: { status: 'unavailable', channel: null, generatedAt: null, products: [] },
         recentPackagePaths: [],
         kernelReloadSupported: false,
         preferences: {
@@ -1429,6 +1461,7 @@ function createBridgeBackedDriver(panelBridge) {
                 state.runtimeRecords = snapshot.runtimeRecords ?? [];
                 state.failureItems = snapshot.failureItems ?? [];
                 state.packageCatalog = snapshot.packageCatalog ?? [];
+                state.trustedCatalog = snapshot.trustedCatalog ?? { status: 'unavailable', channel: null, generatedAt: null, products: [] };
                 state.recentPackagePaths = snapshot.recentPackagePaths ?? [];
                 state.kernelReloadSupported = snapshot.kernelReloadSupported === true;
                 state.preferences = snapshot.preferences ?? state.preferences;
@@ -1629,6 +1662,22 @@ function createBridgeBackedDriver(panelBridge) {
         },
         async installPackage(packagePath) {
             return runPackageAction(PACKAGE_INSTALL_EVENT, packagePath);
+        },
+        async downloadTrustedCatalogPackage(productId, version) {
+            state.status = 'loading';
+            state.lastError = null;
+            notify();
+            try {
+                await requestBridge('pluginManager.package.download', { productId, version });
+                state.lastPackageActionSummary = `${productId}@${version}`;
+                state.status = 'ready';
+                await this.refresh();
+            } catch (error) {
+                state.status = 'error';
+                state.lastError = normalizeErrorMessage(error);
+            }
+            notify();
+            return { ...state };
         },
         async upgradePackage(packagePath) {
             return runPackageAction(PACKAGE_UPGRADE_EVENT, packagePath);
@@ -1863,6 +1912,7 @@ function render(state) {
     latestRenderedState = state;
     syncPanelToast(state);
     renderHeader(state);
+    renderTrustedCatalogStatus(state);
     renderPackageCatalog(state);
     renderPackageScopes(state);
     renderPackageSelection(state);
@@ -1925,6 +1975,35 @@ function renderPackageCatalog(state) {
     wirePackageCatalogSelection(elements.packageCatalog);
 }
 
+function renderTrustedCatalogStatus(state) {
+    const status = elements.trustedCatalogStatus;
+    if (status == null) return;
+    if (uiState.packageChannel !== 'release') {
+        status.hidden = true;
+        return;
+    }
+    const catalog = state.trustedCatalog ?? { status: 'unavailable', channel: null, generatedAt: null, products: [] };
+    status.setAttribute('data-status', catalog.status);
+    status.hidden = false;
+    if (catalog.status === 'stale') {
+        status.textContent = t(state, 'package.catalogStale');
+        status.hidden = false;
+    } else if (catalog.status === 'unavailable') {
+        status.textContent = t(state, 'package.catalogUnavailable');
+        status.hidden = false;
+    } else {
+        status.textContent = t(state, 'package.catalogAvailable', {
+            channel: t(state, `package.channel.${catalog.channel ?? 'stable'}`),
+            generatedAt: formatCatalogTimestamp(catalog.generatedAt),
+        });
+    }
+}
+
+function formatCatalogTimestamp(value) {
+    if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) return '—';
+    return new Date(value).toLocaleString();
+}
+
 function renderPackageScopes(state) {
     const catalog = getPackageCatalogEntries(state);
     const countUniquePlugins = (items) => new Set(items.map((item) => item.pluginId)).size;
@@ -1946,6 +2025,8 @@ function renderPackageScopes(state) {
 
 function isPackageInChannel(packageCatalogItem, channel) {
     if (packageCatalogItem.runtimeOnly) return true;
+    if (packageCatalogItem.sourceKind === 'installed') return true;
+    if (packageCatalogItem.trustedCatalog) return channel === 'release';
     return channel === 'development'
         ? packageCatalogItem.sourceKind === 'manual' || packageCatalogItem.sourceKind === 'local'
         : packageCatalogItem.sourceKind === 'registry';
@@ -1958,7 +2039,15 @@ function getPackageCatalogEntries(state) {
     if (state == null) return [];
     const records = state.runtimeRecords ?? [];
     const catalog = state.packageCatalog ?? [];
-    const entries = catalog.filter((item) => isPackageInChannel(item, uiState.packageChannel)).map((item) => {
+    const trustedCatalog = state.trustedCatalog;
+    const trustedProducts = uiState.packageChannel === 'release'
+        && (trustedCatalog?.status === 'available' || trustedCatalog?.status === 'stale')
+        ? trustedCatalog.products ?? []
+        : [];
+    const entries = catalog.filter((item) => isPackageInChannel(item, uiState.packageChannel)
+        && !(item.sourceKind === 'installed' && trustedProducts.some((product) => {
+            return product.productId === item.pluginId && product.version === item.version;
+        }))).map((item) => {
         const runtime = records.find((record) => record.pluginId === item.pluginId);
         return { ...item, displayName: item.displayName ?? runtime?.displayName, iconUrl: item.iconUrl ?? runtime?.iconUrl };
     });
@@ -1970,12 +2059,37 @@ function getPackageCatalogEntries(state) {
             sourceKind: 'runtime', sourcePath: record.installPath ?? '', packagePath: null, runtimeOnly: true,
         });
     }
+    if (trustedProducts.length > 0) {
+        for (const product of trustedProducts) {
+            const installedActiveVersion = catalog.find((item) => item.pluginId === product.productId)?.installedActiveVersion
+                ?? records.find((record) => record.pluginId === product.productId)?.version
+                ?? null;
+            entries.push({
+                pluginId: product.productId,
+                version: product.version,
+                channel: product.channel,
+                creatorProfiles: product.creatorProfiles,
+                installedActiveVersion,
+                sourceKind: 'trusted-catalog',
+                sourcePath: 'signed catalog',
+                packagePath: null,
+                trustedCatalog: true,
+                remoteOnly: true,
+            });
+        }
+    }
     return entries;
 }
 
 function getSelectedPackageEntry(state) {
     if (state == null || uiState.localPackagePath) return null;
     const entries = getPackageCatalogEntries(state);
+    if (uiState.trustedProductKey != null) {
+        const trustedProduct = entries.find((item) => item.trustedCatalog
+            && `${item.pluginId}@${item.version}` === uiState.trustedProductKey);
+        if (trustedProduct != null) return trustedProduct;
+        uiState.trustedProductKey = null;
+    }
     if (uiState.runtimeSelectionId != null) {
         return entries.find((item) => item.runtimeOnly && item.pluginId === uiState.runtimeSelectionId) ?? null;
     }
@@ -2021,6 +2135,7 @@ function hasPackageUpdate(item) {
 function getPackageStatus(state, item) {
     if (item.runtimeOnly) return t(state, item.pluginId === BUILTIN_PLUGIN_MANAGER_PANEL_ID ? 'versions.builtin' : 'package.loaded');
     if (hasPackageUpdate(item)) return t(state, 'package.updateAvailable');
+    if (item.remoteOnly && item.installedActiveVersion !== item.version) return t(state, 'package.availableOnline');
     return t(state, item.installedActiveVersion != null ? 'package.installed' : 'detail.notInstalled');
 }
 
@@ -2079,9 +2194,13 @@ function renderPackageSelection(state) {
     elements.packageDescriptionUnavailable.hidden = description.length > 0;
     const source = selected.runtimeOnly ? t(state, 'package.runtimeSource') : translateValue(state, selected.sourceKind);
     const fields = [
-        [t(state, selected.runtimeOnly ? 'package.runtimeVersion' : 'package.version'), selected.version],
+        [t(state, selected.runtimeOnly ? 'package.runtimeVersion' : selected.trustedCatalog ? 'package.availableVersion' : 'package.version'), selected.version],
         ...(selected.runtimeOnly ? [] : [[t(state, 'package.installedVersion'), selected.installedActiveVersion ?? t(state, 'detail.notInstalled')]]),
-        [t(state, 'package.source'), source],
+        [t(state, 'package.source'), selected.trustedCatalog ? t(state, 'package.trustedCatalog') : source],
+        ...(selected.trustedCatalog ? [
+            [t(state, 'package.channel'), t(state, `package.channel.${selected.channel}`)],
+            [t(state, 'package.creatorProfiles'), (selected.creatorProfiles ?? []).join(', ') || '—'],
+        ] : []),
     ];
     elements.packageSelectionMeta.innerHTML = fields.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join('');
     elements.packageSelectionMeta.hidden = false;
@@ -2104,8 +2223,9 @@ function renderPackageSelection(state) {
     elements.uninstallPackageButton.closest('.package-more-options').hidden = !canUninstall;
 
     const alreadyInstalled = selected.installedActiveVersion === selected.version;
-    elements.installPackageButton.hidden = selected.runtimeOnly || alreadyInstalled;
-    elements.installPackageButton.disabled = busy || selected.runtimeOnly || alreadyInstalled;
+    const trustedVersionInstalled = selected.trustedCatalog && selected.installedActiveVersion === selected.version;
+    elements.installPackageButton.hidden = selected.runtimeOnly || trustedVersionInstalled || alreadyInstalled;
+    elements.installPackageButton.disabled = busy || selected.runtimeOnly || trustedVersionInstalled || alreadyInstalled;
     const action = hasPackageUpdate(selected) ? 'actions.upgrade' : selected.installedActiveVersion != null ? 'package.selectVersion' : 'actions.install';
     elements.installPackageButton.textContent = selected.runtimeOnly || alreadyInstalled
         ? getPackageStatus(state, selected) : t(state, action);
@@ -2137,10 +2257,15 @@ function renderPackageDetails(state) {
 function buildPackageCatalogCard(item, selectedPackagePath) {
     const state = latestRenderedState ?? window.pluginManagerPanelUiState;
     const selected = getSelectedPackageEntry(state);
-    const isSelected = selected?.pluginId === item.pluginId;
+    const trustedProductKey = item.trustedCatalog ? `${item.pluginId}@${item.version}` : null;
+    const isSelected = item.trustedCatalog
+        ? uiState.trustedProductKey === trustedProductKey
+        : selected?.pluginId === item.pluginId;
     const selectionAttribute = item.runtimeOnly
         ? `data-runtime-plugin-id="${escapeHtml(item.pluginId)}"`
-        : `data-package-path="${escapeHtml(item.packagePath)}"`;
+        : item.trustedCatalog
+            ? `data-trusted-product="${escapeHtml(trustedProductKey)}"`
+            : `data-package-path="${escapeHtml(item.packagePath)}"`;
     const status = getPackageStatus(state, item);
     const statusIcon = hasPackageUpdate(item) ? '↑' : item.installedActiveVersion != null ? '✓' : '';
     return `<button type="button" class="plugin-card${isSelected ? ' is-selected' : ''}" ${selectionAttribute} aria-pressed="${isSelected}" title="${escapeHtml(`${item.pluginId} · ${status}`)}">
@@ -2174,14 +2299,24 @@ function wirePackageCatalogSelection(rootElement) {
     rootElement.querySelectorAll('[data-runtime-plugin-id]').forEach((button) => {
         button.addEventListener('click', async () => {
             uiState.runtimeSelectionId = button.getAttribute('data-runtime-plugin-id');
+            uiState.trustedProductKey = null;
             uiState.localPackagePath = '';
             await activePanelDriver?.selectPackageCatalogItem(null);
             await activePanelDriver?.selectPlugin(uiState.runtimeSelectionId);
         });
     });
+    rootElement.querySelectorAll('[data-trusted-product]').forEach((button) => {
+        button.addEventListener('click', () => {
+            uiState.runtimeSelectionId = null;
+            uiState.trustedProductKey = button.getAttribute('data-trusted-product');
+            uiState.localPackagePath = '';
+            render(latestRenderedState);
+        });
+    });
     rootElement.querySelectorAll('[data-package-path]').forEach((buttonElement) => {
         buttonElement.addEventListener('click', async () => {
             uiState.runtimeSelectionId = null;
+            uiState.trustedProductKey = null;
             uiState.localPackagePath = '';
             const packagePath = buttonElement.getAttribute('data-package-path');
             elements.packagePathInput.value = packagePath ?? '';

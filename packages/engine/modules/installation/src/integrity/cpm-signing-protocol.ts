@@ -1,7 +1,7 @@
 import { Buffer } from 'buffer';
 import { createPublicKey, verify as verifySignature } from 'crypto';
 
-export type CpmSigningKind = 'cpm-release-v1' | 'lite-product-v1';
+export type CpmSigningKind = 'cpm-release-v1' | 'lite-product-v1' | 'lite-plugin-catalog-v1';
 
 const FIELD_ORDERS = {
     'cpm-release-v1': ['id', 'version', 'channel', 'url', 'sha256'],
@@ -18,6 +18,7 @@ const FIELD_ORDERS = {
         'corePackageDigest',
         'creatorProfiles',
     ],
+    'lite-plugin-catalog-v1': ['channel', 'generatedAt', 'catalogDigest'],
 } as const satisfies Readonly<Record<CpmSigningKind, readonly string[]>>;
 
 /**

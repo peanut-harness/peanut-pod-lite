@@ -1,8 +1,11 @@
 'use strict';
 
 const { createHash } = require('crypto');
-const { mkdirSync, readFileSync, writeFileSync } = require('fs');
-const { join } = require('path');
+const { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } = require('fs');
+const { isAbsolute, join, relative, resolve, sep } = require('path');
+const { createGunzip } = require('zlib');
+const https = require('https');
+const { RemotePackageDownloader, SignedPluginCatalogVerifier } = require('@peanut/pod-engine/installation');
 const { CreatorContextResolver } = require('@peanut/pod-hosts');
 
 const { LiteAccountController, createSignedOutAccount } = require('./account-controller');
@@ -34,6 +37,7 @@ let protectedKeyStore = null;
 let accountController = null;
 let coreArtifact = null;
 let proArtifact = null;
+let acceptanceCatalogTestCa = null;
 
 const hostArtifact = resolveHostArtifactIdentity();
 let hostStatus = createStoppedStatus();
@@ -53,6 +57,173 @@ function requireProjectPath() {
 
 function createRuntime() {
     return createLiteReadRuntime();
+}
+
+function readAcceptanceTrustedCatalog() {
+    const verifiedCatalog = readVerifiedAcceptanceCatalog();
+    if (verifiedCatalog == null) {
+        return { status: 'unavailable', channel: null, generatedAt: null, products: [] };
+    }
+    const generatedAt = Date.parse(verifiedCatalog.generatedAt);
+    return {
+        status: Date.now() - generatedAt > 24 * 60 * 60 * 1000 ? 'stale' : 'available',
+        channel: verifiedCatalog.channel,
+        generatedAt: verifiedCatalog.generatedAt,
+        products: verifiedCatalog.products.map((product) => ({
+            productId: product.productId,
+            version: product.version,
+            channel: product.channel,
+            creatorProfiles: product.creatorProfiles,
+        })),
+    };
+}
+
+function readVerifiedAcceptanceCatalog() {
+    const projectPath = requireProjectPath();
+    const fixtureRoot = resolve(projectPath, '.peanut-ai', 'lifecycle-acceptance');
+    const fixtureEnabled = existsSync(join(fixtureRoot, 'enable-test-catalog'));
+    const catalogPath = process.env.PEANUT_LITE_ACCEPTANCE_CATALOG_PATH
+        ?? (fixtureEnabled ? join(fixtureRoot, 'catalog.json') : null);
+    const trustAnchor = process.env.PEANUT_LITE_ACCEPTANCE_CATALOG_TRUST_ANCHOR
+        ?? (fixtureEnabled ? readFileSync(join(fixtureRoot, 'trust-anchor.txt'), 'utf8').trim() : null);
+    if (typeof catalogPath !== 'string' || catalogPath.trim().length === 0
+        || typeof trustAnchor !== 'string' || trustAnchor.trim().length === 0) {
+        acceptanceCatalogTestCa = null;
+        return null;
+    }
+    const resolvedCatalogPath = resolve(catalogPath);
+    const fixtureRelativePath = relative(fixtureRoot, resolvedCatalogPath);
+    if (isAbsolute(fixtureRelativePath) || fixtureRelativePath === '..' || fixtureRelativePath.startsWith(`..${sep}`)) {
+        throw new Error('acceptance_catalog_fixture_outside_project');
+    }
+    if (statSync(resolvedCatalogPath).size > 1024 * 1024) throw new Error('plugin_catalog_size_refused');
+    acceptanceCatalogTestCa = fixtureEnabled ? readFileSync(join(fixtureRoot, 'test-ca.pem')) : null;
+    const signedCatalog = JSON.parse(readFileSync(resolvedCatalogPath, 'utf8'));
+    return new SignedPluginCatalogVerifier(trustAnchor).verify(signedCatalog);
+}
+
+async function installTrustedCatalogPackage({ productId, version }) {
+    const catalog = readVerifiedAcceptanceCatalog();
+    if (catalog == null) throw new Error('plugin_catalog_unavailable');
+    const product = catalog.products.find((item) => item.productId === productId && item.version === version);
+    if (product == null) throw new Error('plugin_catalog_product_not_found');
+    if (!product.creatorProfiles.includes(creatorContext.version.raw)) throw new Error('plugin_catalog_creator_incompatible');
+
+    const projectPath = requireProjectPath();
+    const stagingRoot = join(projectPath, 'peanut-plugins', 'staging', 'remote-catalog');
+    mkdirSync(stagingRoot, { recursive: true });
+    const download = await new RemotePackageDownloader({ stagingDirectory: stagingRoot, fetch: fetchTrustedCatalogArchive }).download(product);
+    const extractedPath = join(stagingRoot, `package-${productId}-${version}-${Date.now()}`);
+    try {
+        mkdirSync(extractedPath, { recursive: true });
+        await extractTrustedTarGzipArchive(download.archivePath, extractedPath);
+        const entries = readdirSync(extractedPath, { withFileTypes: true });
+        const packagePath = entries.length === 1 && entries[0].isDirectory()
+            ? join(extractedPath, entries[0].name)
+            : extractedPath;
+        const pluginManager = getPluginManagerKernel();
+        const inspection = await pluginManager.inspectPackage(packagePath);
+        if (!inspection.isValidStructure || inspection.manifest?.id !== productId
+            || inspection.manifest?.version !== version || inspection.packageMeta?.digest !== product.packageDigest) {
+            throw new Error('plugin_catalog_package_identity_mismatch');
+        }
+        const result = await pluginManager.installPackage(packagePath);
+        return { pluginId: result.pluginId, version: result.version, installPath: result.installPath };
+    } finally {
+        download.dispose();
+        rmSync(extractedPath, { recursive: true, force: true });
+    }
+}
+
+function fetchTrustedCatalogArchive(url, init) {
+    return new Promise((resolveResponse, rejectResponse) => {
+        const target = new URL(url);
+        const request = https.request(target, {
+            method: 'GET',
+            ...(acceptanceCatalogTestCa != null && target.hostname === 'localhost' ? { ca: acceptanceCatalogTestCa } : {}),
+        }, (response) => {
+            const iterator = response[Symbol.asyncIterator]();
+            resolveResponse({
+                ok: response.statusCode >= 200 && response.statusCode < 300,
+                status: response.statusCode || 0,
+                redirected: response.statusCode >= 300 && response.statusCode < 400,
+                headers: { get: (name) => response.headers[name.toLowerCase()] ?? null },
+                body: {
+                    getReader: () => ({
+                        read: async () => {
+                            const next = await iterator.next();
+                            return { done: next.done, ...(next.done ? {} : { value: new Uint8Array(next.value) }) };
+                        },
+                        cancel: async () => { response.destroy(); },
+                    }),
+                },
+            });
+        });
+        request.on('error', rejectResponse);
+        const signal = init?.signal;
+        if (signal?.aborted) {
+            request.destroy(new Error('plugin_download_cancelled'));
+            rejectResponse(new Error('plugin_download_cancelled'));
+            return;
+        }
+        signal?.addEventListener?.('abort', () => request.destroy(new Error('plugin_download_cancelled')), { once: true });
+        request.end();
+    });
+}
+
+async function extractTrustedTarGzipArchive(archivePath, destinationPath) {
+    const compressed = readFileSync(archivePath);
+    const decompressor = createGunzip();
+    const chunks = [];
+    let decompressedBytes = 0;
+    const tar = await new Promise((resolveTar, rejectTar) => {
+        decompressor.on('data', (chunk) => {
+            decompressedBytes += chunk.length;
+            if (decompressedBytes > 256 * 1024 * 1024) {
+                decompressor.destroy(new Error('plugin_archive_expanded_size_refused'));
+                return;
+            }
+            chunks.push(chunk);
+        });
+        decompressor.on('error', rejectTar);
+        decompressor.on('end', () => resolveTar(Buffer.concat(chunks, decompressedBytes)));
+        decompressor.end(compressed);
+    });
+    let offset = 0;
+    let expandedBytes = 0;
+    while (offset + 512 <= tar.length) {
+        const header = tar.subarray(offset, offset + 512);
+        if (header.every((byte) => byte === 0)) break;
+        const field = (start, length) => header.subarray(start, start + length).toString('utf8').replace(/\0.*$/u, '');
+        const name = field(0, 100);
+        const prefix = field(345, 155);
+        const relativePath = [prefix, name].filter(Boolean).join('/').replace(/^\.\//u, '');
+        const type = header[156];
+        const sizeText = field(124, 12).trim();
+        if (!/^[0-7]+$/u.test(sizeText || '0')) throw new Error('plugin_archive_tar_size_invalid');
+        const size = Number.parseInt(sizeText || '0', 8);
+        expandedBytes += size;
+        if (!Number.isSafeInteger(size) || size < 0 || expandedBytes > 256 * 1024 * 1024) throw new Error('plugin_archive_expanded_size_refused');
+        const segments = relativePath.split('/').filter(Boolean);
+        if (segments.length === 0 || relativePath.includes('\\') || segments.some((segment) => segment === '.' || segment === '..')) {
+            throw new Error('plugin_archive_path_invalid');
+        }
+        const outputPath = join(destinationPath, ...segments);
+        const resolvedPath = resolve(outputPath);
+        const fromRoot = relative(destinationPath, resolvedPath);
+        if (isAbsolute(fromRoot) || fromRoot === '..' || fromRoot.startsWith(`..${sep}`)) throw new Error('plugin_archive_path_invalid');
+        const dataOffset = offset + 512;
+        if (type === 53) {
+            mkdirSync(outputPath, { recursive: true });
+        } else if (type === 0 || type === 48) {
+            if (dataOffset + size > tar.length) throw new Error('plugin_archive_tar_truncated');
+            mkdirSync(join(outputPath, '..'), { recursive: true });
+            writeFileSync(outputPath, tar.subarray(dataOffset, dataOffset + size), { flag: 'wx' });
+        } else {
+            throw new Error('plugin_archive_entry_type_refused');
+        }
+        offset = dataOffset + Math.ceil(size / 512) * 512;
+    }
 }
 
 function resolveTrustedCreatorContext() {
@@ -455,7 +626,10 @@ async function load() {
     try {
         creatorContext = resolveTrustedCreatorContext();
         // Load the Plugin Manager shell before activating the Lite runtime.
-        await loadPluginManagerShell(creatorContext);
+        await loadPluginManagerShell(creatorContext, {
+            readTrustedCatalog: readAcceptanceTrustedCatalog,
+            installTrustedCatalogPackage,
+        });
         const packageStore = new CpmPackageStore(requireProjectPath());
         const coreVersion = await activateCore(packageStore);
         // Publish first-class tools into Plugin Manager registry so Hub list/status
@@ -819,11 +993,19 @@ const methods = {
         if (!hostStatus.ready) {
             throw new Error('peanut_cocos_mcp_core_host_not_ready');
         }
+        if (accountController == null) {
+            throw new Error('peanut_pro_entitlement_required');
+        }
+        await accountController.requireProEntitlement();
         await deactivateOptionalPro();
         const pro = await activateOptionalPro(new CpmPackageStore(requireProjectPath()));
         const account = accountController?.withPro(pro) ?? createSignedOutAccount();
         hostStatus = Object.freeze({ ...hostStatus, artifacts: artifactIdentitySnapshot(), pro, account });
         return hostStatus;
+    },
+    async assertProEntitlement() {
+        requireReadyAccount();
+        return accountController.requireProEntitlement();
     },
     async openAccount() {
         await getEditor()?.Panel?.open?.('peanut-pod-lite-host.account');

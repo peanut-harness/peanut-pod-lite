@@ -1,4 +1,7 @@
 import assert from 'assert/strict';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import type { IPanelBridgeClient, IPanelBridgeEnvelope, IPanelBridgeRequest, IPanelBridgeResponse, IPluginRuntimeRecord } from '@peanut/pod-protocol';
@@ -534,6 +537,95 @@ test('builtin plugin-manager panel should drive package plan, install, upgrade, 
         builtinPluginManagerPanelResult.recentPackagePathsAfterRemount.includes('packages/builtin.plugin-manager.package-target-0.2.0.pcp'),
         true,
     );
+});
+
+test('shared plugin-manager panel should create a plugin template through its trusted bridge', async (): Promise<void> => {
+    const root = mkdtempSync(join(tmpdir(), 'peanut-plugin-authoring-'));
+    const targetDirectory = join(root, 'new-core-plugin');
+    try {
+        const harness = new BuiltinPluginManagerPanelHarness('3.8.7');
+        const response = await harness.createPluginTemplate({
+            pluginId: 'acme.panel-created',
+            displayName: 'Panel Created',
+            targetDirectory,
+            kind: 'peanut-core',
+        });
+        assert.equal(response.ok, true);
+        assert.equal(response.payload?.pluginId, 'acme.panel-created');
+        assert.equal(existsSync(join(targetDirectory, 'acme.panel-created.manifest.json')), true);
+        assert.equal(JSON.parse(readFileSync(join(targetDirectory, 'acme.panel-created.manifest.json'), 'utf8')).id, 'acme.panel-created');
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('shared plugin-manager panel should validate and package a local plugin source before install planning', async (): Promise<void> => {
+    const root = mkdtempSync(join(tmpdir(), 'peanut-plugin-pack-'));
+    const sourcePath = join(root, 'plugin');
+    mkdirSync(sourcePath);
+    writeFileSync(join(sourcePath, 'acme.packable.manifest.json'), JSON.stringify({
+        id: 'acme.packable', version: '0.1.0', kind: 'tooling-plugin', displayName: 'Packable',
+        main: './acme.packable.bundle.js', engines: { host: '^0.1.0' },
+        activation: { autoActivate: false, events: [] }, permissions: {},
+    }));
+    writeFileSync(join(sourcePath, 'acme.packable.bundle.js'), "module.exports.createPluginModule=()=>({manifest:{id:'acme.packable',version:'0.1.0'},activate:async()=>{},deactivate:async()=>{}});");
+    try {
+        const harness = new BuiltinPluginManagerPanelHarness('3.8.7');
+        const response = await harness.packPluginSource(sourcePath);
+        assert.equal(response.ok, true);
+        assert.equal(response.payload?.pluginId, 'acme.packable');
+        assert.equal((response.payload?.validation as { ok?: boolean })?.ok, true);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('shared plugin-manager panel should install a locally packaged plugin through PackagingApp', async (): Promise<void> => {
+    const root = mkdtempSync(join(tmpdir(), 'peanut-plugin-install-'));
+    const sourcePath = join(root, 'plugin');
+    mkdirSync(sourcePath);
+    writeFileSync(join(sourcePath, 'acme.installable.manifest.json'), JSON.stringify({
+        id: 'acme.installable', version: '0.1.0', kind: 'tooling-plugin', displayName: 'Installable',
+        main: './acme.installable.bundle.js', engines: { host: '^0.1.0' },
+        activation: { autoActivate: false, events: [] }, permissions: {},
+    }));
+    writeFileSync(join(sourcePath, 'acme.installable.bundle.js'), "module.exports.createPluginModule=()=>({manifest:{id:'acme.installable',version:'0.1.0'},activate:async()=>{},deactivate:async()=>{}});");
+    try {
+        const result = await new BuiltinPluginManagerPanelHarness('3.8.7').packAndInstallPluginSource(sourcePath);
+        assert.equal(result.packResponse.ok, true);
+        assert.equal(result.planResponse?.ok, true);
+        assert.equal(result.installResponse?.ok, true);
+        assert.equal((result.installResponse?.payload as { installResult?: { version?: string } })?.installResult?.version, '0.1.0');
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('shared plugin-manager panel should repair the installed package store', async (): Promise<void> => {
+    const response = await new BuiltinPluginManagerPanelHarness('3.8.7').repairPackagesFromPanel();
+    assert.equal(response.ok, true);
+    assert.equal(typeof response.payload?.repaired, 'boolean');
+    assert.equal(Array.isArray(response.payload?.actions), true);
+});
+
+test('shared panel creates, validates, and installs a template through the persistent project package transaction', async (): Promise<void> => {
+    const projectPath = mkdtempSync(join(tmpdir(), 'peanut-plugin-project-'));
+    const targetDirectory = join(projectPath, 'authoring', 'acme.generated');
+    mkdirSync(join(projectPath, 'authoring'), { recursive: true });
+    try {
+        const result = await new BuiltinPluginManagerPanelHarness('3.8.7', projectPath).createPackAndInstallPluginTemplate({
+            pluginId: 'acme.generated', displayName: 'Generated Plugin', targetDirectory, kind: 'peanut-core',
+        });
+        assert.equal(result.created.ok, true);
+        assert.equal(result.packed.ok, true);
+        assert.equal(result.plan?.ok, true);
+        assert.equal(result.installed?.ok, true);
+        const installed = JSON.parse(readFileSync(join(projectPath, 'peanut-plugins', 'installed.json'), 'utf8'));
+        assert.equal(installed.plugins[0].pluginId, 'acme.generated');
+        assert.equal(installed.plugins[0].activeVersion, '0.1.0');
+    } finally {
+        rmSync(projectPath, { recursive: true, force: true });
+    }
 });
 
 test('builtin plugin-manager panel should keep uninstall failure visible when teardown fails', async (): Promise<void> => {

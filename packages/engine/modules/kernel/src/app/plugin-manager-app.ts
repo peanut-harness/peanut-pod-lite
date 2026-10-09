@@ -51,7 +51,7 @@ import { UnavailablePluginProtectedKeyApi, type IPluginProtectedKeyProvider } fr
 import { PluginServiceRegistry } from '../shared/plugin-service-registry.js';
 import { PluginTaskApi } from '../shared/plugin-task-api.js';
 import { PluginDiagnosticReporter } from '../diagnostics/plugin-diagnostic-reporter.js';
-
+import { PluginManagerPackageAuthoring } from './plugin-manager-package-authoring.js';
 /**
  * @description 插件管理器主入口，负责组装插件治理子系统并对外提供最小管理 API。
  */
@@ -84,6 +84,7 @@ export class PluginManagerApp {
     private readonly _hotplugController: HotplugController;
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
     private readonly _packaging: PackagingApp;
+    public readonly packageAuthoring: PluginManagerPackageAuthoring;
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
     private readonly _panelBridgeGateway: PanelBridgeGateway;
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
@@ -141,6 +142,7 @@ export class PluginManagerApp {
             return this._contributionRegistry.getPanel(pluginId, panelId);
         });
         this._packaging = packaging ?? new PackagingApp();
+        this.packageAuthoring = new PluginManagerPackageAuthoring(this._packaging);
         const projectPath = diagnosticProjectPath ?? this._packaging.getProjectPluginFileStore()?.getLayout().projectPath;
         this._taskProjectKey = projectPath ?? null;
         this._diagnosticReporter = new PluginDiagnosticReporter(projectPath);
@@ -856,18 +858,12 @@ export class PluginManagerApp {
     public async shutdown(reason: Extract<PluginDeactivateReason, 'host_reload' | 'host_shutdown'> = 'host_reload'): Promise<void> {
         // 保存当前流程收集的有序结果，供后续步骤统一处理。
         const runtimeRecords = [...this._pluginRegistry.listRuntimeRecords()];
-
-        // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-
         for (const runtimeRecord of runtimeRecords) {
             if (runtimeRecord.state !== 'active') {
                 continue;
             }
             await this.deactivatePlugin(runtimeRecord.pluginId, reason);
         }
-
-        // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
-
         for (const runtimeRecord of runtimeRecords) {
             if (runtimeRecord.state === 'disposed') {
                 continue;
@@ -894,6 +890,9 @@ export class PluginManagerApp {
     public getInstalledPackageSnapshot(pluginId: string): IInstalledPackageSnapshot | null {
         return this._packaging.getInstalledPackageSnapshot(pluginId);
     }
+
+    // 返回安装索引中的全部插件版本，用于目录离线时仍展示本机已安装内容。
+    public listInstalledPackageSnapshots(): readonly IInstalledPackageSnapshot[] { return this._packaging.listInstalledPackageSnapshots(); }
 
     /**
      * @description 切换指定插件的活动安装版本；已激活的运行时实例必须先停用。

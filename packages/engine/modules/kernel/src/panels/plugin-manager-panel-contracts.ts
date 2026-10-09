@@ -253,7 +253,7 @@ export interface IPluginPackageCatalogItemPayload extends ContractPayload {
     /**
      * @description 来源类型。
      */
-    readonly sourceKind: 'local' | 'manual' | 'registry';
+    readonly sourceKind: 'local' | 'manual' | 'registry' | 'installed';
 
     /**
      * @description 插件包路径。
@@ -289,6 +289,38 @@ export interface IPluginPackageCatalogItemPayload extends ContractPayload {
      * @description 当前已安装活动版本；未安装时返回 `null`。
      */
     readonly installedActiveVersion: PluginVersion | null;
+}
+
+/**
+ * @description 已由宿主签名验证器校验的远程插件目录快照。
+ */
+export interface IPluginManagerTrustedCatalogPayload extends ContractPayload {
+    /**
+     * @description 在线目录状态；stale 表示保留了已验证缓存但需要刷新。
+     */
+    readonly status: 'available' | 'stale' | 'unavailable';
+    /**
+     * @description 经过验签目录声明的发行渠道；不可用时为空。
+     */
+    readonly channel: 'stable' | 'beta' | null;
+    /**
+     * @description 已验证目录的生成时间；不可用时为空。
+     */
+    readonly generatedAt: string | null;
+    /**
+     * @description 已验证的远程发行条目。
+     */
+    readonly products: readonly IPluginManagerTrustedCatalogProductPayload[];
+}
+
+/**
+ * @description 单条已验证远程发行信息，不包含可执行包路径。
+ */
+export interface IPluginManagerTrustedCatalogProductPayload extends ContractPayload {
+    readonly productId: PluginId;
+    readonly version: PluginVersion;
+    readonly channel: 'stable' | 'beta';
+    readonly creatorProfiles: readonly string[];
 }
 
 /**
@@ -458,6 +490,11 @@ export interface IPluginManagerSnapshotPayload extends ContractPayload {
      * @description 当前可选的已打包 package source 列表。
      */
     readonly packageCatalog: readonly IPluginPackageCatalogItemPayload[];
+
+    /**
+     * @description 可选的已验证目录视图；缺失时面板按不可用处理并继续显示本地数据。
+     */
+    readonly trustedCatalog?: IPluginManagerTrustedCatalogPayload;
 
     /**
      * @description 当前面板持久化保存的最近使用 package 路径列表。

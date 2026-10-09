@@ -153,6 +153,7 @@ export class PluginManagerPanelUiController {
                 runtimeRecords: pluginManagerSnapshot.runtimeRecords,
                 failureItems: pluginManagerSnapshot.failureItems,
                 packageCatalog: pluginManagerSnapshot.packageCatalog,
+                trustedCatalog: pluginManagerSnapshot.trustedCatalog,
                 recentPackagePaths: pluginManagerSnapshot.recentPackagePaths,
                 preferences: pluginManagerSnapshot.preferences,
                 kernelReloadSupported: pluginManagerSnapshot.kernelReloadSupported,
@@ -619,6 +620,26 @@ export class PluginManagerPanelUiController {
             return this._state;
         }
         return this.refresh();
+    }
+
+    /**
+     * @description 下载当前验签目录产品，并由 Creator Host 将其交给既有项目包仓事务。
+     */
+    public async downloadTrustedCatalogPackage(productId: string, version: string): Promise<IPluginManagerPanelUiState> {
+        this._patchState({ status: 'loading', lastError: null });
+        try {
+            const response = await this._panelBridgeClient.request<{ productId: string; version: string }, { accepted: boolean }>({
+                id: `plugin-manager-catalog-install:${productId}:${version}`,
+                event: 'pluginManager.package.download',
+                expectsResponse: true,
+                payload: { productId, version },
+            });
+            this._requireOkResponse(response, `plugin_manager_catalog_install_failed:${productId}@${version}`);
+            return this.refresh();
+        } catch (error) {
+            this._patchState({ status: 'error', lastError: this._normalizeErrorMessage(error) });
+            return this._state;
+        }
     }
 
     /**
@@ -1153,6 +1174,7 @@ export class PluginManagerPanelUiController {
                 runtimeRecords: pluginManagerSnapshot.runtimeRecords,
                 failureItems: pluginManagerSnapshot.failureItems,
                 packageCatalog: pluginManagerSnapshot.packageCatalog,
+                trustedCatalog: pluginManagerSnapshot.trustedCatalog,
                 recentPackagePaths: pluginManagerSnapshot.recentPackagePaths,
                 preferences: pluginManagerSnapshot.preferences,
                 executionDiagnosticsSnapshot: pluginManagerSnapshot.executionDiagnosticsSnapshot,
@@ -1386,6 +1408,9 @@ function syncPluginManagerPanelWindow(
         },
         installPackage: async (packagePath: string): Promise<IPluginManagerPanelUiState> => {
             return pluginManagerPanelUiController.installPackage(packagePath);
+        },
+        downloadTrustedCatalogPackage: async (productId: string, version: string): Promise<IPluginManagerPanelUiState> => {
+            return pluginManagerPanelUiController.downloadTrustedCatalogPackage(productId, version);
         },
         upgradePackage: async (packagePath: string): Promise<IPluginManagerPanelUiState> => {
             return pluginManagerPanelUiController.upgradePackage(packagePath);

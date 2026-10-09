@@ -1218,6 +1218,9 @@ h3 {
 .package-scope-icon { display: inline-grid; place-items: center; width: 15px; font-size: 15px; color: var(--text-muted); }
 .package-scope-count { color: var(--text-muted); font-size: 11px; }
 .catalog-scroll { grid-column: 2; grid-row: 2; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; background: #333333; }
+.trusted-catalog-status { flex: 0 0 auto; padding: 6px 10px; border-bottom: 1px solid var(--line); color: var(--text-muted); font-size: 11px; line-height: 1.4; }
+.trusted-catalog-status[data-status="stale"] { color: #e3bd78; }
+.trusted-catalog-status[data-status="unavailable"] { color: var(--text-faint); }
 .package-list-heading { display: flex; justify-content: space-between; gap: 8px; flex: 0 0 23px; align-items: center; padding: 0 27px 0 9px; border-bottom: 1px solid var(--line); background: #3c3c3c; color: var(--text-muted); font-size: 11px; }
 .catalog-scroll .plugin-list { display: flex; flex-direction: column; flex: 1; gap: 0; min-height: 0; padding: 0; overflow-y: auto; }
 .catalog-scroll .plugin-card {

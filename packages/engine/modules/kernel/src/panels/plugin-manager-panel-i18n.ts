@@ -186,6 +186,7 @@ const PANEL_TRANSLATIONS: Record<PluginManagerPanelLocale, Record<string, Transl
             manual: 'manual',
             registry: 'registry',
             local: 'local',
+            installed: 'installed',
         },
     },
     'zh-CN': {
@@ -367,6 +368,7 @@ const PANEL_TRANSLATIONS: Record<PluginManagerPanelLocale, Record<string, Transl
             manual: '手工',
             registry: '注册表',
             local: '本地',
+            installed: '已安装',
         },
     },
 };

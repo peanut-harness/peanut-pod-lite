@@ -8,12 +8,16 @@ test('release contains a Creator extension entry', () => {
     const manifest = JSON.parse(readFileSync(resolve(extensionRoot, 'package.json'), 'utf8'));
     const root = resolve(extensionRoot, 'release', `${manifest.name}-${manifest.version}`);
     const mainPath = resolve(root, 'dist/main.js');
+    const bootstrapPath = resolve(root, 'dist/bootstrap.js');
     assert.equal(existsSync(mainPath), true);
+    assert.equal(existsSync(bootstrapPath), true);
+    assert.equal(existsSync(resolve(root, 'dist/bootstrap.js')), true);
     assert.equal(existsSync(resolve(root, 'dist/scene.js')), true);
     assert.equal(existsSync(resolve(root, 'panel/account/index.js')), true);
     const packedManifest = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
     assert.equal(packedManifest.package_version, 2);
     assert.equal(packedManifest.version, manifest.version);
+    assert.equal(packedManifest.main, './dist/bootstrap.js');
     assert.equal(packedManifest.panels.account.main, 'panel/account/index.js');
     const mainBundle = readFileSync(mainPath, 'utf8');
     assert.doesNotMatch(mainBundle, /(?:require|import)\(\s*['"]node:/u);

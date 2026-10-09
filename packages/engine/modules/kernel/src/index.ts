@@ -6,12 +6,15 @@ export { McpBatchApprovalStore } from './mcp/mcp-batch-approval-store.js';
 export { ProjectMcpAgentConfig } from './mcp/project-mcp-agent-config.js';
 export { PluginDevelopmentController } from './development/plugin-development-controller.js';
 export { PluginDevelopmentControlServer } from './development/plugin-development-control-server.js';
+export { PluginTemplateGenerator } from './development/plugin-template-generator.js';
+export type { IPluginTemplateRequest, IPluginTemplateResult, PluginTemplateKind } from './development/plugin-template-generator.js';
 export type { IPluginDevelopmentControlServerOptions } from './development/plugin-development-control-server.js';
 export { BuiltinAssetPluginModule } from './builtin/builtin-asset-plugin-module.js';
 export { BuiltinMessagePluginModule } from './builtin/builtin-message-plugin-module.js';
 export { BuiltinPanelPluginModule } from './builtin/builtin-panel-plugin-module.js';
 export { BuiltinPluginManagerPanelModule } from './builtin/builtin-plugin-manager-panel-module.js';
 export { createBuiltinPluginManagerPanelRegistration } from './builtin/builtin-plugin-manager-panel-registration.js';
+export type { ITrustedPluginCatalogViewOptions } from './builtin/builtin-plugin-manager-panel-registration.js';
 export { BuiltinScenePluginModule } from './builtin/builtin-scene-plugin-module.js';
 export { ContributionRegistry } from './contributions/contribution-registry.js';
 export { PluginManagerEditorEntry } from './host/plugin-manager-editor-entry.js';
@@ -133,6 +136,8 @@ export type {
     IPluginManagerSettingsSnapshotPayload,
     IPluginManagerSettingsUpdatePayload,
     IPluginManagerSnapshotPayload,
+    IPluginManagerTrustedCatalogPayload,
+    IPluginManagerTrustedCatalogProductPayload,
     IPluginManualPackageSourceInputPayload,
     IPluginPackageActionPayload,
     IPluginPackageCatalogItemPayload,

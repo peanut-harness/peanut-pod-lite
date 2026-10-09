@@ -3,14 +3,14 @@
     "name": "peanut-pod-lite-host",
     "version": "0.2.0",
     "private": true,
-    "main": "./dist/main.js",
+    "main": "./dist/bootstrap.js",
     "description": "Native Cocos Creator host for the open Peanut Pod Lite package.",
     "editor": ">=3.8.0 <3.9.0",
     "scripts": {
         "build": "tsx scripts/pack-host.mjs",
         "typecheck": "node ../../../../tools/check-javascript-syntax.mjs src panel scripts",
         "pack": "tsx scripts/pack-host.mjs",
-        "test": "npm run pack && node --test tests/release-package.test.mjs tests/package-integrity.test.mts tests/cpm-install-alignment.test.mts tests/optional-pro-host.test.mjs tests/account-upgrade.test.mjs tests/managed-task-bridge.test.mts tests/managed-task-live-script.test.mts tests/throughput-soak-live-script.test.mts tests/text-read-bridge.test.mts"
+        "test": "npm run pack && node --test tests/release-package.test.mjs tests/package-integrity.test.mts tests/cpm-install-alignment.test.mts tests/host-update-coordinator.test.mts tests/optional-pro-host.test.mjs tests/account-upgrade.test.mjs tests/account-pro-entitlement.test.mts tests/pro-package-gate.test.mts tests/managed-task-bridge.test.mts tests/managed-task-live-script.test.mts tests/throughput-soak-live-script.test.mts tests/text-read-bridge.test.mts"
     },
     "devDependencies": {
         "esbuild": "^0.25.9"
@@ -107,6 +107,21 @@
                     "queryStatus"
                 ]
             },
+            "query-lite-host-update-status": {
+                "methods": [
+                    "queryLiteHostUpdateStatus"
+                ]
+            },
+            "stage-lite-host-update": {
+                "methods": [
+                    "stageLiteHostUpdate"
+                ]
+            },
+            "request-lite-host-restart": {
+                "methods": [
+                    "requestLiteHostRestart"
+                ]
+            },
             "list-tools": {
                 "methods": [
                     "listTools"
@@ -165,6 +180,11 @@
             "refresh-pro": {
                 "methods": [
                     "refreshPro"
+                ]
+            },
+            "assert-pro-entitlement": {
+                "methods": [
+                    "assertProEntitlement"
                 ]
             },
             "open-account": {

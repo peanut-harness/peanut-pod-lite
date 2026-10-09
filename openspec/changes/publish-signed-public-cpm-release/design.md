@@ -51,9 +51,9 @@ CLI runtime 与产品包上传到带版本和摘要语义的不可变 HTTPS 路�
 
 事务 journal 只记录稳定身份、阶段和本事务拥有的路径，不记录 token、私钥或包内容。已有目标版本默认拒绝覆盖；只有摘要完全一致时可作为幂等成功。current 指针更新使用同目录临时文件与 rename，保留前一 snapshot 供恢复。若切换后无法证明恢复，返回 `may_have_changed`，不自动重试。
 
-### 4. 公共脚本只负责安装并调用固定版本 CLI
+### 4. CPM 提供首次引导，Lite 面板承接日常产品管理
 
-`install.sh` 与 `install.ps1` 负责前置条件检查、取得 bootstrap 模块、验证并安装 CPM CLI、调用安装后 `version --json`，然后清理临时内容。它们不直接解析或安装 Lite 产品包，也不拼接项目的 `installed.json`。产品安装由已验证 CLI 的显式命令完成，例如对项目路径执行 Lite install/upgrade/repair；这避免两套安装器在安全和恢复语义上漂移。
+`install.sh` 与 `install.ps1` 负责前置条件检查、取得 bootstrap 模块、验证并安装 CPM CLI、调用安装后 `version --json`，然后清理临时内容。已验证 CPM CLI 可将 Host/Core 引导安装到空项目；该步骤只建立首装状态。Lite 激活后，共享插件面板通过 Lite `ProjectPackageStore` 管理日常插件安装、升级、回滚和修复。CPM CLI 保留显式维护命令，但它必须消费同一签名产品目录与 schema v2 安装索引，不能维护另一份当前版本状态或成为面板之外的日常版本来源。
 
 正常用户不需要提供信任锚环境变量。测试可保留显式本地 manifest/archive 注入，但只有在测试模式与本地路径同时满足时启用，且不得成为公共 HTTPS 路径的降级开关。
 
@@ -72,6 +72,10 @@ Lite 根版本驱动 Core manifest、Creator Host package 版本与 release 目�
 ### 7. 跨仓集成顺序保持单一 owner
 
 交付图按 `cpm-install` 安全 runtime、Lite release identity、产品安装器、QA/发布激活四段推进。各仓可在独立 worktree 开发，但共享 schema 与最终 SHA 由 integration owner 串行冻结；不得由多个 lane 同时改 `releases.json`、产品 catalog 或 Hub `sync.json`。最终提交顺序先合并不可激活的代码和空 manifest，再上传/验收候选，最后单独提交已签名 stable manifest 与公开文档。
+
+### 8. 首装与面板使用同一产品身份和索引契约
+
+CPM bootstrap 和 Lite 面板消费同一产品 catalog 签名协议、Host/Core identity 与 schema v2 项目安装索引。bootstrap 只负责没有 Lite 活动记录时写入初始状态；Lite 激活后 `ProjectPackageStore` 成为日常操作的状态权威。两边必须对相同目录包和已安装索引给出一致身份，禁止各自创建或优先读取独立的产品版本数据库。
 
 ## Risks / Trade-offs
 

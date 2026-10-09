@@ -5,6 +5,14 @@ declare module 'fs' {
         readonly name: string;
         /** @description 当前目录项是否为目录。 */
         isDirectory(): boolean;
+        /**
+         * @description 当前目录项是否为普通文件。
+         */
+        isFile(): boolean;
+        /**
+         * @description 当前目录项是否为符号链接。
+         */
+        isSymbolicLink(): boolean;
     }
 
     /** @description 文件状态的最小声明，仅供 packaging Node 宿主实现使用。 */

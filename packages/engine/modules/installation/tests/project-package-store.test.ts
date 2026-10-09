@@ -193,6 +193,16 @@ test('project packaging should persist multiple versions and recover the active 
         await packagingApp.install(packagePathV1);
         await packagingApp.upgrade(packagePathV2);
 
+        const installedPanelScript = join(
+            projectPath,
+            'peanut-plugins',
+            'plugins',
+            'project-package-store.test-plugin',
+            '1.1.0',
+            PanelPackageLayout.create('project-package-store.test-plugin.panel').embeddedScriptPath,
+        );
+        assert.equal(readFileSync(installedPanelScript, 'utf8'), 'export {};\n');
+
         // 保存重启后的独立实例，验证状态仅来自项目级持久化文件。
         const recoveredPackagingApp = new PackagingApp({ projectPath });
         // 保存恢复后的多版本快照，活动版本必须指向最近升级版本。

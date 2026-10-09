@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
@@ -58,6 +58,16 @@ if (normalizedMain !== bundledMain) {
     await writeFile(mainBundlePath, normalizedMain, 'utf8');
 }
 await writeFile(resolve(outputDirectory, 'dist/scene.js'), "'use strict';\nmodule.exports = {};\n", 'utf8');
+await build({
+    bundle: true,
+    entryPoints: [resolve(extensionRoot, 'src/host-bootstrap.ts')],
+    format: 'cjs',
+    platform: 'node',
+    target: 'node14',
+    outfile: resolve(outputDirectory, 'dist/bootstrap.js'),
+    legalComments: 'none',
+});
+await copyFile(resolve(extensionRoot, 'src/cpm-package-store.js'), resolve(outputDirectory, 'dist/cpm-package-store.js'));
 await cp(resolve(extensionRoot, 'package.json'), resolve(outputDirectory, 'package.json'));
 await cp(resolve(extensionRoot, 'panel'), resolve(outputDirectory, 'panel'), { recursive: true });
 // Static Plugin Manager UI assets shared by the Creator host package.

@@ -2,7 +2,7 @@
 
 const { AccountSessionStore } = require('./account-session-store');
 const { createPodAccountClient } = require('./pod-account-client');
-const { listPremiumOffer, POD_PRO_PRODUCT_CODE } = require('./premium-offer-catalog');
+const { listPremiumOffer, POD_PRO_PACKAGE_ID, POD_PRO_PRODUCT_CODE } = require('./premium-offer-catalog');
 
 function createSignedOutAccount() {
     return Object.freeze({
@@ -18,9 +18,10 @@ function createSignedOutAccount() {
 }
 
 class LiteAccountController {
-    constructor({ projectPath, safeStorageProvider, transport }) {
+    constructor({ projectPath, safeStorageProvider, transport, timeoutMs }) {
         this.store = new AccountSessionStore(projectPath, safeStorageProvider);
         this.transport = transport;
+        this.timeoutMs = timeoutMs;
         this.account = createSignedOutAccount();
     }
 
@@ -64,6 +65,7 @@ class LiteAccountController {
                 endpoint: session.endpoint,
                 accessToken: session.accessToken,
                 transport: this.transport,
+                timeoutMs: this.timeoutMs,
             });
             const snapshot = await client.subscription();
             this.account = Object.freeze({
@@ -94,12 +96,39 @@ class LiteAccountController {
         }
     }
 
+    /**
+     * Fetches a fresh server snapshot and requires the complete Pro entitlement set.
+     */
+    async requireProEntitlement() {
+        const session = this.store.read();
+        const client = createPodAccountClient({
+            endpoint: session.endpoint,
+            accessToken: session.accessToken,
+            transport: this.transport,
+            timeoutMs: this.timeoutMs,
+        });
+        const snapshot = await client.subscription();
+        const offer = listPremiumOffer();
+        const entitlements = new Set(Array.isArray(snapshot.entitlements) ? snapshot.entitlements : []);
+        const activeUntil = snapshot.activeUntil ?? null;
+        const expiresAt = activeUntil == null ? null : Date.parse(activeUntil);
+        if (snapshot.status !== 'active'
+            || snapshot.productCode !== POD_PRO_PRODUCT_CODE
+            || snapshot.packageId !== POD_PRO_PACKAGE_ID
+            || (activeUntil != null && (!Number.isFinite(expiresAt) || expiresAt <= Date.now()))
+            || !offer.entitlements.every((entitlement) => entitlements.has(entitlement))) {
+            throw new Error('peanut_pro_entitlement_required');
+        }
+        return true;
+    }
+
     async startCheckout(pro) {
         const session = this.store.read();
         const client = createPodAccountClient({
             endpoint: session.endpoint,
             accessToken: session.accessToken,
             transport: this.transport,
+            timeoutMs: this.timeoutMs,
         });
         const checkout = await client.checkout(POD_PRO_PRODUCT_CODE);
         await this.refresh(pro);

@@ -14,6 +14,7 @@ test('Lite can sign in and open checkout without granting entitlements or blocki
     const projectRoot = mkdtempSync(join(temporaryRoot, 'account-upgrade-'));
     const originalFetch = globalThis.fetch;
     let subscriptionStatus = 'none';
+    let hasProEntitlements = true;
     let checkoutCalls = 0;
     globalThis.fetch = async (url, init) => {
         const href = String(url);
@@ -23,7 +24,14 @@ test('Lite can sign in and open checkout without granting entitlements or blocki
                 subjectId: 'user-a',
                 deviceId: 'device-a',
                 status: subscriptionStatus,
-                entitlements: subscriptionStatus === 'active' ? ['premium.snowb'] : [],
+                entitlements: subscriptionStatus === 'active' && hasProEntitlements ? [
+                    'premium.snowb',
+                    'premium.preview-capture',
+                    'premium.content-delivery',
+                    'premium.sdf-font',
+                    'premium.ui-prefab',
+                    'premium.asset-version-mover',
+                ] : [],
                 activeUntil: null,
                 productCode: 'peanut.cocos-mcp-pro',
                 packageId: 'peanut.cocos-mcp-pro',
@@ -65,6 +73,10 @@ test('Lite can sign in and open checkout without granting entitlements or blocki
         await host.methods.querySubscription();
         assert.equal(host.methods.queryStatus().account.recommendedAction, 'install-pro');
         assert.equal(host.methods.queryStatus().pro.state, 'absent');
+        hasProEntitlements = false;
+        await assert.rejects(host.methods.refreshPro(), /peanut_pro_entitlement_required/u);
+        assert.equal(host.methods.queryStatus().pro.state, 'absent');
+        hasProEntitlements = true;
         const pro = writePackage(
             projectRoot,
             'peanut.cocos-mcp-pro',

@@ -17,7 +17,9 @@ const proId = 'peanut.cocos-mcp-pro';
 
 // The packed Host bundle is loaded once per process; each scenario reloads it against the same project.
 const projectRoot = createCpmLayoutProject();
-const host = require(join(projectRoot, 'extensions/peanut-pod-lite-host/dist/main.js'));
+const installedHostRoot = join(projectRoot, 'extensions/peanut-pod-lite-host');
+const installedHostManifest = JSON.parse(readFileSync(join(installedHostRoot, 'package.json'), 'utf8'));
+const host = require(join(installedHostRoot, installedHostManifest.main));
 
 test.after(async () => {
     await host.unload();

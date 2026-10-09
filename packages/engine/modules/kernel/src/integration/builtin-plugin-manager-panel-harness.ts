@@ -5,6 +5,7 @@ import { EditorApiPanelHostInstaller, RuntimeFacade } from '@peanut/pod-engine/r
 import { PluginManagerApp } from '../app/plugin-manager-app.js';
 import { createBuiltinPluginManagerPanelRegistration } from '../builtin/builtin-plugin-manager-panel-registration.js';
 import { HotplugFailurePluginModule } from './hotplug-failure-plugin-module.js';
+import type { PluginTemplateKind } from '../development/plugin-template-generator.js';
 import { UpgradeablePanelPluginModule } from './upgradeable-panel-plugin-module.js';
 import type { IPluginManagerBuiltinPanelRegistration } from '../host/plugin-manager-builtin-panel-registration.js';
 import type { IMcpHubControl } from '../mcp/mcp-hub-control.js';
@@ -39,7 +40,7 @@ export class BuiltinPluginManagerPanelHarness {
      * @description 创建一个新的内置插件管理面板验证入口。
      * @param creatorVersion 当前宿主绑定的 Creator 版本字符串
      */
-    public constructor(creatorVersion: string) {
+    public constructor(creatorVersion: string, projectPath?: string) {
         // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
         const hostGlobal: Record<string, unknown> = {};
         new EditorApiPanelHostInstaller(hostGlobal).installWindowFactory({
@@ -64,7 +65,7 @@ export class BuiltinPluginManagerPanelHarness {
         this._runtime = new RuntimeFacade(creatorVersion, {
             editorApiHostGlobal: hostGlobal,
         });
-        this._packaging = new PackagingApp();
+        this._packaging = new PackagingApp(projectPath == null ? {} : { projectPath });
         this._pluginManager = new PluginManagerApp(this._runtime, this._packaging);
     }
 
@@ -425,6 +426,69 @@ export class BuiltinPluginManagerPanelHarness {
             uninstallActionDisabled,
             recentPackagePathsAfterRemount,
         };
+    }
+
+    public async createPluginTemplate(payload: { readonly pluginId: string; readonly displayName: string; readonly targetDirectory: string; readonly kind: PluginTemplateKind }) {
+        const registration = await this._activateBuiltinPluginManagerPanel();
+        const bridge = this._pluginManager.createPanelBridgeClient(registration.pluginId, registration.panelId);
+        return bridge.request<typeof payload, { readonly pluginId: string; readonly targetDirectory: string; readonly files: readonly string[] }>({
+            id: 'plugin-manager-authoring-create',
+            event: 'pluginManager.authoring.create',
+            expectsResponse: true,
+            payload,
+        });
+    }
+
+    public async packPluginSource(sourcePath: string) {
+        const registration = await this._activateBuiltinPluginManagerPanel();
+        const bridge = this._pluginManager.createPanelBridgeClient(registration.pluginId, registration.panelId);
+        return bridge.request<{ readonly sourcePath: string }, { readonly packagePath: string; readonly pluginId: string; readonly version: string; readonly validation: unknown }>({
+            id: 'plugin-manager-package-pack',
+            event: 'pluginManager.package.pack',
+            expectsResponse: true,
+            payload: { sourcePath },
+        });
+    }
+
+    public async repairPackagesFromPanel() {
+        const registration = await this._activateBuiltinPluginManagerPanel();
+        const bridge = this._pluginManager.createPanelBridgeClient(registration.pluginId, registration.panelId);
+        return bridge.request<{}, { readonly repaired: boolean; readonly actions: readonly string[] }>({
+            id: 'plugin-manager-package-repair', event: 'pluginManager.storage.reconcile', expectsResponse: true, payload: {},
+        });
+    }
+
+    public async packAndInstallPluginSource(sourcePath: string) {
+        const registration = await this._activateBuiltinPluginManagerPanel();
+        const bridge = this._pluginManager.createPanelBridgeClient(registration.pluginId, registration.panelId);
+        const packResponse = await bridge.request<{ readonly sourcePath: string }, { readonly packagePath: string; readonly pluginId: string; readonly version: string; readonly validation: unknown }>({
+            id: 'plugin-manager-package-pack-install', event: 'pluginManager.package.pack', expectsResponse: true, payload: { sourcePath },
+        });
+        if (!packResponse.ok || packResponse.payload == null) return { packResponse, installResponse: null };
+        const planResponse = await bridge.request<{ readonly packagePath: string }, unknown>({
+            id: 'plugin-manager-package-plan-install', event: 'pluginManager.package.plan', expectsResponse: true,
+            payload: { packagePath: packResponse.payload.packagePath },
+        });
+        if (!planResponse.ok) return { packResponse, planResponse, installResponse: null };
+        const installResponse = await bridge.request<{ readonly packagePath: string }, unknown>({
+            id: 'plugin-manager-package-install', event: 'pluginManager.package.install', expectsResponse: true,
+            payload: { packagePath: packResponse.payload.packagePath },
+        });
+        return { packResponse, planResponse, installResponse };
+    }
+
+    public async createPackAndInstallPluginTemplate(payload: { readonly pluginId: string; readonly displayName: string; readonly targetDirectory: string; readonly kind: PluginTemplateKind }) {
+        const registration = await this._activateBuiltinPluginManagerPanel();
+        const bridge = this._pluginManager.createPanelBridgeClient(registration.pluginId, registration.panelId);
+        const created = await bridge.request<typeof payload, unknown>({ id: 'plugin-manager-authoring-create-install', event: 'pluginManager.authoring.create', expectsResponse: true, payload });
+        const packed = await bridge.request<{ readonly sourcePath: string }, { readonly packagePath: string }>({
+            id: 'plugin-manager-authoring-pack-install', event: 'pluginManager.package.pack', expectsResponse: true,
+            payload: { sourcePath: payload.targetDirectory },
+        });
+        if (!created.ok || !packed.ok || packed.payload == null) return { created, packed, plan: null, installed: null };
+        const plan = await bridge.request<{ readonly packagePath: string }, unknown>({ id: 'plugin-manager-authoring-plan-install', event: 'pluginManager.package.plan', expectsResponse: true, payload: { packagePath: packed.payload.packagePath } });
+        const installed = plan.ok ? await bridge.request<{ readonly packagePath: string }, unknown>({ id: 'plugin-manager-authoring-install', event: 'pluginManager.package.install', expectsResponse: true, payload: { packagePath: packed.payload.packagePath } }) : null;
+        return { created, packed, plan, installed };
     }
 
     /**

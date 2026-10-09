@@ -2,6 +2,8 @@
 
 Cocos Creator 编辑器产品。Lite 公开 84 项免费操作（39 读、45 写/破坏性）；所有原生写入都必须消费绑定连接、操作、资源与风险的本地审批租约。Pro 始终可选，缺失或升级失败不得阻断 Lite。
 
+Creator 3.8 的插件安装、开发模板、打包、版本切换和回滚统一从 Cocos Plugin Manager 面板操作。安装流程、受信任目录配置和 Lite Host 重启更新说明见 [`docs/INSTALLATION.md`](docs/INSTALLATION.md)。
+
 ## 五个工作区
 
 - `packages/protocol`：稳定 DTO、版本与宿主上下文协议，不依赖其它工作区。

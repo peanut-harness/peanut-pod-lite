@@ -43,12 +43,17 @@
 - **THEN** 系统恢复或保留上一可用 current 版本，并报告可诊断失败而不留下指向不完整版本的状态
 
 ### Requirement: CPM installs authenticated Lite Host and Core packages
-系统 SHALL 通过显式项目命令安装版本匹配的 Creator Host 与 `peanut.pod-lite` Core，先验证产品发行真实性，再验证目录包 manifest 与逐文件摘要，最后原子写入 Creator 扩展目录、CPM 版本目录和 schema v2 活动索引；本地 tarball、手工复制或仅成功下载不得被认定为正式安装。
+系统 SHALL 通过显式项目命令将版本匹配的 Creator Host 与 `peanut.pod-lite` Core 引导安装到尚无活动 Lite 版本的工程，先验证产品发行真实性，再验证目录包 manifest 与逐文件摘要，最后按 schema v2 项目索引原子提交首装状态；本地 tarball、手工复制或仅成功下载不得被认定为正式安装。Lite 激活后，日常产品插件发现、安装与版本管理 SHALL 通过 Lite 共享插件面板执行并复用同一产品身份和索引契约。
 
-#### Scenario: Lite is installed into a clean Creator project
+#### Scenario: Lite is bootstrapped into a clean Creator project
 - **GIVEN** 目标工程关闭 Creator，Host/Core 产品 release 已认证且目录包完整，并声明受支持的 Creator 精确版本
 - **WHEN** 用户通过 CPM 对该工程执行 Lite 安装
 - **THEN** 系统写入版本匹配的 Host 与 Core、提交活动版本索引，并在 Creator 重启后使 `query-status` 报告与发行身份一致的 Core ready 状态
+
+#### Scenario: Lite panel takes over after bootstrap
+- **GIVEN** Lite 已完成受信任首装且 `query-status` 能报告 Host/Core 的一致发行身份
+- **WHEN** 用户打开 Lite 共享插件面板
+- **THEN** 面板从同一项目索引展示已安装版本，并通过同一产品目录管理后续 Peanut 插件生命周期
 
 #### Scenario: Host and Core identities do not match
 - **GIVEN** Host、Core、release manifest 或项目活动索引的版本/摘要无法组成同一已发布候选
@@ -61,7 +66,7 @@
 - **THEN** Lite Core 仍可达到 ready，Pro 仅以独立状态报告且不得回滚或阻塞 Lite
 
 ### Requirement: Product upgrades and repairs preserve the last known good installation
-系统 SHALL 使 Lite 升级、修复和失败恢复基于不可变版本目录与原子活动索引，并在新版本未通过包校验、激活或宿主冒烟时保留上一已知可用版本；任何可能修改过工程但无法证明回滚完成的结果 MUST 明确报告保守状态。
+系统 SHALL 使 Lite 产品升级、修复和失败恢复基于不可变版本目录与原子活动索引，并在新版本未通过包校验、激活或宿主冒烟时保留上一已知可用版本；Lite 共享插件面板 MUST 将 CPM bootstrap 建立的首装状态作为同一安装事实读取，任何可能修改过工程但无法证明回滚完成的结果 MUST 明确报告保守状态。
 
 #### Scenario: Lite upgrade succeeds
 - **GIVEN** 工程存在一个已验证的 Lite 版本，且更高版本 Host/Core 通过全部发行与包校验

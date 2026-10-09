@@ -1,8 +1,11 @@
-import type { IPluginFailureIncident, IPluginRuntimeRecord } from '@peanut/pod-protocol';
+import { lstatSync, readFileSync, readdirSync, realpathSync } from 'node:fs';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
+import type { IPluginFailureIncident, IPluginManifest, IPluginRuntimeRecord } from '@peanut/pod-protocol';
 import type { IExecutionDiagnosticsSnapshot } from '@peanut/pod-engine/runtime';
 
 import { PluginManagerApp } from '../app/plugin-manager-app.js';
 import { PluginDevelopmentController } from '../development/plugin-development-controller.js';
+import { PluginTemplateGenerator, type PluginTemplateKind } from '../development/plugin-template-generator.js';
 import type {
     IPluginEmbeddedPanelPayload,
     IPluginFailureDetailPayload,
@@ -24,6 +27,7 @@ import type {
     IPluginPackageCatalogItemPayload,
     IPluginManagerInstalledPackageSnapshotPayload,
     IPluginManagerSnapshotPayload,
+    IPluginManagerTrustedCatalogPayload,
     IPluginManualPackageSourceInputPayload,
     IPluginPackageActionPayload,
     IPluginPackageSourceActionPayload,
@@ -59,6 +63,10 @@ export class BuiltinPluginManagerPanelModule implements IPluginModule {
     private readonly _pluginManager: PluginManagerApp;
     /** @description 保存实例生命周期内需要复用的状态或协作依赖。 */
     private readonly _requestKernelReload?: () => Promise<void> | void;
+    /**
+     * @description 只读取宿主已经验签的目录视图；面板模块不发起网络请求。
+     */
+    private readonly _readTrustedCatalog?: () => Promise<IPluginManagerTrustedCatalogPayload> | IPluginManagerTrustedCatalogPayload;
 
     /**
      * @description 内置插件管理面板插件运行时清单。
@@ -114,9 +122,14 @@ export class BuiltinPluginManagerPanelModule implements IPluginModule {
      * @description 创建一个新的内置插件管理面板插件。
      * @param pluginManager 插件管理器主入口
      */
-    public constructor(pluginManager: PluginManagerApp, requestKernelReload?: () => Promise<void> | void) {
+    public constructor(
+        pluginManager: PluginManagerApp,
+        requestKernelReload?: () => Promise<void> | void,
+        readTrustedCatalog?: () => Promise<IPluginManagerTrustedCatalogPayload> | IPluginManagerTrustedCatalogPayload,
+    ) {
         this._pluginManager = pluginManager;
         this._requestKernelReload = requestKernelReload;
+        this._readTrustedCatalog = readTrustedCatalog;
     }
 
     /**
@@ -160,18 +173,53 @@ export class BuiltinPluginManagerPanelModule implements IPluginModule {
      */
     public async activate(context: IPluginActivateContext): Promise<void> {
         const developmentController = new PluginDevelopmentController(this._pluginManager);
+        const pluginTemplateGenerator = new PluginTemplateGenerator();
+        context.panels.onRequest<{ pluginId: string; displayName: string; targetDirectory: string; kind: PluginTemplateKind }, { pluginId: string; targetDirectory: string; files: readonly string[] }>(
+            BuiltinPluginManagerPanelModule.PANEL_ID,
+            'pluginManager.authoring.create',
+            async (request) => {
+                const payload = request.payload;
+                if (payload == null) throw new Error('plugin_template_request_invalid');
+                const result = pluginTemplateGenerator.generate(payload);
+                return { pluginId: result.pluginId, targetDirectory: result.targetDirectory, files: result.files };
+            },
+        );
+        context.panels.onRequest<{ sourcePath: string }, { packagePath: string; pluginId: string; version: string; validation: unknown }>(
+            BuiltinPluginManagerPanelModule.PANEL_ID,
+            'pluginManager.package.pack',
+            async (request) => {
+                const sourcePath = this._requirePackagePath(request.payload?.sourcePath);
+                const manifest = this._readPackManifest(sourcePath);
+                const packResult = await this._pluginManager.packageAuthoring.pack(sourcePath, manifest);
+                const validation = await this._pluginManager.packageAuthoring.validate(packResult.packagePath);
+                if (validation.ok !== true) throw new Error(`plugin_package_invalid:${validation.issues.join(',')}`);
+                return { packagePath: packResult.packagePath, pluginId: manifest.id, version: manifest.version, validation };
+            },
+        );
         context.panels.onRequest<{}, IPluginManagerSnapshotPayload>(
             BuiltinPluginManagerPanelModule.PANEL_ID,
             'pluginManager.snapshot',
             async (): Promise<IPluginManagerSnapshotPayload> => {
                 // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
                 const manualPackageSources = await this._readManualPackageSources(context);
+                let trustedCatalog: IPluginManagerTrustedCatalogPayload = {
+                    status: 'unavailable',
+                    channel: null,
+                    generatedAt: null,
+                    products: [],
+                };
+                try {
+                    if (this._readTrustedCatalog != null) trustedCatalog = await this._readTrustedCatalog();
+                } catch {
+                    // 目录读取失败不影响本地包和已安装版本的显示。
+                }
                 return {
                     runtimeRecords: this._pluginManager.listRuntimeRecords(),
                     failureItems: this._pluginManager.listFailureIncidents().map((incident) => {
                         return this._buildFailureListItemPayload(incident);
                     }),
                     packageCatalog: this._buildPackageCatalog(manualPackageSources),
+                    trustedCatalog,
                     recentPackagePaths: await this._readRecentPackagePaths(context),
                     preferences: await this._readPanelPreferences(context),
                     kernelReloadSupported: this._requestKernelReload != null,
@@ -866,6 +914,27 @@ export class BuiltinPluginManagerPanelModule implements IPluginModule {
                 ),
             );
         }
+        // Installed CPM versions remain visible even when their registry source is offline.
+        for (const installedSnapshot of this._pluginManager.listInstalledPackageSnapshots()) {
+            for (const installedVersion of installedSnapshot.versions) {
+                if (packageCatalog.has(installedVersion.installPath)) continue;
+                packageCatalog.set(
+                    installedVersion.installPath,
+                    {
+                        ...this._buildPackageCatalogItemPayload(
+                            'installed',
+                            installedVersion.installPath,
+                            installedVersion.installPath,
+                            installedSnapshot.pluginId,
+                            installedVersion.version,
+                            installedSnapshot.pluginId,
+                            this._getRuntimeRecord(installedSnapshot.pluginId)?.iconUrl,
+                        ),
+                        installedActiveVersion: installedSnapshot.activeVersion,
+                    },
+                );
+            }
+        }
         return [...packageCatalog.values()];
     }
 
@@ -1164,6 +1233,38 @@ export class BuiltinPluginManagerPanelModule implements IPluginModule {
             throw new Error('plugin_package_path_required');
         }
         return packagePath;
+    }
+
+    private _readPackManifest(sourcePath: string): IPluginManifest {
+        const source = resolve(sourcePath);
+        const sourceStats = lstatSync(source);
+        if (!sourceStats.isDirectory() || sourceStats.isSymbolicLink()) throw new Error('plugin_package_source_invalid');
+        const sourceRoot = realpathSync(source);
+        const manifestFiles = readdirSync(sourceRoot).filter((fileName) => fileName.endsWith('.manifest.json'));
+        if (manifestFiles.length !== 1) throw new Error('plugin_package_manifest_invalid');
+        const manifestPath = join(sourceRoot, manifestFiles[0]!);
+        const manifestStats = lstatSync(manifestPath);
+        if (!manifestStats.isFile() || manifestStats.isSymbolicLink() || manifestStats.size > 256 * 1024) {
+            throw new Error('plugin_package_manifest_invalid');
+        }
+        const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as IPluginManifest;
+        if (typeof manifest.id !== 'string' || !/^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/u.test(manifest.id)
+            || typeof manifest.version !== 'string' || !/^\d+\.\d+\.\d+$/u.test(manifest.version)
+            || typeof manifest.main !== 'string' || !manifest.main.startsWith('./')
+            || typeof manifest.engines?.host !== 'string' || manifest.engines.host.trim().length === 0) {
+            throw new Error('plugin_package_manifest_invalid');
+        }
+        if (manifestFiles[0] !== `${manifest.id}.manifest.json`) throw new Error('plugin_package_manifest_invalid');
+        const mainPath = resolve(sourceRoot, manifest.main);
+        const relativeMainPath = relative(sourceRoot, mainPath);
+        if (isAbsolute(relativeMainPath) || relativeMainPath === '..' || relativeMainPath.startsWith(`..${sep}`)) {
+            throw new Error('plugin_package_entry_escape');
+        }
+        const mainStats = lstatSync(mainPath);
+        if (!mainStats.isFile() || mainStats.isSymbolicLink() || realpathSync(mainPath) !== mainPath) {
+            throw new Error('plugin_package_entry_invalid');
+        }
+        return manifest;
     }
 
     /** @description 校验面板提交的插件版本号。 */

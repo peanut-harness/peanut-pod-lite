@@ -38,7 +38,7 @@ function resolveStaticPanelAsset(sourceName, deployedName) {
  */
 function resolveExtensionName() {
     try {
-        const extensionPackagePath = path.resolve(__dirname, '../package.json');
+        const extensionPackagePath = path.resolve(__dirname, '../../package.json');
         const extensionPackage = JSON.parse(fs.readFileSync(extensionPackagePath, 'utf8'));
         return typeof extensionPackage.name === 'string' && extensionPackage.name.length > 0
             ? extensionPackage.name

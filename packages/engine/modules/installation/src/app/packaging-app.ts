@@ -297,4 +297,8 @@ export class PackagingApp {
     public async pack(sourcePath: string, manifest: IPluginManifest, packageMeta?: IPluginPackageMeta): Promise<IPluginPackResult> {
         return this._packageBuilder.pack(sourcePath, manifest, packageMeta);
     }
+
+    public hasProjectPackageStore(): boolean {
+        return this._projectPackageStore != null;
+    }
 }

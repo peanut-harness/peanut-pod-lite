@@ -2,6 +2,8 @@
 
 `@peanut/pod-engine/installation` 负责插件包的打包、结构检查、安装规划、安装、升级、回滚和修复。
 
+插件目录由 `SignedPluginCatalogVerifier` 验签后才能用于远程安装；`RemotePackageDownloader` 将归档写入调用方指定的隔离暂存区，并校验 SHA-256、大小和重定向策略。下载器不负责选择生产信任锚或写安装索引，索引只由 `PluginManagerApp` 的安装事务维护。Creator Host 会在 Pro 包触达下载器前检查最新服务端权益。当前仓库没有配置生产插件目录 URL/信任锚，验收目录仅用于隔离测试。
+
 ## 职责
 
 - `pack`
