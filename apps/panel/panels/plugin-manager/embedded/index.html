@@ -3,145 +3,125 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Plugin Manager Panel</title>
+        <title>Peanut · 插件管理</title>
         <link rel="stylesheet" href="./index.css" />
     </head>
     <body>
-        <div class="workbench reference-workbench">
+        <div class="workbench native-workbench">
             <header class="workbench-topbar">
+                <div class="workbench-brand"><svg class="brand-mark" viewBox="0 0 20 20" aria-hidden="true"><path d="m10 2 7 4v8l-7 4-7-4V6Zm-7 4 7 4 7-4M10 10v8" fill="none" stroke="currentColor" stroke-width="1.2"/></svg><strong>Peanut</strong></div>
                 <div class="workbench-tabs" role="tablist" aria-label="Plugin manager sections">
-                    <button id="runtimeTabButton" class="workbench-tab is-active" type="button" role="tab" aria-selected="true" data-workbench-tab="runtime" data-i18n="tab.installed">Installed</button>
-                    <button id="packagesTabButton" class="workbench-tab" type="button" role="tab" aria-selected="false" data-workbench-tab="packages" data-i18n="tab.remote">Remote Extensions</button>
-                    <button id="mcpTabButton" class="workbench-tab" type="button" role="tab" aria-selected="false" data-workbench-tab="mcp">MCP</button>
+                    <button id="packagesTabButton" class="workbench-tab is-active" type="button" role="tab" aria-selected="true" data-workbench-tab="packages"><span data-i18n="tab.remote">Plugins</span></button>
+                    <button id="authoringTabButton" class="workbench-tab" type="button" role="tab" aria-selected="false" data-workbench-tab="authoring"><span data-i18n="tab.authoring">Developer</span></button>
+                    <button id="mcpTabButton" class="workbench-tab" type="button" role="tab" aria-selected="false" data-workbench-tab="mcp"><span>MCP</span></button>
+                    <button id="settingsButton" type="button" class="workbench-tab" role="tab" aria-selected="false" data-workbench-tab="settings"><span data-i18n="actions.settings">Settings</span></button>
                     <button id="aboutTabButton" class="workbench-tab" type="button" role="tab" aria-selected="false" data-workbench-tab="about" data-i18n="tab.about">About</button>
                 </div>
                 <div class="workbench-toolbar">
-                    <div class="workbench-brand">
-                        <span class="workbench-kicker">Peanut · Cocos</span>
-                        <strong data-i18n="hero.title">Plugin Manager</strong>
-                    </div>
-                    <button id="settingsButton" type="button" class="button button-ghost button-compact" data-i18n="actions.settings">Settings</button>
                     <button id="refreshButton" type="button" class="button button-ghost button-compact" data-i18n="actions.refresh">Refresh</button>
                 </div>
             </header>
 
             <div class="workbench-panel">
-                <section class="tab-view runtime-view is-active" data-workbench-view="runtime" role="tabpanel">
-                    <aside class="sidebar-pane">
-                        <section class="pane-section pane-section-fill">
-                            <div class="pane-heading">
-                                <div>
-                                    <p class="eyebrow" data-i18n="sidebar.runtimeCatalog">Runtime Catalog</p>
-                                    <h2 data-i18n="sidebar.pluginsTitle">Plugins</h2>
+                <section class="tab-view package-view is-active" data-workbench-view="packages" role="tabpanel">
+                    <main class="remote-main">
+                        <section class="package-workspace">
+                            <header class="package-toolbar">
+                                <div class="package-channel-tabs" role="tablist" aria-label="Package channel">
+                                    <button type="button" class="package-channel is-active" role="tab" aria-selected="true" data-package-channel="release" data-i18n="package.channel.release">Release</button>
+                                    <button type="button" class="package-channel" role="tab" aria-selected="false" data-package-channel="development" data-i18n="package.channel.development">Development</button>
                                 </div>
-                                <strong id="metricPluginCount" class="metric-inline">0</strong>
-                            </div>
-                            <p class="section-copy" data-i18n="sidebar.pluginsCopy">Select a plugin to inspect runtime state and recovery actions.</p>
-                            <div id="pluginList" class="plugin-list scroll-list" aria-live="polite"></div>
-                        </section>
-                    </aside>
+                                <button id="choosePackageDirectoryButton" type="button" class="button button-ghost" data-i18n="actions.addLocalPackage">+ Add from folder</button>
+                                <div class="catalog-toolbar"><input aria-label="搜索插件" id="packageSearchInput" class="package-input" type="search" data-i18n-placeholder="package.searchPlaceholder" placeholder="Search plugins" /><select id="packageSortSelect" class="package-select" aria-label="Sort plugins"><option value="plugin-id-asc" data-i18n="package.sort.plugin-id-asc">Name A-Z</option><option value="plugin-id-desc" data-i18n="package.sort.plugin-id-desc">Name Z-A</option><option value="source-asc" data-i18n="package.sort.source-asc">Source A-Z</option><option value="recent-first" data-i18n="package.sort.recent-first">Recent first</option></select><select id="packageFilterSelect" class="package-select" hidden><option value="all">All</option><option value="installed">Installed</option><option value="not-installed">Not installed</option><option value="upgrade">Updates</option></select></div>
+                            </header>
+                            <aside class="package-scopes" aria-label="Plugin package scopes">
+                                <p class="package-navigation-heading" data-i18n="package.title">Packages</p>
 
-                    <main class="runtime-main">
-                        <header class="reference-view-heading">
-                            <section class="plugin-detail-identity">
-                                <div id="detailIcon" class="plugin-logo-placeholder" aria-hidden="true">P</div>
-                                <div class="plugin-detail-summary">
-                                    <div class="plugin-detail-title-row">
-                                        <div>
-                                            <p class="eyebrow" data-i18n="detail.overview">Overview</p>
-                                            <h1 id="detailTitle" data-i18n="detail.choosePlugin">Choose a plugin from the left to inspect details.</h1>
-                                            <p id="detailSubtitle" class="section-copy"></p>
-                                        </div>
-                                        <span id="detailStatePill" class="pill pill-neutral">-</span>
+                                <button type="button" class="package-scope is-active" data-package-scope="all"><span class="package-scope-label"><span class="package-scope-icon" aria-hidden="true">▦</span><span data-i18n="package.filter.all">All plugins</span></span><span id="packageScopeAllCount" class="package-scope-count">0</span></button>
+                                <button type="button" class="package-scope" data-package-scope="installed"><span class="package-scope-label"><span class="package-scope-icon" aria-hidden="true">◇</span><span data-i18n="package.filter.installed">Installed</span></span><span id="packageScopeInstalledCount" class="package-scope-count">0</span></button>
+                                <button type="button" class="package-scope" data-package-scope="upgrade"><span class="package-scope-label"><span class="package-scope-icon" aria-hidden="true">↻</span><span data-i18n="package.filter.upgrade">Updates available</span></span><span id="packageScopeUpgradeCount" class="package-scope-count">0</span></button>
+                            </aside>
+                            <div class="catalog-scroll scroll-pane">
+                                <div class="package-list-heading"><span data-i18n="package.listName">Name</span><span data-i18n="package.version">Version</span></div>
+
+                                <div id="packageCatalog" class="plugin-list" aria-label="插件列表"></div>
+                            </div>
+                            <aside id="packageSelectionPanel" class="package-actions-panel package-selection-panel is-empty">
+                                <header class="package-detail-header">
+                                    <div class="package-detail-title"><div class="package-selected-heading"><span id="packageSelectionIcon" class="plugin-logo-placeholder" aria-hidden="true">P</span><div class="package-selected-copy"><div class="package-selected-title-row"><h2 id="packageSelectionTitle" data-i18n="package.selectionTitle">Select a plugin</h2><span id="packageSelectionStatus" class="pill pill-neutral" hidden></span></div><p id="packageSelectionId" class="section-copy"></p></div></div>
+                                        <div class="package-primary-actions"><button id="installPackageButton" type="button" class="button button-primary" disabled data-i18n="actions.install">Install</button><div class="package-more-options package-uninstall-action"><button id="uninstallPackageButton" type="button" class="button button-danger" data-i18n="actions.uninstallSelected">Uninstall</button></div></div>
                                     </div>
-                                    <section class="plugin-detail-fixed">
+                                    <dl id="packageSelectionMeta" class="package-selection-meta" hidden></dl>
+                                    <input id="packagePathInput" class="package-input package-path-readout" type="text" readonly hidden data-i18n-placeholder="package.packagePathPlaceholder" placeholder="Select a plugin or add a local folder" />
+                                </header>
+                                <div id="packageSelectionEmpty" class="empty-state" data-i18n="package.selectionCopy">Select a plugin from the list to see its version and source.</div>
+                                <div id="packageDetailTabs" class="package-detail-tabs" role="tablist" aria-label="Plugin details" hidden>
+                                    <button id="packageDescriptionTab" type="button" role="tab" aria-controls="packageDescriptionView" aria-selected="true" data-package-detail-tab="description" data-i18n="detail.descriptionTitle">Description</button>
+                                    <button id="packageVersionsTab" type="button" role="tab" aria-controls="packageVersionsView" aria-selected="false" tabindex="-1" data-package-detail-tab="versions" data-i18n="package.versionHistory">Versions</button>
+                                    <button id="packageRuntimeTab" type="button" role="tab" aria-controls="packageRuntimeView" aria-selected="false" tabindex="-1" data-package-detail-tab="runtime" data-i18n="package.runtimeHeading">Runtime</button>
+                                </div>
+                                <div class="package-detail-content">
+                                    <section id="packageDescriptionView" role="tabpanel" aria-labelledby="packageDescriptionTab" data-package-detail-view="description">
+                                        <section id="packageSelectionDescriptionSection" class="package-selection-description" hidden><h3 data-i18n="detail.descriptionTitle">Description</h3><p id="packageSelectionDescription"></p></section>
+                                        <p id="packageDescriptionUnavailable" class="section-copy" data-i18n="detail.descriptionFallback" hidden>No description available.</p>
+                                    </section>
+                                    <section id="packageVersionsView" role="tabpanel" aria-labelledby="packageVersionsTab" data-package-detail-view="versions" hidden>
+                                        <label class="package-version-field"><span data-i18n="package.version">Version</span><select id="packageCatalogVersionSelect" class="package-select" disabled></select></label>
                                         <section id="packageVersionCard" class="detail-section plugin-versions-section">
-                                            <div class="pane-heading">
-                                                <div>
-                                                    <p class="eyebrow" data-i18n="versions.title">Installed Versions</p>
-                                                    <h2 data-i18n="versions.title">Installed Versions</h2>
-                                                </div>
-                                            </div>
+                                            <h3 data-i18n="versions.title">Installed Versions</h3>
                                             <p id="packageVersionHint" class="detail-note" data-i18n="versions.empty">No installed versions are available for the selected plugin.</p>
-                                            <div class="action-bar">
-                                                <select id="packageVersionSelect" class="package-select" disabled></select>
-                                            </div>
+                                            <div class="action-bar"><select id="packageVersionSelect" class="package-select" disabled></select><button id="switchPackageVersionButton" type="button" class="button button-primary" disabled data-i18n="actions.switchVersion">Switch Version</button><button id="removePackageVersionButton" type="button" class="button button-danger" disabled data-i18n="actions.removeVersion">Remove Version</button></div>
                                         </section>
-                                        <section class="detail-section plugin-controls-section">
-                                            <div class="pane-heading">
-                                                <div>
-                                                    <p class="eyebrow" data-i18n="actions.title">Lifecycle And Recovery</p>
-                                                    <h2 data-i18n="actions.title">Lifecycle And Recovery</h2>
-                                                </div>
-                                            </div>
-                                            <div class="action-bar">
-                                                <button id="switchPackageVersionButton" type="button" class="button button-primary" disabled data-i18n="actions.switchVersion">Switch Version</button>
-                                                <button id="removePackageVersionButton" type="button" class="button button-danger" disabled data-i18n="actions.removeVersion">Remove Version</button>
-                                                <button id="reloadKernelButton" type="button" class="button button-ghost" disabled data-i18n="actions.reloadKernel">Reload Kernel</button>
+                                        <p id="packageVersionsUnavailable" class="section-copy" data-i18n="versions.empty" hidden>No installed versions are available.</p>
+                                    </section>
+                                    <section id="packageRuntimeView" role="tabpanel" aria-labelledby="packageRuntimeTab" data-package-detail-view="runtime" hidden>
+                                        <section id="packageRuntimeControls" class="package-runtime-controls" hidden>
+
+                                            <div id="pluginControlsSection" class="action-bar package-runtime-actions">
                                                 <button id="activateButton" type="button" class="button button-primary" disabled data-i18n="actions.activate">Activate</button>
                                                 <button id="deactivateButton" type="button" class="button button-ghost" disabled data-i18n="actions.deactivate">Deactivate</button>
-                                                <button id="openPanelButton" type="button" class="button button-primary" disabled data-i18n="actions.openPanel">Open Panel</button>
-                                                <label id="pluginMcpExposureControl" class="plugin-mcp-toggle" title="控制外部 AI/MCP 是否可以调用此插件" hidden><span data-i18n="mcp.pluginExposure">AI 权限</span><select id="pluginMcpExposureSelect" class="plugin-mcp-select"><option value="disabled" data-i18n="mcp.exposure.disabled">关闭</option><option value="read_only" data-i18n="mcp.exposure.readOnly">只读</option><option value="all" data-i18n="mcp.exposure.all">全部</option></select></label>
+                                                <button id="openPanelButton" type="button" class="button button-ghost" disabled data-i18n="actions.openPanel">Open Panel</button>
                                             </div>
+                                            <div class="package-runtime-options">
+
+                                                <div class="action-bar package-runtime-secondary-actions"><button id="reloadKernelButton" type="button" class="button button-ghost" disabled data-i18n="actions.reloadKernel">Reload Kernel</button><label id="pluginMcpExposureControl" class="plugin-mcp-toggle" title="控制外部 AI/MCP 是否可以调用此插件" hidden><span data-i18n="mcp.pluginExposure">AI 权限</span><select id="pluginMcpExposureSelect" class="plugin-mcp-select"><option value="disabled" data-i18n="mcp.exposure.disabled">关闭</option><option value="read_only" data-i18n="mcp.exposure.readOnly">只读</option><option value="all" data-i18n="mcp.exposure.all">全部</option></select></label></div>
+                                            </div>
+                                            <details class="package-more-options"><summary data-i18n="package.runtimeDetails">Runtime details and recovery</summary>
+                                                <section class="detail-section plugin-runtime-state-section"><div id="detailGrid" class="detail-grid"></div></section>
+                                                <section class="detail-section plugin-recovery-section"><div class="detail-card detail-incident-card"><span class="detail-label" data-i18n="detail.failureMessage">Failure Message</span><p id="detailIncidentMessage" class="detail-note" data-i18n="detail.noFailureSelected">No failure selected.</p></div><div class="action-bar"><button id="disposeButton" type="button" class="button button-ghost" disabled data-i18n="actions.dispose">Dispose</button><button id="exportButton" type="button" class="button button-danger" disabled data-i18n="actions.export">Export Failure</button><button id="retryButton" type="button" class="button button-ghost" disabled data-i18n="actions.retryCleanup">Retry Cleanup</button></div></section>
+                                                <div class="package-cleanup-feedback"><span id="cleanupBadge" class="pill pill-neutral"></span><div id="cleanupTimeline"></div></div>
+                                            </details>
                                         </section>
                                     </section>
-                                    <p id="pluginSummary" class="plugin-summary"></p>
                                 </div>
-                            </section>
-                        </header>
-                        <section class="runtime-content reference-runtime-content">
-                            <article class="plugin-detail-workspace">
-                                <section class="plugin-detail-scroll scroll-pane">
-                                    <section class="detail-section plugin-runtime-state-section">
-                                        <div id="detailGrid" class="detail-grid"></div>
-                                    </section>
-                                    <section class="detail-section plugin-recovery-section">
-                                        <div class="detail-card detail-incident-card">
-                                            <span class="detail-label" data-i18n="detail.failureMessage">Failure Message</span>
-                                            <p id="detailIncidentMessage" class="detail-note" data-i18n="detail.noFailureSelected">No failure selected.</p>
-                                        </div>
-                                        <div class="action-bar">
-                                            <button id="disposeButton" type="button" class="button button-ghost" disabled data-i18n="actions.dispose">Dispose</button>
-                                            <button id="exportButton" type="button" class="button button-danger" disabled data-i18n="actions.export">Export Failure</button>
-                                            <button id="retryButton" type="button" class="button button-ghost" disabled data-i18n="actions.retryCleanup">Retry Cleanup</button>
-                                        </div>
-                                    </section>
-                                    <section class="detail-section plugin-description-section">
-                                        <div class="pane-heading">
-                                            <div>
-                                                <p class="eyebrow" data-i18n="detail.descriptionEyebrow">Plugin Overview</p>
-                                                <h2 data-i18n="detail.descriptionTitle">Feature Description</h2>
-                                            </div>
-                                        </div>
-                                        <p id="pluginDescription" class="section-copy" data-i18n="detail.descriptionFallback">No feature description is available for this plugin.</p>
-                                    </section>
-                                </section>
-                            </article>
+                            </aside>
                         </section>
+                        <footer class="package-statusbar"><span id="packageActionSummary" role="status" data-i18n="package.pending">Choose a plugin to see available actions.</span></footer>
                     </main>
                 </section>
 
-                <section class="tab-view package-view" data-workbench-view="packages" role="tabpanel" hidden>
-                    <aside class="source-pane scroll-pane">
-                        <div class="pane-heading"><div><p class="eyebrow" data-i18n="package.sourceRegistry">Source Registry</p><h2 data-i18n="package.sourceRegistry">Manual And Registry Sources</h2></div></div>
-                        <div class="form-stack">
-                            <select id="packageSourceKindSelect" class="package-select"><option value="manual" data-i18n="package.source.manual">Manual</option><option value="registry" data-i18n="package.source.registry">Registry</option></select>
-                            <input id="packageSourcePluginIdInput" class="package-input" type="text" data-i18n-placeholder="package.pluginIdPlaceholder" placeholder="plugin id" />
-                            <input id="packageSourceVersionInput" class="package-input" type="text" data-i18n-placeholder="package.versionPlaceholder" placeholder="version" />
-                            <input id="packageSourcePathInput" class="package-input" type="text" data-i18n-placeholder="package.sourcePathPlaceholder" placeholder="source path" />
-                            <input id="packageSourcePackagePathInput" class="package-input" type="text" data-i18n-placeholder="package.packagePathPlaceholder" placeholder="package path" />
-                            <div class="action-bar"><button id="registerPackageSourceButton" type="button" class="button button-primary" data-i18n="actions.registerSource">Register Source</button><button id="removePackageSourceButton" type="button" class="button button-ghost" data-i18n="actions.removeSource">Remove Source</button></div>
-                        </div>
-                    </aside>
+                <section class="tab-view authoring-view" data-workbench-view="authoring" role="tabpanel" hidden>
                     <main class="remote-main">
-                        <header class="reference-view-heading"><div><p class="eyebrow" data-i18n="tab.remote">Remote Extensions</p><h1 data-i18n="package.title">Install, Upgrade, Uninstall</h1><p id="packageActionSummary" class="section-copy" data-i18n="package.pending">Package actions pending.</p></div></header>
-                        <section class="package-workspace">
-                            <div class="package-actions-panel">
-                                <div class="package-path-form"><input id="packagePathInput" class="package-input" type="text" data-i18n-placeholder="package.packagePathPlaceholder" placeholder="package directory" /><button id="choosePackageDirectoryButton" type="button" class="button button-ghost" data-i18n="actions.choosePackageDirectory">Choose Plugin Directory</button></div>
-                                <div class="action-bar"><button id="planPackageButton" type="button" class="button button-ghost" data-i18n="actions.plan">Plan</button><button id="installPackageButton" type="button" class="button button-primary" data-i18n="actions.install">Install</button><button id="installAndActivatePackageButton" type="button" class="button button-primary" data-i18n="actions.installActivate">Install + Activate</button><button id="upgradePackageButton" type="button" class="button button-ghost" data-i18n="actions.upgrade">Upgrade</button><button id="upgradeAndActivatePackageButton" type="button" class="button button-ghost" data-i18n="actions.upgradeActivate">Upgrade + Activate</button><button id="uninstallPackageButton" type="button" class="button button-danger" data-i18n="actions.uninstallSelected">Uninstall Selected</button></div>
-                            </div>
-                                <div class="catalog-scroll scroll-pane"><div class="catalog-toolbar"><input id="packageSearchInput" class="package-input" type="search" data-i18n-placeholder="package.searchPlaceholder" placeholder="Search packages" /><select id="packageFilterSelect" class="package-select"><option value="all" data-i18n="package.filter.all">All</option><option value="installed" data-i18n="package.filter.installed">Installed</option><option value="not-installed" data-i18n="package.filter.not-installed">Not Installed</option><option value="upgrade" data-i18n="package.filter.upgrade">Upgrade Candidates</option></select><select id="packageSortSelect" class="package-select"><option value="plugin-id-asc" data-i18n="package.sort.plugin-id-asc">Plugin ID A-Z</option><option value="plugin-id-desc" data-i18n="package.sort.plugin-id-desc">Plugin ID Z-A</option><option value="source-asc" data-i18n="package.sort.source-asc">Source A-Z</option><option value="recent-first" data-i18n="package.sort.recent-first">Recent First</option></select></div><div id="packageCatalog" class="plugin-list"></div><div class="pane-heading section-head--compact"><div><p class="eyebrow" data-i18n="package.recentSources">Recent Sources</p><h2 data-i18n="package.recentSources">Recently Used</h2></div></div><div id="recentPackageCatalog" class="plugin-list"></div></div>
-                        </section>
+                        <header class="reference-view-heading"><div><p class="eyebrow" data-i18n="authoring.eyebrow">Plugin Authoring</p><h1 data-i18n="authoring.title">Create a Peanut plugin</h1><p class="section-copy" data-i18n="authoring.copy">Generate a Creator 3.8 host extension or a Peanut Core plugin in an empty folder.</p></div></header>
+                        <section class="package-workspace"><div class="package-actions-panel"><div class="form-stack">
+                            <select id="authoringKindSelect" class="package-select"><option value="peanut-core" data-i18n="authoring.core">Peanut Core plugin</option><option value="creator-38-host" data-i18n="authoring.host">Creator 3.8 host extension</option></select>
+                            <input id="authoringPluginIdInput" class="package-input" type="text" data-i18n-placeholder="authoring.pluginId" placeholder="acme.example-plugin" />
+                            <input id="authoringDisplayNameInput" class="package-input" type="text" data-i18n-placeholder="authoring.displayName" placeholder="Display name" />
+                            <div class="package-path-form"><input id="authoringTargetDirectoryInput" class="package-input" type="text" data-i18n-placeholder="authoring.targetDirectory" placeholder="New empty directory" /><button id="chooseAuthoringDirectoryButton" type="button" class="button button-ghost" data-i18n="authoring.chooseDirectory">Choose Directory</button></div>
+                            <div class="action-bar"><button id="createPluginButton" type="button" class="button button-primary" data-i18n="authoring.create">Create Plugin</button></div>
+                            <p id="authoringResult" class="section-copy" role="status" aria-live="polite" data-i18n="authoring.resultHint">Generated file paths will appear here.</p>
+                        </div></div></section>
+                        <details class="source-settings developer-tools"><summary data-i18n="package.manageSources">Developer tools</summary><div class="form-stack"><p class="section-copy" data-i18n="package.sourceHelp">Manage package sources and maintenance actions.</p>
+                            <label class="form-stack"><span data-i18n="authoring.sourceDirectory">Plugin source directory</span><input id="packageAuthoringPathInput" class="package-input" type="text" data-i18n-placeholder="authoring.sourceDirectory" placeholder="Plugin source directory" /></label>
+                            <p id="packageAuthoringStatus" class="section-copy" role="status" aria-live="polite"></p>
+                            <div class="action-bar"><button id="planPackageButton" type="button" class="button button-ghost" data-i18n="actions.plan">Preview changes</button><button id="installAndActivatePackageButton" type="button" class="button button-ghost" data-i18n="actions.installActivate">Install and activate</button><button id="upgradeAndActivatePackageButton" type="button" class="button button-ghost" data-i18n="actions.upgradeActivate">Update and activate</button><button id="packPackageButton" type="button" class="button button-ghost" data-i18n="actions.pack">Package source</button><button id="repairPackagesButton" type="button" class="button button-ghost" data-i18n="actions.repairPackages">Repair installed plugins</button></div>
+                            <select id="packageSourceKindSelect" class="package-select"><option value="manual" data-i18n="package.source.manual">Local folder</option><option value="registry" data-i18n="package.source.registry">Registry</option></select>
+                            <input id="packageSourcePluginIdInput" class="package-input" type="text" data-i18n-placeholder="package.pluginIdPlaceholder" placeholder="Plugin ID" />
+                            <input id="packageSourceVersionInput" class="package-input" type="text" data-i18n-placeholder="package.versionPlaceholder" placeholder="Version" />
+                            <input id="packageSourcePathInput" class="package-input" type="text" data-i18n-placeholder="package.sourcePathPlaceholder" placeholder="Source path or registry name" />
+                            <input id="packageSourcePackagePathInput" class="package-input" type="text" data-i18n-placeholder="package.packagePathPlaceholder" placeholder="Package path" />
+                            <div class="action-bar"><button id="registerPackageSourceButton" type="button" class="button button-primary" data-i18n="actions.registerSource">Add source</button><button id="removePackageSourceButton" type="button" class="button button-ghost" data-i18n="actions.removeSource">Remove source</button></div>
+                        </div></details>
                     </main>
                 </section>
 
@@ -160,47 +140,50 @@
                         <p class="section-copy" data-i18n="about.copy">The new Cocos plugin system provides a unified foundation for installation, runtime lifecycle, and independent plugin panels.</p>
                     </article>
                 </section>
-            </div>
-            <div id="settingsOverlay" class="settings-overlay" hidden>
-                <form id="settingsForm" class="settings-dialog" aria-labelledby="settingsTitle">
-                    <header class="settings-dialog-header">
-                        <h2 id="settingsTitle" data-i18n="settings.title">Settings</h2>
-                        <button id="settingsCloseButton" type="button" class="button button-ghost button-compact" data-i18n="settings.close">Close</button>
-                    </header>
-                    <label class="settings-field">
-                        <span data-i18n="settings.language">Display language</span>
-                        <select id="settingsLocaleSelect" class="package-select">
-                            <option value="zh-CN" data-i18n="locale.zh-CN">Simplified Chinese</option>
-                            <option value="en-US" data-i18n="locale.en-US">English</option>
-                        </select>
-                    </label>
-                    <label class="settings-field">
-                        <span data-i18n="settings.packageFilter">Default package filter</span>
-                        <select id="settingsPackageFilterSelect" class="package-select">
-                            <option value="all" data-i18n="package.filter.all">All Sources</option>
-                            <option value="installed" data-i18n="package.filter.installed">Installed</option>
-                            <option value="not-installed" data-i18n="package.filter.not-installed">Not Installed</option>
-                            <option value="upgrade" data-i18n="package.filter.upgrade">Upgrade Candidates</option>
-                        </select>
-                    </label>
-                    <label class="settings-field">
-                        <span data-i18n="settings.packageSort">Default package sort</span>
-                        <select id="settingsPackageSortSelect" class="package-select">
-                            <option value="plugin-id-asc" data-i18n="package.sort.plugin-id-asc">Plugin ID A-Z</option>
-                            <option value="plugin-id-desc" data-i18n="package.sort.plugin-id-desc">Plugin ID Z-A</option>
-                            <option value="source-asc" data-i18n="package.sort.source-asc">Source A-Z</option>
-                            <option value="recent-first" data-i18n="package.sort.recent-first">Recent First</option>
-                        </select>
-                    </label>
-                    <p id="settingsError" class="error" hidden></p>
-                    <div class="action-bar settings-dialog-actions">
-                        <button id="settingsResetButton" type="button" class="button button-ghost" data-i18n="settings.restoreDefaults">Restore Defaults</button>
-                        <button id="settingsCancelButton" type="button" class="button button-ghost" data-i18n="settings.cancel">Cancel</button>
-                        <button type="submit" class="button button-primary" data-i18n="settings.save">Save</button>
-                    </div>
-                </form>
+
+                <section id="settingsView" class="tab-view settings-view" data-workbench-view="settings" role="tabpanel" hidden>
+                    <form id="settingsForm" class="settings-panel" aria-labelledby="settingsTitle">
+                        <header class="settings-panel-header">
+                            <div>
+                                <p class="eyebrow" data-i18n="settings.eyebrow">Plugin Manager</p>
+                                <h1 id="settingsTitle" data-i18n="settings.title">Settings</h1>
+                            </div>
+                        </header>
+                        <label class="settings-field">
+                            <span data-i18n="settings.language">Display language</span>
+                            <select id="settingsLocaleSelect" class="package-select">
+                                <option value="zh-CN" data-i18n="locale.zh-CN">Simplified Chinese</option>
+                                <option value="en-US" data-i18n="locale.en-US">English</option>
+                            </select>
+                        </label>
+                        <label class="settings-field">
+                            <span data-i18n="settings.packageFilter">Default package filter</span>
+                            <select id="settingsPackageFilterSelect" class="package-select">
+                                <option value="all" data-i18n="package.filter.all">All Sources</option>
+                                <option value="installed" data-i18n="package.filter.installed">Installed</option>
+                                <option value="not-installed" data-i18n="package.filter.not-installed">Not Installed</option>
+                                <option value="upgrade" data-i18n="package.filter.upgrade">Upgrade Candidates</option>
+                            </select>
+                        </label>
+                        <label class="settings-field">
+                            <span data-i18n="settings.packageSort">Default package sort</span>
+                            <select id="settingsPackageSortSelect" class="package-select">
+                                <option value="plugin-id-asc" data-i18n="package.sort.plugin-id-asc">Plugin ID A-Z</option>
+                                <option value="plugin-id-desc" data-i18n="package.sort.plugin-id-desc">Plugin ID Z-A</option>
+                                <option value="source-asc" data-i18n="package.sort.source-asc">Source A-Z</option>
+                                <option value="recent-first" data-i18n="package.sort.recent-first">Recent First</option>
+                            </select>
+                        </label>
+                        <p id="settingsError" class="error settings-error" hidden></p>
+                        <div class="action-bar settings-actions">
+                            <button id="settingsResetButton" type="button" class="button button-ghost" data-i18n="settings.restoreDefaults">Restore Defaults</button>
+                            <button id="settingsCancelButton" type="button" class="button button-ghost" data-i18n="settings.cancel">Cancel</button>
+                            <button type="submit" class="button button-primary" data-i18n="settings.save">Save</button>
+                        </div>
+                    </form>
+                </section>
             </div>
         </div>
-        <script type="module" src="./index.js"></script>
+        <script src="./index.js"></script>
     </body>
 </html>
