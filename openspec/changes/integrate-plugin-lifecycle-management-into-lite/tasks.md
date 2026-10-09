@@ -26,5 +26,12 @@
 
 ## 5. Integrate and document
 
-- [ ] 5.1 `[repo: peanut-pod-lite] [paths: packages/engine/modules/kernel/tests/**, packages/engine/modules/installation/tests/**, packages/hosts/modules/creator-38/tests/**] [depends: 2.3, 3.3, 4.3, 4.4] [serial] [owner: self-delivery]` 在受支持 Creator fixture 中端到端验收创建、打包、本地安装、远程安装 Lite/其他插件、有权/无权安装 Pro、更新、回滚、离线和 Lite Host 重启；核对身份、索引、错误与恢复证据一致。
-- [ ] 5.2 `[repo: peanut-pod-lite] [paths: docs/INSTALLATION.md, README.md, packages/engine/modules/installation/README.md] [depends: 5.1] [serial] [owner: self-delivery]` 更新安装与开发指南，说明引导到面板的交接、插件模板、远程信任模型、Pro 登录/权益要求、版本恢复和当前平台限制；核对文档操作与面板及发行契约一致。
+- [x] 5.1 `[repo: peanut-pod-lite] [paths: packages/engine/modules/kernel/tests/**, packages/engine/modules/installation/tests/**, packages/hosts/modules/creator-38/tests/**] [depends: 2.3, 3.3, 4.3, 4.4] [serial] [owner: self-delivery]` 在受支持 Creator fixture 中端到端验收创建、打包、本地安装、远程安装 Lite/其他插件、有权/无权安装 Pro、更新、回滚、离线和 Lite Host 重启；核对身份、索引、错误与恢复证据一致。
+- [x] 5.2 `[repo: peanut-pod-lite] [paths: docs/INSTALLATION.md, README.md, packages/engine/modules/installation/README.md] [depends: 5.1] [serial] [owner: self-delivery]` 更新安装与开发指南，说明引导到面板的交接、插件模板、远程信任模型、Pro 登录/权益要求、版本恢复和当前平台限制；核对文档操作与面板及发行契约一致。
+
+## 实机验收记录（2026-10-09）
+
+- Creator 3.8.3 与 3.8.7 验收工程均完成 Host/Core 模板生成、本地打包安装和受信任远程 Lite 插件安装；Creator 3.8.7 完成离线目录状态与已安装清单保留核验。
+- Creator 3.8.3 完成 Lite Host 暂存更新、重启健康激活和失败回滚；未登录 Pro 操作在下载前拒绝。安装模块与 Creator Host 测试覆盖权益缺失、过期、产品不匹配和服务失败关闭。
+- Creator 3.8.7 使用隔离 HTTPS Pod/目录 fixture 完成 `peanut.cocos-mcp-pro@0.9.0` 授权安装；服务端权益查询发生在归档请求之前，Creator 面板显示已安装，CPM schema v2 索引活动版本为 `0.9.0`。测试请求日志不记录令牌，令牌只留在隔离验收工程的宿主安全存储。
+- `docs/INSTALLATION.md`、根 README 和安装模块 README 已按实际面板、签名目录、Pro 权益、版本恢复和 Creator 平台行为核对。
