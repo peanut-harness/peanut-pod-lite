@@ -7,7 +7,7 @@
   "exports": {
     "./assets": { "types": "./modules/assets/dist/index.d.ts", "import": "./modules/assets/dist/index.js", "require": "./modules/assets/dist/index.js" },
     "./creator-plugin": { "types": "./modules/creator-plugin/dist/index.d.ts", "import": "./modules/creator-plugin/dist/index.js" },
-    "./installation": { "types": "./modules/installation/dist/index.d.ts", "import": "./modules/installation/dist/index.js" },
+    "./installation": { "types": "./modules/installation/dist/index.d.ts", "import": "./modules/installation/dist/index.js", "require": "./modules/installation/dist/index.js" },
     "./kernel": { "types": "./modules/kernel/dist/index.d.ts", "import": "./modules/kernel/dist/index.js" },
     "./lumen": { "types": "./modules/lumen/dist/index.d.ts", "import": "./modules/lumen/dist/index.js", "require": "./modules/lumen/dist/index.js" },
     "./lumen-24": { "types": "./modules/lumen-24/dist/index.d.ts", "import": "./modules/lumen-24/dist/index.js" },
