@@ -398,6 +398,37 @@ test('plugin-manager kernel container should repair interrupted package state be
     }
 });
 
+test('plugin-manager kernel container can leave external CPM index repair to its owning host', async (): Promise<void> => {
+    const projectPath = await mkdtemp(join(tmpdir(), 'peanut-kernel-external-index-owner-'));
+    let pluginManagerKernelContainer: PluginManagerKernelContainer | null = null;
+    try {
+        const interruptedStagingPath = join(projectPath, 'peanut-plugins', 'staging', 'external.owner.plugin', '0.1.0');
+        const temporaryManifestPath = join(projectPath, 'peanut-plugins', 'installed.json.tmp');
+        await mkdir(interruptedStagingPath, { recursive: true });
+        await writeFile(join(interruptedStagingPath, 'partial.bundle.js'), 'keep for the external owner\n', 'utf8');
+        await writeFile(temporaryManifestPath, '{"externalOwner":true}\n', 'utf8');
+        pluginManagerKernelContainer = new PluginManagerKernelContainer(new RuntimeFacade('3.8.7', {
+            allowMemoryPanelWindowProviderFallback: true,
+        }), {
+            packaging: new PackagingApp({ projectPath }),
+            activateInstalledPackages: false,
+            repairInstalledPackagesOnStartup: false,
+        });
+
+        await pluginManagerKernelContainer.start();
+
+        assert.equal(existsSync(interruptedStagingPath), true);
+        assert.equal(existsSync(temporaryManifestPath), true);
+        assert.deepEqual(pluginManagerKernelContainer.getLastStartupRepairResult(), {
+            repaired: false,
+            actions: ['startup_repair_skipped_external_index_owner'],
+        });
+    } finally {
+        await pluginManagerKernelContainer?.dispose();
+        await rm(projectPath, { recursive: true, force: true });
+    }
+});
+
 test('plugin-manager kernel container should isolate a failed directory package during reload and recover it after a package fix', async (): Promise<void> => {
     const projectPath = await mkdtemp(join(tmpdir(), 'peanut-kernel-package-isolation-'));
     let pluginManagerKernelContainer: PluginManagerKernelContainer | null = null;

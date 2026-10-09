@@ -61,6 +61,11 @@ export interface IPluginManagerKernelContainerOptions {
     readonly activateInstalledPackages?: boolean;
 
     /**
+     * @description 是否在 kernel 启动时修复安装索引；索引由外部 CPM 所有时必须关闭。
+     */
+    readonly repairInstalledPackagesOnStartup?: boolean;
+
+    /**
      * @description 每次启动新 kernel 后执行的 bootstrap 钩子。
      */
     readonly bootstrap?: PluginManagerKernelBootstrap;
@@ -86,6 +91,7 @@ export class PluginManagerKernelContainer {
     private readonly _bootstrap?: PluginManagerKernelBootstrap;
     /** @description 是否由当前容器自动激活安装索引中的插件。 */
     private readonly _activateInstalledPackages: boolean;
+    private readonly _repairInstalledPackagesOnStartup: boolean;
     /** @description 由当前实例持有的运行状态或协作依赖，贯穿实例生命周期供后续操作使用。 */
     private readonly _panelBindings = new Map<string, IPluginManagerKernelPanelBinding>();
     /** @description 由当前实例持有的运行状态或协作依赖，贯穿实例生命周期供后续操作使用。 */
@@ -115,6 +121,7 @@ export class PluginManagerKernelContainer {
         this._diagnosticProjectPath = options.diagnosticProjectPath;
         this._bootstrap = options.bootstrap;
         this._activateInstalledPackages = options.activateInstalledPackages ?? true;
+        this._repairInstalledPackagesOnStartup = options.repairInstalledPackagesOnStartup ?? true;
     }
 
     /**
@@ -167,7 +174,9 @@ export class PluginManagerKernelContainer {
         );
         pluginManagerApp.importStorageSnapshots(this._storageSnapshots);
         // 宿主进程可能在目录复制或索引原子替换期间中断，恢复前先清理未提交的包状态。
-        this._lastStartupRepairResult = await pluginManagerApp.repairPackages();
+        this._lastStartupRepairResult = this._repairInstalledPackagesOnStartup
+            ? await pluginManagerApp.repairPackages()
+            : { repaired: false, actions: ['startup_repair_skipped_external_index_owner'] };
         if (this._bootstrap != null) {
             await this._bootstrap(pluginManagerApp);
         }

@@ -31,6 +31,8 @@ test('packed Host loads a CPM-installed Core and reports artifacts matching the 
     writeIndex([coreRecord()]);
     globalThis.Editor = createEditor(projectRoot);
     await host.load();
+    const indexedPluginIds = JSON.parse(readFileSync(join(projectRoot, 'peanut-plugins/installed.json'), 'utf8')).plugins.map((plugin) => plugin.pluginId);
+    assert.deepEqual(indexedPluginIds, [coreId]);
     const status = host.methods.queryStatus();
     assert.equal(status.ready, true, status.error);
     assert.equal(status.coreVersion, descriptor.version);
@@ -38,19 +40,24 @@ test('packed Host loads a CPM-installed Core and reports artifacts matching the 
     assert.equal(status.artifacts.host.packageDigest, hostPackageDigest(join(projectRoot, 'extensions/peanut-pod-lite-host')));
     assert.deepEqual(compareReleaseIdentity(status.artifacts, descriptor), []);
     assert.deepEqual(JSON.parse(readFileSync(join(projectRoot, 'peanut-plugins/installed.json'), 'utf8')).plugins.map((plugin) => plugin.pluginId), [coreId]);
+    await host.unload();
 });
 
 test('a failed optional Pro package stays isolated from the CPM-installed Core', async () => {
     const pro = writeProPackage();
     writeIndex([coreRecord(), pro]);
+    assert.equal(new CpmPackageStore(projectRoot).resolveActivePackage(proId, false)?.manifest.version, pro.versions[0].version);
     writeFileSync(join(pro.packagePath, `${proId}.bundle.js`), 'tampered');
     globalThis.Editor = createEditor(projectRoot);
     await host.load();
+    const indexedPluginIds = JSON.parse(readFileSync(join(projectRoot, 'peanut-plugins/installed.json'), 'utf8')).plugins.map((plugin) => plugin.pluginId);
+    assert.deepEqual(indexedPluginIds, [coreId, proId]);
     const status = host.methods.queryStatus();
     assert.equal(status.ready, true, status.error);
     assert.equal(status.pro.state, 'failed');
     assert.match(status.pro.error, /integrity_file_mismatch/u);
     assert.deepEqual(compareReleaseIdentity(status.artifacts, descriptor), []);
+    await host.unload();
 });
 
 test('release identity comparison rejects mismatched Host or Core identities', async () => {
@@ -62,6 +69,7 @@ test('release identity comparison rejects mismatched Host or Core identities', a
     assert.deepEqual(compareReleaseIdentity(artifacts, { ...descriptor, host: { ...descriptor.host, packageDigest: '0'.repeat(64) } }), ['host.packageDigest']);
     assert.deepEqual(compareReleaseIdentity(artifacts, { ...descriptor, core: { ...descriptor.core, packageDigest: '0'.repeat(64) } }), ['core.packageDigest']);
     assert.deepEqual(compareReleaseIdentity({ ...artifacts, core: null }, descriptor), ['core.id', 'core.version', 'core.packageDigest']);
+    await host.unload();
 });
 
 test('Host package digest ignores Finder metadata and refuses development checkouts', () => {

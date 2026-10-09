@@ -65,6 +65,7 @@ export class PluginManagerHostShell {
             nativeCapabilityRegistry: options.nativeCapabilityRegistry,
             diagnosticProjectPath: options.diagnosticProjectPath,
             activateInstalledPackages: options.activateInstalledPackages,
+            repairInstalledPackagesOnStartup: options.repairInstalledPackagesOnStartup,
             bootstrap: async (pluginManagerApp): Promise<void> => {
                 if (this._builtinPanelRegistration != null) {
                     await this._builtinPanelRegistration.register(pluginManagerApp, async (): Promise<void> => {
