@@ -764,9 +764,12 @@ for (const assembly of ['plugin', 'factory']) {
                 assert.equal(JSON.stringify(error.mcpFailure).includes(projectPath), false);
                 return true;
             });
-            const receipt = await manager.getMcpCapabilityRegistry().invoke('peanut.editor-mcp.asset-write-text',
-                { path: 'assets/a.txt', content: 'async-written', execution: { mode: 'async' } }, invocation);
+            const asyncInput = { path: 'assets/a.txt', content: 'async-written',
+                execution: { mode: 'async', idempotencyKey: 'text-write-refresh-failure' } };
+            const receipt = await manager.getMcpCapabilityRegistry().invoke('peanut.editor-mcp.asset-write-text', asyncInput, invocation);
             assert.equal(receipt.taskStatus, 'queued');
+            const retry = await manager.getMcpCapabilityRegistry().invoke('peanut.editor-mcp.asset-write-text', asyncInput, invocation);
+            assert.equal(retry.taskId, receipt.taskId, 'an identical owner-scoped retry reuses the original text-write result');
             const result = await manager.getManagedTaskApi(plugin.manifest.id).wait(receipt.taskId);
             assert.equal(result.ok, false);
             assert.equal(result.status, 'failed');

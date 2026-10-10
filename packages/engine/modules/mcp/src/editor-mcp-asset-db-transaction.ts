@@ -290,8 +290,8 @@ export class EditorMcpAssetDbTransaction {
      * @param uuid AssetDB 实际 UUID。
      */
     private _verifyTextMeta(projectRoot: string, relativePath: string, uuid: string): { readonly identity: string; readonly sha256: string } {
-        const path = join(projectRoot, relativePath + '.meta');
         const root = realpathSync(projectRoot);
+        const path = join(root, relativePath + '.meta');
         const info = lstatSync(path);
         if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1 || info.size > 1024 * 1024
             || realpathSync(path) !== path || !path.startsWith(join(root, 'assets') + sep)) {

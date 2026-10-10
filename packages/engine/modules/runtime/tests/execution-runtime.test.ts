@@ -283,6 +283,32 @@ function createAssetQueryTaskRequest(pluginId: string, requestId: string, pathOr
     };
 }
 
+test('text write idempotency retains only a content digest and omits approval credentials', (): void => {
+    const { executionRuntimeService } = createExecutionRuntimeService();
+    const digestWork = Reflect.get(executionRuntimeService, '_workDigest') as (request: ITaskRequest) => string;
+    const request = (content: string, approvalToken: string): ITaskRequest => ({
+        requestId: `text-write-${approvalToken}`,
+        pluginId: 'peanut.editor-mcp',
+        scope: 'project',
+        priority: 'normal',
+        kind: 'editor-mcp.resource-operation',
+        payload: { operation: 'asset.writeText', input: {
+            files: [{ path: 'assets/a.txt', content }], approvalToken, approvalId: `id-${approvalToken}`,
+        } },
+        idempotencyKey: 'text-write-retry',
+    });
+    const first = digestWork.call(executionRuntimeService, request('private source body', 'secret-one'));
+    const retried = digestWork.call(executionRuntimeService, request('private source body', 'secret-two'));
+    const changed = digestWork.call(executionRuntimeService, request('different source body', 'secret-one'));
+
+    assert.match(first, /^[0-9a-f]{64}$/u);
+    assert.equal(first, retried, 'rotated approval credentials do not alter idempotent work identity');
+    assert.notEqual(first, changed, 'different source content remains a different idempotent request');
+    assert.equal(first.includes('private source body'), false);
+    assert.equal(first.includes('secret-one'), false);
+    executionRuntimeService.dispose();
+});
+
 test('execution runtime service should fail grouped tasks when the resource lock is unavailable', async (): Promise<void> => {
     // 保存当前执行步骤的中间结果，仅在本作用域内参与后续处理。
     const resourceLockManager = new ResourceLockManager();

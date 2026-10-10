@@ -1,5 +1,6 @@
 import { TextWritePreparationSnapshot } from './text-write-preparation-snapshot.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { createHash } from 'node:crypto';
 import { posix } from 'node:path';
 import { types as nodeTypes } from 'node:util';
 import { TextFileWriteResultProjection } from '@peanut/pod-protocol';
@@ -455,9 +456,9 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         };
     }
 
-    /** @description 生成幂等绑定使用的稳定工作摘要，不包含请求标识、幂等键或超时等待偏好。 */
+    /** @description 生成不保留源内容或审批凭据的幂等摘要，不包含请求标识、幂等键或超时等待偏好。 */
     private _workDigest(request: ITaskRequest): string {
-        return this._stableSerialize({
+        const value = {
             pluginId: request.pluginId,
             scope: request.scope,
             priority: request.priority,
@@ -465,7 +466,21 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
             payload: request.payload ?? null,
             mergePolicy: request.mergePolicy ?? null,
             requiresConfirm: request.requiresConfirm ?? false,
-        });
+        };
+        return createHash('sha256').update(this._stableSerialize(this._withoutApprovalCredentials(value)), 'utf8').digest('hex');
+    }
+
+    /** @description 从幂等工作内容中剔除本地审批凭据；业务正文只参与摘要计算，不进入控制面存储。 */
+    private _withoutApprovalCredentials(value: unknown): unknown {
+        if (Array.isArray(value)) {
+            return value.map((item) => this._withoutApprovalCredentials(item));
+        }
+        if (value == null || typeof value !== 'object') {
+            return value;
+        }
+        return Object.fromEntries(Object.entries(value as Record<string, unknown>)
+            .filter(([key]) => key !== 'approvalId' && key !== 'approvalToken')
+            .map(([key, item]) => [key, this._withoutApprovalCredentials(item)]));
     }
 
     /** @description 对 JSON 兼容值递归排序对象键。 */

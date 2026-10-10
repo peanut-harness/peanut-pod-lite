@@ -751,6 +751,15 @@ test('matrix: flat tools expose one tool per operation with correct readOnly/ris
     for (const [name, schema] of Object.entries(CoreTextFileIoContract.writeProperties())) {
         assert.deepEqual(writeText.inputSchema.properties[name], schema, name);
     }
+    assert.deepEqual(writeText.aiHandling.successSignals, [
+        'response.ok=true',
+        'result.taskStatus=succeeded',
+        'result.postflight.verified=true',
+        'result.ok=true',
+        'result.projectState=verified',
+        'result.files[*].status=verified',
+    ]);
+    assert.match(writeText.description['zh-CN'], /每个 result\.files\[\*\]\.status=verified/u);
     const version = definitions.get('peanut.editor-mcp.editor-query-version');
     assert.ok(version, 'editor-query-version');
     assert.equal(version.readOnly, true);
