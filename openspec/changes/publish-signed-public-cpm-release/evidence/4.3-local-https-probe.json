@@ -1,0 +1,86 @@
+{
+  "scope": "local-https-only; not public endpoint acceptance",
+  "publicEndpointAcceptance": false,
+  "note": "The listener is ephemeral and bound to 127.0.0.1. This evidence validates archive transport and digest checks only; it does not satisfy the task acceptance for a public candidate HTTPS endpoint.",
+  "tls": {
+    "protocol": "https",
+    "certificateVerification": "enabled",
+    "listener": "127.0.0.1"
+  },
+  "lite": {
+    "sourceCommit": "d325f13e2d27c09b670957b24fccb02ca0d2dcd3",
+    "fields": {
+      "id": "peanut.pod-lite",
+      "version": "0.2.0",
+      "channel": "beta",
+      "sourceCommit": "d325f13e2d27c09b670957b24fccb02ca0d2dcd3",
+      "hostUrl": "https://127.0.0.1:59373/candidate/lite/0.2.0/peanut-pod-lite-host-0.2.0.tar.gz",
+      "hostSha256": "579951d9a75de1944dc27f854173660521336f336549b4468d0f8491477a285f",
+      "hostPackageDigest": "73f04ba4ed0f5555dc3dd93d55b3ff6ed787f5365f73d05f6df590e7435f4ae7",
+      "coreUrl": "https://127.0.0.1:59373/candidate/lite/0.2.0/peanut-pod-lite-core-0.2.0.tar.gz",
+      "coreSha256": "7f222701c589e3c85e4b32f35b697d320ace21933d5d8888c65e5a70f79d0ba8",
+      "corePackageDigest": "8863a055c3e1016e4c0c7adf12684e4e611a34b1e2eac87d131dbfbc0b1b3492",
+      "creatorProfiles": [
+        "3.8.3",
+        "3.8.7"
+      ]
+    },
+    "readback": {
+      "schemaVersion": 1,
+      "id": "peanut.pod-lite",
+      "version": "0.2.0",
+      "host": {
+        "url": "https://127.0.0.1:59373/candidate/lite/0.2.0/peanut-pod-lite-host-0.2.0.tar.gz",
+        "sha256": "579951d9a75de1944dc27f854173660521336f336549b4468d0f8491477a285f"
+      },
+      "core": {
+        "url": "https://127.0.0.1:59373/candidate/lite/0.2.0/peanut-pod-lite-core-0.2.0.tar.gz",
+        "sha256": "7f222701c589e3c85e4b32f35b697d320ace21933d5d8888c65e5a70f79d0ba8"
+      }
+    }
+  },
+  "cpm": {
+    "sourceCommit": "0c7de877da705a03e458f250f45f6e39c2767250",
+    "signingPayload": "{\"schemaVersion\":1,\"kind\":\"cpm-release-v1\",\"id\":\"peanut-cpm-cli\",\"version\":\"1.0.0\",\"channel\":\"beta\",\"url\":\"https://127.0.0.1:59373/candidate/cpm/1.0.0/peanut-cpm-cli-1.0.0.tgz\",\"sha256\":\"3ae7de3741010f6890a5327742bce6729ab9abacb2dd585a47ecc3d59da39444\"}",
+    "readback": {
+      "schemaVersion": 1,
+      "id": "peanut-cpm-cli",
+      "version": "1.0.0",
+      "url": "https://127.0.0.1:59373/candidate/cpm/1.0.0/peanut-cpm-cli-1.0.0.tgz",
+      "sha256": "3ae7de3741010f6890a5327742bce6729ab9abacb2dd585a47ecc3d59da39444",
+      "size": 13787
+    },
+    "sbomSha256": "573c8ce442284dc9923e29e178ff96889481283acb47c23fcb16b7b792b2e75d"
+  },
+  "artifacts": [
+    {
+      "name": "peanut-pod-lite-host-0.2.0.tar.gz",
+      "url": "https://127.0.0.1:59373/candidate/lite/0.2.0/peanut-pod-lite-host-0.2.0.tar.gz",
+      "size": 320617,
+      "sha256": "579951d9a75de1944dc27f854173660521336f336549b4468d0f8491477a285f",
+      "overwriteStatus": 409
+    },
+    {
+      "name": "peanut-pod-lite-core-0.2.0.tar.gz",
+      "url": "https://127.0.0.1:59373/candidate/lite/0.2.0/peanut-pod-lite-core-0.2.0.tar.gz",
+      "size": 532107,
+      "sha256": "7f222701c589e3c85e4b32f35b697d320ace21933d5d8888c65e5a70f79d0ba8",
+      "overwriteStatus": 409
+    },
+    {
+      "name": "peanut-cpm-cli-1.0.0.tgz",
+      "url": "https://127.0.0.1:59373/candidate/cpm/1.0.0/peanut-cpm-cli-1.0.0.tgz",
+      "size": 13787,
+      "sha256": "3ae7de3741010f6890a5327742bce6729ab9abacb2dd585a47ecc3d59da39444",
+      "overwriteStatus": 409
+    },
+    {
+      "name": "peanut-cpm-cli-1.0.0.sbom.json",
+      "url": "https://127.0.0.1:59373/candidate/cpm/1.0.0/peanut-cpm-cli-1.0.0.sbom.json",
+      "size": 4151,
+      "sha256": "573c8ce442284dc9923e29e178ff96889481283acb47c23fcb16b7b792b2e75d",
+      "overwriteStatus": 409
+    }
+  ],
+  "sbomReadbackSha256": "573c8ce442284dc9923e29e178ff96889481283acb47c23fcb16b7b792b2e75d"
+}

@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "scope": "local-only; not public endpoint acceptance",
+  "publicEndpointAcceptance": false,
+  "note": "Disk-backed local HTTPS resource service bound only to 127.0.0.1. Objects are first-write immutable, upload-authenticated, TLS certificate verified, and digest checked. It does not satisfy the public candidate endpoint acceptance.",
+  "server": {
+    "baseUrl": "https://localhost:65395",
+    "bind": "127.0.0.1",
+    "storage": "/private/tmp/peanut-local-https-resource/store",
+    "tlsVerification": "system-trusted dedicated local CA; chain, SAN, and HTTPS endpoint verified",
+    "auth": "bearer token from a mode-0600 local file; token value omitted",
+    "lastVerification": {
+      "at": "2026-10-10T05:39:25Z",
+      "rootHttpStatus": 200,
+      "healthHttpStatus": 200,
+      "hostTlsVerification": "passed with macOS system default trust",
+      "browserUiVerification": "user confirmed browser page loads after trust update; not independently inspected by automation",
+      "artifactCount": 4,
+      "artifacts": [
+        {
+          "name": "peanut-pod-lite-host-0.2.0.tar.gz",
+          "status": 200,
+          "bytes": 320617,
+          "sha256": "579951d9a75de1944dc27f854173660521336f336549b4468d0f8491477a285f",
+          "cacheControl": "public, max-age=31536000, immutable",
+          "duplicatePutStatus": 409,
+          "preservedAfterDuplicate": true
+        },
+        {
+          "name": "peanut-pod-lite-core-0.2.0.tar.gz",
+          "status": 200,
+          "bytes": 532107,
+          "sha256": "7f222701c589e3c85e4b32f35b697d320ace21933d5d8888c65e5a70f79d0ba8",
+          "cacheControl": "public, max-age=31536000, immutable",
+          "duplicatePutStatus": 409,
+          "preservedAfterDuplicate": true
+        },
+        {
+          "name": "peanut-cpm-cli-1.0.0.tgz",
+          "status": 200,
+          "bytes": 13787,
+          "sha256": "3ae7de3741010f6890a5327742bce6729ab9abacb2dd585a47ecc3d59da39444",
+          "cacheControl": "public, max-age=31536000, immutable",
+          "duplicatePutStatus": 409,
+          "preservedAfterDuplicate": true
+        },
+        {
+          "name": "peanut-cpm-cli-1.0.0.sbom.json",
+          "status": 200,
+          "bytes": 4151,
+          "sha256": "573c8ce442284dc9923e29e178ff96889481283acb47c23fcb16b7b792b2e75d",
+          "cacheControl": "public, max-age=31536000, immutable",
+          "duplicatePutStatus": 409,
+          "preservedAfterDuplicate": true
+        }
+      ],
+      "unauthenticatedPutStatus": 401,
+      "unauthenticatedObjectReadbackStatus": 404,
+      "systemDefaultCurlArtifactReadback": true,
+      "applicationValidators": {
+        "lite": "passed",
+        "cpm": "passed"
+      }
+    }
+  },
+  "lite": {
+    "sourceCommit": "d325f13e2d27c09b670957b24fccb02ca0d2dcd3",
+    "signingInput": {
+      "id": "peanut.pod-lite",
+      "version": "0.2.0",
+      "channel": "beta",
+      "sourceCommit": "d325f13e2d27c09b670957b24fccb02ca0d2dcd3",
+      "hostUrl": "https://localhost:65395/candidates/lite/0.2.0/peanut-pod-lite-host-0.2.0.tar.gz",
+      "hostSha256": "579951d9a75de1944dc27f854173660521336f336549b4468d0f8491477a285f",
+      "hostPackageDigest": "73f04ba4ed0f5555dc3dd93d55b3ff6ed787f5365f73d05f6df590e7435f4ae7",
+      "coreUrl": "https://localhost:65395/candidates/lite/0.2.0/peanut-pod-lite-core-0.2.0.tar.gz",
+      "coreSha256": "7f222701c589e3c85e4b32f35b697d320ace21933d5d8888c65e5a70f79d0ba8",
+      "corePackageDigest": "8863a055c3e1016e4c0c7adf12684e4e611a34b1e2eac87d131dbfbc0b1b3492",
+      "creatorProfiles": [
+        "3.8.3",
+        "3.8.7"
+      ]
+    },
+    "readback": {
+      "schemaVersion": 1,
+      "id": "peanut.pod-lite",
+      "version": "0.2.0",
+      "host": {
+        "url": "https://localhost:65395/candidates/lite/0.2.0/peanut-pod-lite-host-0.2.0.tar.gz",
+        "sha256": "579951d9a75de1944dc27f854173660521336f336549b4468d0f8491477a285f"
+      },
+      "core": {
+        "url": "https://localhost:65395/candidates/lite/0.2.0/peanut-pod-lite-core-0.2.0.tar.gz",
+        "sha256": "7f222701c589e3c85e4b32f35b697d320ace21933d5d8888c65e5a70f79d0ba8"
+      }
+    }
+  },
+  "cpm": {
+    "sourceCommit": "0c7de877da705a03e458f250f45f6e39c2767250",
+    "signingPayload": "{\"schemaVersion\":1,\"kind\":\"cpm-release-v1\",\"id\":\"peanut-cpm-cli\",\"version\":\"1.0.0\",\"channel\":\"beta\",\"url\":\"https://localhost:65395/candidates/cpm/1.0.0/peanut-cpm-cli-1.0.0.tgz\",\"sha256\":\"3ae7de3741010f6890a5327742bce6729ab9abacb2dd585a47ecc3d59da39444\"}",
+    "readback": {
+      "schemaVersion": 1,
+      "id": "peanut-cpm-cli",
+      "version": "1.0.0",
+      "url": "https://localhost:65395/candidates/cpm/1.0.0/peanut-cpm-cli-1.0.0.tgz",
+      "sha256": "3ae7de3741010f6890a5327742bce6729ab9abacb2dd585a47ecc3d59da39444",
+      "size": 13787
+    },
+    "sbomReadbackSha256": "573c8ce442284dc9923e29e178ff96889481283acb47c23fcb16b7b792b2e75d"
+  },
+  "artifacts": [
+    {
+      "name": "peanut-pod-lite-host-0.2.0.tar.gz",
+      "url": "https://localhost:65395/candidates/lite/0.2.0/peanut-pod-lite-host-0.2.0.tar.gz",
+      "size": 320617,
+      "sha256": "579951d9a75de1944dc27f854173660521336f336549b4468d0f8491477a285f",
+      "initialPutStatus": 201,
+      "duplicatePutStatus": 409
+    },
+    {
+      "name": "peanut-pod-lite-core-0.2.0.tar.gz",
+      "url": "https://localhost:65395/candidates/lite/0.2.0/peanut-pod-lite-core-0.2.0.tar.gz",
+      "size": 532107,
+      "sha256": "7f222701c589e3c85e4b32f35b697d320ace21933d5d8888c65e5a70f79d0ba8",
+      "initialPutStatus": 201,
+      "duplicatePutStatus": 409
+    },
+    {
+      "name": "peanut-cpm-cli-1.0.0.tgz",
+      "url": "https://localhost:65395/candidates/cpm/1.0.0/peanut-cpm-cli-1.0.0.tgz",
+      "size": 13787,
+      "sha256": "3ae7de3741010f6890a5327742bce6729ab9abacb2dd585a47ecc3d59da39444",
+      "initialPutStatus": 201,
+      "duplicatePutStatus": 409
+    },
+    {
+      "name": "peanut-cpm-cli-1.0.0.sbom.json",
+      "url": "https://localhost:65395/candidates/cpm/1.0.0/peanut-cpm-cli-1.0.0.sbom.json",
+      "size": 4151,
+      "sha256": "573c8ce442284dc9923e29e178ff96889481283acb47c23fcb16b7b792b2e75d",
+      "initialPutStatus": 201,
+      "duplicatePutStatus": 409
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "scope": "public candidate HTTPS endpoint; public IP certificate and remote byte readback verified",
+  "publicEndpointAcceptance": true,
+  "note": "Read-only public candidate store on the user-provided test VPS. Let’s Encrypt short-lived IP certificate for 124.223.192.14 is trusted by the default TLS client trust store; all four immutable candidate objects were fetched over HTTPS and matched the frozen byte counts and SHA-256 values. Stable manifest remains unchanged. Certificate auto-renewal is configured with a daily systemd timer.",
+  "server": {
+    "baseUrl": "https://124.223.192.14",
+    "bind": "0.0.0.0:443",
+    "storage": "/srv/peanut-candidate-store/objects",
+    "tlsVerification": "Let’s Encrypt YE1 chain, IP SAN 124.223.192.14, default system TLS trust; curl verified without --insecure or custom CA",
+    "auth": "anonymous GET/HEAD; public uploads disabled",
+    "lastVerification": {
+      "at": "2026-10-10T06:06:00Z",
+      "rootHttpStatus": 200,
+      "healthHttpStatus": 200,
+      "hostTlsVerification": "passed with curl default system trust; no --insecure or custom CA",
+      "browserUiVerification": "not completed: in-app browser automation blocked direct IP URL; system-default TLS client verification and HTTPS readback passed",
+      "artifactCount": 4,
+      "artifacts": [
+        {
+          "name": "peanut-pod-lite-host-0.2.0.tar.gz",
+          "status": 200,
+          "bytes": 320617,
+          "sha256": "579951d9a75de1944dc27f854173660521336f336549b4468d0f8491477a285f",
+          "cacheControl": "public, max-age=31536000, immutable"
+        },
+        {
+          "name": "peanut-pod-lite-core-0.2.0.tar.gz",
+          "status": 200,
+          "bytes": 532107,
+          "sha256": "7f222701c589e3c85e4b32f35b697d320ace21933d5d8888c65e5a70f79d0ba8",
+          "cacheControl": "public, max-age=31536000, immutable"
+        },
+        {
+          "name": "peanut-cpm-cli-1.0.0.tgz",
+          "status": 200,
+          "bytes": 13787,
+          "sha256": "3ae7de3741010f6890a5327742bce6729ab9abacb2dd585a47ecc3d59da39444",
+          "cacheControl": "public, max-age=31536000, immutable"
+        },
+        {
+          "name": "peanut-cpm-cli-1.0.0.sbom.json",
+          "status": 200,
+          "bytes": 4151,
+          "sha256": "573c8ce442284dc9923e29e178ff96889481283acb47c23fcb16b7b792b2e75d",
+          "cacheControl": "public, max-age=31536000, immutable"
+        }
+      ],
+      "unauthenticatedPutStatus": 401,
+      "unauthenticatedObjectReadbackStatus": 200,
+      "systemDefaultCurlArtifactReadback": true,
+      "applicationValidators": {
+        "lite": "not rerun against the public IP in 4.3; prior local candidate validation passed",
+        "cpm": "not rerun against the public IP in 4.3; prior local candidate validation passed"
+      },
+      "publicIpAcmeValidation": "Let’s Encrypt TLS-ALPN-01 validation succeeded on TCP 443",
+      "anonymousPutStatus": 405
+    },
+    "uploadPolicy": "public GET/HEAD only; anonymous PUT returns HTTP 405",
+    "certificate": {
+      "issuer": "Let's Encrypt YE1",
+      "subjectAltName": "IP:124.223.192.14",
+      "notBeforeUtc": "2026-10-10T05:06:27Z",
+      "notAfterUtc": "2026-10-16T21:06:26Z",
+      "renewal": "systemd daily check; renew at 4 days remaining using TLS-ALPN-01"
+    }
+  },
+  "lite": {
+    "sourceCommit": "d325f13e2d27c09b670957b24fccb02ca0d2dcd3",
+    "signingInput": {
+      "id": "peanut.pod-lite",
+      "version": "0.2.0",
+      "channel": "beta",
+      "sourceCommit": "d325f13e2d27c09b670957b24fccb02ca0d2dcd3",
+      "hostUrl": "https://124.223.192.14/candidates/lite/0.2.0/peanut-pod-lite-host-0.2.0.tar.gz",
+      "hostSha256": "579951d9a75de1944dc27f854173660521336f336549b4468d0f8491477a285f",
+      "hostPackageDigest": "73f04ba4ed0f5555dc3dd93d55b3ff6ed787f5365f73d05f6df590e7435f4ae7",
+      "coreUrl": "https://124.223.192.14/candidates/lite/0.2.0/peanut-pod-lite-core-0.2.0.tar.gz",
+      "coreSha256": "7f222701c589e3c85e4b32f35b697d320ace21933d5d8888c65e5a70f79d0ba8",
+      "corePackageDigest": "8863a055c3e1016e4c0c7adf12684e4e611a34b1e2eac87d131dbfbc0b1b3492",
+      "creatorProfiles": [
+        "3.8.3",
+        "3.8.7"
+      ]
+    },
+    "readback": {
+      "schemaVersion": 1,
+      "id": "peanut.pod-lite",
+      "version": "0.2.0",
+      "host": {
+        "url": "https://124.223.192.14/candidates/lite/0.2.0/peanut-pod-lite-host-0.2.0.tar.gz",
+        "sha256": "579951d9a75de1944dc27f854173660521336f336549b4468d0f8491477a285f"
+      },
+      "core": {
+        "url": "https://124.223.192.14/candidates/lite/0.2.0/peanut-pod-lite-core-0.2.0.tar.gz",
+        "sha256": "7f222701c589e3c85e4b32f35b697d320ace21933d5d8888c65e5a70f79d0ba8"
+      }
+    }
+  },
+  "cpm": {
+    "sourceCommit": "0c7de877da705a03e458f250f45f6e39c2767250",
+    "signingPayload": "{\"schemaVersion\":1,\"kind\":\"cpm-release-v1\",\"id\":\"peanut-cpm-cli\",\"version\":\"1.0.0\",\"channel\":\"beta\",\"url\":\"https://124.223.192.14/candidates/cpm/1.0.0/peanut-cpm-cli-1.0.0.tgz\",\"sha256\":\"3ae7de3741010f6890a5327742bce6729ab9abacb2dd585a47ecc3d59da39444\"}",
+    "readback": {
+      "schemaVersion": 1,
+      "id": "peanut-cpm-cli",
+      "version": "1.0.0",
+      "url": "https://124.223.192.14/candidates/cpm/1.0.0/peanut-cpm-cli-1.0.0.tgz",
+      "sha256": "3ae7de3741010f6890a5327742bce6729ab9abacb2dd585a47ecc3d59da39444",
+      "size": 13787
+    },
+    "sbomReadbackSha256": "573c8ce442284dc9923e29e178ff96889481283acb47c23fcb16b7b792b2e75d"
+  },
+  "artifacts": [
+    {
+      "name": "peanut-pod-lite-host-0.2.0.tar.gz",
+      "url": "https://124.223.192.14/candidates/lite/0.2.0/peanut-pod-lite-host-0.2.0.tar.gz",
+      "size": 320617,
+      "sha256": "579951d9a75de1944dc27f854173660521336f336549b4468d0f8491477a285f",
+      "remoteReadbackStatus": 200,
+      "cacheControl": "public, max-age=31536000, immutable"
+    },
+    {
+      "name": "peanut-pod-lite-core-0.2.0.tar.gz",
+      "url": "https://124.223.192.14/candidates/lite/0.2.0/peanut-pod-lite-core-0.2.0.tar.gz",
+      "size": 532107,
+      "sha256": "7f222701c589e3c85e4b32f35b697d320ace21933d5d8888c65e5a70f79d0ba8",
+      "remoteReadbackStatus": 200,
+      "cacheControl": "public, max-age=31536000, immutable"
+    },
+    {
+      "name": "peanut-cpm-cli-1.0.0.tgz",
+      "url": "https://124.223.192.14/candidates/cpm/1.0.0/peanut-cpm-cli-1.0.0.tgz",
+      "size": 13787,
+      "sha256": "3ae7de3741010f6890a5327742bce6729ab9abacb2dd585a47ecc3d59da39444",
+      "remoteReadbackStatus": 200,
+      "cacheControl": "public, max-age=31536000, immutable"
+    },
+    {
+      "name": "peanut-cpm-cli-1.0.0.sbom.json",
+      "url": "https://124.223.192.14/candidates/cpm/1.0.0/peanut-cpm-cli-1.0.0.sbom.json",
+      "size": 4151,
+      "sha256": "573c8ce442284dc9923e29e178ff96889481283acb47c23fcb16b7b792b2e75d",
+      "remoteReadbackStatus": 200,
+      "cacheControl": "public, max-age=31536000, immutable"
+    }
+  ]
+}
