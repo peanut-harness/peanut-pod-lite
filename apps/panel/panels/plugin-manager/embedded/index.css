@@ -436,11 +436,12 @@ h3 {
 }
 
 .mcp-capability-card .mcp-capability-name {
-    display: block;
+    display: -webkit-box;
     overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow-wrap: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .mcp-card-copy {
