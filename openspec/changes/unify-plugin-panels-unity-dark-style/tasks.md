@@ -12,4 +12,4 @@
 
 ## 3. 集成验收
 
-- [ ] 3.1 执行 Pro 与 Lite 的规定验证，并检查源码/打包产物差异只包含本次面板变更；`openspec validate --change unify-plugin-panels-unity-dark-style` 通过。
+- [x] 3.1 执行 Pro 与 Lite 的规定验证，并检查源码/打包产物差异只包含本次面板变更；`openspec validate unify-plugin-panels-unity-dark-style --type change --strict` 通过。
