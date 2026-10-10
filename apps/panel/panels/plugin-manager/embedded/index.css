@@ -441,7 +441,7 @@ h3 {
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     white-space: normal;
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
 }
 
 .mcp-card-copy {
