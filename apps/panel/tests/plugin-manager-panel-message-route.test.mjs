@@ -339,6 +339,52 @@ test('full hostless bootstrap renders an empty catalog and all navigation withou
     }
 });
 
+test('MCP capability detail tabs keep the selected definition available while switching sections', () => {
+    const panel = createPanelHarness();
+    const capability = {
+        name: 'peanut.editor-mcp.asset-catalog-refresh',
+        description: '刷新当前项目的资源目录。',
+        category: 'cocos',
+        readOnly: false,
+        inputSchema: {
+            type: 'object',
+            required: ['approvalId'],
+            properties: {
+                approvalId: { type: 'string', description: '本地审批 ID。' },
+                confirmDestructive: { type: 'boolean', description: '确认破坏性写入。' },
+            },
+        },
+    };
+    panel.context.state = stateFixture({
+        mcpHub: {
+            isAvailable: true,
+            isEnabled: true,
+            port: 4312,
+            catalogRevision: 4,
+            capabilities: [capability],
+            pendingPlans: [],
+            recentCalls: [],
+        },
+    });
+    panel.run('latestRenderedState = state; bindActions({}); renderMcpHub(state)');
+
+    assert.equal(panel.nodes.get('#mcpDetailTitle').textContent, 'asset.catalog.refresh');
+    assert.match(panel.nodes.get('#mcpDetailSignature').textContent, /asset\.catalog\.refresh\(approvalId: string, confirmDestructive: boolean\)/u);
+    assert.match(panel.nodes.get('#mcpSchemaFields').innerHTML, /approvalId \*/u);
+    assert.equal(panel.nodes.get('#mcpParametersView').hidden, false);
+    assert.equal(panel.nodes.get('#mcpSchemaView').hidden, true);
+
+    panel.nodes.get('#mcpSchemaTab').listeners.click();
+    assert.equal(panel.nodes.get('#mcpSchemaTab').getAttribute('aria-selected'), 'true');
+    assert.equal(panel.nodes.get('#mcpParametersView').hidden, true);
+    assert.equal(panel.nodes.get('#mcpSchemaView').hidden, false);
+    assert.match(panel.nodes.get('#mcpSchemaJson').textContent, /approvalId/u);
+
+    panel.nodes.get('#mcpActivityTab').listeners.click();
+    assert.equal(panel.nodes.get('#mcpActivityView').hidden, false);
+    assert.match(panel.nodes.get('#mcpPlanList').innerHTML, /没有等待审批/u);
+});
+
 test('settings stays inside the current workbench and cancel returns to its previous tab', async () => {
     const panel = createPanelHarness();
     panel.context.state = stateFixture();

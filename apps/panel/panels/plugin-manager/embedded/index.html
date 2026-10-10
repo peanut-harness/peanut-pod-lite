@@ -128,9 +128,31 @@
 
                 <section class="tab-view mcp-view" data-workbench-view="mcp" role="tabpanel" hidden>
                     <div class="mcp-workbench">
-                        <aside class="mcp-catalog-pane"><header><p class="eyebrow">MCP 目录</p><h2>共享能力</h2></header><input id="mcpSearchInput" class="package-input" type="search" placeholder="搜索能力" /><div id="mcpCategoryFilters" class="mcp-category-filters"></div><div id="mcpCapabilityList" class="mcp-list"></div></aside>
-                        <main class="mcp-detail-pane"><header class="mcp-detail-head"><div class="mcp-detail-heading"><p class="eyebrow">MCP Hub</p><h1 id="mcpDetailTitle">选择一项能力</h1></div><p id="mcpDetailDescription" class="section-copy">从左侧选择一项 MCP capability 查看详情。</p><p id="mcpStatusMessage" hidden></p></header><dl id="mcpSummary" class="about-grid" hidden></dl><section class="mcp-detail-section"><h2>输入参数</h2><div id="mcpSchemaFields" class="mcp-schema-fields"></div></section></main>
-                        <aside class="mcp-schema-pane"><header><p class="eyebrow">完整定义</p><h2>JSON Schema</h2></header><pre id="mcpSchemaJson" class="mcp-schema-json">{}</pre><section class="mcp-approval-section"><h2>写操作审批</h2><p class="section-copy">每个写操作请求都会在这里等待你的明确批准。</p><div id="mcpPlanList" class="mcp-list"></div></section><section class="mcp-approval-section"><h2>最近调用</h2><p class="section-copy">仅记录能力、阶段和耗时；不展示输入、输出或连接信息。</p><div id="mcpRecentCallList" class="mcp-list"></div></section></aside>
+                        <aside class="mcp-catalog-pane"><header><p class="eyebrow">第一段 · 选择能力</p><h2>共享能力目录</h2></header><input id="mcpSearchInput" class="package-input" type="search" placeholder="搜索能力" /><div id="mcpCategoryFilters" class="mcp-category-filters"></div><div id="mcpCapabilityList" class="mcp-list"></div></aside>
+                        <main class="mcp-detail-pane">
+                            <header class="mcp-detail-fixed"><p class="eyebrow">第二段 · 阅读能力定义</p><h1 id="mcpDetailTitle">选择一项能力</h1></header>
+                            <div class="mcp-detail-scroll" id="mcpDetailScrollArea">
+                                <code id="mcpDetailSignature" class="mcp-signature"></code>
+                                <p id="mcpDetailDescription" class="section-copy">从左侧选择一项 MCP capability 查看详情。</p>
+                                <p id="mcpStatusMessage" hidden></p>
+                                <dl id="mcpSummary" class="about-grid" hidden></dl>
+                                <div class="mcp-detail-tabs" role="tablist" aria-label="能力详情">
+                                    <button id="mcpParametersTab" class="mcp-detail-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="mcpParametersView" data-mcp-detail-tab="parameters">输入参数</button>
+                                    <button id="mcpSchemaTab" class="mcp-detail-tab" type="button" role="tab" aria-selected="false" aria-controls="mcpSchemaView" data-mcp-detail-tab="schema" tabindex="-1">JSON Schema</button>
+                                    <button id="mcpActivityTab" class="mcp-detail-tab" type="button" role="tab" aria-selected="false" aria-controls="mcpActivityView" data-mcp-detail-tab="activity" tabindex="-1">审批与最近调用</button>
+                                </div>
+                                <section id="mcpParametersView" class="mcp-detail-section" role="tabpanel" aria-labelledby="mcpParametersTab" data-mcp-detail-view="parameters">
+                                    <h2>输入参数</h2><div id="mcpSchemaFields" class="mcp-schema-fields"></div>
+                                </section>
+                                <section id="mcpSchemaView" class="mcp-detail-section" role="tabpanel" aria-labelledby="mcpSchemaTab" data-mcp-detail-view="schema" hidden>
+                                    <h2>完整定义 · JSON Schema</h2><pre id="mcpSchemaJson" class="mcp-schema-json">{}</pre>
+                                </section>
+                                <section id="mcpActivityView" class="mcp-detail-section" role="tabpanel" aria-labelledby="mcpActivityTab" data-mcp-detail-view="activity" hidden>
+                                    <section class="mcp-approval-section"><h2>写操作审批</h2><p class="section-copy">每个写操作请求都会在这里等待你的明确批准。</p><div id="mcpPlanList" class="mcp-list"></div></section>
+                                    <section class="mcp-approval-section"><h2>最近调用</h2><p class="section-copy">仅记录能力、阶段和耗时；不展示输入、输出或连接信息。</p><div id="mcpRecentCallList" class="mcp-list"></div></section>
+                                </section>
+                            </div>
+                        </main>
                     </div>
                 </section>
 
