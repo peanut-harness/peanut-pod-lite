@@ -338,7 +338,7 @@ h3 {
 
 .mcp-workbench { display: grid; grid-template-columns: minmax(240px, 0.32fr) minmax(0, 1fr); flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
 
-.mcp-catalog-pane { min-width: 0; min-height: 0; padding: 14px 12px; overflow: auto; background: #25282c; border-right: 1px solid var(--line); }
+.mcp-catalog-pane { display: flex; min-width: 0; min-height: 0; flex-direction: column; padding: 14px 12px; overflow: hidden; background: #25282c; border-right: 1px solid var(--line); }
 
 .mcp-detail-pane { display: flex; min-width: 0; min-height: 0; flex-direction: column; overflow: hidden; }
 
@@ -396,6 +396,12 @@ h3 {
     gap: 10px;
     margin-top: 10px;
 }
+
+.mcp-catalog-pane > header,
+.mcp-catalog-pane > .package-input,
+.mcp-catalog-pane > .mcp-category-filters { flex: 0 0 auto; }
+
+.mcp-catalog-pane > .mcp-list { flex: 1 1 auto; min-height: 0; margin-top: 0; padding: 2px 4px 4px 0; overflow-y: auto; scrollbar-color: #626871 transparent; scrollbar-width: thin; }
 
 .mcp-capability-card,
 .mcp-plan-card,

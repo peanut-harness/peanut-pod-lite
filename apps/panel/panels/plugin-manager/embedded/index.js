@@ -1065,6 +1065,9 @@ function bindActions(panelDriver) {
         }
         uiState.selectedMcpCapabilityName = capabilityName;
         renderMcpHub(latestRenderedState);
+        requestAnimationFrame(() => {
+            elements.mcpCapabilityList.querySelector('.mcp-capability-card.is-selected')?.scrollIntoView({ block: 'nearest' });
+        });
     });
     elements.mcpPlanList?.addEventListener('click', (event) => {
         if (!(event.target instanceof Element)) {
