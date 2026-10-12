@@ -52,6 +52,7 @@ test('fixed hosts keep independent bindings and forward the real host name to na
         for (const id of ['acme.a', 'acme.b']) writeFileSync(join(root, `${id}.manifest.json`), JSON.stringify({ panelBridge: './native.cjs' }));
         let active = true;
         const calls: string[] = [];
+        const opened = new Set<string>();
         const manager = {
             resolveEmbeddedPluginPanel(id: string) {
                 if (!active) throw new Error('plugin_panel_plugin_not_active');
@@ -60,7 +61,7 @@ test('fixed hosts keep independent bindings and forward the real host name to na
             getInstalledPackageSnapshot: () => ({ activeVersion: '1.0.0', versions: [{ version: '1.0.0', installPath: root }] }),
             createPanelBridgeClient: () => ({ request: async () => ({ ok: true }) }),
         } as unknown as PluginManagerApp;
-        const workbench = new PluginWorkbench(() => manager, () => ({ Project: { path: root }, Panel: { open: async (name) => { calls.push(name); }, close: async (name) => { calls.push(`close:${name}`); } }, Message: { send: (_extension, message) => { calls.push(message); } } }), 'peanut-pod-lite-host');
+        const workbench = new PluginWorkbench(() => manager, () => ({ Project: { path: root }, Panel: { open: async (name) => { calls.push(name); opened.add(name); }, close: async (name) => { calls.push(`close:${name}`); opened.delete(name); }, has: async (name) => opened.has(name), focus: (name) => { calls.push(`focus:${name}`); } }, Message: { send: (_extension, message) => { calls.push(message); } } }), 'peanut-pod-lite-host');
         await workbench.open('acme.a');
         await workbench.openHost({ pluginId: 'acme.a', hostSlotId: 'plugin-host-1' });
         await workbench.openHost({ pluginId: 'acme.b', hostSlotId: 'plugin-host-2' });
@@ -76,6 +77,11 @@ test('fixed hosts keep independent bindings and forward the real host name to na
         await workbench.close('plugin-host-1');
         assert.throws(() => workbench.query('plugin-host-1'), /not_bound/u);
         assert.equal(workbench.query('plugin-host-2').pluginId, 'acme.b');
+        const refreshCount = calls.filter((call) => call === 'refresh-plugin-host-2').length;
+        const keptContext = workbench.query('plugin-host-2');
+        assert.equal(await workbench.openHost({ pluginId: 'acme.b', hostSlotId: 'plugin-host-2' }), keptContext);
+        assert.equal(calls.filter((call) => call === 'refresh-plugin-host-2').length, refreshCount);
+        assert.deepEqual(await workbench.request('acme.b', 'acme.b.panel', { id: 'after-close', event: 'read' }, false, 'plugin-host-2'), { ok: true });
         assert.equal(workbench.query().pluginId, 'acme.a');
         assert.ok(calls.includes('close:peanut-pod-lite-host.plugin-host-1'));
         assert.ok(calls.includes('refresh-plugin-host-2'));

@@ -19,7 +19,7 @@ interface IWorkbenchContext {
  */
 interface IWorkbenchEditor {
     Project: { path: string };
-    Panel: { open(name: string): Promise<unknown>; close?(name: string): Promise<unknown> };
+    Panel: { open(name: string): Promise<unknown>; close?(name: string): Promise<unknown>; has?(name: string): Promise<boolean>; focus?(name: string): unknown };
     Message: { send(extension: string, message: string): void };
 }
 
@@ -57,6 +57,13 @@ export class PluginWorkbench {
         this._assertSlot(slot);
         const manager = this.getManager();
         const panel = manager.resolveEmbeddedPluginPanel(pluginId);
+        const panelName = `${this.extensionName}.${slot}`;
+        const editor = this.getEditor();
+        const existing = this._contexts.get(slot);
+        if (existing?.pluginId === pluginId && existing.panelId === panel.id && existing.entry === realpathSync(panel.entry) && await editor.Panel.has?.(panelName)) {
+            await editor.Panel.focus?.(panelName);
+            return existing;
+        }
         const snapshot = manager.getInstalledPackageSnapshot(pluginId);
         const installed = snapshot?.versions.find((version) => version.version === snapshot.activeVersion);
         if (installed == null) throw new Error('plugin_workbench_installation_missing');
@@ -71,7 +78,8 @@ export class PluginWorkbench {
         }
         const context = { pluginId, panelId: panel.id, title: panel.title, entry, panelBridge };
         this._contexts.set(slot, context);
-        await this.getEditor().Panel.open(`${this.extensionName}.${slot}`);
+        await editor.Panel.open(panelName);
+        await editor.Panel.focus?.(panelName);
         this.getEditor().Message.send(this.extensionName, `refresh-${slot}`);
         return context;
     }
