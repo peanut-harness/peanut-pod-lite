@@ -28,6 +28,9 @@ interface IWorkbenchEditor {
  */
 export class PluginWorkbench {
     private _context: IWorkbenchContext | null = null;
+    private readonly getManager: () => PluginManagerApp;
+    private readonly getEditor: () => IWorkbenchEditor;
+    private readonly extensionName: string;
 
     /**
      * @description 接收当前内核与 Creator API，避免保存已卸载的内核实例。
@@ -36,10 +39,14 @@ export class PluginWorkbench {
      * @param extensionName 声明静态面板及消息的宿主名称
      */
     public constructor(
-        private readonly getManager: () => PluginManagerApp,
-        private readonly getEditor: () => IWorkbenchEditor,
-        private readonly extensionName: string,
-    ) {}
+        getManager: () => PluginManagerApp,
+        getEditor: () => IWorkbenchEditor,
+        extensionName: string,
+    ) {
+        this.getManager = getManager;
+        this.getEditor = getEditor;
+        this.extensionName = extensionName;
+    }
 
     /**
      * @description 校验活动插件入口后打开通用面板；重复打开会切换到当前选择的插件。
