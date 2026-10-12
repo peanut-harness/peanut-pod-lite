@@ -65,3 +65,11 @@ Lite Host SHALL 提供 Host A/B/C，并让 Host Controller 调用当前宿主的
 #### Scenario: 拒绝无效槽位与旧调用方
 - **WHEN** 加载请求使用未知槽位、停用插件，或切换后的旧面板请求身份不匹配
 - **THEN** 宿主明确拒绝请求，不改变其他槽位
+
+### Requirement: 业务插件保持控制器绑定边界
+
+UI Prefab SHALL 保留 MCP 优先与离线控制器绑定，并 SHALL NOT 将 Lumen 通用内核实现或 schema 复制进业务发行包。
+
+#### Scenario: 离线生成并绑定控制器
+- **WHEN** MCP 不可用且工程中有合法的 Prefab 与脚本元数据
+- **THEN** 插件挂载根脚本组件，写入正确的节点/组件引用和按钮事件，并返回原绑定摘要，发行包不含 Lumen 内核实现
