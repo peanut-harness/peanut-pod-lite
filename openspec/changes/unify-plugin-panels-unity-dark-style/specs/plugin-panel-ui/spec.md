@@ -53,3 +53,15 @@ Creator Lite Host SHALL 从自己的发行包装配已签名的可选 Canvas 能
 #### Scenario: 原生能力缺失或损坏
 - **WHEN** 当前宿主没有 Canvas 载荷，或载荷签名、文件摘要校验失败
 - **THEN** 依赖 Canvas 的插件明确失败，Lite 与不依赖 Canvas 的插件继续可用
+
+### Requirement: Lite 固定插件槽位独立运行
+
+Lite Host SHALL 提供 Host A/B/C，并让 Host Controller 调用当前宿主的加载和关闭消息；每个槽位 SHALL 独立绑定活动插件并验证面板身份和安装路径。
+
+#### Scenario: 单槽位加载与关闭
+- **WHEN** A 和 B 分别装载活动插件，用户随后关闭 A
+- **THEN** 仅 A 的绑定与面板关闭，B 的页面和请求继续可用
+
+#### Scenario: 拒绝无效槽位与旧调用方
+- **WHEN** 加载请求使用未知槽位、停用插件，或切换后的旧面板请求身份不匹配
+- **THEN** 宿主明确拒绝请求，不改变其他槽位

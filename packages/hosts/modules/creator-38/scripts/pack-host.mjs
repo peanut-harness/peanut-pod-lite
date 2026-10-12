@@ -80,6 +80,11 @@ await build({
     outfile: resolve(outputDirectory, 'panel/plugin-workbench/index.cjs'),
 });
 await rm(resolve(outputDirectory, 'panel/plugin-workbench/index.cts'));
+for (const slot of ['plugin-host-1', 'plugin-host-2', 'plugin-host-3']) {
+    await mkdir(resolve(outputDirectory, 'panel', slot), { recursive: true });
+    await writeFile(resolve(outputDirectory, 'panel', slot, 'index.cjs'), `module.exports = require('../plugin-workbench/index.cjs').createPanel('${slot}');\n`);
+}
+
 // Static Plugin Manager UI assets shared by the Creator host package.
 await cp(resolve(repositoryRoot, 'apps/panel/panels'), resolve(outputDirectory, 'panels'), { recursive: true });
 await writeFile(

@@ -24,3 +24,7 @@ Peanut Pod 的插件面板目前使用不同的颜色、间距和布局策略；
 - Lite：Plugin Host Controller 面板源码及面板静态资源构建。
 - Lite OpenSpec：新增插件面板 UI 能力规范。
 - Lite Host：原生能力注册表装配、可选载荷打包与安装验收。
+
+## 已批准的实机宿主补齐
+
+Host Controller 仍调用旧 Pro 消息，Lite 缺少固定槽位。用户于 2026-10-12 批准本轮新增 Lite Host A/B/C 适配：动态选择宿主消息接收者，固定槽位分别绑定活动插件，加载或关闭一个槽位不影响其他槽位。

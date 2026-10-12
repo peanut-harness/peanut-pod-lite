@@ -59,6 +59,39 @@
                 "min-width": 400,
                 "min-height": 300
             }
+        },
+        "plugin-host-1": {
+            "title": "Peanut Host A",
+            "type": "dockable",
+            "main": "panel/plugin-host-1/index.cjs",
+            "size": {
+                "width": 960,
+                "height": 640,
+                "min-width": 400,
+                "min-height": 300
+            }
+        },
+        "plugin-host-2": {
+            "title": "Peanut Host B",
+            "type": "dockable",
+            "main": "panel/plugin-host-2/index.cjs",
+            "size": {
+                "width": 960,
+                "height": 640,
+                "min-width": 400,
+                "min-height": 300
+            }
+        },
+        "plugin-host-3": {
+            "title": "Peanut Host C",
+            "type": "dockable",
+            "main": "panel/plugin-host-3/index.cjs",
+            "size": {
+                "width": 960,
+                "height": 640,
+                "min-width": 400,
+                "min-height": 300
+            }
         }
     },
     "contributions": {
@@ -226,6 +259,31 @@
             "refresh-plugin-workbench": {
                 "methods": [
                     "plugin-workbench.refresh"
+                ]
+            },
+            "refresh-plugin-host-1": {
+                "methods": [
+                    "plugin-host-1.refresh"
+                ]
+            },
+            "refresh-plugin-host-2": {
+                "methods": [
+                    "plugin-host-2.refresh"
+                ]
+            },
+            "refresh-plugin-host-3": {
+                "methods": [
+                    "plugin-host-3.refresh"
+                ]
+            },
+            "load-plugin-into-host": {
+                "methods": [
+                    "loadPluginIntoHost"
+                ]
+            },
+            "close-plugin-host": {
+                "methods": [
+                    "closePluginHost"
                 ]
             }
         }

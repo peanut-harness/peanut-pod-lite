@@ -19,7 +19,7 @@ interface IWorkbenchContext {
  */
 interface IWorkbenchEditor {
     Project: { path: string };
-    Panel: { open(name: string): Promise<unknown> };
+    Panel: { open(name: string): Promise<unknown>; close?(name: string): Promise<unknown> };
     Message: { send(extension: string, message: string): void };
 }
 
@@ -27,7 +27,7 @@ interface IWorkbenchEditor {
  * @description 为已安装且活动的插件提供一个实际 Creator 面板及身份绑定的 bridge。
  */
 export class PluginWorkbench {
-    private _context: IWorkbenchContext | null = null;
+    private readonly _contexts = new Map<string, IWorkbenchContext>();
     private readonly getManager: () => PluginManagerApp;
     private readonly getEditor: () => IWorkbenchEditor;
     private readonly extensionName: string;
@@ -53,7 +53,8 @@ export class PluginWorkbench {
      * @param pluginId 管理器中真实存在的插件标识
      * @returns 已绑定的面板定义
      */
-    public async open(pluginId: string): Promise<IWorkbenchContext> {
+    public async open(pluginId: string, slot = 'plugin-workbench'): Promise<IWorkbenchContext> {
+        this._assertSlot(slot);
         const manager = this.getManager();
         const panel = manager.resolveEmbeddedPluginPanel(pluginId);
         const snapshot = manager.getInstalledPackageSnapshot(pluginId);
@@ -68,18 +69,32 @@ export class PluginWorkbench {
             panelBridge = realpathSync(resolve(root, manifest.panelBridge));
             this._assertWithinRoot(root, panelBridge);
         }
-        this._context = { pluginId, panelId: panel.id, title: panel.title, entry, panelBridge };
-        await this.getEditor().Panel.open(`${this.extensionName}.plugin-workbench`);
-        this.getEditor().Message.send(this.extensionName, 'refresh-plugin-workbench');
-        return this._context;
+        const context = { pluginId, panelId: panel.id, title: panel.title, entry, panelBridge };
+        this._contexts.set(slot, context);
+        await this.getEditor().Panel.open(`${this.extensionName}.${slot}`);
+        this.getEditor().Message.send(this.extensionName, `refresh-${slot}`);
+        return context;
+    }
+
+    /**
+
+     * @description Host Controller 只能选择三个固定槽位，缺失参数不得回退到默认工作台。
+
+     */
+    public async openHost(payload: { pluginId?: string; hostSlotId?: string } | null): Promise<IWorkbenchContext> {
+        const slot = payload?.hostSlotId;
+        if (typeof slot !== 'string' || !['plugin-host-1', 'plugin-host-2', 'plugin-host-3'].includes(slot)) throw new Error('plugin_workbench_slot_invalid');
+        if (typeof payload?.pluginId !== 'string' || payload.pluginId.trim().length === 0) throw new Error('plugin_workbench_plugin_id_invalid');
+        return this.open(payload.pluginId, slot);
     }
 
     /**
      * @description 回读当前选择，同时拒绝已停用或面板定义已变化的插件。
      * @returns 当前仍有效的面板绑定
      */
-    public query(): IWorkbenchContext {
-        const context = this._context;
+    public query(slot = 'plugin-workbench'): IWorkbenchContext {
+        this._assertSlot(slot);
+        const context = this._contexts.get(slot);
         if (context == null) throw new Error('plugin_workbench_not_bound');
         const current = this.getManager().resolveEmbeddedPluginPanel(context.pluginId);
         if (current.id !== context.panelId || realpathSync(current.entry) !== context.entry) throw new Error('plugin_workbench_binding_changed');
@@ -94,15 +109,35 @@ export class PluginWorkbench {
      * @param native 是否使用 manifest 声明的原生 bridge
      * @returns 原处理器的响应
      */
-    public async request(pluginId: string, panelId: string, request: { id: string; event: string; payload?: Record<string, unknown> }, native = false): Promise<unknown> {
-        const context = this.query();
+    public async request(pluginId: string, panelId: string, request: { id: string; event: string; payload?: Record<string, unknown> }, native = false, slot = 'plugin-workbench'): Promise<unknown> {
+        const context = this.query(slot);
         if (pluginId !== context.pluginId || panelId !== context.panelId) throw new Error('plugin_workbench_caller_mismatch');
         if (!native) return this.getManager().createPanelBridgeClient(pluginId, panelId).request({ ...request, expectsResponse: true });
         if (context.panelBridge == null) throw new Error('plugin_native_panel_bridge_unavailable');
         const bridgeRequire = createRequire(context.panelBridge);
         const bridge = bridgeRequire(context.panelBridge) as { handleRequest(input: object): Promise<unknown> };
         if (typeof bridge.handleRequest !== 'function') throw new Error('plugin_native_panel_bridge_invalid');
-        return bridge.handleRequest({ request, projectDirectory: this.getEditor().Project.path, editorApi: this.getEditor(), requestSbfBase64: async () => { throw new Error('plugin_panel_export_source_required'); } });
+        return bridge.handleRequest({ request, hostExtensionName: this.extensionName, projectDirectory: this.getEditor().Project.path, editorApi: this.getEditor(), requestSbfBase64: async () => { throw new Error('plugin_panel_export_source_required'); } });
+    }
+
+    /**
+
+     * @description 关闭指定槽位并清理其绑定，保留其他槽位。
+
+     */
+    public async close(slot: string): Promise<void> {
+        this._assertSlot(slot);
+        await this.getEditor().Panel.close?.(`${this.extensionName}.${slot}`);
+        this._contexts.delete(slot);
+    }
+
+    /**
+
+     * @description 只允许宿主声明的默认工作台和三个固定槽位。
+
+     */
+    private _assertSlot(slot: string): void {
+        if (!['plugin-workbench', 'plugin-host-1', 'plugin-host-2', 'plugin-host-3'].includes(slot)) throw new Error('plugin_workbench_slot_invalid');
     }
 
     /**

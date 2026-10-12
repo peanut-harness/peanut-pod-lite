@@ -961,11 +961,17 @@ const methods = {
     async openGeneratedPluginPanel(pluginId) {
         return pluginWorkbench.open(pluginId);
     },
-    queryPluginWorkbench() {
-        return pluginWorkbench.query();
+    queryPluginWorkbench(slot) {
+        return pluginWorkbench.query(slot);
     },
-    requestPluginWorkbench(pluginId, panelId, request, native) {
-        return pluginWorkbench.request(pluginId, panelId, request, native);
+    requestPluginWorkbench(pluginId, panelId, request, native, slot) {
+        return pluginWorkbench.request(pluginId, panelId, request, native, slot);
+    },
+    loadPluginIntoHost(payload) {
+        return pluginWorkbench.openHost(payload);
+    },
+    closePluginHost(payload) {
+        return pluginWorkbench.close(payload?.hostSlotId);
     },
     queryStatus() {
         return hostStatus;
