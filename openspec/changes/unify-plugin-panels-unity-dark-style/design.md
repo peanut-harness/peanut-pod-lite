@@ -21,6 +21,11 @@
 - 使用 `width/height: 100%`、`min-width/min-height: 0`、`minmax(0, 1fr)` 和适当的容器断点处理停靠视口。面板不得设置会裁切宿主的最小宽高或居中最大页面宽度。
 - 仅让长列表、设置栏、规则编辑区、预览结果等内部区域滚动；标题、主要操作区和面板框架保持在视口中。窄视口应把并排内容改为纵向或提供可用的分区切换入口。
 - 只修改 Pro 面板源码并调用现有打包脚本生成发行内容；Lite 面板沿用现有静态资源构建路径。
+- 用户于 2026-10-12 批准补齐 Canvas 宿主集成。Creator Host 从自身发行包装配 NativeCapabilityRegistry，保持签名和逐文件摘要验证。打包配置显式指定能力来源，Lite 不依赖 Pro 仓库路径；载荷计入 Host 的发行摘要。未配置时 Lite 正常启动，依赖 Canvas 的插件仍明确拒绝安装。
+
+## 实机续验收
+
+已有 UI 构建任务完成后，测试工程仅保留 Lite Core。通过正式开发安装 API 安装 SDF Font 成功；UI Prefab 与 SnowB 因 native_capability_unavailable:canvas 拒绝。本轮 self-delivery，checkpoint owner 与 integration owner 均为当前任务，沿用用户已授权的 Pro/Lite 主检出。原安装失败证据保留，新增宿主能力与真实安装验收单独记录。
 
 ## Risks / Trade-offs
 

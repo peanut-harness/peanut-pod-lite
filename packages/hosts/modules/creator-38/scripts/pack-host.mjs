@@ -2,6 +2,7 @@ import { cp, copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
+import { NativeCapabilityRegistry } from '@peanut/pod-engine/kernel';
 
 import {
     assertCreator383BundleCompatibility,
@@ -77,6 +78,19 @@ await writeFile(
     '# Peanut Pod Lite Host\n\nInstall this extension before the Lite directory package.\n\n- Extension > Cocos Plugin Manager\n- Extension > Peanut Account\n',
     'utf8',
 );
+// 显式配置可选载荷；未配置时继续发布不含原生能力的 Lite Host。
+const nativeCapabilitySource = process.env.PEANUT_HOST_NATIVE_CAPABILITY_ROOT;
+if (nativeCapabilitySource != null) {
+    if (nativeCapabilitySource.trim().length === 0) throw new Error('host_native_capability_root_invalid');
+    const sourceRoot = resolve(nativeCapabilitySource);
+    const publicKey = await readFile(resolve(sourceRoot, 'public-key.pem'), 'utf8');
+    new NativeCapabilityRegistry(sourceRoot, publicKey).requireCanvas('^1.0.0');
+    const capabilityRoot = resolve(outputDirectory, 'native-capabilities');
+    const target = `${process.platform}-${process.arch}`;
+    await mkdir(resolve(capabilityRoot, 'canvas', '1.x'), { recursive: true });
+    await cp(resolve(sourceRoot, 'canvas', '1.x', target), resolve(capabilityRoot, 'canvas', '1.x', target), { recursive: true });
+    await copyFile(resolve(sourceRoot, 'public-key.pem'), resolve(capabilityRoot, 'public-key.pem'));
+}
 const releaseArtifacts = await buildLiteReleaseArtifacts(repositoryRoot);
 process.stdout.write(`${JSON.stringify({
     ok: true,

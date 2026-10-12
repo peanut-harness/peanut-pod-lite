@@ -9,6 +9,7 @@ Peanut Pod 的插件面板目前使用不同的颜色、间距和布局策略；
 - 为所有已有独立插件面板统一深灰中性色、文字层级、控件、边框、间距和焦点状态。
 - 让面板使用宿主提供的完整宽高；按可用尺寸调整导航、栏位和表单排列，并把滚动限制在合适的内容区域。
 - 保持现有插件操作、数据和宿主通信行为不变。
+- 在 Creator Lite Host 中接入已签名的可选 Canvas 原生能力，解除 UI Prefab 与 SnowB 的真实安装阻塞；能力载荷通过显式打包配置提供，缺失时仅拒绝依赖该能力的插件。
 
 ## Capabilities
 
@@ -22,3 +23,4 @@ Peanut Pod 的插件面板目前使用不同的颜色、间距和布局策略；
 - Pro：UI Prefab、SDF Font、SnowB BMFont 的面板源码与其构建/打包入口。
 - Lite：Plugin Host Controller 面板源码及面板静态资源构建。
 - Lite OpenSpec：新增插件面板 UI 能力规范。
+- Lite Host：原生能力注册表装配、可选载荷打包与安装验收。

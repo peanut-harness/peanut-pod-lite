@@ -41,3 +41,15 @@
 #### Scenario: 使用重排后的插件控件
 - **WHEN** 用户在任一调整后的插件面板执行原有操作
 - **THEN** 操作仍触发原有处理流程并显示其状态或结果
+
+### Requirement: 宿主装配受验证的可选原生能力
+
+Creator Lite Host SHALL 从自己的发行包装配已签名的可选 Canvas 能力；签名与文件摘要校验不得跳过。能力来源 SHALL 通过显式打包配置指定，载荷 SHALL 计入 Host 发行摘要；未配置时 Lite SHALL 保持可用。
+
+#### Scenario: 安装需要 Canvas 的插件
+- **WHEN** 当前宿主包含适配平台且通过签名和摘要校验的 Canvas 能力
+- **THEN** UI Prefab 与 SnowB 的安装不因缺少原生能力被拒绝，并按原插件约束检查其余依赖
+
+#### Scenario: 原生能力缺失或损坏
+- **WHEN** 当前宿主没有 Canvas 载荷，或载荷签名、文件摘要校验失败
+- **THEN** 依赖 Canvas 的插件明确失败，Lite 与不依赖 Canvas 的插件继续可用

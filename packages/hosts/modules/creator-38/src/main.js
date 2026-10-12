@@ -10,6 +10,7 @@ const { CreatorContextResolver } = require('@peanut/pod-hosts');
 
 const { LiteAccountController, createSignedOutAccount } = require('./account-controller');
 const { CpmPackageStore } = require('./cpm-package-store');
+const { HostNativeCapabilities } = require('./native-capabilities.mts');
 const { createLiteGrantedRuntime, createLiteReadRuntime } = require('./lite-granted-runtime');
 const {
     getPluginManagerKernel,
@@ -627,6 +628,7 @@ async function load() {
         creatorContext = resolveTrustedCreatorContext();
         // Load the Plugin Manager shell before activating the Lite runtime.
         await loadPluginManagerShell(creatorContext, {
+            nativeCapabilityRegistry: HostNativeCapabilities.createRegistry(resolve(__dirname, '..')),
             readTrustedCatalog: readAcceptanceTrustedCatalog,
             installTrustedCatalogPackage,
         });

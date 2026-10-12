@@ -11,13 +11,15 @@ const source = readFileSync(resolve(import.meta.dirname, '../src/plugin-manager-
 test('Creator panel shell requires a fresh server entitlement before Pro package mutation', async () => {
     const calls = [];
     let entitled = false;
+    let activatorOptions;
+    const nativeCapabilityRegistry = { requireCanvas: () => ({}) };
     const manager = {
         inspectPackage: async (packagePath) => ({ manifest: { id: packagePath.endsWith('/pro') ? 'peanut.cocos-mcp-pro' : 'acme.free' } }),
         getInstalledPackageSnapshot: () => null,
         createPanelBridgeClient: () => ({ request: async (request) => { calls.push(`package:${request.event}`); return { ok: true, payload: {} }; } }),
     };
     class PluginPanelActivator {
-        constructor() { this.methods = {}; }
+        constructor(options) { activatorOptions = options; this.methods = {}; }
         async load() {}
         getEditorEntry() { return { getPluginManager: () => manager }; }
         async unload() {}
@@ -33,10 +35,11 @@ test('Creator panel shell requires a fresh server entitlement before Pro package
     } });
     vm.runInContext(source, context, { filename: 'plugin-manager-shell.js' });
     const shell = module.exports;
-    await shell.loadPluginManagerShell({}, { installTrustedCatalogPackage: async (product) => {
+    await shell.loadPluginManagerShell({}, { nativeCapabilityRegistry, installTrustedCatalogPackage: async (product) => {
         calls.push(`trusted:${product.productId}@${product.version}`);
         return { pluginId: product.productId, version: product.version };
     } });
+    assert.equal(activatorOptions.nativeCapabilityRegistry, nativeCapabilityRegistry);
     const methods = shell.getPluginManagerMethods();
 
     await assert.rejects(methods.requestPanelBridge({ id: 'pro-install-denied', event: 'pluginManager.package.install', expectsResponse: true, payload: { packagePath: '/packages/pro' } }), /peanut_pro_entitlement_required/u);
