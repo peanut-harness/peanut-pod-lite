@@ -71,6 +71,15 @@ await build({
 await copyFile(resolve(extensionRoot, 'src/cpm-package-store.js'), resolve(outputDirectory, 'dist/cpm-package-store.js'));
 await cp(resolve(extensionRoot, 'package.json'), resolve(outputDirectory, 'package.json'));
 await cp(resolve(extensionRoot, 'panel'), resolve(outputDirectory, 'panel'), { recursive: true });
+await build({
+    entryPoints: [resolve(extensionRoot, 'panel/plugin-workbench/index.cts')],
+    bundle: true,
+    format: 'cjs',
+    platform: 'node',
+    target: 'node14',
+    outfile: resolve(outputDirectory, 'panel/plugin-workbench/index.cjs'),
+});
+await rm(resolve(outputDirectory, 'panel/plugin-workbench/index.cts'));
 // Static Plugin Manager UI assets shared by the Creator host package.
 await cp(resolve(repositoryRoot, 'apps/panel/panels'), resolve(outputDirectory, 'panels'), { recursive: true });
 await writeFile(

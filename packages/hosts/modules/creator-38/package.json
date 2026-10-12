@@ -10,7 +10,7 @@
         "build": "tsx scripts/pack-host.mjs",
         "typecheck": "node ../../../../tools/check-javascript-syntax.mjs src panel scripts",
         "pack": "tsx scripts/pack-host.mjs",
-        "test": "npm run pack && node --test tests/release-package.test.mjs tests/native-capabilities.test.mts tests/package-integrity.test.mts tests/cpm-install-alignment.test.mts tests/host-update-coordinator.test.mts tests/optional-pro-host.test.mjs tests/account-upgrade.test.mjs tests/account-pro-entitlement.test.mts tests/pro-package-gate.test.mts tests/managed-task-bridge.test.mts tests/managed-task-live-script.test.mts tests/throughput-soak-live-script.test.mts tests/text-read-bridge.test.mts"
+        "test": "npm run pack && node --test tests/release-package.test.mjs tests/native-capabilities.test.mts tests/plugin-workbench.test.mts tests/package-integrity.test.mts tests/cpm-install-alignment.test.mts tests/host-update-coordinator.test.mts tests/optional-pro-host.test.mjs tests/account-upgrade.test.mjs tests/account-pro-entitlement.test.mts tests/pro-package-gate.test.mts tests/managed-task-bridge.test.mts tests/managed-task-live-script.test.mts tests/throughput-soak-live-script.test.mts tests/text-read-bridge.test.mts"
     },
     "devDependencies": {
         "esbuild": "^0.25.9"
@@ -47,6 +47,17 @@
                 "height": 640,
                 "min-width": 360,
                 "min-height": 480
+            }
+        },
+        "plugin-workbench": {
+            "title": "Peanut Plugin",
+            "type": "dockable",
+            "main": "panel/plugin-workbench/index.cjs",
+            "size": {
+                "width": 960,
+                "height": 640,
+                "min-width": 400,
+                "min-height": 300
             }
         }
     },
@@ -195,6 +206,26 @@
             "issue-approval-lease": {
                 "methods": [
                     "issueApprovalLease"
+                ]
+            },
+            "open-generated-plugin-panel": {
+                "methods": [
+                    "openGeneratedPluginPanel"
+                ]
+            },
+            "query-plugin-workbench": {
+                "methods": [
+                    "queryPluginWorkbench"
+                ]
+            },
+            "request-plugin-workbench": {
+                "methods": [
+                    "requestPluginWorkbench"
+                ]
+            },
+            "refresh-plugin-workbench": {
+                "methods": [
+                    "plugin-workbench.refresh"
                 ]
             }
         }

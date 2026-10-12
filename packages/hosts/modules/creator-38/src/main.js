@@ -11,6 +11,7 @@ const { CreatorContextResolver } = require('@peanut/pod-hosts');
 const { LiteAccountController, createSignedOutAccount } = require('./account-controller');
 const { CpmPackageStore } = require('./cpm-package-store');
 const { HostNativeCapabilities } = require('./native-capabilities.mts');
+const { PluginWorkbench } = require('./plugin-workbench.mts');
 const { createLiteGrantedRuntime, createLiteReadRuntime } = require('./lite-granted-runtime');
 const {
     getPluginManagerKernel,
@@ -953,8 +954,19 @@ function resolveSafeStorage() {
     }
 }
 
+const pluginWorkbench = new PluginWorkbench(getPluginManagerKernel, getEditor, 'peanut-pod-lite-host');
+
 const methods = {
     ...getPluginManagerMethods(),
+    async openGeneratedPluginPanel(pluginId) {
+        return pluginWorkbench.open(pluginId);
+    },
+    queryPluginWorkbench() {
+        return pluginWorkbench.query();
+    },
+    requestPluginWorkbench(pluginId, panelId, request, native) {
+        return pluginWorkbench.request(pluginId, panelId, request, native);
+    },
     queryStatus() {
         return hostStatus;
     },
