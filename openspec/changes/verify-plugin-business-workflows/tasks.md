@@ -24,4 +24,4 @@
 
 ## 6. 验证与交付
 
-- [ ] 6.1 `[peanut-pod-lite:packages/hosts/modules/creator-38,apps/panel/plugin-host-controller,openspec/changes/verify-plugin-business-workflows | depends:5.1 | serial | owner:plugin-business-owner | requirements:plugin-business-workflows#独立槽位编辑,plugin-business-workflows#规则与控制器可用,plugin-business-workflows#SDF 生成导入,plugin-business-workflows#SnowB 保存发布 | non-goals:不核验GitHub Actions或自动归档]` 完成受影响定向检查、build/pack与包边界检查、正式安装复测、完整verify、strict validate、diff及知识同步；验收：所有业务链路通过，提交推送后远端SHA与本地一致，回执明确未验证范围。
+- [x] 6.1 `[peanut-pod-lite:packages/hosts/modules/creator-38,apps/panel/plugin-host-controller,openspec/changes/verify-plugin-business-workflows | depends:5.1 | serial | owner:plugin-business-owner | requirements:plugin-business-workflows#独立槽位编辑,plugin-business-workflows#规则与控制器可用,plugin-business-workflows#SDF 生成导入,plugin-business-workflows#SnowB 保存发布 | non-goals:不核验GitHub Actions或自动归档]` 完成受影响定向检查、build/pack与包边界检查、正式安装复测、完整verify、strict validate、diff及知识同步；验收：所有业务链路通过，提交推送后远端SHA与本地一致，回执明确未验证范围。
