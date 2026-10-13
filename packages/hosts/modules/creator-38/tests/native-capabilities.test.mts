@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash, generateKeyPairSync, sign } from 'node:crypto';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -28,9 +28,11 @@ test('Host accepts signed Canvas and rejects changed payload, bad signature and 
         const surface = HostNativeCapabilities.createRegistry(root)!.requireCanvas('^1.0.0').createSurface(4, 5);
         assert.equal(surface.width, 4);
         assert.equal(surface.height, 5);
+        assert.equal(HostNativeCapabilities.verifiedCanvasRoot(root), realpathSync(directory));
 
         writeFileSync(join(directory, entry), `${entrySource}\n`);
         assert.throws(() => HostNativeCapabilities.createRegistry(root)!.requireCanvas('^1.0.0'), /native_capability_file_integrity_invalid:canvas/u);
+        assert.throws(() => HostNativeCapabilities.verifiedCanvasRoot(root), /native_capability_file_integrity_invalid:canvas/u);
         writeFileSync(join(directory, entry), entrySource);
         writeFileSync(join(directory, 'capability.manifest.json'), JSON.stringify({ ...manifest, signature: Buffer.alloc(64).toString('base64') }));
         assert.throws(() => HostNativeCapabilities.createRegistry(root)!.requireCanvas('^1.0.0'), /native_capability_signature_invalid:canvas/u);

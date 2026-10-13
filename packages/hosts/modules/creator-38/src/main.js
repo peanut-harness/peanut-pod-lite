@@ -12,6 +12,7 @@ const { LiteAccountController, createSignedOutAccount } = require('./account-con
 const { CpmPackageStore } = require('./cpm-package-store');
 const { HostNativeCapabilities } = require('./native-capabilities.mts');
 const { PluginWorkbench } = require('./plugin-workbench.mts');
+const { SnowbDialogs } = require('./snowb-dialogs.mts');
 const { createLiteGrantedRuntime, createLiteReadRuntime } = require('./lite-granted-runtime');
 const {
     getPluginManagerKernel,
@@ -954,7 +955,9 @@ function resolveSafeStorage() {
     }
 }
 
-const pluginWorkbench = new PluginWorkbench(getPluginManagerKernel, getEditor, 'peanut-pod-lite-host');
+const pluginWorkbench = new PluginWorkbench(getPluginManagerKernel, getEditor, 'peanut-pod-lite-host',
+    () => HostNativeCapabilities.verifiedCanvasRoot(resolve(__dirname, '..')),
+    new SnowbDialogs(() => require('electron').dialog));
 
 const methods = {
     ...getPluginManagerMethods(),

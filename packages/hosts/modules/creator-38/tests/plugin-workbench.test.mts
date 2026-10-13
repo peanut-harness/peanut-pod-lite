@@ -89,3 +89,32 @@ test('fixed hosts keep independent bindings and forward the real host name to na
         rmSync(root, { recursive: true, force: true });
     }
 });
+
+test('SnowB native bridge receives only the verified Canvas root during its request', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'peanut-snowb-bridge-'));
+    const originalRoot = process.env.PEANUT_CANVAS_CAPABILITY_ROOT;
+    try {
+        delete process.env.PEANUT_CANVAS_CAPABILITY_ROOT;
+        const entry = join(root, 'index.html');
+        writeFileSync(entry, '<html>panel</html>');
+        writeFileSync(join(root, 'native.cjs'), `
+if (!process.env.PEANUT_CANVAS_CAPABILITY_ROOT) throw new Error('snowb_canvas_capability_root_missing');
+exports.handleRequest = async () => process.env.PEANUT_CANVAS_CAPABILITY_ROOT;
+`);
+        writeFileSync(join(root, 'snowb.bmfont.manifest.json'), JSON.stringify({ panelBridge: './native.cjs' }));
+        const manager = {
+            resolveEmbeddedPluginPanel: () => ({ id: 'snowb.panel', title: 'SnowB', entry }),
+            getInstalledPackageSnapshot: () => ({ activeVersion: '0.2.1', versions: [{ version: '0.2.1', installPath: root }] }),
+        } as unknown as PluginManagerApp;
+        const workbench = new PluginWorkbench(() => manager, () => ({ Project: { path: root }, Panel: { open: async () => undefined }, Message: { send: () => undefined } }), 'peanut-pod-lite-host', () => root);
+        await workbench.open('snowb.bmfont');
+        assert.equal(await workbench.request('snowb.bmfont', 'snowb.panel', { id: 'save', event: 'saveSbf' }, true), root);
+        assert.equal(process.env.PEANUT_CANVAS_CAPABILITY_ROOT, undefined);
+        await assert.rejects(workbench.request('wrong.plugin', 'snowb.panel', { id: 'save', event: 'saveSbf' }, true), /plugin_workbench_caller_mismatch/u);
+        assert.equal(process.env.PEANUT_CANVAS_CAPABILITY_ROOT, undefined);
+    } finally {
+        if (originalRoot == null) delete process.env.PEANUT_CANVAS_CAPABILITY_ROOT;
+        else process.env.PEANUT_CANVAS_CAPABILITY_ROOT = originalRoot;
+        rmSync(root, { recursive: true, force: true });
+    }
+});

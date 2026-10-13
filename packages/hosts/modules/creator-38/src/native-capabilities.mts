@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from 'fs';
-import { resolve } from 'path';
+import { existsSync, readFileSync, realpathSync } from 'fs';
+import { join, resolve } from 'path';
 import { NativeCapabilityRegistry } from '@peanut/pod-engine/kernel';
 
 /**
@@ -19,5 +19,13 @@ export class HostNativeCapabilities {
         const publicKeyPath = resolve(capabilityRoot, 'public-key.pem');
         const publicKey = existsSync(publicKeyPath) ? readFileSync(publicKeyPath, 'utf8') : undefined;
         return new NativeCapabilityRegistry(capabilityRoot, publicKey);
+    }
+
+    /** @description 仅在宿主签名、摘要与版本校验通过后向原生桥提供当前平台 Canvas 路径。 */
+    public static verifiedCanvasRoot(extensionRoot: string): string {
+        const registry = this.createRegistry(extensionRoot);
+        if (registry == null) throw new Error('native_capability_unavailable:canvas');
+        registry.requireCanvas('^1.0.0');
+        return realpathSync(join(extensionRoot, 'native-capabilities', 'canvas', '1.x', `${process.platform}-${process.arch}`));
     }
 }

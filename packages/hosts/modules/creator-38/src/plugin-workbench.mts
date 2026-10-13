@@ -2,6 +2,7 @@ import { readFileSync, realpathSync } from 'fs';
 import { createRequire } from 'module';
 import { join, relative, resolve } from 'path';
 import type { PluginManagerApp } from '@peanut/pod-engine/kernel';
+import type { SnowbDialogs } from './snowb-dialogs.mts';
 
 /**
  * @description 当前通用面板绑定的已激活插件身份；入口只来自 contribution 解析器。
@@ -31,6 +32,8 @@ export class PluginWorkbench {
     private readonly getManager: () => PluginManagerApp;
     private readonly getEditor: () => IWorkbenchEditor;
     private readonly extensionName: string;
+    private readonly resolveSnowbCanvasRoot?: () => string;
+    private readonly snowbDialogs?: SnowbDialogs;
 
     /**
      * @description 接收当前内核与 Creator API，避免保存已卸载的内核实例。
@@ -42,10 +45,14 @@ export class PluginWorkbench {
         getManager: () => PluginManagerApp,
         getEditor: () => IWorkbenchEditor,
         extensionName: string,
+        resolveSnowbCanvasRoot?: () => string,
+        snowbDialogs?: SnowbDialogs,
     ) {
         this.getManager = getManager;
         this.getEditor = getEditor;
         this.extensionName = extensionName;
+        this.resolveSnowbCanvasRoot = resolveSnowbCanvasRoot;
+        this.snowbDialogs = snowbDialogs;
     }
 
     /**
@@ -122,10 +129,31 @@ export class PluginWorkbench {
         if (pluginId !== context.pluginId || panelId !== context.panelId) throw new Error('plugin_workbench_caller_mismatch');
         if (!native) return this.getManager().createPanelBridgeClient(pluginId, panelId).request({ ...request, expectsResponse: true });
         if (context.panelBridge == null) throw new Error('plugin_native_panel_bridge_unavailable');
-        const bridgeRequire = createRequire(context.panelBridge);
-        const bridge = bridgeRequire(context.panelBridge) as { handleRequest(input: object): Promise<unknown> };
-        if (typeof bridge.handleRequest !== 'function') throw new Error('plugin_native_panel_bridge_invalid');
-        return bridge.handleRequest({ request, hostExtensionName: this.extensionName, projectDirectory: this.getEditor().Project.path, editorApi: this.getEditor(), requestSbfBase64: async () => { throw new Error('plugin_panel_export_source_required'); } });
+        const previousCanvasRoot = process.env.PEANUT_CANVAS_CAPABILITY_ROOT;
+        try {
+            if (pluginId === 'snowb.bmfont' && this.resolveSnowbCanvasRoot != null) {
+                process.env.PEANUT_CANVAS_CAPABILITY_ROOT = this.resolveSnowbCanvasRoot();
+            }
+            const bridgeRequire = createRequire(context.panelBridge);
+            const bridge = bridgeRequire(context.panelBridge) as { handleRequest(input: object): Promise<unknown> };
+            if (typeof bridge.handleRequest !== 'function') throw new Error('plugin_native_panel_bridge_invalid');
+            return await bridge.handleRequest({
+                request,
+                hostExtensionName: this.extensionName,
+                projectDirectory: this.getEditor().Project.path,
+                editorApi: this.getEditor(),
+                requestSbfBase64: async () => { throw new Error('plugin_panel_export_source_required'); },
+                ...(pluginId === 'snowb.bmfont' && this.snowbDialogs != null ? {
+                    pickSbfFile: (directory: string) => this.snowbDialogs!.pickSbfFile(directory),
+                    pickPublishTarget: () => this.snowbDialogs!.pickPublishTarget(this.getEditor().Project.path),
+                } : {}),
+            });
+        } finally {
+            if (pluginId === 'snowb.bmfont' && this.resolveSnowbCanvasRoot != null) {
+                if (previousCanvasRoot == null) delete process.env.PEANUT_CANVAS_CAPABILITY_ROOT;
+                else process.env.PEANUT_CANVAS_CAPABILITY_ROOT = previousCanvasRoot;
+            }
+        }
     }
 
     /**

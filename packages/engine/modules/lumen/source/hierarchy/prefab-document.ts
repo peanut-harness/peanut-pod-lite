@@ -5,6 +5,7 @@ import { CompatibleUuid, SilentAssetCreateFolder } from '@peanut/pod-engine/asse
 import { LumenDeepClone } from './deep-clone';
 import { LumenNativeComponentBinding } from './native-component-binding';
 import { LumenButtonColorBinding } from './button-color-binding';
+import { LumenButtonClickBinding } from './button-click-binding';
 import { LumenAtomicFileWriter } from '../io/atomic-file-writer';
 import {
     LumenComponentPropertySchema,
@@ -1078,13 +1079,14 @@ export class LumenPrefabDocument {
     }
 
     /**
-     * @description 绑定 Button.clickEvents 中的一条点击回调。
+     * @description 绑定点击回调并合并完全相同的事件引用，保留其他回调。
      * @param buttonNodePath Button 所在节点路径
      * @param targetNodePath 目标节点路径
      * @param component 脚本类名（显示用）
      * @param handler 方法名
      * @param customEventData 自定义数据
      * @param componentId 脚本 compressedUuid（写入 `_componentId`）
+     * @returns 无返回值。
      */
     public bindClickEvent(
         buttonNodePath: string,
@@ -1101,8 +1103,7 @@ export class LumenPrefabDocument {
         if (buttonComponent == null) {
             throw new Error('lumen_button_component_missing');
         }
-        const clickEventIndex = this._entries.length;
-        this._entries.push({
+        LumenButtonClickBinding.bind(this._entries, buttonComponent, {
             __type__: 'cc.ClickEvent',
             target: { __id__: targetNodeIndex },
             component,
@@ -1110,10 +1111,6 @@ export class LumenPrefabDocument {
             handler,
             customEventData,
         });
-        const existing = buttonComponent.clickEvents;
-        const nextEvents = Array.isArray(existing) ? [...existing] : [];
-        nextEvents.push({ __id__: clickEventIndex });
-        buttonComponent.clickEvents = nextEvents;
     }
 
     /**
