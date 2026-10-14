@@ -11,6 +11,7 @@ import { ComponentValueRecipeFactory } from './component-value-recipe.mts';
 import type { IComponentValueRecipe } from './component-value-recipe.mts';
 import { ComponentResourceBindings } from './component-resource-bindings.mts';
 import { ComponentContextValues } from './component-context-values.mts';
+import { ComponentAssemblyRequirements } from './component-assembly-requirements.mts';
 
 /**
  * @description 组件与全部公开字段的可执行输入配方；资源身份和原生加载仍需实机端口证明。
@@ -61,30 +62,10 @@ export class ComponentFieldFixtures {
             }
             if (new Set(cases.map((row) => row.id)).size !== cases.length) throw new Error('component_fixture_case_duplicate');
             const declaration = declarations.find((row) => row.type === componentType);
-            const bases = declaration?.baseTypes ?? [];
-            const physical3D = bases.some((base) => ['cc.Collider', 'cc.Constraint', 'cc.CharacterController', 'cc.RigidBody'].includes(base))
-                || componentType === 'cc.RigidBody' || componentType === 'cc.ConstantForce';
-            const physical2D = bases.some((base) => ['cc.Collider2D', 'cc.Joint2D', 'cc.RigidBody2D'].includes(base))
-                || componentType === 'cc.RigidBody2D';
-            const character = componentType.includes('CharacterController');
-            const importedOwner = componentType.startsWith('cc.Tiled') && componentType !== 'cc.TiledMap';
-            const skinnedModel = ['cc.SkeletalAnimation', 'cc.SkinnedMeshRenderer', 'cc.SkinnedMeshBatchRenderer'].includes(componentType);
-            const postProcess = bases.includes('cc.PostProcessSetting') || componentType === 'cc.PostProcess';
             return { componentType, nodePath: '/Root/Target', dependencyProviders: { 'cc.UIRenderer': 'cc.Sprite' },
                 dependencyPlan: ComponentDependencyPlanner.create(componentType, declarations, { 'cc.UIRenderer': 'cc.Sprite' }),
-                assemblyRequirements: {
-                    referenceNodesAndComponents: '从值配方的实际路径和类型创建；先完成它们各自的 requireComponent 闭包',
-                    uiScene: declaration?.requiredComponents.includes('cc.UITransform') ?? false,
-                    physicsBackend: character ? 'physx' : physical3D ? 'bullet' : physical2D ? 'box2d' : null,
-                    physicsBackendMustBeConfirmedFromActiveCreator: physical3D || physical2D || character,
-                    sourceOwnedTiledComponent: importedOwner,
-                    sourceOwnedTiledRule: importedOwner ? '先导入真实 TMX 并初始化 TiledMap；只能选择已初始化且类型匹配的原生子组件，禁止手动添加空占位' : null,
-                    importedSkinnedHierarchy: skinnedModel,
-                    skinnedHierarchyRule: skinnedModel ? '实例化相同 glTF 输入产生的原生层次，绑定同源 mesh/skeleton/animation 子资源及真实关节节点' : null,
-                    highQualityRenderPipeline: postProcess,
-                    renderPipelineMustBeConfirmedFromActiveCreator: postProcess,
-                    eventController: componentType === 'cc.Button' ? { nodePath: '/Root/Controller', componentType: 'cc.Animation', handler: 'play' } : null,
-                }, lifecycleActions: ['add', 'get', 'set', 'bind', 'remove', 'save', 'reopen'],
+                assemblyRequirements: ComponentAssemblyRequirements.create(componentType, declaration),
+                lifecycleActions: ['add', 'get', 'set', 'bind', 'remove', 'save', 'reopen'],
                 nativeReadbackRequired: true, cases };
         });
         return { schemaVersion: 'peanut.component-field-fixtures.v1', creatorVersion: version,
