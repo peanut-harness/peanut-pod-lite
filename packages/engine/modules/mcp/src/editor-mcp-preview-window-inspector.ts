@@ -38,7 +38,7 @@ export class EditorMcpPreviewWindowInspector {
         const getConfig: unknown = Reflect.get(profile, 'getConfig');
         if (typeof getConfig !== 'function') return null;
         try {
-            const platform: unknown = await Reflect.apply(getConfig, profile, ['preview', 'preview.current.platform', 'global']);
+            const platform: unknown = await Reflect.apply(getConfig, profile, ['preview', 'preview.current.platform', 'local']);
             if (platform !== 'browser') return null;
             const raw: unknown = await this._message.request('preview', 'query-preview-url');
             if (typeof raw !== 'string') return null;

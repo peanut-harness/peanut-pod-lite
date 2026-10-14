@@ -6,6 +6,33 @@ import test from 'node:test';
 
 import { createPluginModule, EditorMcpActionRouter, EditorMcpLumenGateway, EditorMcpPluginModule } from '../dist/index.js';
 import { EditorMcpPreviewGateway } from '../dist/editor-mcp-preview-gateway.js';
+import { EditorMcpPreviewWindowInspector } from '../dist/editor-mcp-preview-window-inspector.js';
+
+test('physical preview inspection uses the actual Creator local platform setting and read-only commands', { skip: process.platform !== 'darwin' }, async () => {
+    const previous = Object.getOwnPropertyDescriptor(globalThis, 'Editor');
+    const calls = []; let platform = 'browser';
+    Object.defineProperty(globalThis, 'Editor', { configurable: true, value: { Profile: {
+        getConfig: async (...args) => { calls.push(args); return args[2] === 'local' ? platform : undefined; },
+    } } });
+    try {
+        const inspector = new EditorMcpPreviewWindowInspector({ request: async (...args) => {
+            calls.push(args); return 'http://127.0.0.1:7459';
+        } });
+        const commands = [];
+        inspector._exec = async (file, args) => { commands.push({ file, args }); return file.endsWith('lsof') ? 'owned listener' : '1'; };
+        assert.equal(await inspector.inspect(), 'exists');
+        assert.deepEqual(calls, [['preview', 'preview.current.platform', 'local'], ['preview', 'query-preview-url']]);
+        assert.deepEqual(commands.map(command => command.file), ['/usr/sbin/lsof', '/usr/bin/osascript']);
+        assert.ok(commands[0].args.includes(String(process.pid)));
+        assert.ok(commands[0].args.includes('-iTCP:7459'));
+        platform = undefined; commands.length = 0;
+        assert.equal(await inspector.inspect(), 'unknown');
+        assert.equal(commands.length, 0);
+    } finally {
+        if (previous) Object.defineProperty(globalThis, 'Editor', previous);
+        else delete globalThis.Editor;
+    }
+});
 
 test('existing preview is queried then refreshed twenty times without opening', async () => {
     const calls = [];
