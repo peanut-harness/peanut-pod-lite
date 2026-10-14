@@ -90,6 +90,7 @@ export class ResourceOperationTaskExecutor {
         });
         let batch: IResourceOperationBatchContext | undefined;
         try {
+            await context.assertScopedWrite?.(request);
             await this._options.revalidate?.(payload.operation, payload.input, plan);
             if (plan.workerManagedCommitWindow !== true && !context.enterCommitWindow()) {
                 throw new Error('editor_mcp_task_cancelled_before_commit');

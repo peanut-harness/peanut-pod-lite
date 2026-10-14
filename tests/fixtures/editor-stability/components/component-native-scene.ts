@@ -25,6 +25,7 @@ class ComponentNativeScene {
             const nodePath = `${prefix}/${node.name}`;
             nodes.push({ path: nodePath, uuid: node.uuid, components: node.getComponents(cc.Component).map((component: object) => ({
                 type: cc.js.getClassName(component), uuid: Reflect.get(component, 'uuid'), valid: cc.isValid(component),
+                observed: ComponentNativeScene.observe(component),
             })) });
             for (const child of node.children) walk(child as typeof node, nodePath);
         };
@@ -38,6 +39,21 @@ class ComponentNativeScene {
             usesCustomPipeline: cc.director.root?.usesCustomPipeline ?? null,
             customPipelineConstructor: cc.director.root?.customPipeline?.constructor?.name ?? null,
             customPipelineName: cc.macro.CUSTOM_PIPELINE_NAME };
+    }
+
+    /**
+     * @description 读取本阶段实际Sprite和UIOpacity的公开getter，返回纯JSON身份与值。
+     * @param component 当前原生组件。
+     * @returns 有界字段观测或null。
+     */
+    private static observe(component: object): unknown {
+        const cc = require('cc');
+        const type = cc.js.getClassName(component);
+        if (type === 'cc.UIOpacity') return { opacity: Reflect.get(component, 'opacity') };
+        if (type !== 'cc.Sprite') return null;
+        const frame = Reflect.get(component, 'spriteFrame'); const color = Reflect.get(component, 'color');
+        return { grayscale: Reflect.get(component, 'grayscale'), color: color ? { r: color.r, g: color.g, b: color.b, a: color.a } : null,
+            spriteFrame: frame ? { uuid: frame._uuid, type: cc.js.getClassName(frame), valid: cc.isValid(frame) } : null };
     }
 }
 

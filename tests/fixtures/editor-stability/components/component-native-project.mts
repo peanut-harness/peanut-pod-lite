@@ -2,6 +2,7 @@ import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, writeFileSyn
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID, createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { buildSync } from 'esbuild';
 import { PackagingApp } from '../../../../packages/engine/modules/installation/src/app/packaging-app.ts';
 import { ComponentResourceBindings } from './component-resource-bindings.mts';
@@ -12,13 +13,14 @@ const args = process.argv.slice(2);
 const version = args[args.indexOf('--creator-version') + 1];
 const app = args[args.indexOf('--creator-app') + 1];
 const runId = args[args.indexOf('--run-id') + 1];
+const fixtureProfile = args.includes('--sprite-roundtrip') ? 'sprite-roundtrip' : 'resource-import';
 if (!['3.8.3', '3.8.7'].includes(version ?? '') || !app || !runId || !/^[a-z0-9][a-z0-9-]{1,63}$/u.test(runId)) throw new Error('component_native_project_arguments_invalid');
 if (version !== '3.8.3' && version !== '3.8.7') throw new Error('component_native_version_unsupported');
 const resources = join(realpathSync(app), 'Contents/Resources');
 const engine = join(resources, 'resources/3d/engine');
 if (JSON.parse(readFileSync(join(engine, 'package.json'), 'utf8')).version !== version) throw new Error('component_native_sdk_version_mismatch');
 const descriptor = verifyReleaseCandidate(join(root, 'release/peanut.pod-lite-0.2.0'), {
-    expectedVersion: '0.2.0', expectedSourceCommit: '510400c94a9cab9c12de24526bd0e97ecd38d60a',
+    expectedVersion: '0.2.0', expectedSourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
 });
 const output = join(root, 'evidence/task-5.1', runId); const project = join(output, 'project');
 if (existsSync(output)) throw new Error('component_native_project_must_be_new');
@@ -47,7 +49,9 @@ for (const [input, destination] of [['component-native-main.ts', 'main.js'], ['c
     buildSync({ entryPoints: [fileURLToPath(new URL(input, import.meta.url))], outfile: join(probe, destination),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14', external: ['cc'] });
 }
-const bindings = ComponentResourceBindings.create(root, version);
+const allBindings = ComponentResourceBindings.create(root, version);
+const bindings = fixtureProfile === 'sprite-roundtrip' ? Object.fromEntries(Object.entries(allBindings).filter(([type]) =>
+    type === 'cc.SpriteFrame' || type === 'cc.Texture2D')) : allBindings;
 const sources = new Map(Object.values(bindings).flatMap((binding) => binding.sources).map((item) => [item.path, item]));
 const ids = new Map<string, string>();
 const collect = (value: unknown): void => {
@@ -100,7 +104,11 @@ const importMetaAuthoring = { source: imageMetaSource, sourceSha256: createHash(
     derivation: '从精确 SDK image 元数据获取版本和 sprite-frame 导入选项；子资源完全交由实际 importer 生成，不复制内置图片尺寸或身份' };
 const sceneSource = join(root, `evidence/task-5.1/checkpoint-510400c-${version}/assets/components/cc.Sprite.scene`);
 mkdirSync(join(project, 'assets/components'), { recursive: true }); copyFileSync(sceneSource, join(project, 'assets/components/cc.Sprite.scene'));
+const controlSource = join(root, `evidence/task-5.1/checkpoint-510400c-${version}/assets/components/cc.UIOpacity.scene`);
+copyFileSync(controlSource, join(project, 'assets/components/cc.UIOpacity.scene'));
 writeFileSync(join(output, 'staging-receipt.json'), JSON.stringify({ creatorVersion: version, candidateSourceCommit: descriptor.sourceCommit,
+    fixtureProfile, fullResourceTypeCount: Object.keys(allBindings).length,
+    hierarchySources: [sceneSource, controlSource].map((path) => ({ path, sha256: createHash('sha256').update(readFileSync(path)).digest('hex') })),
     bindings, staged, importMetaAuthoring, authoringUuidRemaps: Object.fromEntries(ids), nativeRegistrationVerified: false,
     scope: '源与meta只在本新隔离副本重映射；UUID必须从真实AssetDB重新取得' }, null, 2) + '\n');
 process.stdout.write(JSON.stringify({ output, project, creatorVersion: version, sourceFiles: staged.length, installed, nativePassedRows: 0 }) + '\n');

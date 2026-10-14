@@ -59,7 +59,7 @@ class ComponentNativeMain {
     /**
      * @description 仅允许实际工程的健康信息、资源查询与已登记场景观测。
      */
-    private static async call(body: { action: string; uuid?: string }): Promise<unknown> {
+    private static async call(body: { action: string; uuid?: string; scope?: string }): Promise<unknown> {
         const editor = Reflect.get(globalThis, 'Editor');
         if (typeof editor?.Message?.request !== 'function') throw new Error('component_native_message_api_missing');
         const request = editor.Message.request.bind(editor.Message);
@@ -72,7 +72,10 @@ class ComponentNativeMain {
                     engine: await editor.Profile.getConfig('engine', undefined, 'local'),
                 } };
         }
-        if (body.action === 'assets') return request('asset-db', 'query-assets', { pattern: 'db://assets/fixtures/**' });
+        if (body.action === 'assets') {
+            if (body.scope !== undefined && body.scope !== 'components') throw new Error('component_native_asset_scope_invalid');
+            return request('asset-db', 'query-assets', { pattern: body.scope === 'components' ? 'db://assets/components/**' : 'db://assets/fixtures/**' });
+        }
         if (body.action === 'load-asset') {
             if (typeof body.uuid !== 'string') throw new Error('component_native_uuid_missing');
             const info = await request('asset-db', 'query-asset-info', body.uuid);

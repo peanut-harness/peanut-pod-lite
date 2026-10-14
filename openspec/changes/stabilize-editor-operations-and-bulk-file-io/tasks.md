@@ -26,7 +26,7 @@
 
 ## 5. 组件与代码矩阵
 
-- [ ] 5.1 `[peanut-pod-lite:tests/fixtures/editor-stability/components/** | serial | depends:1.2,4.1,4.2 | owner:01a13478-7931-7e82-86a4-f4f2fcd47bb1 | requirements:editor-operation-stability#Components survive native loading and property changes,editor-operation-stability#Coverage is exhaustive and version specific | non-goals:生成版本化组件依赖、公开字段与引用夹具，并按用户2026-10-14本轮明确授权补真实导入、后端确认与原生加载验证；仅本工作树登记的新隔离工程，按Hub外层npm入口启动并只关闭本任务核实所属实例；绑定510400c本树候选；不改共享schema、分母、Creator安装包、原工程或旧报告；不把离线序列化当Creator实机通过；不实现5.2或发布]` 为版本化组件目录生成真实依赖装配、公开字段值和引用夹具，覆盖全部适用字段类型及增删改保存重开；依赖：1.2、4.1、4.2；验收：99 项策展目录与实际版本差异可查，依赖组件、物理/UI/动画后端有效，缺字段用例使覆盖校验失败。
+- [ ] 5.1 `[peanut-pod-lite:tests/fixtures/editor-stability/components/**,packages/engine/modules/kernel/src/mcp/**,packages/engine/modules/kernel/src/shared/plugin-task-api.ts,packages/engine/modules/kernel/tests/**,packages/engine/modules/mcp/src/resource-operation-task-executor.ts,packages/engine/modules/mcp/tests/resource-operation-task-executor.test.mts,packages/sdk/src/plugin-module-contracts.ts | serial | depends:1.2,4.1,4.2 | owner:01a13478-7931-7e82-86a4-f4f2fcd47bb1 | requirements:editor-operation-stability#Components survive native loading and property changes,editor-operation-stability#Coverage is exhaustive and version specific | non-goals:按用户2026-10-14新授权先补6项按名称和assets/components及assets/fixtures范围的精确挂接、撤销与重启恢复，再做组件写入、绑定和保存重开；保持read_only默认且每次写仍用一次性令牌，禁all和内部旁路；仅本树登记的新隔离工程，按Hub外层npm启动并只关所属实例；新候选绑定新clean检查点；不改分母、Creator安装包、原工程和旧报告；不把离线或资源加载当组件矩阵通过；不实现5.2或发布]` 为版本化组件目录生成真实依赖装配、公开字段值和引用夹具，覆盖全部适用字段类型及增删改保存重开；依赖：1.2、4.1、4.2；验收：99 项策展目录与实际版本差异可查，依赖组件、物理/UI/动画后端有效，缺字段用例使覆盖校验失败。
 - [ ] 5.2 增加 TypeScript/JavaScript 单文件和跨文件模块、组件字段与引用变更的代码夹具及实际 Creator 编译/预览就绪探针；依赖：3.5、5.1；验收：文本读回、脚本 UUID、真实编译、原生组件绑定、预览加载均检查，故障注入和有效零日志 campaign 分开记录。
 - [ ] 5.3 将组件/代码矩阵与资源 runner、raw 日志和 coverage validator 集成，修复全部实际发现的操作错误；依赖：2.2、4.3、5.1、5.2；验收：离线定向回归和实机定向分片零缺口、零非预期失败；影响共享 schema 的修复由 checkpoint owner 串行审阅。
 
@@ -83,3 +83,6 @@ A1 本地检查点 72899da 的 parent、tree、精确 27 文件及 1023 当前�
 2026-10-14：用户确认继续当前 OpenSpec。当前 worktree/checkpoint/integration owner 原位修复任务1.2：公开 MeshRenderer.bakeSettings 通过既有 native-mesh-property-schema 提供8个嵌套字段，而旧 inventory reader 只读取策展 JSON，遗漏两版各8个字段。重新打开1.2并按该任务拥有的 tools/editor-stability/** 与 tools/tests/editor-stability*.test.mts 精确实施；不修改产品 schema，不覆盖旧 coverage 草稿和旧报告。5.1仍未完成；先修复共享分母再补齐有效字段值、引用和拒绝写入夹具。
 
 1.2修复验收：inventory/coverage定向33项通过；两版实际安装包独立生成与--check复核均通过。新分母3.8.3为1237目标/4151用例，3.8.7为1228目标/4142用例；新MeshRenderer烘焙字段两版各8项/24用例，状态仍为unverified/pending。旧草稿与报告保留，当前源码既有audio.downloadMode只读边界另行记录，不把源码声明当原生通过。5.1正在补齐795字段配方与真实引用，不标记完成。
+
+
+2026-10-14后续：按用户新授权扩展5.1的Kernel/MCP/SDK owned paths，新增保持read_only的6项精确名单、范围校验、撤销和重启恢复；作用于本任务工程。旧短租约原本可复用，精确挂接现在要求单operation、完整resources匹配的一次性消费；排队任务捕获受理授权代数并在原writer窗口重验。显式批次、自动commit和全assets刷新拒绝，保留既有legacy租约行为。Kernel/Hub/令牌定向54项与writer窗口17项通过，Kernel/MCP严格类型检查及源码规范通过；新增Sprite/UIOpacity实机脚本准备完毕，尚待新clean检查点的完整verify、候选构建及实际运行，不提升5.1完成状态。OpenSpec CLI本轮未定位到，现有根与Hub任务包ready校验可用，CLI验证保留待验。

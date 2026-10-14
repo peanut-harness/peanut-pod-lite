@@ -49,3 +49,12 @@ node --import tsx tests/fixtures/editor-stability/components/component-catalog-c
 `component-creator-close.mts --project <隔离工程>` 再次核对登记和原始启动身份，仅向该 PID 发正常退出请求并等待实际退出；没有全局退出或强杀接口。实际源码运行环境分别由健康回执记录，观测扩展按 Node 14 编译。
 
 2026-10-14 实机结果：3.8.7 的20种资源均按声明源加载；3.8.3 为19种，HDR 的 cmft 子进程异常退出，TextureCube 阻塞。两版实际物理后端为 Bullet/Box2D；3.8.7 启用 Builtin 自定义管线，3.8.3 仍为 ForwardPipeline。每版9项 MCP 只读调用通过，目录仍仅40项只读能力。现有候选不支持用户授权的6项精确挂接，不能用 `all` 代替；具体缺口保存在 evidence 的挂接调查回执。两版均有原始诊断，尚未验收任何组件原生矩阵行。
+
+
+2026-10-14后续实现为6项能力增加独立精确名单：通过已认证当前工程的MCP控制动作 `attachCapabilities` / `detachCapabilities` / `queryCapabilityAttachments`，提交 `projectPath`、`owner`、`capabilities` 和 `resourceRoots`。资源根仅允许 `assets/components`、`assets/fixtures`；默认公开档位保持read_only，未列出的写能力继续隐藏。项目名单保存在 `.peanut-ai/cocos-mcp-attachments.json`，没有令牌字段，不提交到仓库。
+
+每次业务写入必须先签发单一operation和完整resources集合的一次性令牌；旧可复用短租约不能用于精确挂接。实际业务目标、声明资源、真实父目录和UUID的AssetDB源共同校验；受管任务在原writer窗口再次校验，并捕获受理代数，撤销重挂不能恢复旧任务。自动commit、无明确路径commit、全assets刷新、未解析的脚本别名和精确挂接的显式批次保持拒绝。UI计划执行须带 `approvalToken`，删除组件还须 `confirmDestructive=true`。
+
+新实机阶段使用 `component-native-project.mts ... --sprite-roundtrip`，仅暂存本阶段Sprite/Texture2D与两个真实场景，保留完整资源分母20的说明；不重复触发已知3.8.3 HDR工具失败，也不把本分片计为全资源矩阵通过。候选必须与当前Git HEAD一致，原始510400c场景输入仅作已审计源，不能替代新候选身份。
+
+在Host和导入完成后先运行 `component-native-read.mts --project <新工程>`，再执行 `component-native-roundtrip.mts --project <新工程>`。后者经真实MCP加UIOpacity、改opacity、改Sprite.grayscale并绑定实际SpriteFrame，逐步commit/preview.refresh，再使用scene.open进行原生重开和公开getter读回；移除UIOpacity后切换到控制场景再重开，核对组件消失、资源身份和落盘SHA。观测扩展只读，全部写通过6项受管能力。尚未执行或失败的回执不能计为原生通过。

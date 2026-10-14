@@ -17,6 +17,7 @@ import type { PluginManagerApp } from '../app/plugin-manager-app.js';
 import type { CocosMcpInputReader } from './cocos-mcp-input-reader.js';
 import { McpBatchApprovalStore } from './mcp-batch-approval-store.js';
 import { McpThroughputBatchControl } from './mcp-throughput-batch-control.js';
+import { McpControlFlowRefusal } from './mcp-control-flow-refusal.js';
 
 export interface IMcpApprovalLeaseMirror {
     (request: {
@@ -32,6 +33,10 @@ export interface IMcpApprovalLeaseMirror {
 }
 
 interface IMcpBatchCoordinatorOptions {
+    /**
+     * @description 当前精确挂接能力必须使用一次性完全匹配令牌。
+     */
+    readonly isScopedCapability?: (name: string) => boolean;
     readonly projectPath: string;
     readonly pluginManagerProvider: () => PluginManagerApp | null;
     readonly inputReader: CocosMcpInputReader;
@@ -77,6 +82,7 @@ export class McpBatchCoordinator {
         readonly operation: string;
         readonly resources: readonly string[];
         readonly risk: McpCapabilityRisk;
+        readonly requireOneTime?: boolean;
     }): boolean {
         return this._approvals.tryConsume(token, request);
     }
@@ -88,7 +94,10 @@ export class McpBatchCoordinator {
         maxRisk: 'write' | 'destructive',
         options?: { readonly sessionBound?: boolean; readonly idleLeaseMs?: number; readonly maxHoldMs?: number },
     ): IIssuedApproval {
+        const oneTime = operations?.some((name) => this._options.isScopedCapability?.(name) === true) === true;
+        if (oneTime && operations?.length !== 1) McpControlFlowRefusal.reject('cocos_mcp_scoped_approval_operation_required');
         const issued = this._approvals.issue({
+            oneTime,
             connectionId,
             resources,
             operations,
@@ -156,6 +165,7 @@ export class McpBatchCoordinator {
             const registry = this._pluginManager().getMcpCapabilityRegistry();
             const prepared = items.map((item) => {
                 const definition = registry.getDefinition(item.operation);
+                if (registry.hasScopedAttachment(item.operation)) throw new Error('cocos_mcp_scoped_batch_not_supported');
                 if (
                     definition == null || definition.readOnly || definition.executionModel !== 'managed_task'
                     || definition.throughput?.explicitBatchEligible !== true

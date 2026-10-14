@@ -3,6 +3,8 @@ import type { IMcpCapabilityInvocation, IMcpCapabilityProgress, McpCapabilityHan
 
 import { isMcpControlFlowRefusal } from './mcp-control-flow-refusal.js';
 import { McpFailurePresenter } from './mcp-failure-presenter.js';
+import { McpControlFlowRefusal } from './mcp-control-flow-refusal.js';
+import type { McpScopedCapabilityAttachments } from './mcp-scoped-capability-attachments.js';
 
 export type { IMcpCapabilityInvocation, IMcpCapabilityProgress, McpCapabilityHandler } from '@peanut/pod-sdk';
 
@@ -38,7 +40,11 @@ export class McpCapabilityRegistry {
     /**
      * @description 当前 handler 调用期间由宿主签发的 invocation 身份。
      */
-    private readonly _invocationOwners = new WeakMap<IMcpCapabilityInvocation, { readonly pluginId: string; readonly capability: string }>();
+    private readonly _invocationOwners = new WeakMap<IMcpCapabilityInvocation, { readonly pluginId: string; readonly capability: string; readonly scopedWriteGuard?: (input: unknown) => Promise<void> }>();
+    /**
+     * @description Hub注入的当前工程精确授权，不改变插件整体公开档位。
+     */
+    private _scopedAttachments: McpScopedCapabilityAttachments | null = null;
     /**
      * @description 已保持运行但不向 MCP Hub 公开能力的插件标识。
      */
@@ -180,7 +186,7 @@ export class McpCapabilityRegistry {
      */
     public getCatalog(): IMcpCapabilityCatalog {
         return {
-            revision: this._revision,
+            revision: this._revision + (this._scopedAttachments?.revision ?? 0),
             capabilities: [...this._registrations.values()]
                 .filter((registration) => this._isRegistrationExposed(registration))
                 .map((registration) => registration.definition)
@@ -228,10 +234,11 @@ export class McpCapabilityRegistry {
     public resolveInvocationOwner(
         pluginId: string,
         invocation: IMcpCapabilityInvocation,
-    ): { readonly connectionId: string; readonly capability: string } | null {
+    ): { readonly connectionId: string; readonly capability: string; readonly scopedWriteGuard?: (input: unknown) => Promise<void> } | null {
         const owner = this._invocationOwners.get(invocation);
         return owner?.pluginId === pluginId
-            ? { connectionId: invocation.connectionId, capability: owner.capability }
+            ? { connectionId: invocation.connectionId, capability: owner.capability,
+                ...(owner.scopedWriteGuard == null ? {} : { scopedWriteGuard: owner.scopedWriteGuard }) }
             : null;
     }
 
@@ -244,6 +251,32 @@ export class McpCapabilityRegistry {
     public validateInput(name: string, input: unknown): void {
         const registration = this._requireExposedRegistration(name);
         this._assertInputMatches(registration, name, input);
+    }
+
+    /**
+     * @description 绑定当前Hub的精确授权，支持注册表重建后复用。
+     * @param attachments 项目授权。
+     */
+    public bindScopedAttachments(attachments: McpScopedCapabilityAttachments): void { this._scopedAttachments = attachments; }
+
+    /**
+     * @description 判断明确能力是否具有独立范围限制。
+     * @param name 能力名。
+     * @returns 是否精确挂接。
+     */
+    public hasScopedAttachment(name: string): boolean {
+        return this._scopedAttachments?.has(this._registrations.get(name)?.pluginId ?? '', name) === true;
+    }
+
+    /**
+     * @description 写审批前完成实际路径及AssetDB引用校验。
+     * @param name 能力名。
+     * @param input 业务输入。
+     * @returns 校验完成时结束。
+     */
+    public async validateInvocationInput(name: string, input: unknown): Promise<void> {
+        this.validateInput(name, input);
+        if (this.hasScopedAttachment(name)) await this._scopedAttachments?.validateReferences(name, input);
     }
 
     /**
@@ -315,6 +348,7 @@ export class McpCapabilityRegistry {
         if (!this._matchesSchema(input, registration.definition.inputSchema)) {
             throw new Error(`mcp_capability_input_invalid:${name}`);
         }
+        if (this.hasScopedAttachment(name)) this._scopedAttachments?.validate(name, input);
     }
 
     /**
@@ -332,7 +366,12 @@ export class McpCapabilityRegistry {
         invocation: IMcpCapabilityInvocation,
     ): Promise<unknown> {
         let output: unknown;
-        this._invocationOwners.set(invocation, { pluginId: registration.pluginId, capability: name });
+        const scoped = this.hasScopedAttachment(name);
+        if (scoped && invocation.hasLocalApproval !== true) McpControlFlowRefusal.reject('cocos_mcp_scoped_approval_required');
+        if (scoped) await this._scopedAttachments?.validateReferences(name, input);
+        const scopedWriteGuard = scoped ? this._scopedAttachments?.captureGuard(name, input) : undefined;
+        this._invocationOwners.set(invocation, { pluginId: registration.pluginId, capability: name,
+            ...(scopedWriteGuard == null ? {} : { scopedWriteGuard }) });
         try {
             output = await registration.handler(this._asHandlerInput(input), invocation);
         } catch (error) {
@@ -408,7 +447,8 @@ export class McpCapabilityRegistry {
      */
     private _isRegistrationExposed(registration: IMcpCapabilityRegistration): boolean {
         const exposure = this.getPluginExposure(registration.pluginId);
-        return exposure === 'all' || exposure === 'read_only' && registration.definition.readOnly;
+        return exposure === 'all' || exposure === 'read_only' && (registration.definition.readOnly
+            || this._scopedAttachments?.has(registration.pluginId, registration.definition.name) === true);
     }
 
     /**

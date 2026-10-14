@@ -39,6 +39,21 @@
 - **WHEN** 输入包含不可写字段、非法值或错误引用类型
 - **THEN** 在受控边界返回稳定结构化拒绝，原文件不变，编辑器无新增 warning/error，不把错误写入后再加载判定
 
+### Requirement: Native component validation uses scoped capability attachments
+系统 SHALL 在保持默认只读公开级别时，允许按名称挂接6项已注册的组件验收能力，并将实际路径及引用限制在当前工程的assets/components和assets/fixtures；挂接可撤销、重启恢复，每次写入仍须消费匹配连接、operation、resources和risk的一次性本地令牌。
+
+#### Scenario: Only the approved six capabilities are attached
+- **WHEN** 已认证当前工程请求精确挂接组件添加、移除、属性设置、commit、场景打开和预览刷新
+- **THEN** 只增加这6项可见能力，其它写能力保持隐藏，默认公开档位与破坏确认不变
+
+#### Scenario: Input claims an allowed resource but targets a different asset
+- **WHEN** 实际业务路径、引用UUID或父目录身份超出挂接范围
+- **THEN** 写入前拒绝，申报的resources不能扩大权限，原文件保持不变
+
+#### Scenario: An attachment is revoked before a queued task writes
+- **WHEN** 挂接已撤销而组件任务尚未进入写入
+- **THEN** 原writer窗口重新校验并拒绝该任务，旧令牌不能恢复挂接
+
 ### Requirement: Code operations include compilation and bindings
 系统 SHALL 对支持的 TypeScript、JavaScript 资产验证单文件与跨文件内容读写、导入依赖、组件类型与字段引用、AssetDB 刷新、实际 Creator 编译就绪、保存重开及必要的预览加载；内容可读不等于代码可编译或运行。
 

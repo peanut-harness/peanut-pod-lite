@@ -88,6 +88,20 @@ test('resource executor preserves FIFO for the same resource', async () => {
     assert.deepEqual(started, ['first', 'second']);
 });
 
+test('scoped authorization is rechecked after the actual writer lock and before commit', async () => {
+    const started: string[] = []; const firstGate = gate(); const instance = executor(started, new Map([['first', firstGate]]));
+    const first = instance.execute(request('first', { id: 'first', project: '/p', resource: 'asset:a' }), context());
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    let revoked = false; let committed = false; let checks = 0;
+    const secondRequest = request('second', { id: 'second', project: '/p', resource: 'asset:a' });
+    const second = instance.execute(secondRequest, { ...context(),
+        assertScopedWrite: async (actual) => { assert.equal(actual, secondRequest); checks += 1; if (revoked) throw new Error('attachment_revoked'); },
+        enterCommitWindow: () => { committed = true; return true; } });
+    const rejected = assert.rejects(second, /attachment_revoked/);
+    await new Promise((resolve) => setTimeout(resolve, 5)); assert.equal(checks, 0); revoked = true; firstGate.release();
+    await first; await rejected; assert.equal(checks, 1); assert.equal(committed, false); assert.deepEqual(started, ['first']);
+});
+
 test('resource executor permits disjoint resources in one project concurrently', async () => {
     const started: string[] = [];
     const firstGate = gate();
