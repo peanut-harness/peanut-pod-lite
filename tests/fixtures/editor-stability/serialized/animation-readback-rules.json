@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Task 4.1 fixture postconditions for future native observations; not execution results.",
+  "common": [
+    "Read every fixture initialPublic assertion through Inspector (or tracked patchedPublic after patch).",
+    "Deserialize the current source and verify all preserved typed internal references; no unresolved __uuid__ or native-file link.",
+    "AssetDB staged URI, root UUID, importer and generated meta identity agree after settle.",
+    "Retain raw stage logs with zero new warning/error and exact Creator/candidate attribution; missing observation fails a case."
+  ],
+  "actions": {
+    "create": [
+      "Create using the exact-version source/template recipe; read the root native type, Inspector fields and fresh AssetDB/meta UUID after import settles."
+    ],
+    "import": [
+      "Import the staged exact-version source and freshly allocated sidecar identity; read native root type, importer, Inspector values and typed links."
+    ],
+    "inspect": [
+      "Read all initialPublic pointers and require exactly the expected values, plus actual AssetDB root UUID and native root type."
+    ],
+    "query": [
+      "Query staged URI and UUID; require exactly one registered root of the expected kind and typed content."
+    ],
+    "patch": [
+      "Apply the named public Inspector patch; after save/refresh read all patchedPublic values and serializedPatchAssertions; root UUID, internal graph links and absent external references remain unchanged."
+    ],
+    "copy": [
+      "Both roots expose identical tracked Inspector/typed content; destination root UUID differs; source raw source/meta digests and UUID remain unchanged; no orphan or duplicate registration."
+    ],
+    "move": [
+      "Destination has the tracked Inspector/typed content and same UUID; old URI is absent from AssetDB, new URI resolves exactly once, meta UUID remains stable."
+    ],
+    "rename": [
+      "New URI/display name verified separately; tracked content except importer-driven naming changes and all internal links remain stable; old URI absent and root UUID stable."
+    ],
+    "refresh": [
+      "Reload source/meta and each tracked Inspector value after importer settles; same UUID and typed content, no stale registration or unresolved reference."
+    ],
+    "delete": [
+      "Preflight rejects external dependents; after deletion source/meta and registered root UUID are absent, no own subasset residue, unrelated assets unchanged; raw settle/exit logs remain clean."
+    ]
+  },
+  "nativeExecution": "not performed; Creator must not be launched in task 4.1"
+}

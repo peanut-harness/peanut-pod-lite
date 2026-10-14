@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Inspector patch inputs and semantic readback contracts; not a Creator runtime result",
+  "patches": [
+    {
+      "id": "mesh-renderer-receive-shadow",
+      "fixture": "tests/fixtures/editor-stability/serialized/3.8.3/prefab/mesh-cube.prefab",
+      "creatorVersion": "3.8.3",
+      "target": {
+        "componentType": "cc.MeshRenderer",
+        "componentNode": "Cube",
+        "apiName": "receiveShadow",
+        "serializedName": "_receiveShadow"
+      },
+      "schemaReference": "packages/engine/modules/lumen/bundled/schema/components/cc.MeshRenderer.json",
+      "patch": {
+        "receiveShadow": true
+      },
+      "semanticReadback": {
+        "componentType": "cc.MeshRenderer",
+        "property": "receiveShadow",
+        "expected": true,
+        "mustPreserve": [
+          "mesh UUID",
+          "material UUID list",
+          "prefab UUID",
+          "root node identity"
+        ]
+      },
+      "verificationStatus": "static-contract-only; Creator Inspector readback pending"
+    },
+    {
+      "id": "creator-3.8.3-animationClip-native-minimal-inspector",
+      "creatorVersion": "3.8.3",
+      "assetKind": "animationClip",
+      "fixture": "tests/fixtures/editor-stability/serialized/3.8.3/animationClip/default.anim",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/animation-clip.ts",
+      "publicContractSha256": "c234b3ecc5791ff4916c6387fec8833a30c809948249b7305e4e1e0d389fca72",
+      "nativeContractReference": "tests/fixtures/editor-stability/serialized/3.8.3/animation-source-provenance.json#animationClip",
+      "patch": {
+        "sample": 120,
+        "speed": 0.5
+      },
+      "invalidPatch": {
+        "sample": 0
+      },
+      "semanticReadback": {
+        "expected": {
+          "/name": "",
+          "/sample": 120,
+          "/speed": 0.5,
+          "/duration": 0,
+          "/events": [],
+          "/curves": [],
+          "/tracks": []
+        },
+        "serializedPatchAssertions": {
+          "/sample": 120,
+          "/speed": 0.5
+        },
+        "mustPreserve": [
+          "source and staged meta UUID during patch",
+          "typed internal links",
+          "absence of external references"
+        ]
+      },
+      "verificationStatus": "static-contract-only; Creator Inspector readback pending"
+    },
+    {
+      "id": "creator-3.8.3-animationGraph-native-minimal-inspector",
+      "creatorVersion": "3.8.3",
+      "assetKind": "animationGraph",
+      "fixture": "tests/fixtures/editor-stability/serialized/3.8.3/animationGraph/default.animgraph",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/animation-graph.ts",
+      "publicContractSha256": "219b2136015b1852372a9117d1dfd8d01a1481211c8a08ea23021a7ad2deb002",
+      "nativeContractReference": "tests/fixtures/editor-stability/serialized/3.8.3/animation-source-provenance.json#animationGraph",
+      "patch": {
+        "name": "task41-graph",
+        "layers": [
+          {
+            "index": 0,
+            "weight": 0.5
+          }
+        ]
+      },
+      "invalidPatch": {
+        "layers": [
+          {
+            "index": 0,
+            "weight": "invalid"
+          }
+        ]
+      },
+      "semanticReadback": {
+        "expected": {
+          "/name": "task41-graph",
+          "/layers/0/index": 0,
+          "/layers/0/name": "",
+          "/layers/0/weight": 0.5,
+          "/layers/0/mask": null,
+          "/variables": []
+        },
+        "serializedPatchAssertions": {
+          "/0/_name": "task41-graph",
+          "/1/weight": 0.5
+        },
+        "mustPreserve": [
+          "source and staged meta UUID during patch",
+          "typed internal links",
+          "absence of external references"
+        ]
+      },
+      "verificationStatus": "static-contract-only; Creator Inspector readback pending"
+    },
+    {
+      "id": "creator-3.8.3-animationMask-native-minimal-inspector",
+      "creatorVersion": "3.8.3",
+      "assetKind": "animationMask",
+      "fixture": "tests/fixtures/editor-stability/serialized/3.8.3/animationMask/default.animask",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/animation-mask.ts",
+      "publicContractSha256": "4ba7859dbd57c4a4ffaf6c9ef934fb4ed1220682ef4b50d0e24f7b047a4c2b99",
+      "nativeContractReference": "tests/fixtures/editor-stability/serialized/3.8.3/animation-source-provenance.json#animationMask",
+      "patch": {
+        "name": "task41-mask"
+      },
+      "invalidPatch": {
+        "name": 17
+      },
+      "semanticReadback": {
+        "expected": {
+          "/name": "task41-mask",
+          "/joints": []
+        },
+        "serializedPatchAssertions": {
+          "/_name": "task41-mask"
+        },
+        "mustPreserve": [
+          "source and staged meta UUID during patch",
+          "typed internal links",
+          "absence of external references"
+        ]
+      },
+      "verificationStatus": "static-contract-only; Creator Inspector readback pending"
+    }
+  ]
+}

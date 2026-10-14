@@ -1,0 +1,10 @@
+{
+  "extends": "../../../../packages/engine/modules/lumen/tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@peanut/pod-engine/assets": [
+        "../../../../packages/engine/modules/assets/src/index.ts"
+      ]
+    }
+  }
+}

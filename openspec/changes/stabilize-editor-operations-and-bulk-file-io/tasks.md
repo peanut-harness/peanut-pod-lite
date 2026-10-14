@@ -7,8 +7,8 @@
 
 ## 2. 生命周期与原始日志
 
-- [ ] 2.1 建立命名有效的隔离夹具和 raw 日志阶段 validator，覆盖 stdout/stderr、project.log、启动、操作、冷却、退出及延迟诊断；依赖：1.2 与实机登记；验收：合成 warning/error 注入使对应阶段失败，旧报告原始 bytes 与摘要不变。
-- [ ] 2.2 顺序复现 3.8.7 不带 Lite / 带 Lite 的最小工程正常退出，按证据修复扩展卸载或支持的退出顺序；依赖：2.1；验收：命名警告与 `Object has been destroyed` 均消失，保留失败与修复后的原始文本、PID 和退出证据；无法消除时保持本项未完成。
+- [x] 2.1 `[peanut-pod-lite:tools/editor-stability/lifecycle-raw-log-validator.mts,tools/tests/editor-stability-lifecycle-raw-log.test.mts,tests/fixtures/editor-stability/lifecycle/** | serial | depends:1.2 | owner:01a133ee-f44d-7ba1-b82a-d01a5091142a | requirements:editor-operation-stability#Lifecycle diagnostics remain raw and attributable | non-goals:只建立命名有效的隔离夹具、原始日志阶段校验器与合成注入；不启动 Creator、不实现2.2退出修复、不改原工程或历史实机报告、不加日志忽略规则、不改产品schema、不pack发布或提交推送]` 建立命名有效的隔离夹具和 raw 日志阶段 validator，覆盖 stdout/stderr、project.log、启动、操作、冷却、退出及延迟诊断；依赖：1.2 与实机登记；验收：合成 warning/error 注入使对应阶段失败，旧报告原始 bytes 与摘要不变。
+- [ ] 2.2 `[peanut-pod-lite:packages/hosts/modules/creator-38/src/host-bootstrap.ts,packages/hosts/modules/creator-38/src/main.js,packages/hosts/modules/creator-38/tests/host-update-coordinator.test.mts,packages/hosts/modules/creator-38/scripts/verify-lifecycle-exit-live.mts,packages/hosts/modules/creator-38/tests/lifecycle-exit-live-script.test.mts | serial | depends:2.1 | owner:01a13478-7931-7e82-86a4-f4f2fcd47bb1 | requirements:editor-operation-stability#Lifecycle diagnostics remain raw and attributable | non-goals:仅3.8.7正常退出归属复现、原始阶段证据与有依据的最小卸载修复；用户2026-10-14授权按Hub打开后，可先在已登记本工作树evidence目录登记并运行不带Lite最小基线；带Lite前必须取得当前Host/Core候选身份；不授权外部或原工程写入；不改安装包、原工程、旧报告或4.1/4.2；不吞日志、不加ignore或降级日志；用户2026-10-14另行批准已审阅夹具及验证工具的本地检查点提交，用于本树候选构建；不推送、不发布]` 顺序复现 3.8.7 不带 Lite / 带 Lite 的最小工程正常退出，按证据修复扩展卸载或支持的退出顺序；依赖：2.1；验收：命名警告与 `Object has been destroyed` 均消失，保留失败与修复后的原始文本、PID 和退出证据；无法消除时保持本项未完成。
 
 ## 3. 多文件读取与写入
 
@@ -20,13 +20,13 @@
 
 ## 4. 资源全类型夹具与矩阵
 
-- [ ] 4.1 为序列化资产、动画、地形、渲染和层次资源补合法最小夹具、Inspector patch 和语义读回规则；依赖：1.2；候选 lane `fixtures-serialized`，仅拥有 `tests/fixtures/editor-stability/serialized/**`；验收：所有对应 manifest 行都有夹具/依赖/回读，无占位无效资源。
-- [ ] 4.2 为图片、模型、音视频、字体、图集、骨骼、地图、Bundle 和其它原生 importer 补合法夹具与依赖；依赖：1.2；候选 lane `fixtures-media`，仅拥有 `tests/fixtures/editor-stability/media/**`；验收：夹具合法性、原生目录差异和引用闭包审查通过，不用伪二进制宣称可导入。
-- [ ] 4.3 实现 manifest 驱动的资源生命周期/Inspector 实机 runner 与证据 validator；依赖：2.1、4.1、4.2；owned paths：creator-38 的新增 resource stability 脚本；验收：适用 create/import/read/patch/copy/move/rename/refresh/delete 全部可追溯，UUID 保持、引用/登记/日志检查失败均阻止通过。
+- [x] 4.1 `[peanut-pod-lite:tests/fixtures/editor-stability/serialized/** | serial | depends:1.2 | owner:01a13478-7931-7e82-86a4-f4f2fcd47bb1 | requirements:editor-operation-stability#Valid resource operations preserve identity and emit no diagnostics | non-goals:仅补合法最小序列化资源夹具、依赖映射、Inspector patch 和语义读回规则；不改共享 coverage 分母与旧报告、不运行 Creator 或修改原工程、不实现 4.2/4.3、不提交推送或发布]` 为序列化资产、动画、地形、渲染和层次资源补合法最小夹具、Inspector patch 和语义读回规则；依赖：1.2；仅拥有 `tests/fixtures/editor-stability/serialized/**`；验收：所有对应 manifest 行都有夹具/依赖/回读，无占位无效资源。
+- [x] 4.2 `[peanut-pod-lite:tests/fixtures/editor-stability/media/** | serial | depends:1.2 | owner:01a13478-7931-7e82-86a4-f4f2fcd47bb1 | requirements:editor-operation-stability#Valid resource operations preserve identity and emit no diagnostics | non-goals:仅补媒体与原生 importer 的合法夹具、版本来源及依赖审计；不改共享 coverage 分母与旧报告、不运行 Creator 或修改原工程、不实现 4.1/4.3、不提交推送或发布]` 为图片、模型、音视频、字体、图集、骨骼、地图、Bundle 和其它原生 importer 补合法夹具与依赖；依赖：1.2；仅拥有 `tests/fixtures/editor-stability/media/**`；验收：夹具合法性、原生目录差异和引用闭包审查通过，不用伪二进制宣称可导入。
+- [ ] 4.3 `[peanut-pod-lite:packages/hosts/modules/creator-38/scripts/resource-stability-*.mts,packages/hosts/modules/creator-38/tests/resource-stability-*.test.mts | serial | depends:2.1,4.1,4.2 | owner:01a13478-7931-7e82-86a4-f4f2fcd47bb1 | requirements:editor-operation-stability#Valid resource operations preserve identity and emit no diagnostics,editor-operation-stability#Coverage is exhaustive and version specific | non-goals:只实现资源生命周期和Inspector runner及证据validator；未满足隔离工程、当前候选身份与进程归属前不启动Creator；不改原工程、旧报告、日志过滤、共享schema或发布渠道；不伪造实机通过]` 实现 manifest 驱动的资源生命周期/Inspector 实机 runner 与证据 validator；依赖：2.1、4.1、4.2；owned paths：creator-38 的新增 resource stability 脚本；验收：适用 create/import/read/patch/copy/move/rename/refresh/delete 全部可追溯，UUID 保持、引用/登记/日志检查失败均阻止通过。
 
 ## 5. 组件与代码矩阵
 
-- [ ] 5.1 为版本化组件目录生成真实依赖装配、公开字段值和引用夹具，覆盖全部适用字段类型及增删改保存重开；依赖：1.2、4.1、4.2；验收：99 项策展目录与实际版本差异可查，依赖组件、物理/UI/动画后端有效，缺字段用例使覆盖校验失败。
+- [ ] 5.1 `[peanut-pod-lite:tests/fixtures/editor-stability/components/** | serial | depends:1.2,4.1,4.2 | owner:01a13478-7931-7e82-86a4-f4f2fcd47bb1 | requirements:editor-operation-stability#Components survive native loading and property changes,editor-operation-stability#Coverage is exhaustive and version specific | non-goals:只生成版本化组件依赖、公开字段与引用夹具及离线校验；不改共享schema、分母、原工程或旧报告；不把离线序列化当Creator实机通过；不实现5.2或发布]` 为版本化组件目录生成真实依赖装配、公开字段值和引用夹具，覆盖全部适用字段类型及增删改保存重开；依赖：1.2、4.1、4.2；验收：99 项策展目录与实际版本差异可查，依赖组件、物理/UI/动画后端有效，缺字段用例使覆盖校验失败。
 - [ ] 5.2 增加 TypeScript/JavaScript 单文件和跨文件模块、组件字段与引用变更的代码夹具及实际 Creator 编译/预览就绪探针；依赖：3.5、5.1；验收：文本读回、脚本 UUID、真实编译、原生组件绑定、预览加载均检查，故障注入和有效零日志 campaign 分开记录。
 - [ ] 5.3 将组件/代码矩阵与资源 runner、raw 日志和 coverage validator 集成，修复全部实际发现的操作错误；依赖：2.2、4.3、5.1、5.2；验收：离线定向回归和实机定向分片零缺口、零非预期失败；影响共享 schema 的修复由 checkpoint owner 串行审阅。
 

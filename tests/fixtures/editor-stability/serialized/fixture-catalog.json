@@ -1,0 +1,345 @@
+{
+  "schemaVersion": 1,
+  "fixtures": [
+    {
+      "schemaVersion": 1,
+      "purpose": "creator-3.8.3 source-backed serialized prefab fixture; static evidence only",
+      "creatorVersion": "3.8.3",
+      "source": {
+        "reference": "packages/engine/modules/lumen/bundled/default_prefab/3d/Cube.prefab",
+        "metaReference": "packages/engine/modules/lumen/bundled/default_prefab/3d/Cube.prefab.meta",
+        "bundleReference": "packages/engine/modules/lumen/bundled/lumen-templates.manifest.json",
+        "bundleCocosVersion": "3.8.3",
+        "bundleContentHash": "1dec88a83b7251b200a551a00926b189c6a397152b7687fd5863ba2ecf6b065c",
+        "sourceSha256": "fc4bce24f14b90b5f08188b05c1826b0d1d40888eadc141558b6d97ba34c0e2c",
+        "sourceMetaSha256": "866cb496cab55012d6840459ef19e66ca1ea41646fb6a6e8ac1351cdce59eae3"
+      },
+      "files": {
+        "prefab": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/prefab/mesh-cube.prefab",
+          "sha256": "fc4bce24f14b90b5f08188b05c1826b0d1d40888eadc141558b6d97ba34c0e2c"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/prefab/mesh-cube.prefab.meta",
+          "sha256": "866cb496cab55012d6840459ef19e66ca1ea41646fb6a6e8ac1351cdce59eae3"
+        }
+      },
+      "identity": {
+        "metaImporter": "prefab",
+        "metaUuid": "30da77a1-f02d-4ede-aa56-403452ee7fde",
+        "rootType": "cc.Prefab",
+        "rootNodeType": "cc.Node",
+        "rootNodeName": "Cube"
+      },
+      "dependencies": [
+        {
+          "role": "material",
+          "uuid": "620b6bf3-0369-4560-837f-2a2c00b73c26",
+          "source": "bundled Cube.prefab cc.MeshRenderer._materials"
+        },
+        {
+          "role": "mesh-subasset",
+          "uuid": "1263d74c-8167-4928-91a6-4e2672411f47@a804a",
+          "source": "bundled Cube.prefab cc.MeshRenderer._mesh"
+        }
+      ],
+      "inspectorPatchId": "mesh-renderer-receive-shadow",
+      "semanticReadback": {
+        "root": "cc.Prefab.data resolves to the Cube cc.Node",
+        "renderer": "cc.MeshRenderer remains attached to the root node",
+        "dependencies": "material and mesh-subasset UUID references remain unchanged",
+        "patch": "receiveShadow reads back as true after Inspector patch",
+        "identity": "the prefab UUID remains stable across patch, move, rename, refresh, save and reopen; copy has a distinct destination identity"
+      },
+      "evidenceLimit": "This source-backed file and static structure do not prove Creator runtime import, AssetDB registration, operation success, or 3.8.7 compatibility."
+    },
+    {
+      "id": "creator-3.8.3-animationClip-native-minimal",
+      "creatorVersion": "3.8.3",
+      "assetKind": "animationClip",
+      "source": {
+        "reference": "engine/editor/assets/default_file_content/animation-clip/default.anim",
+        "metaReference": "engine/editor/assets/default_file_content/animation-clip/default.anim.meta",
+        "sourceSha256": "342261ed21c4be6a8e7866cdc5ef0b16b064bf7702c0457c99d4d83dccea75fd",
+        "sourceMetaSha256": "f22e6c884d7750a02d655229962e34167644c36b6a4dc5975306e76433a599dd",
+        "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/animation-source-provenance.json"
+      },
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/animationClip/default.anim",
+          "sha256": "342261ed21c4be6a8e7866cdc5ef0b16b064bf7702c0457c99d4d83dccea75fd"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/animationClip/default.anim.meta",
+          "sha256": "f22e6c884d7750a02d655229962e34167644c36b6a4dc5975306e76433a599dd"
+        }
+      },
+      "identity": {
+        "rootType": "cc.AnimationClip",
+        "metaImporter": "animation-clip",
+        "metaImporterVersion": "2.0.3",
+        "metaUuid": "8c76e1e2-a206-4662-aa79-42c0c858d647"
+      },
+      "dependencyClosure": {
+        "status": "complete for explicit source references",
+        "externalUuids": [],
+        "nativeFiles": [],
+        "internalReferences": [],
+        "ownSubassets": [],
+        "implicitDependency": "Creator engine classes in exact version 3.8.3; declarations recorded in provenance",
+        "generatedFiles": [
+          ".cconb"
+        ],
+        "generatedFilesExplanation": "meta.files lists importer outputs, not missing source dependencies"
+      },
+      "minimalSemantics": "Official new AnimationClip: zero duration, no tracks/events and no external assets. Valid minimal asset input; it does not exercise animated motion.",
+      "inspectorPatchId": "creator-3.8.3-animationClip-native-minimal-inspector",
+      "semanticReadback": {
+        "initialPublic": {
+          "/name": "",
+          "/sample": 60,
+          "/speed": 1,
+          "/duration": 0,
+          "/events": [],
+          "/curves": [],
+          "/tracks": []
+        },
+        "patchedPublic": {
+          "/name": "",
+          "/sample": 120,
+          "/speed": 0.5,
+          "/duration": 0,
+          "/events": [],
+          "/curves": [],
+          "/tracks": []
+        },
+        "serializedPatchAssertions": {
+          "/sample": 120,
+          "/speed": 0.5
+        },
+        "preserveReferences": []
+      },
+      "stagingPolicy": {
+        "source": "Keep frozen source/meta bytes unchanged. Stage copies only in a separately registered task 4.3 isolated project.",
+        "identity": "Allocate a fresh AssetDB root UUID, reset imported=false, allow the exact-version importer to regenerate outputs; preserve all __id__ references. Never reuse installed template UUIDs in an existing project.",
+        "historicalImportedFlag": "Source meta imported=true records the installed template state, not a runtime result for this change."
+      },
+      "evidenceLimit": "Static source/closure/patch/readback contracts do not prove Creator runtime import, AssetDB registration, Inspector behavior or playback."
+    },
+    {
+      "id": "creator-3.8.3-animationGraph-native-minimal",
+      "creatorVersion": "3.8.3",
+      "assetKind": "animationGraph",
+      "source": {
+        "reference": "engine/editor/assets/default_file_content/animation-graph/default.animgraph",
+        "metaReference": "engine/editor/assets/default_file_content/animation-graph/default.animgraph.meta",
+        "sourceSha256": "36853e8f612fb243b7f227c0bea2584489508653a0b8bc07b59c3283ff168c45",
+        "sourceMetaSha256": "e22e082bdd53f22cb38fd2028671019b82b4ae948e85f7cdf6632dc781a05a54",
+        "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/animation-source-provenance.json"
+      },
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/animationGraph/default.animgraph",
+          "sha256": "36853e8f612fb243b7f227c0bea2584489508653a0b8bc07b59c3283ff168c45"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/animationGraph/default.animgraph.meta",
+          "sha256": "e22e082bdd53f22cb38fd2028671019b82b4ae948e85f7cdf6632dc781a05a54"
+        }
+      },
+      "identity": {
+        "rootType": "cc.animation.AnimationGraph",
+        "metaImporter": "animation-graph",
+        "metaImporterVersion": "1.2.0",
+        "metaUuid": "e0a8e34d-9242-4f0f-833b-f57e1ffbf285"
+      },
+      "dependencyClosure": {
+        "status": "complete for explicit source references",
+        "externalUuids": [],
+        "nativeFiles": [],
+        "internalReferences": [
+          {
+            "pointer": "/0/_layers/0",
+            "index": 1,
+            "targetType": "cc.animation.Layer"
+          },
+          {
+            "pointer": "/1/_stateMachine",
+            "index": 2,
+            "targetType": "cc.animation.StateMachine"
+          },
+          {
+            "pointer": "/2/_states/0",
+            "index": 3,
+            "targetType": "cc.animation.State"
+          },
+          {
+            "pointer": "/2/_states/1",
+            "index": 4,
+            "targetType": "cc.animation.State"
+          },
+          {
+            "pointer": "/2/_states/2",
+            "index": 5,
+            "targetType": "cc.animation.State"
+          },
+          {
+            "pointer": "/2/_entryState",
+            "index": 3,
+            "targetType": "cc.animation.State"
+          },
+          {
+            "pointer": "/2/_exitState",
+            "index": 4,
+            "targetType": "cc.animation.State"
+          },
+          {
+            "pointer": "/2/_anyState",
+            "index": 5,
+            "targetType": "cc.animation.State"
+          }
+        ],
+        "ownSubassets": [],
+        "implicitDependency": "Creator engine classes in exact version 3.8.3; declarations recorded in provenance",
+        "generatedFiles": [
+          ".json"
+        ],
+        "generatedFilesExplanation": "meta.files lists importer outputs, not missing source dependencies"
+      },
+      "minimalSemantics": "Official new graph with one layer, valid Entry/Exit/Any state references and no transitions, masks, clips or variables. No graph playback claim.",
+      "inspectorPatchId": "creator-3.8.3-animationGraph-native-minimal-inspector",
+      "semanticReadback": {
+        "initialPublic": {
+          "/name": "",
+          "/layers/0/index": 0,
+          "/layers/0/name": "",
+          "/layers/0/weight": 1,
+          "/layers/0/mask": null,
+          "/variables": []
+        },
+        "patchedPublic": {
+          "/name": "task41-graph",
+          "/layers/0/index": 0,
+          "/layers/0/name": "",
+          "/layers/0/weight": 0.5,
+          "/layers/0/mask": null,
+          "/variables": []
+        },
+        "serializedPatchAssertions": {
+          "/0/_name": "task41-graph",
+          "/1/weight": 0.5
+        },
+        "preserveReferences": [
+          {
+            "pointer": "/0/_layers/0",
+            "index": 1,
+            "targetType": "cc.animation.Layer"
+          },
+          {
+            "pointer": "/1/_stateMachine",
+            "index": 2,
+            "targetType": "cc.animation.StateMachine"
+          },
+          {
+            "pointer": "/2/_states/0",
+            "index": 3,
+            "targetType": "cc.animation.State"
+          },
+          {
+            "pointer": "/2/_states/1",
+            "index": 4,
+            "targetType": "cc.animation.State"
+          },
+          {
+            "pointer": "/2/_states/2",
+            "index": 5,
+            "targetType": "cc.animation.State"
+          },
+          {
+            "pointer": "/2/_entryState",
+            "index": 3,
+            "targetType": "cc.animation.State"
+          },
+          {
+            "pointer": "/2/_exitState",
+            "index": 4,
+            "targetType": "cc.animation.State"
+          },
+          {
+            "pointer": "/2/_anyState",
+            "index": 5,
+            "targetType": "cc.animation.State"
+          }
+        ]
+      },
+      "stagingPolicy": {
+        "source": "Keep frozen source/meta bytes unchanged. Stage copies only in a separately registered task 4.3 isolated project.",
+        "identity": "Allocate a fresh AssetDB root UUID, reset imported=false, allow the exact-version importer to regenerate outputs; preserve all __id__ references. Never reuse installed template UUIDs in an existing project.",
+        "historicalImportedFlag": "Source meta imported=true records the installed template state, not a runtime result for this change."
+      },
+      "evidenceLimit": "Static source/closure/patch/readback contracts do not prove Creator runtime import, AssetDB registration, Inspector behavior or playback."
+    },
+    {
+      "id": "creator-3.8.3-animationMask-native-minimal",
+      "creatorVersion": "3.8.3",
+      "assetKind": "animationMask",
+      "source": {
+        "reference": "engine/editor/assets/default_file_content/animation-mask/default.animask",
+        "metaReference": "engine/editor/assets/default_file_content/animation-mask/default.animask.meta",
+        "sourceSha256": "d81aa0aa5a3ad3cb41015ba3f9278d17f948ff3403dc34eb0fff9fd13ab3948b",
+        "sourceMetaSha256": "fd438fd246f6d4c6ee3fbca3f2c3c6f8fef69da6ee1cf3c118aa64260346c9ae",
+        "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/animation-source-provenance.json"
+      },
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/animationMask/default.animask",
+          "sha256": "d81aa0aa5a3ad3cb41015ba3f9278d17f948ff3403dc34eb0fff9fd13ab3948b"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/animationMask/default.animask.meta",
+          "sha256": "fd438fd246f6d4c6ee3fbca3f2c3c6f8fef69da6ee1cf3c118aa64260346c9ae"
+        }
+      },
+      "identity": {
+        "rootType": "cc.animation.AnimationMask",
+        "metaImporter": "animation-mask",
+        "metaImporterVersion": "1.0.0",
+        "metaUuid": "51840015-b47a-4103-a937-6c21a29e4410"
+      },
+      "dependencyClosure": {
+        "status": "complete for explicit source references",
+        "externalUuids": [],
+        "nativeFiles": [],
+        "internalReferences": [],
+        "ownSubassets": [],
+        "implicitDependency": "Creator engine classes in exact version 3.8.3; declarations recorded in provenance",
+        "generatedFiles": [
+          ".json"
+        ],
+        "generatedFilesExplanation": "meta.files lists importer outputs, not missing source dependencies"
+      },
+      "minimalSemantics": "Official new AnimationMask with an empty joint list; there are no skeleton/path dependencies and the patch keeps it empty. No skeleton binding claim.",
+      "inspectorPatchId": "creator-3.8.3-animationMask-native-minimal-inspector",
+      "semanticReadback": {
+        "initialPublic": {
+          "/name": "",
+          "/joints": []
+        },
+        "patchedPublic": {
+          "/name": "task41-mask",
+          "/joints": []
+        },
+        "serializedPatchAssertions": {
+          "/_name": "task41-mask"
+        },
+        "preserveReferences": []
+      },
+      "stagingPolicy": {
+        "source": "Keep frozen source/meta bytes unchanged. Stage copies only in a separately registered task 4.3 isolated project.",
+        "identity": "Allocate a fresh AssetDB root UUID, reset imported=false, allow the exact-version importer to regenerate outputs; preserve all __id__ references. Never reuse installed template UUIDs in an existing project.",
+        "historicalImportedFlag": "Source meta imported=true records the installed template state, not a runtime result for this change."
+      },
+      "evidenceLimit": "Static source/closure/patch/readback contracts do not prove Creator runtime import, AssetDB registration, Inspector behavior or playback."
+    }
+  ]
+}

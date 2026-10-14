@@ -1,0 +1,55 @@
+{
+  "skeleton": {
+    "hash": "task42-original",
+    "spine": "3.8.99",
+    "x": -4,
+    "y": -4,
+    "width": 8,
+    "height": 8
+  },
+  "bones": [
+    {
+      "name": "root"
+    }
+  ],
+  "slots": [
+    {
+      "name": "tile",
+      "bone": "root",
+      "attachment": "checker"
+    }
+  ],
+  "skins": [
+    {
+      "name": "default",
+      "attachments": {
+        "tile": {
+          "checker": {
+            "type": "region",
+            "path": "checker",
+            "width": 8,
+            "height": 8
+          }
+        }
+      }
+    }
+  ],
+  "animations": {
+    "turn": {
+      "bones": {
+        "root": {
+          "rotate": [
+            {
+              "time": 0,
+              "angle": 0
+            },
+            {
+              "time": 1,
+              "angle": 15
+            }
+          ]
+        }
+      }
+    }
+  }
+}
