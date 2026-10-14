@@ -3,6 +3,8 @@ import { join } from 'node:path';
 
 import { CoreCocosMcpToolDefinitionCatalog } from '../../packages/engine/modules/policy/src/index.js';
 import { LumenCuratedSchemaCatalog } from '../../packages/engine/modules/lumen/source/schema/catalog.ts';
+import { LumenCocosVersion } from '../../packages/engine/modules/lumen/source/schema/cocos-version.ts';
+import { LumenNativeMeshPropertySchema } from '../../packages/engine/modules/lumen/source/schema/native-mesh-property-schema.ts';
 import type { ICoverageInventory, ICoverageSource, ICoverageTarget } from './coverage-contracts.mjs';
 import { CoverageManifestGenerator } from './coverage-manifest-generator.mjs';
 import { CreatorAsarLayoutReader } from './creator-asar-layout-reader.mjs';
@@ -68,10 +70,14 @@ export class CoverageInventoryReader {
                 throw new Error('coverage_component_catalog_invalid');
             }
             curatedNames.push(document.type);
-            componentSources.push({ name, document });
+            const declaredFields = curatedCatalog.componentFields(document.type);
+            if (!declaredFields) throw new Error('coverage_component_catalog_invalid');
+            const effectiveFields = LumenNativeMeshPropertySchema.forVersion(
+                LumenCocosVersion.parse(options.creatorVersion), document.type, declaredFields);
+            componentSources.push({ name, document: { catalog: document, effectiveFields } });
             targets.push(this.target(`component:${document.type}`, 'component', document.type,
                 ['add', 'get', 'set', 'bind', 'remove', 'save', 'reopen']));
-            this.fields(curatedCatalog.componentFields(document.type), `component:${document.type}`, targets, options.creatorVersion);
+            this.fields(effectiveFields, `component:${document.type}`, targets, options.creatorVersion);
         }
         this.fields(curatedCatalog.nodeFields(), 'node:cc.Node', targets, options.creatorVersion);
         const embeddedSources = readdirSync(join(schemaRoot, 'types')).filter((name) => name.endsWith('.json')).sort()
@@ -112,6 +118,9 @@ export class CoverageInventoryReader {
             { id: `creator/${options.creatorVersion}/engine-package`, kind: 'source_declaration', creatorVersion: options.creatorVersion, sha256: CoverageManifestGenerator.digest(enginePackage) },
             { id: 'product/assets.json', kind: 'product_catalog', creatorVersion: null, sha256: CoverageManifestGenerator.digest(assetDocument) },
             { id: 'product/components', kind: 'product_catalog', creatorVersion: null, sha256: CoverageManifestGenerator.digest(componentSources) },
+            { id: 'product/native-component-field-overlay', kind: 'product_catalog', creatorVersion: null,
+                sha256: CoverageManifestGenerator.digest(readFileSync(join(options.repositoryRoot,
+                    'packages/engine/modules/lumen/source/schema/native-mesh-property-schema.ts'), 'utf8')) },
             { id: 'product/embedded-types', kind: 'product_catalog', creatorVersion: null, sha256: CoverageManifestGenerator.digest(embeddedSources) },
             { id: 'product/node.json', kind: 'product_catalog', creatorVersion: null, sha256: CoverageManifestGenerator.digest(nodeDocument) },
             { id: 'product/meta-importers.json', kind: 'product_catalog', creatorVersion: null, sha256: CoverageManifestGenerator.digest(metaImporters) },
