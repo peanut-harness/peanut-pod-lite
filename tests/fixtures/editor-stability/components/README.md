@@ -58,3 +58,7 @@ node --import tsx tests/fixtures/editor-stability/components/component-catalog-c
 新实机阶段使用 `component-native-project.mts ... --sprite-roundtrip`，仅暂存本阶段Sprite/Texture2D与两个真实场景，保留完整资源分母20的说明；不重复触发已知3.8.3 HDR工具失败，也不把本分片计为全资源矩阵通过。候选必须与当前Git HEAD一致，原始510400c场景输入仅作已审计源，不能替代新候选身份。
 
 在Host和导入完成后先运行 `component-native-read.mts --project <新工程>`，再执行 `component-native-roundtrip.mts --project <新工程>`。后者经真实MCP加UIOpacity、改opacity、改Sprite.grayscale并绑定实际SpriteFrame，逐步commit/preview.refresh，再使用scene.open进行原生重开和公开getter读回；移除UIOpacity后切换到控制场景再重开，核对组件消失、资源身份和落盘SHA。观测扩展只读，全部写通过6项受管能力。尚未执行或失败的回执不能计为原生通过。
+
+预览安全暂停：旧矩阵逐字段调用preview.refresh导致重复open-terminal，原始日志和中断报告保留。矩阵的preview-refresh入口继续禁用，commit不再刷新浏览器。`component-preview-safety.mts --project <新工程>` 是独立安全分片：真实候选、浏览器标签只读计数、query不打开窗口及最多三次refresh均需核对；未知状态立即停止，不重放写入。
+
+仅安全验收回执真实通过后才登记 `evidence/task-5.1/preview-safety-approved-<version>.json`。矩阵拒绝缺失或不匹配候选、Host/Core摘要的回执。`component-native-matrix.mts` 保留99组件/795字段分母，逐根字段验证避免别名覆盖，记录原生getter或有精确SDK源码证明的原生序列化槽；后端候选、Tiled源拥有层次、蒙皮和管线条件不会被暂存提升为原生通过。

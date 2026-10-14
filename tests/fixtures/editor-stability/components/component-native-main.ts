@@ -2,6 +2,7 @@ import * as http from 'node:http';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as crypto from 'node:crypto';
+import { EditorMcpPreviewWindowInspector } from '../../../../packages/engine/modules/mcp/src/editor-mcp-preview-window-inspector';
 
 /**
  * @description 隔离工程内的有界原生观测入口；不提供任意消息或代码执行接口。
@@ -59,7 +60,7 @@ class ComponentNativeMain {
     /**
      * @description 仅允许实际工程的健康信息、资源查询与已登记场景观测。
      */
-    private static async call(body: { action: string; uuid?: string; scope?: string }): Promise<unknown> {
+    private static async call(body: { action: string; uuid?: string; scope?: string; nodeSuffix?: string; componentType?: string; inspectWindows?: boolean }): Promise<unknown> {
         const editor = Reflect.get(globalThis, 'Editor');
         if (typeof editor?.Message?.request !== 'function') throw new Error('component_native_message_api_missing');
         const request = editor.Message.request.bind(editor.Message);
@@ -76,6 +77,15 @@ class ComponentNativeMain {
             if (body.scope !== undefined && body.scope !== 'components') throw new Error('component_native_asset_scope_invalid');
             return request('asset-db', 'query-assets', { pattern: body.scope === 'components' ? 'db://assets/components/**' : 'db://assets/fixtures/**' });
         }
+        if (body.action === 'preview-state') {
+            const inspector = new EditorMcpPreviewWindowInspector({
+                request: async (target, message, ...args) => request(target, message, ...args),
+            });
+            return { connectedPreviewCount: await request('preview', 'query-connect-num'),
+                previewUrl: await request('preview', 'query-preview-url'),
+                platform: await editor.Profile.getConfig('preview', 'preview.current.platform', 'global'),
+                matchingBrowserTabs: body.inspectWindows === true ? await inspector.countMatchingTabs() : null };
+        }
         if (body.action === 'load-asset') {
             if (typeof body.uuid !== 'string') throw new Error('component_native_uuid_missing');
             const info = await request('asset-db', 'query-asset-info', body.uuid);
@@ -87,6 +97,12 @@ class ComponentNativeMain {
         if (body.action === 'scene-snapshot') return request('scene', 'execute-scene-script', {
             name: 'peanut-component-probe', method: 'snapshot', args: [],
         });
+        if (body.action === 'component-fields') {
+            if (typeof body.nodeSuffix !== 'string' || body.nodeSuffix.length > 256 || typeof body.componentType !== 'string'
+                || !/^[a-zA-Z0-9_.]{1,100}$/u.test(body.componentType)) throw new Error('component_native_field_input_invalid');
+            return request('scene', 'execute-scene-script', { name: 'peanut-component-probe', method: 'fields',
+                args: [body.nodeSuffix, body.componentType] });
+        }
         throw new Error('component_native_action_not_allowed');
     }
 }

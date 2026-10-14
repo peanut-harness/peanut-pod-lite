@@ -7,13 +7,19 @@ import { buildSync } from 'esbuild';
 import { PackagingApp } from '../../../../packages/engine/modules/installation/src/app/packaging-app.ts';
 import { ComponentResourceBindings } from './component-resource-bindings.mts';
 import { verifyReleaseCandidate } from '../../../../tools/release-candidate.mts';
+import { ComponentCatalogAudit } from './component-catalog-audit.mts';
+import { ComponentFieldFixtures } from './component-field-fixtures.mts';
+import { ComponentSceneFixture } from './component-scene-fixture.mts';
+import { LumenCocosVersion } from '../../../../packages/engine/modules/lumen/source/schema/cocos-version.ts';
+import { ComponentNativeFieldContract } from './component-native-field-contract.mts';
 
 const root = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
 const args = process.argv.slice(2);
 const version = args[args.indexOf('--creator-version') + 1];
 const app = args[args.indexOf('--creator-app') + 1];
 const runId = args[args.indexOf('--run-id') + 1];
-const fixtureProfile = args.includes('--sprite-roundtrip') ? 'sprite-roundtrip' : 'resource-import';
+const fixtureProfile = args.includes('--component-matrix') ? 'component-matrix'
+    : args.includes('--sprite-roundtrip') ? 'sprite-roundtrip' : 'resource-import';
 if (!['3.8.3', '3.8.7'].includes(version ?? '') || !app || !runId || !/^[a-z0-9][a-z0-9-]{1,63}$/u.test(runId)) throw new Error('component_native_project_arguments_invalid');
 if (version !== '3.8.3' && version !== '3.8.7') throw new Error('component_native_version_unsupported');
 const resources = join(realpathSync(app), 'Contents/Resources');
@@ -51,7 +57,8 @@ for (const [input, destination] of [['component-native-main.ts', 'main.js'], ['c
 }
 const allBindings = ComponentResourceBindings.create(root, version);
 const bindings = fixtureProfile === 'sprite-roundtrip' ? Object.fromEntries(Object.entries(allBindings).filter(([type]) =>
-    type === 'cc.SpriteFrame' || type === 'cc.Texture2D')) : allBindings;
+    type === 'cc.SpriteFrame' || type === 'cc.Texture2D')) : fixtureProfile === 'component-matrix' && version === '3.8.3'
+    ? Object.fromEntries(Object.entries(allBindings).filter(([type]) => type !== 'cc.TextureCube')) : allBindings;
 const sources = new Map(Object.values(bindings).flatMap((binding) => binding.sources).map((item) => [item.path, item]));
 const ids = new Map<string, string>();
 const collect = (value: unknown): void => {
@@ -106,8 +113,27 @@ const sceneSource = join(root, `evidence/task-5.1/checkpoint-510400c-${version}/
 mkdirSync(join(project, 'assets/components'), { recursive: true }); copyFileSync(sceneSource, join(project, 'assets/components/cc.Sprite.scene'));
 const controlSource = join(root, `evidence/task-5.1/checkpoint-510400c-${version}/assets/components/cc.UIOpacity.scene`);
 copyFileSync(controlSource, join(project, 'assets/components/cc.UIOpacity.scene'));
+let matrixStaging: unknown = null;
+if (fixtureProfile === 'component-matrix') {
+    const audit = ComponentCatalogAudit.create(root, engine, version);
+    ComponentCatalogAudit.validate(JSON.parse(readFileSync(join(root, `tests/fixtures/editor-stability/components/${version}/component-assembly-audit.json`), 'utf8')), audit);
+    const fields = ComponentFieldFixtures.create(root, version, audit.nativeDeclarations);
+    const rows = fields.components.map((row) => {
+        const assembled = ComponentSceneFixture.create(root, version, row, audit.nativeDeclarations, true);
+        if (assembled.status === 'blocked') return { componentType: row.componentType, status: 'blocked', blockers: assembled.blockers };
+        assembled.document.save(project, false, LumenCocosVersion.parse(version));
+        return { componentType: row.componentType, status: assembled.status, pendingRequirements: assembled.pendingRequirements,
+            targetPath: assembled.targetPath, nodePaths: assembled.nodePaths, scenePath: assembled.document.relativePath,
+            stagedSha256: createHash('sha256').update(readFileSync(join(project, assembled.document.relativePath))).digest('hex'),
+            fieldStates: assembled.fieldStates };
+    });
+    matrixStaging = { creatorVersion: version, componentCount: fields.componentCount, fieldCount: fields.fieldCount, rows, nativePassedRows: 0 };
+    writeFileSync(join(output, 'component-matrix-staging.json'), JSON.stringify(matrixStaging, null, 2) + '\n', { flag: 'wx' });
+    const contract = ComponentNativeFieldContract.create(root, engine, fields, audit.nativeDeclarations);
+    writeFileSync(join(probe, 'public-field-contract.json'), JSON.stringify(contract) + '\n', { flag: 'wx' });
+}
 writeFileSync(join(output, 'staging-receipt.json'), JSON.stringify({ creatorVersion: version, candidateSourceCommit: descriptor.sourceCommit,
-    fixtureProfile, fullResourceTypeCount: Object.keys(allBindings).length,
+    fixtureProfile, matrixStaging, fullResourceTypeCount: Object.keys(allBindings).length,
     hierarchySources: [sceneSource, controlSource].map((path) => ({ path, sha256: createHash('sha256').update(readFileSync(path)).digest('hex') })),
     bindings, staged, importMetaAuthoring, authoringUuidRemaps: Object.fromEntries(ids), nativeRegistrationVerified: false,
     scope: '源与meta只在本新隔离副本重映射；UUID必须从真实AssetDB重新取得' }, null, 2) + '\n');

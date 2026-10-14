@@ -77,6 +77,14 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
         for (const [type, blocker] of Object.entries(examples)) {
             const result = create(type); assert.equal(result.status, 'blocked'); assert.ok(result.blockers.includes(blocker));
         }
+        const physicsCandidate = ComponentSceneFixture.create(root, version, component('cc.BoxCollider'), audit.nativeDeclarations, true);
+        assert.equal(physicsCandidate.status, 'staged-backend-pending');
+        if (physicsCandidate.status === 'blocked') throw new Error('expected_staged_candidate');
+        assert.deepEqual(physicsCandidate.pendingRequirements, ['active-physics-backend-unverified:bullet']);
+        assert.equal(physicsCandidate.nativePassed, false);
+        const tiledCandidate = ComponentSceneFixture.create(root, version, component('cc.TiledLayer'), audit.nativeDeclarations, true);
+        assert.equal(tiledCandidate.status, 'blocked');
+        assert.ok(tiledCandidate.blockers.includes('source-owned-tiled-not-initialized'));
         const forged = structuredClone(component('cc.RigidBody'));
         forged.assemblyRequirements.physicsBackend = null;
         assert.throws(() => ComponentSceneFixture.create(root, version, forged, audit.nativeDeclarations), /component_scene_requirements_stale/u);

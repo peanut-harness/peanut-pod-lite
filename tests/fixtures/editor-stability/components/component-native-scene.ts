@@ -1,3 +1,5 @@
+import { ComponentNativeFieldReader } from './component-native-field-reader';
+
 /**
  * @description 运行于目标 Creator 场景进程；返回纯 JSON，绝不传输引擎对象。
  */
@@ -57,4 +59,5 @@ class ComponentNativeScene {
     }
 }
 
-export const methods = { loadAsset: ComponentNativeScene.loadAsset, snapshot: ComponentNativeScene.snapshot };
+export const methods = { loadAsset: ComponentNativeScene.loadAsset, snapshot: ComponentNativeScene.snapshot,
+    fields: (nodeSuffix: string, componentType: string) => ComponentNativeFieldReader.read(nodeSuffix, componentType) };

@@ -26,10 +26,11 @@ export class ComponentSceneFixture {
      * @param version 精确 Creator 版本。
      * @param row 当前组件字段配方。
      * @param declarations 同版本声明和 requireComponent 证明。
+     * @param stageBackendCandidates 仅暂存后端待验候选；不解除原生验收要求。
      * @returns 实际场景或完整阻塞原因；没有原生通过状态。
      */
     public static create(root: string, version: '3.8.3' | '3.8.7', row: ComponentFixtureRow,
-        declarations: readonly IComponentNativeDeclaration[]) {
+        declarations: readonly IComponentNativeDeclaration[], stageBackendCandidates = false) {
         const plan = ComponentDependencyPlanner.create(row.componentType, declarations, row.dependencyProviders);
         if (JSON.stringify(plan) !== JSON.stringify(row.dependencyPlan)) throw new Error('component_scene_dependency_plan_stale');
         const requirements = ComponentAssemblyRequirements.create(row.componentType, declarations.find((item) => item.type === row.componentType));
@@ -37,8 +38,10 @@ export class ComponentSceneFixture {
         const blockers = [...plan.blockers];
         if (requirements.sourceOwnedTiledComponent) blockers.push('source-owned-tiled-not-initialized');
         if (requirements.importedSkinnedHierarchy) blockers.push('same-source-skinned-hierarchy-not-imported');
-        if (requirements.physicsBackend) blockers.push(`active-physics-backend-unverified:${requirements.physicsBackend}`);
-        if (requirements.highQualityRenderPipeline) blockers.push('active-high-quality-render-pipeline-unverified');
+        const pendingRequirements: string[] = [];
+        if (requirements.physicsBackend) pendingRequirements.push(`active-physics-backend-unverified:${requirements.physicsBackend}`);
+        if (requirements.highQualityRenderPipeline) pendingRequirements.push('active-high-quality-render-pipeline-unverified');
+        if (!stageBackendCandidates) blockers.push(...pendingRequirements);
         if (blockers.length) return { status: 'blocked' as const, componentType: row.componentType, blockers, nativePassed: false as const };
         const template = this.template(root, version);
         if (!/^[a-zA-Z0-9_.]+$/u.test(row.componentType)) throw new Error('component_scene_type_invalid');
@@ -121,7 +124,8 @@ export class ComponentSceneFixture {
             written.add(rootField);
         }
         ComponentSceneIntegrity.assert(document);
-        return { status: 'assembled' as const, componentType: row.componentType, document, targetPath,
+        return { status: pendingRequirements.length ? 'staged-backend-pending' as const : 'assembled' as const,
+            componentType: row.componentType, document, targetPath, pendingRequirements,
             nodePaths: Object.fromEntries(paths), template, blockers: [], fieldStates,
             resourceFieldsBound: false as const, nativePassed: false as const };
     }

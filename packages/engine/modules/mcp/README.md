@@ -8,6 +8,8 @@
 - **Hub MCP 工具（一级铺平）：** 每个 operation 一个带命名空间的一级工具 `peanut.editor-mcp.<op-kebab>`（如 `editor-query-version`、`asset-import`、`lumen-comp-set`、`lumen-node-rm`），各带精确 `inputSchema`；**不再有** `capabilities/plan/query/call` 通用入口，也不再把 operation 藏进 payload。MCP 客户端直接按工具名调用，输入即该 operation 的原始入参（写/删的 `confirmDestructive`、批准 `approvalToken` 一并放在该工具输入里）。
 - 操作：… **preview query/refresh/errors**、**queryCompatibleTypes**、builder、lumen、导入账本
 - **验收路径：** `validateRefs` → `preview.refresh` → `preview.queryErrors`
+
+`preview.query` 只读，不启动预览。`preview.refresh` 先检查当前 Creator 的实际预览连接；已有连接时只刷新。零连接时还须确认当前工程对应的浏览器标签不存在，才请求一次打开；窗口读取权限不足、平台不支持或刷新中断线都保持未知，不盲目重开。并发请求串行，同一宿主会话的打开请求至多一次，失败也不自动重试。`refreshAssets:false` 仅控制 AssetDB 刷新，不是开窗开关。
 - **整包规划：** [`docs/LUMEN-ROADMAP.md`](./docs/LUMEN-ROADMAP.md)
 
 ## 资产目录快查（给 AI 用）
