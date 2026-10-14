@@ -3,16 +3,17 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import test from 'node:test';
+import { runInNewContext } from 'node:vm';
 
 import { createPluginModule, EditorMcpActionRouter, EditorMcpLumenGateway, EditorMcpPluginModule } from '../dist/index.js';
 import { EditorMcpPreviewGateway } from '../dist/editor-mcp-preview-gateway.js';
 import { EditorMcpPreviewWindowInspector } from '../dist/editor-mcp-preview-window-inspector.js';
 
-test('physical preview inspection uses the actual Creator local platform setting and read-only commands', { skip: process.platform !== 'darwin' }, async () => {
+test('physical preview inspection uses resolved Creator settings and the configured browser only', { skip: process.platform !== 'darwin' }, async () => {
     const previous = Object.getOwnPropertyDescriptor(globalThis, 'Editor');
     const calls = []; let platform = 'browser';
     Object.defineProperty(globalThis, 'Editor', { configurable: true, value: { Profile: {
-        getConfig: async (...args) => { calls.push(args); return args[2] === 'local' ? platform : undefined; },
+        getConfig: async (...args) => { calls.push(args); assert.equal(args.length, 2); return args[0] === 'preview' ? platform : { path: '/Applications/Google Chrome.app' }; },
     } } });
     try {
         const inspector = new EditorMcpPreviewWindowInspector({ request: async (...args) => {
@@ -21,10 +22,11 @@ test('physical preview inspection uses the actual Creator local platform setting
         const commands = [];
         inspector._exec = async (file, args) => { commands.push({ file, args }); return file.endsWith('lsof') ? 'owned listener' : '1'; };
         assert.equal(await inspector.inspect(), 'exists');
-        assert.deepEqual(calls, [['preview', 'preview.current.platform', 'local'], ['preview', 'query-preview-url']]);
+        assert.deepEqual(calls, [['preview', 'preview.current.platform'], ['program', 'browserV2'], ['preview', 'query-preview-url']]);
         assert.deepEqual(commands.map(command => command.file), ['/usr/sbin/lsof', '/usr/bin/osascript']);
         assert.ok(commands[0].args.includes(String(process.pid)));
         assert.ok(commands[0].args.includes('-iTCP:7459'));
+        assert.equal(commands[1].args.at(-1), '/Applications/Google Chrome.app');
         platform = undefined; commands.length = 0;
         assert.equal(await inspector.inspect(), 'unknown');
         assert.equal(commands.length, 0);
@@ -32,6 +34,64 @@ test('physical preview inspection uses the actual Creator local platform setting
         if (previous) Object.defineProperty(globalThis, 'Editor', previous);
         else delete globalThis.Editor;
     }
+});
+
+test('unknown or malformed browser configuration cannot fall back to a different browser', { skip: process.platform !== 'darwin' }, async () => {
+    const previous = Object.getOwnPropertyDescriptor(globalThis, 'Editor');
+    let config; let commands = 0;
+    Object.defineProperty(globalThis, 'Editor', { configurable: true, value: { Profile: {
+        getConfig: async (name) => name === 'preview' ? 'browser' : config,
+    } } });
+    try {
+        const inspector = new EditorMcpPreviewWindowInspector({ request: async () => 'http://127.0.0.1:7459' });
+        inspector._exec = async () => { commands++; return null; };
+        for (config of [undefined, null, 'Chrome', [], { path: null }, { path: false }, { path: 'Chrome.app' }, { path: '/Applications/browser' }])
+            assert.equal(await inspector.inspect(), 'unknown');
+        assert.equal(commands, 0);
+        for (config of [{}, { path: '' }]) assert.equal(await inspector.inspect(), 'unknown');
+        assert.equal(commands, 2); // listener refusal remains unknown, never an absent window
+    } finally {
+        if (previous) Object.defineProperty(globalThis, 'Editor', previous);
+        else delete globalThis.Editor;
+    }
+});
+
+test('browser reader ignores unrelated Safari and counts only the selected project tabs in one batch', () => {
+    function observe({ configured = '/Applications/Google Chrome.app', defaultBrowser = 'Safari', running = 1, ready = true, refused = false } = {}) {
+        const calls = []; let defaultLookups = 0;
+        const url = (path) => ({ lastPathComponent: path.split('/').at(-1) });
+        const result = runInNewContext(EditorMcpPreviewWindowInspector._script + '\nrun(argv)', {
+            argv: ['7459', JSON.stringify(['localhost', '127.0.0.1']), configured],
+            ObjC: { import: () => undefined, unwrap: value => value },
+            $: {
+                NSURL: { fileURLWithPath: url, URLWithString: value => value },
+                NSWorkspace: { sharedWorkspace: { URLForApplicationToOpenURL: () => { defaultLookups++; return url(defaultBrowser + '.app'); } } },
+                NSBundle: { bundleWithURL: () => ({ bundleIdentifier: 'com.google.Chrome' }) },
+                NSRunningApplication: { runningApplicationsWithBundleIdentifier: identifier => { calls.push(['running', identifier]); return { count: running }; } },
+            },
+            Application: identifier => {
+                assert.equal(identifier, 'com.google.Chrome'); calls.push(['application', identifier]);
+                return { running: () => ready, windows: () => {
+                    if (refused) throw Error('selected_browser_read_refused');
+                    return [{ tabs: { url: () => { calls.push(['batch']); return ['http://localhost:7459/', 'https://127.0.0.1:7459/a',
+                        'http://localhost:7458/', 'http://other-host:7459/', 'about:blank']; } } }];
+                } };
+            },
+        });
+        return { result, calls, defaultLookups };
+    }
+    const selected = observe();
+    assert.equal(selected.result, '2'); assert.equal(selected.defaultLookups, 0);
+    assert.equal(selected.calls.filter(call => call[0] === 'batch').length, 1);
+    assert.deepEqual(selected.calls.filter(call => call[0] === 'application'), [['application', 'com.google.Chrome']]);
+    const absent = observe({ running: 0 });
+    assert.equal(absent.result, '0'); assert.equal(absent.calls.some(call => call[0] === 'application'), false);
+    assert.equal(observe({ running: 2 }).result, 'null');
+    assert.equal(observe({ ready: false }).result, 'null');
+    const fallback = observe({ configured: '', defaultBrowser: 'Google Chrome' });
+    assert.equal(fallback.result, '2'); assert.equal(fallback.defaultLookups, 1);
+    assert.equal(observe({ configured: '/Applications/Unsupported.app' }).result, 'null');
+    assert.throws(() => observe({ refused: true }), /selected_browser_read_refused/);
 });
 
 test('existing preview is queried then refreshed twenty times without opening', async () => {

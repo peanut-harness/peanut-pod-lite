@@ -9,7 +9,7 @@
 - 操作：… **preview query/refresh/errors**、**queryCompatibleTypes**、builder、lumen、导入账本
 - **验收路径：** `validateRefs` → `preview.refresh` → `preview.queryErrors`
 
-`preview.query` 只读，不启动预览。`preview.refresh` 先检查当前 Creator 的实际预览连接；已有连接时只刷新。零连接时还须确认当前工程对应的浏览器标签不存在，才请求一次打开；窗口读取权限不足、平台不支持或刷新中断线都保持未知，不盲目重开。并发请求串行，同一宿主会话的打开请求至多一次，失败也不自动重试。`refreshAssets:false` 仅控制 AssetDB 刷新，不是开窗开关。
+`preview.query` 只读，不启动预览。`preview.refresh` 先检查当前 Creator 的实际预览连接；已有连接时只刷新。零连接时还须确认当前工程在 Creator 所选浏览器中的标签不存在，才请求一次打开。平台和 `program.browserV2` 按 Creator 的 local → global → default 优先级读取；只有未指定浏览器路径时才解析系统默认浏览器。macOS 检查只读取所选浏览器的标签，不枚举其它浏览器，也不激活或启动浏览器。窗口读取权限不足、配置未知、平台不支持或刷新中断线都保持未知，不盲目重开。并发请求串行，同一宿主会话的打开请求至多一次，失败也不自动重试。`refreshAssets:false` 仅控制 AssetDB 刷新，不是开窗开关。
 - **整包规划：** [`docs/LUMEN-ROADMAP.md`](./docs/LUMEN-ROADMAP.md)
 
 ## 资产目录快查（给 AI 用）

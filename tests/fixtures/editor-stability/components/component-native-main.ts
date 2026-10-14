@@ -83,7 +83,8 @@ class ComponentNativeMain {
             });
             return { connectedPreviewCount: await request('preview', 'query-connect-num'),
                 previewUrl: await request('preview', 'query-preview-url'),
-                platform: await editor.Profile.getConfig('preview', 'preview.current.platform', 'local'),
+                platform: await editor.Profile.getConfig('preview', 'preview.current.platform'),
+                browserConfig: await editor.Profile.getConfig('program', 'browserV2'),
                 matchingBrowserTabs: body.inspectWindows === true ? await inspector.countMatchingTabs() : null };
         }
         if (body.action === 'load-asset') {
