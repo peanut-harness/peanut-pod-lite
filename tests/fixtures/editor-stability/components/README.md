@@ -39,3 +39,13 @@ node --import tsx tests/fixtures/editor-stability/components/component-catalog-c
 ```
 
 共享分母的遗漏已通过任务 1.2 修复。旧 coverage 草稿和原始报告保留；新矩阵保存于工作树 evidence。任务 5.3/6 的原生结果必须使用独立重算的新分母，不能将这里的输入配方或序列化读回升级为原生通过。
+
+原生观测使用 `component-native-project.mts` 创建全新的任务工程，核对官方候选的双画像、载荷摘要和源码检查点，通过实际安装事务安装 Core。参数为 `--creator-version`、`--creator-app`、`--run-id`。源文件逐项校验 SHA；cube meta 必须配对在 HDR 副本旁，checker 的 SpriteFrame 导入选项来自精确 SDK，子资源由实际 importer 生成。源及旧报告保持原样。
+
+在输出的 `project/` 内运行 `npm --ignore-scripts=false run creator`，保留 precreator/creator/postcreator。同版本已有其它工程时使用 macOS `open -na` 新实例，并记录实际 Creator PID；`open -W` 仅有启动器退出状态，不能据此宣称 Creator 的退出码为 0。本工程已有实例时拒绝重启，交回会话附着流程。所有二进制 stdout/stderr 和 project.log 完整保留。
+
+`component-native-read.mts --project <隔离工程>` 每次重读私有描述符并核对 PID、启动时间、工程路径和 owner，分别等待 Host 注册和 AssetDB 导入，再按声明源核对资源的实际 UUID、类型和有效性。运行于场景进程的探针只提供资源加载、场景快照和后端观测，没有场景打开或任意消息执行入口。资源加载成功仍不等于组件字段写入、引用绑定、保存重开或零日志通过，`nativePassedRows` 保持 0。
+
+`component-creator-close.mts --project <隔离工程>` 再次核对登记和原始启动身份，仅向该 PID 发正常退出请求并等待实际退出；没有全局退出或强杀接口。实际源码运行环境分别由健康回执记录，观测扩展按 Node 14 编译。
+
+2026-10-14 实机结果：3.8.7 的20种资源均按声明源加载；3.8.3 为19种，HDR 的 cmft 子进程异常退出，TextureCube 阻塞。两版实际物理后端为 Bullet/Box2D；3.8.7 启用 Builtin 自定义管线，3.8.3 仍为 ForwardPipeline。每版9项 MCP 只读调用通过，目录仍仅40项只读能力。现有候选不支持用户授权的6项精确挂接，不能用 `all` 代替；具体缺口保存在 evidence 的挂接调查回执。两版均有原始诊断，尚未验收任何组件原生矩阵行。

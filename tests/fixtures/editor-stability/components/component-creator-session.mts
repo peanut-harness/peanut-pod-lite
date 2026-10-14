@@ -1,0 +1,113 @@
+import { spawn, execFileSync } from 'node:child_process';
+import { readFileSync, writeFileSync, realpathSync, openSync, closeSync } from 'node:fs';
+import { dirname, join, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
+import { verifyReleaseCandidate } from '../../../../tools/release-candidate.mts';
+
+/**
+ * @description 5.1 独占隔离工程的外层 npm 启动入口；记录 PID、启动时间与完整二进制日志。
+ */
+class ComponentCreatorSession {
+    /**
+     * @description 启动前核对工作树内登记、候选、精确版本及同工程进程互斥。
+     */
+    public static preflight(): { registration: Record<string, string>; project: string; output: string; binary: string; sameVersion: boolean } {
+        const repository = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
+        const project = realpathSync(process.cwd()); const output = dirname(project);
+        if (!project.startsWith(`${repository}${sep}evidence${sep}task-5.1${sep}`) || project !== join(output, 'project'))
+            throw new Error('component_creator_project_out_of_scope');
+        const registration = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8')) as Record<string, string>;
+        if (registration.task !== '5.1' || registration.kind !== 'worktree-local-validation-project'
+            || registration.projectPath !== project || registration.owner !== '01a13478-7931-7e82-86a4-f4f2fcd47bb1')
+            throw new Error('component_creator_project_unregistered');
+        const manifest = JSON.parse(readFileSync(join(project, 'package.json'), 'utf8'));
+        const binary = join(registration.creatorApp ?? '', 'Contents/MacOS/CocosCreator');
+        const sdk = join(registration.creatorApp ?? '', 'Contents/Resources/resources/3d/engine/package.json');
+        if (JSON.parse(readFileSync(sdk, 'utf8')).version !== manifest.creator?.version
+            || manifest.creator.version !== registration.creatorVersion) throw new Error('component_creator_exact_version_mismatch');
+        const descriptor = verifyReleaseCandidate(join(repository, 'release/peanut.pod-lite-0.2.0'), {
+            expectedVersion: '0.2.0', expectedSourceCommit: registration.candidateSourceCommit,
+        });
+        if (descriptor.host.sha256 !== registration.hostSha256 || descriptor.core.sha256 !== registration.coreSha256)
+            throw new Error('component_creator_candidate_mismatch');
+        const processes = this.processes();
+        if (processes.some((line) => line.includes(`${binary} --project ${project}`))) throw new Error('creator_project_session_conflict');
+        const sameVersion = processes.some((line) => line.includes(`${binary} --project `));
+        return { registration, project, output, binary, sameVersion };
+    }
+
+    /**
+     * @description 保留 npm pre/post hooks，捕获实际子进程起止与所有原始 stdout/stderr。
+     */
+    public static async launch(): Promise<void> {
+        if (process.env.npm_lifecycle_event !== 'creator' || process.env.npm_config_ignore_scripts === 'true')
+            throw new Error('component_creator_outer_npm_required');
+        const context = this.preflight();
+        const out = openSync(join(context.output, 'stdout.log'), 'wx', 0o600);
+        const err = openSync(join(context.output, 'stderr.log'), 'wx', 0o600);
+        const args = context.sameVersion ? ['-n', '-a', context.registration.creatorApp ?? '', '-W',
+            '--stdout', join(context.output, 'stdout.log'), '--stderr', join(context.output, 'stderr.log'),
+            '--args', '--project', context.project, '--nologin'] : ['--project', context.project, '--nologin'];
+        const child = spawn(context.sameVersion ? '/usr/bin/open' : context.binary, args, {
+            cwd: context.project, stdio: context.sameVersion ? ['ignore', 'ignore', 'ignore'] : ['ignore', out, err], detached: true,
+        });
+        let creatorPid: number | null = null;
+        await new Promise<void>((complete, reject) => {
+            child.once('error', reject);
+            child.once('spawn', () => { void (async (): Promise<void> => {
+                if (!child.pid) throw new Error('component_creator_pid_missing');
+                let identity: string | undefined;
+                const until = Date.now() + 30000;
+                do {
+                    const matches = this.processes().filter((line) => context.sameVersion
+                        ? line.includes(` ${context.binary} --project ${context.project} --nologin`)
+                        : new RegExp(`^\\s*${child.pid}\\s`, 'u').test(line));
+                    if (matches.length > 1) throw new Error('component_creator_start_identity_ambiguous');
+                    identity = matches[0];
+                    if (identity) break;
+                    if (Date.now() >= until) throw new Error('component_creator_start_identity_missing');
+                    await new Promise((done) => setTimeout(done, 250));
+                } while (true);
+                if (!identity.includes(context.binary) || !identity.includes(context.project)) throw new Error('component_creator_start_identity_missing');
+                creatorPid = Number(/^\s*(\d+)\s/u.exec(identity)?.[1]);
+                if (!Number.isInteger(creatorPid) || creatorPid <= 0) throw new Error('component_creator_pid_missing');
+                writeFileSync(join(context.output, 'creator-owned-start.json'), JSON.stringify({
+                    owner: context.registration.owner, runId: context.registration.runId, pid: creatorPid,
+                    launcherPid: child.pid, launchMethod: context.sameVersion ? 'open-new-instance-wait' : 'direct-binary',
+                    project: context.project, creatorVersion: context.registration.creatorVersion, identity,
+                    executableSha256: createHash('sha256').update(readFileSync(context.binary)).digest('hex'),
+                    startedAt: new Date().toISOString(), candidateSourceCommit: context.registration.candidateSourceCommit,
+                }, null, 2) + '\n', { flag: 'wx' });
+                process.stdout.write(`component_creator_owned_pid:${creatorPid}\n`);
+            })().catch(reject); });
+            child.once('close', (code, signal) => {
+                closeSync(out); closeSync(err);
+                writeFileSync(join(context.output, 'creator-owned-exit.json'), JSON.stringify({
+                    pid: creatorPid, launcherPid: child.pid, code, signal,
+                    creatorExitCode: context.sameVersion ? null : code,
+                    exitCodeScope: context.sameVersion ? 'open-wait-launcher-only' : 'creator-process',
+                    endedAt: new Date().toISOString(), nativeAcceptance: false,
+                }, null, 2) + '\n', { flag: 'wx' });
+                if (code !== 0 || signal !== null) process.exitCode = 1;
+                complete();
+            });
+        });
+    }
+
+    /**
+     * @description 只读进程文本，所有终止逻辑必须另行核对这份启动身份。
+     */
+    private static processes(): string[] {
+        return execFileSync('/bin/ps', ['-axo', 'pid=,ppid=,lstart=,args=', '-ww'], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }).split('\n');
+    }
+}
+
+const phase = process.argv[process.argv.indexOf('--phase') + 1];
+if (phase === 'preflight') { ComponentCreatorSession.preflight(); process.stdout.write('component_creator_preflight_passed\n'); }
+else if (phase === 'launch') await ComponentCreatorSession.launch();
+else if (phase === 'post') {
+    const result = JSON.parse(readFileSync(resolve('..', 'creator-owned-exit.json'), 'utf8'));
+    if (result.code !== 0 || result.signal !== null) throw new Error('component_creator_exit_not_normal');
+    process.stdout.write('component_creator_post_hook_passed\n');
+} else throw new Error('component_creator_phase_required');

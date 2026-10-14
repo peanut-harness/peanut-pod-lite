@@ -26,7 +26,7 @@
 
 ## 5. 组件与代码矩阵
 
-- [ ] 5.1 `[peanut-pod-lite:tests/fixtures/editor-stability/components/** | serial | depends:1.2,4.1,4.2 | owner:01a13478-7931-7e82-86a4-f4f2fcd47bb1 | requirements:editor-operation-stability#Components survive native loading and property changes,editor-operation-stability#Coverage is exhaustive and version specific | non-goals:只生成版本化组件依赖、公开字段与引用夹具及离线校验；不改共享schema、分母、原工程或旧报告；不把离线序列化当Creator实机通过；不实现5.2或发布]` 为版本化组件目录生成真实依赖装配、公开字段值和引用夹具，覆盖全部适用字段类型及增删改保存重开；依赖：1.2、4.1、4.2；验收：99 项策展目录与实际版本差异可查，依赖组件、物理/UI/动画后端有效，缺字段用例使覆盖校验失败。
+- [ ] 5.1 `[peanut-pod-lite:tests/fixtures/editor-stability/components/** | serial | depends:1.2,4.1,4.2 | owner:01a13478-7931-7e82-86a4-f4f2fcd47bb1 | requirements:editor-operation-stability#Components survive native loading and property changes,editor-operation-stability#Coverage is exhaustive and version specific | non-goals:生成版本化组件依赖、公开字段与引用夹具，并按用户2026-10-14本轮明确授权补真实导入、后端确认与原生加载验证；仅本工作树登记的新隔离工程，按Hub外层npm入口启动并只关闭本任务核实所属实例；绑定510400c本树候选；不改共享schema、分母、Creator安装包、原工程或旧报告；不把离线序列化当Creator实机通过；不实现5.2或发布]` 为版本化组件目录生成真实依赖装配、公开字段值和引用夹具，覆盖全部适用字段类型及增删改保存重开；依赖：1.2、4.1、4.2；验收：99 项策展目录与实际版本差异可查，依赖组件、物理/UI/动画后端有效，缺字段用例使覆盖校验失败。
 - [ ] 5.2 增加 TypeScript/JavaScript 单文件和跨文件模块、组件字段与引用变更的代码夹具及实际 Creator 编译/预览就绪探针；依赖：3.5、5.1；验收：文本读回、脚本 UUID、真实编译、原生组件绑定、预览加载均检查，故障注入和有效零日志 campaign 分开记录。
 - [ ] 5.3 将组件/代码矩阵与资源 runner、raw 日志和 coverage validator 集成，修复全部实际发现的操作错误；依赖：2.2、4.3、5.1、5.2；验收：离线定向回归和实机定向分片零缺口、零非预期失败；影响共享 schema 的修复由 checkpoint owner 串行审阅。
 
@@ -45,6 +45,8 @@
 ## 8. Execution Notes
 
 2026-10-14：5.1继续离线装配，新增实际Scene生成、逐字段状态报告及独立双向图校验。3.8.3生成53个场景／写入498字段，3.8.7生成55个场景／写入502字段；每版39字段等待真实导入或预览URL，另5字段保留公共API预期拒绝。两版分别46／44组件、253／249字段因原生层次、后端或缺声明阻塞；795字段分母完整保留。组件定向33测试通过，覆盖保存重开、移除后保存重开、真实场景内引用与事件控制器及断链拒绝；实际安装包独立生成/--check均通过。原生通过仍为0，5.1保持未完成；当前新增源码的canonical verify须在获准的新clean检查点后运行，不能复用33ecee1的1210测试宣称新tree完整通过。
+
+2026-10-14：按用户授权继续5.1原生阶段，新增隔离工程安装、外层npm启动、fresh PID/owner核对、原生资源加载和正常关闭工具。绑定510400c官方候选；3.8.7实测20/20种资源，3.8.3实测19/20，后者HDR导入时自带cmft异常退出，保留原始日志。两版Bullet/Box2D确认；3.8.7实际启用Builtin自定义管线，3.8.3仍为ForwardPipeline；PhysX未确认。两版各9项MCP只读调用通过，目录仍40项只读、写暴露为空。当前产品缺少6项按名称与资源范围精确挂接接口，用户授权不能转换为开启all。3.8.3预览首页和监听归属确认，但视频源URL为404。组件字段增删改、资源绑定、保存重开、原生层次和零诊断验收仍未完成，nativePassedRows=0；5.1不勾选。当前新增工具的完整verify仍须新clean检查点，额外严格类型检查有32条导入旧工具的既有诊断，组件自有源码诊断为0。
 
 任务 1.1、1.2、3.1 与 3.2 已通过各自离线验收，其余实现任务未完成。3.2 已装配 SDK 调用上下文、真实 Hub revision/writer 屏障、与 managed executor 相同资源锁、完整逐项失败结果及传输输出校验；A1 修复观察异常及终态任务复用遗留屏障，并限制早到终态缓存仅存在于真实 managed receipt 窗口。源 223 项定向回归与 4 项原始探针通过，总管独立复测 46 项和同一 4 项探针通过（存在覆盖重叠，不相加为独立用例数）。原始失败证据保留；31 项既有 Kernel 测试严格类型诊断未变化，无新增租约类型错误。Node25 执行与 ES2017 构建不代表 Node14 或新 Creator 实机验证。实施前逐 task id 发包，声明依赖、owned paths、非目标和验收。4.1/4.2 可在 1.2 完成、夹具格式确认、宿主可用且路径无重叠后评估临时子 Agent；共享目录/schema、runner、构建、Git、知识、Creator 实机和性能测量保持串行。上述候选 lane 不是已经执行或批准的并行登记。
 
