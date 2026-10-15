@@ -59,9 +59,10 @@ export class ComponentPresentationFixture {
     public static create(engine: string, version: '3.8.3' | '3.8.7', row: ComponentRow) {
         const type = row.componentType; const req = row.assemblyRequirements;
         const container = type === 'cc.UIStaticBatch';
+        const uiModel = type === 'cc.UIMeshRenderer';
         const ui = this._ui[type] ?? (type === 'cc.Sorting2D' ? 'Sprite' : this._uiCarriers.has(type) ? 'Label' : null);
         const physics = req.physicsBackend != null;
-        const cube = ['cc.MeshRenderer', 'cc.Sorting', 'cc.LODGroup'].includes(type) || physics;
+        const cube = ['cc.MeshRenderer', 'cc.Sorting', 'cc.LODGroup'].includes(type) || physics || uiModel;
         const reasons = [...row.dependencyPlan.blockers];
         if (!row.dependencyPlan.attachOrder.includes(type)) reasons.push('presentation-native-component-unavailable');
         if (req.highQualityRenderPipeline) reasons.push('presentation-active-pipeline-and-effect-context-required');
@@ -77,13 +78,18 @@ export class ComponentPresentationFixture {
             sources.push({ path, sha256: createHash('sha256').update(readFileSync(path)).digest('hex') });
             return path;
         };
-        const is2d = !!ui || req.physicsBackend === 'box2d' || type === 'cc.Canvas';
+        const is2d = !!ui || req.physicsBackend === 'box2d' || type === 'cc.Canvas' || uiModel;
         const document = LumenPrefabDocument.cloneFromTemplate(`assets/components/${type}.scene`,
             source(`default_file_content/scene/${is2d ? 'scene-2d' : 'default'}.scene`), 'Root');
         document.setPropertySchema(new LumenComponentPropertySchema(LumenCocosVersion.parse(version)));
         const parent = is2d ? '/Root/Canvas' : '/Root';
         const targetPath = type === 'cc.Canvas' ? parent : container ? document.addChildFromSpec(parent, { name: 'Target', components: ['cc.UITransform'] }) : document.addChildFromTemplate(parent,
-            source(`default_prefab/${is2d ? 'ui/' + (ui ?? 'Sprite') : '3d/Cube'}.prefab`), 'Target');
+            source(`default_prefab/${is2d && !uiModel ? 'ui/' + (ui ?? 'Sprite') : '3d/Cube'}.prefab`), 'Target');
+        if (uiModel) {
+            document.attachBuiltinComponent(targetPath, 'cc.UITransform');
+            document.setNodeProperty(targetPath, { layer: 33554432, scale: { x: 160, y: 160, z: 160 }, euler: { x: 15, y: 30, z: 0 } });
+            document.setComponentProperty(targetPath, 'cc.UITransform', { width: 240, height: 240 });
+        }
         for (const dependency of row.dependencyPlan.attachOrder) {
             const node = document.findNodeIndex(targetPath);
             if (!document.entries.some(entry => entry.__type__ === dependency &&

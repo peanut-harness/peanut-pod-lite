@@ -45,7 +45,7 @@ class ComponentNativeScene {
     }
 
     /**
-     * @description 读取本阶段实际Sprite和UIOpacity的公开getter，返回纯JSON身份与值。
+     * @description 读取Sprite、UIOpacity和UI模型载体的公开getter，返回纯JSON身份与值，不创建材质实例。
      * @param component 当前原生组件。
      * @returns 有界字段观测或null。
      */
@@ -53,6 +53,17 @@ class ComponentNativeScene {
         const cc = require('cc');
         const type = cc.js.getClassName(component);
         if (type === 'cc.UIOpacity') return { opacity: Reflect.get(component, 'opacity') };
+        if (type === 'cc.UIMeshRenderer') {
+            const model: unknown = Reflect.get(component, 'modelComponent');
+            if (!model || typeof model !== 'object') return { modelPresent: false };
+            const mesh: unknown = Reflect.get(model, 'mesh'); const materials: unknown = Reflect.get(model, 'sharedMaterials');
+            const asset = (value: unknown): unknown => value && typeof value === 'object'
+                ? { uuid: Reflect.get(value, '_uuid'), type: cc.js.getClassName(value), valid: cc.isValid(value) } : null;
+            return { modelPresent: true, modelType: cc.js.getClassName(model), modelValid: cc.isValid(model),
+                modelNodeMatches: Reflect.get(model, 'node') === Reflect.get(component, 'node'),
+                modelEnabled: Reflect.get(model, 'enabled'), mesh: asset(mesh),
+                sharedMaterials: Array.isArray(materials) ? materials.map(asset) : null };
+        }
         if (type !== 'cc.Sprite') return null;
         const frame = Reflect.get(component, 'spriteFrame'); const color = Reflect.get(component, 'color');
         return { grayscale: Reflect.get(component, 'grayscale'), color: color ? { r: color.r, g: color.g, b: color.b, a: color.a } : null,

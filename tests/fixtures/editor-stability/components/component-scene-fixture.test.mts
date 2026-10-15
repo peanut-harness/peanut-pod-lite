@@ -33,7 +33,24 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
         assert.equal(result.document.entries[sorting]?._sortingLayer, 0);
         const declarations = audit.nativeDeclarations.map(item => item.type === 'cc.MeshRenderer'
             ? { ...item, baseTypes: item.baseTypes.filter(type => type !== 'cc.ModelRenderer') } : item);
-        assert.throws(() => ComponentSceneFixture.create(root, version, component('cc.Sorting'), declarations), /sorting_renderer_source_missing/);
+        assert.throws(() => ComponentSceneFixture.create(root, version, component('cc.Sorting'), declarations), /model_renderer_source_missing/);
+    });
+    test(`${version} UI model has a same-node renderer and UITransform before loading under Canvas`, () => {
+        const result = create('cc.UIMeshRenderer');
+        assert.notEqual(result.status, 'blocked'); if (result.status === 'blocked') return;
+        assert.equal(result.targetPath, '/Root/Canvas/Target');
+        const node = result.document.findNodeIndex(result.targetPath);
+        const target = result.document.findComponentIndex(node, 'cc.UIMeshRenderer');
+        assert(result.document.findComponentIndex(node, 'cc.MeshRenderer') < target);
+        assert(result.document.findComponentIndex(node, 'cc.UITransform') < target);
+        assert.equal(result.document.entries[node]?._layer, 33554432);
+        assert.equal(component('cc.UIMeshRenderer').cases.length, 0);
+        const declarations = audit.nativeDeclarations.map(item => item.type === 'cc.MeshRenderer'
+            ? { ...item, baseTypes: item.baseTypes.filter(type => type !== 'cc.ModelRenderer') } : item);
+        assert.throws(() => ComponentSceneFixture.create(root, version, component('cc.UIMeshRenderer'), declarations), /model_renderer_source_missing/);
+        const forged = structuredClone(component('cc.UIMeshRenderer'));
+        forged.assemblyRequirements.uiScene = false;
+        assert.throws(() => ComponentSceneFixture.create(root, version, forged, audit.nativeDeclarations), /requirements_stale/);
     });
     test(`${version} official scene assembly preserves dependencies and references after save/reopen/removal`, () => {
         const scratch = mkdtempSync('/private/tmp/pod-component-scene-');

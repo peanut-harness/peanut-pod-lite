@@ -30574,6 +30574,8 @@
         "modelRendererCarrier": {
           "componentType": "cc.MeshRenderer",
           "requiredBase": "cc.ModelRenderer",
+          "enabled": false,
+          "materialRequired": false,
           "sources": [
             {
               "reference": "sorting/sorting.ts",
@@ -30581,7 +30583,7 @@
               "line": 42
             }
           ],
-          "rule": "Sorting.__preload必须取得真实ModelRenderer；使用实际MeshRenderer并在矩阵写入前绑定已加载Mesh"
+          "rule": "加载目标前须有同节点真实MeshRenderer；原生矩阵绑定已加载Mesh，UI模型另需Material、UITransform和Canvas"
         },
         "uiScene": false,
         "physicsBackend": null,
@@ -35008,7 +35010,21 @@
       },
       "assemblyRequirements": {
         "referenceNodesAndComponents": "从值配方的实际路径和类型创建；先完成它们各自的 requireComponent 闭包",
-        "uiScene": false,
+        "modelRendererCarrier": {
+          "componentType": "cc.MeshRenderer",
+          "requiredBase": "cc.ModelRenderer",
+          "enabled": true,
+          "materialRequired": true,
+          "sources": [
+            {
+              "reference": "2d/components/ui-mesh-renderer.ts",
+              "sha256": "1eb5a9fcbcb856311c9eddfb8f2eac792c91b618728c63756509275819f0a62f",
+              "line": 53
+            }
+          ],
+          "rule": "加载目标前须有同节点真实MeshRenderer；原生矩阵绑定已加载Mesh，UI模型另需Material、UITransform和Canvas"
+        },
+        "uiScene": true,
         "physicsBackend": null,
         "physicsBackendMustBeConfirmedFromActiveCreator": false,
         "sourceOwnedTiledComponent": false,

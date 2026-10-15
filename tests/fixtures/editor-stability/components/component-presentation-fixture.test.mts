@@ -19,7 +19,7 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
             cpSync(join(root, 'packages/engine/modules/lumen/bundled/default_prefab'), join(assets, 'default_prefab'), { recursive: true });
             const fixtures: ReturnType<typeof ComponentFieldFixtures.create> = JSON.parse(readFileSync(
                 new URL(`./${version}/component-field-fixtures.json`, import.meta.url), 'utf8'));
-            for (const type of ['cc.Label', 'cc.Button', 'cc.ScrollView', 'cc.ProgressBar', 'cc.RichText', 'cc.UIStaticBatch', ...(version === '3.8.7' ? ['cc.Sorting2D'] : [])]) {
+            for (const type of ['cc.Label', 'cc.Button', 'cc.ScrollView', 'cc.ProgressBar', 'cc.RichText', 'cc.UIStaticBatch', 'cc.UIMeshRenderer', ...(version === '3.8.7' ? ['cc.Sorting2D'] : [])]) {
                 const row = fixtures.components.find(row => row.componentType === type); assert(row);
                 const result = ComponentPresentationFixture.create(scratch, version, row);
                 assert.equal(result.status, 'authored-presentation-native-pending'); if (!('document' in result)) throw Error('presentation missing');
@@ -28,6 +28,17 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
                 result.document.findComponentIndex(result.document.findNodeIndex(result.targetPath), type);
                 const camera = result.document.entries.find(entry => entry.__type__ === 'cc.Camera'); assert(camera);
                 assert.equal(camera._enabled, true); assert((Number(camera._visibility) & 33554432) !== 0);
+                if (type === 'cc.UIMeshRenderer') {
+                    const node = result.document.findNodeIndex(result.targetPath);
+                    const rendererIndex = result.document.findComponentIndex(node, 'cc.MeshRenderer');
+                    assert(rendererIndex < result.document.findComponentIndex(node, type));
+                    const renderer = result.document.entries[rendererIndex]; assert(renderer);
+                    assert.equal(renderer._enabled, true); assert(renderer._mesh); assert(renderer._materials);
+                    result.document.findComponentIndex(node, 'cc.UITransform');
+                    assert.equal(result.document.entries[node]?._layer, 33554432);
+                    assert.deepEqual(result.document.entries[node]?._lscale, { __type__: 'cc.Vec3', x: 160, y: 160, z: 160 });
+                    assert(result.sources.some(source => source.path.endsWith('/3d/Cube.prefab')));
+                }
                 if (type === 'cc.Label') {
                     const label = result.document.entries.find(entry => entry.__type__ === type); assert(label);
                     assert.equal(label._isSystemFontUsed, true); assert.equal(label._font, null);

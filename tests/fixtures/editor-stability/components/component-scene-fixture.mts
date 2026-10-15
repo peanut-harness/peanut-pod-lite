@@ -61,22 +61,25 @@ export class ComponentSceneFixture {
         const attach = (logicalPath: string, type: string): string => {
             const dependency = ComponentDependencyPlanner.create(type, declarations, row.dependencyProviders);
             if (dependency.blockers.length) throw new Error(`component_scene_reference_dependency_blocked:${type}`);
-            const ui = dependency.attachOrder.includes('cc.UITransform');
+            const ui = dependency.attachOrder.includes('cc.UITransform') || (logicalPath === row.nodePath && requirements.uiScene);
             const actualPath = ui ? logicalPath.replace('/Root/', '/Root/Canvas/') : logicalPath;
             const prior = paths.get(logicalPath);
             if (prior && prior !== actualPath) throw new Error('component_scene_reference_path_conflict');
             paths.set(logicalPath, actualPath); ensure(actualPath);
+            if (ui) document.attachBuiltinComponent(actualPath, 'cc.UITransform');
             for (const item of dependency.attachOrder) document.attachBuiltinComponent(actualPath, item);
             return actualPath;
         };
         if (requirements.modelRendererCarrier) {
             const carrier = requirements.modelRendererCarrier;
             const provider = declarations.find(item => item.type === carrier.componentType);
-            if (carrier.sources.length !== 1 || carrier.sources[0]?.reference !== 'sorting/sorting.ts'
-                || !provider?.baseTypes.includes(carrier.requiredBase)) throw new Error('component_sorting_renderer_source_missing');
+            const reference = row.componentType === 'cc.Sorting' ? 'sorting/sorting.ts' : '2d/components/ui-mesh-renderer.ts';
+            if (carrier.sources.length !== 1 || carrier.sources[0]?.reference !== reference
+                || !provider?.baseTypes.includes(carrier.requiredBase)) throw new Error('component_model_renderer_source_missing');
             attach(row.nodePath, carrier.componentType);
         }
         const targetPath = attach(row.nodePath, row.componentType);
+        if (row.componentType === 'cc.UIMeshRenderer') document.setNodeProperty(targetPath, { layer: 33554432 });
         const visit = (recipe: IComponentValueRecipe): void => {
             if (recipe.form === 'component-reference') {
                 if (typeof recipe.value !== 'string' || !recipe.componentType) throw new Error('component_scene_reference_invalid');

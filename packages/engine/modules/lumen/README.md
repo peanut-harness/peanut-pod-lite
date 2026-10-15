@@ -263,3 +263,5 @@ Creator 3.8.3 / 3.8.7 的 MeshRenderer `receiveShadow` 保留公开 boolean，�
 公开 `asset.ensureSpriteFramesBatch` 的本批新帧在原 writer/资源锁窗口内，保存、刷新和就绪后使用与 FNT/TMX 相同的强制原生规范化职责：一次 `reimport-asset`，冻结完整磁盘 meta 语义、PNG 字节/物理身份、主和已有 Texture 子 UUID，并验证真实 SpriteFrame 登记，再报告 ensured。只接受原生输出，不在产品中排序或改写 meta。inline 与 refreshRoot 两条路线均覆盖；already、skipped 和原逐项 legacy DTO/counts 保持。新增必需 ready/query/reimport 错误直接传播原对象，不经旧 alias 重试或错误字符串转录；未知状态仍由原任务模型保守处理，不回滚或重放。离线公开协议测试不作 native 通过，首次冷导入须另绑定确切新包和暖态原字节实测。
 
 Creator 3.8.3 / 3.8.7 的 SpriteRenderer 及其继承声明均没有目录 sortLayer、sortOrder 对应成员；3.8.3 原生读回也确认缺失。两项保留在完整目录，标记 writable:false、writeRefusedReason:native_unsupported；单独及混合补丁在任何改动前拒绝，不猜测为其它排序参数。未知版本保持原行为；新候选的原生拒绝验证仍待执行。
+
+UIMeshRenderer在3.8.3/3.8.7中是需要同节点ModelRenderer的Component，不能按普通互斥渲染器拒绝其必需载体。节点约定允许其与官方说明的MeshRenderer或ParticleSystem精确配对，组合节点采用UI_2D层；单独载体保持原有世界层行为，额外渲染器和其它UI渲染组合仍拒绝。5.1夹具在桥接器加载前准备真实载体，展示使用完整SDK模型；新的候选及原生呈现仍待验证。

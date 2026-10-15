@@ -25,6 +25,12 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
         const sorting = saved.components.find(row => row.componentType === 'cc.Sorting');
         assert.deepEqual(sorting?.cases.find(row => row.selector.join('.') === 'sortingLayer')?.validValue, { form: 'literal', value: 0 });
         assert.equal(sorting?.assemblyRequirements.modelRendererCarrier?.componentType, 'cc.MeshRenderer');
+        assert.equal(sorting?.assemblyRequirements.modelRendererCarrier?.enabled, false);
+        const uiModel = saved.components.find(row => row.componentType === 'cc.UIMeshRenderer');
+        assert.equal(uiModel?.assemblyRequirements.uiScene, true);
+        assert.equal(uiModel?.assemblyRequirements.modelRendererCarrier?.componentType, 'cc.MeshRenderer');
+        assert.equal(uiModel?.assemblyRequirements.modelRendererCarrier?.enabled, true);
+        assert.equal(uiModel?.assemblyRequirements.modelRendererCarrier?.materialRequired, true);
         for (const [type, name] of [['cc.PointLight', 'intensity'], ['cc.PointLight', 'size'], ['cc.RangedDirectionalLight', 'intensity'],
             ['cc.SpriteRenderer', 'sortLayer'], ['cc.SpriteRenderer', 'sortOrder']]) {
             const row = saved.components.find(row => row.componentType === type)?.cases.find(row => row.selector.join('.') === name);

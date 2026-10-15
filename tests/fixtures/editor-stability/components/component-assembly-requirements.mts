@@ -22,11 +22,12 @@ export class ComponentAssemblyRequirements {
         const postProcess = bases.includes('cc.PostProcessSetting') || componentType === 'cc.PostProcess';
         return {
             referenceNodesAndComponents: '从值配方的实际路径和类型创建；先完成它们各自的 requireComponent 闭包',
-            ...(componentType === 'cc.Sorting' ? { modelRendererCarrier: {
+            ...(['cc.Sorting', 'cc.UIMeshRenderer'].includes(componentType) ? { modelRendererCarrier: {
                 componentType: 'cc.MeshRenderer', requiredBase: 'cc.ModelRenderer',
-                sources: declaration?.sources ?? [], rule: 'Sorting.__preload必须取得真实ModelRenderer；使用实际MeshRenderer并在矩阵写入前绑定已加载Mesh',
+                enabled: componentType === 'cc.UIMeshRenderer', materialRequired: componentType === 'cc.UIMeshRenderer',
+                sources: declaration?.sources ?? [], rule: '加载目标前须有同节点真实MeshRenderer；原生矩阵绑定已加载Mesh，UI模型另需Material、UITransform和Canvas',
             } } : {}),
-            uiScene: declaration?.requiredComponents.includes('cc.UITransform') ?? false,
+            uiScene: componentType === 'cc.UIMeshRenderer' || (declaration?.requiredComponents.includes('cc.UITransform') ?? false),
             physicsBackend: character ? 'physx' : physical3D ? 'bullet' : physical2D ? 'box2d' : null,
             physicsBackendMustBeConfirmedFromActiveCreator: physical3D || physical2D || character,
             sourceOwnedTiledComponent: importedOwner,

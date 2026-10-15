@@ -167,12 +167,18 @@ class ComponentNativeMatrix {
         const expectedSceneUuid = await this.client.sceneIdentity(scene);
         const suffix = target.replace(/^\/Root/u, ''); const cases = this.records(component.cases); const paths = this.client.record(staged.nodePaths);
         const carrier = this.client.record(this.client.record(component.assemblyRequirements).modelRendererCarrier);
-        if (type === 'cc.Sorting' && (carrier.componentType !== 'cc.MeshRenderer' || carrier.requiredBase !== 'cc.ModelRenderer')) {
-            throw new Error('component_sorting_renderer_precondition_missing');
+        if (['cc.Sorting', 'cc.UIMeshRenderer'].includes(type) && (carrier.componentType !== 'cc.MeshRenderer'
+            || carrier.requiredBase !== 'cc.ModelRenderer' || carrier.enabled !== (type === 'cc.UIMeshRenderer')
+            || carrier.materialRequired !== (type === 'cc.UIMeshRenderer'))) {
+            throw new Error('component_model_renderer_precondition_missing');
         }
         const mesh = carrier.componentType ? this.assets.filter(asset => asset.type === 'cc.Mesh' && asset.imported === true
             && asset.invalid !== true && typeof asset.url === 'string' && asset.url.startsWith('db://assets/fixtures/')) : [];
-        if (carrier.componentType && mesh.length !== 1) throw new Error('component_sorting_mesh_precondition_missing');
+        if (carrier.componentType && mesh.length !== 1) throw new Error('component_model_mesh_precondition_missing');
+        const materials = carrier.materialRequired === true ? this.assets.filter(asset => asset.type === 'cc.Material'
+            && asset.imported === true && asset.invalid !== true && typeof asset.url === 'string'
+            && asset.url.startsWith('db://assets/fixtures/')) : [];
+        if (carrier.materialRequired === true && materials.length !== 1) throw new Error('component_model_material_precondition_missing');
         const roots = new Map<string, { input: unknown; expected: unknown; resources: string[] }>();
         const fieldRows: Record<string, unknown>[] = [];
         for (const field of cases) {
@@ -182,7 +188,7 @@ class ComponentNativeMatrix {
             catch (error) { fieldRows.push({ id: field.id, status: 'native-input-blocked', reason: error instanceof Error ? error.message : String(error) }); }
         }
         const resources = [...new Set([`db://${scene}`, ...[...roots.values()].flatMap(value => value.resources),
-            ...mesh.map(asset => this.string(asset.url))])];
+            ...mesh.map(asset => this.string(asset.url)), ...materials.map(asset => this.string(asset.url))])];
         const input = { prefabRelativePath: scene, nodePath: target, resources };
         await this.open(scene);
         const initial = this.client.record(await this.client.probe('component-fields', { nodeSuffix: suffix, componentType: type, expectedSceneUuid }));
@@ -192,16 +198,41 @@ class ComponentNativeMatrix {
         } else if (initial.present !== false || initial.reason !== 'target-component-missing') {
             throw new Error('component_matrix_initial_presence_unknown');
         }
-        await this.client.write('lumen-comp-add', { ...input, builtinType: type });
         if (carrier.componentType && mesh[0]) {
             await this.client.write('lumen-comp-set', { ...input, componentType: this.string(carrier.componentType),
-                props: { mesh: mesh[0].uuid, enabled: false } });
+                props: { mesh: mesh[0].uuid, enabled: carrier.enabled,
+                    ...(materials[0] ? { materials: [materials[0].uuid] } : {}) } });
         }
+        await this.client.write('lumen-comp-add', { ...input, builtinType: type });
         // 先装配完整引用上下文；例如defaultClip必须存在于clips中，随后逐根字段独立验证别名。
         if (roots.size) await this.client.write('lumen-comp-set', { ...input, componentType: type,
             props: Object.fromEntries([...roots].map(([key, value]) => [key, value.input])) });
         let persisted = this.hash(scene);
+        let carrierReadback: Record<string, unknown> | null = null;
         const control = scene === 'assets/components/_lifecycle/cc.UIOpacity.scene' ? 'assets/components/_lifecycle/cc.Sprite.scene' : 'assets/components/_lifecycle/cc.UIOpacity.scene';
+        if (!cases.length) {
+            await this.commit(scene); persisted = this.hash(scene);
+            await this.open(control); await this.open(scene);
+            await this.read(suffix, type, true, expectedSceneUuid);
+            if (this.hash(scene) !== persisted) throw new Error('component_matrix_reopen_wrote_scene');
+            if (type === 'cc.UIMeshRenderer') {
+                const snapshot = this.client.record(await this.client.probe('scene-snapshot'));
+                this.requireScene(snapshot, expectedSceneUuid);
+                const nodes = this.records(snapshot.nodes).filter(node => typeof node.path === 'string' && node.path.endsWith(suffix));
+                if (nodes.length !== 1) throw new Error('component_matrix_ui_model_node_missing');
+                const models = this.records(nodes[0]?.components).filter(item => item.type === type);
+                const observed = this.client.record(models[0]?.observed);
+                const expectedMesh = { uuid: mesh[0]?.uuid, type: 'cc.Mesh', valid: true };
+                const expectedMaterials = [{ uuid: materials[0]?.uuid, type: 'cc.Material', valid: true }];
+                if (models.length !== 1 || observed.modelPresent !== true || observed.modelType !== 'cc.MeshRenderer'
+                    || observed.modelValid !== true || observed.modelNodeMatches !== true || observed.modelEnabled !== true
+                    || !this.equal(observed.mesh, expectedMesh) || !this.equal(observed.sharedMaterials, expectedMaterials)) {
+                    throw new Error('component_matrix_ui_model_carrier_readback_failed');
+                }
+                carrierReadback = observed;
+                this.client.events.push({ step: 'native-ui-model-carrier', result: observed }); this.client.save();
+            }
+        }
         for (const [root, value] of roots) {
             await this.client.write('lumen-comp-set', { ...input, componentType: type, props: { [root]: value.input } });
             await this.commit(scene); persisted = this.hash(scene);
@@ -245,7 +276,7 @@ class ComponentNativeMatrix {
         if (this.hash(scene) !== removed) throw new Error('component_matrix_removed_reopen_wrote_scene');
         this.rows.push({ componentType: type, status: fieldRows.every(row => ['native-field-readback-verified', 'expected-public-refusal-verified'].includes(String(row.status)))
             ? 'native-verified' : 'field-gaps', fields: fieldRows, addedAndRemoved: true, persistedAndReopened: true,
-            removedAndReopened: true, persistedSha256: persisted, removedSha256: removed }); this.save();
+            removedAndReopened: true, carrierReadback, persistedSha256: persisted, removedSha256: removed }); this.save();
     }
 
     /**

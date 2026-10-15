@@ -638,7 +638,7 @@ export class LumenPrefabDocument {
         if (suggested != null) {
             node._layer = suggested;
         } else {
-            LumenNodeConventions.assertLayerCompatible(componentType, currentLayer);
+            LumenNodeConventions.assertLayerCompatible(componentType, currentLayer, existingTypes);
         }
         return this._attachComponent(nodeIndex, this._createBuiltinComponent(componentType, nodeIndex));
     }
