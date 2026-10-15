@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { cpSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { ComponentPresentationFixture } from './component-presentation-fixture.mts';
@@ -35,6 +35,17 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
                     const node = result.document.findNodeIndex(result.targetPath);
                     const transform = result.document.entries[result.document.findComponentIndex(node, 'cc.UITransform')]; assert(transform);
                     assert.deepEqual(transform._contentSize, { __type__: 'cc.Size', width: 480, height: 96 });
+                    const project = join(scratch, 'project');
+                    ComponentPresentationFixture.saveForNativeImport(result.document, project, version);
+                    const path = join(project, result.document.relativePath); const before = readFileSync(path, 'utf8');
+                    const staged = JSON.parse(before); const meta = JSON.parse(readFileSync(path + '.meta', 'utf8'));
+                    // 独立模拟原生导入器强制的两项身份；字段与图结构须逐字保持。
+                    staged[0]._name = basename(path, '.scene');
+                    staged.find((entry: { __type__: string }) => entry.__type__ === 'cc.Scene')._id = meta.uuid;
+                    assert.equal(JSON.stringify(staged, null, 2) + '\n', before);
+                    assert.equal(staged.find((entry: { __type__: string }) => entry.__type__ === 'cc.Label')._string, 'Task 5.1 - cc.Label');
+                    ComponentPresentationFixture.saveForNativeImport(result.document, project, version);
+                    assert.equal(readFileSync(path, 'utf8'), before, '重复暂存保留meta身份和场景内容');
                 }
                 if (type === 'cc.Button') result.document.findComponentIndex(result.document.findNodeIndex(result.targetPath + '/Label'), 'cc.Label');
                 if (type === 'cc.ScrollView') result.document.findNodeIndex(result.targetPath + '/view/content/item');

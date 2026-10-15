@@ -118,7 +118,7 @@ if (fixtureProfile === 'component-matrix') {
         const lifecycle = ComponentLifecycleFixture.create(assembled.document, version, row.componentType);
         lifecycle.save(project, false, LumenCocosVersion.parse(version));
         const presentation = ComponentPresentationFixture.create(engine, version, row);
-        if (presentation.status === 'authored-presentation-native-pending') presentation.document.save(project, false, LumenCocosVersion.parse(version));
+        if (presentation.status === 'authored-presentation-native-pending') ComponentPresentationFixture.saveForNativeImport(presentation.document, project, version);
         const { document: presentationDocument, ...presentationEvidence } = presentation.status === 'authored-presentation-native-pending'
             ? presentation : { ...presentation, document: null };
         return { componentType: row.componentType, status: assembled.status, pendingRequirements: assembled.pendingRequirements,

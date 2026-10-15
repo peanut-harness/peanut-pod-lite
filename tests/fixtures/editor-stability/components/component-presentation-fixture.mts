@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, realpathSync } from 'node:fs';
-import { join, sep } from 'node:path';
+import { basename, join, sep } from 'node:path';
 import { LumenPrefabDocument } from '../../../../packages/engine/modules/lumen/source/hierarchy/prefab-document.ts';
 import { LumenComponentPropertySchema } from '../../../../packages/engine/modules/lumen/source/schema/component-property.ts';
 import { LumenCocosVersion } from '../../../../packages/engine/modules/lumen/source/schema/cocos-version.ts';
@@ -16,6 +16,25 @@ type ComponentRow = ReturnType<typeof ComponentFieldFixtures.create>['components
  * @description 展示场景使用同版本SDK完整预设；不把字段测试值和移除后的空节点当作展示内容。
  */
 export class ComponentPresentationFixture {
+    /**
+     * @description 在首次导入前配对SceneAsset文件名和Scene的meta身份，避免Creator导入器改写冻结场景。
+     * @param document 已装配的展示场景。
+     * @param project 尚未启动Creator的新隔离工程。
+     * @param version 实际Creator版本。
+     * @returns 无；保存后即可冻结原始文件摘要。
+     */
+    public static saveForNativeImport(document: LumenPrefabDocument, project: string, version: '3.8.3' | '3.8.7'): void {
+        const asset = document.entries[0]; const scene = document.entries.find(entry => entry.__type__ === 'cc.Scene');
+        if (asset?.__type__ !== 'cc.SceneAsset' || !scene) throw new Error('component_presentation_scene_required');
+        const cocosVersion = LumenCocosVersion.parse(version);
+        document.save(project, true, cocosVersion);
+        const meta: unknown = JSON.parse(readFileSync(join(project, document.relativePath + '.meta'), 'utf8'));
+        if (!meta || typeof meta !== 'object' || !('uuid' in meta) || typeof meta.uuid !== 'string'
+            || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu.test(meta.uuid)) throw new Error('component_presentation_meta_identity_invalid');
+        asset._name = basename(document.relativePath, '.scene'); scene._id = meta.uuid;
+        document.save(project, false, cocosVersion);
+    }
+
     /**
      * @description 已在精确SDK路径核对的UI预设；未列出的类型不能猜测预设文件。
      */
