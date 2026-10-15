@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { McpScopedResourceBoundary } from '../../../../packages/engine/modules/kernel/src/mcp/mcp-scoped-resource-boundary.ts';
 import { ComponentEngineProfile } from './component-engine-profile.mts';
 import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
+import { ComponentProjectUrlResolver } from './component-project-url-resolver.mts';
 
 /**
  * @description 矩阵验证的实际认证传输；只允许精确六项写及只读观测，令牌不进入证据。
@@ -129,6 +130,19 @@ export class ComponentNativeClient {
         const execute = (): Promise<unknown> => this.request('component-probe.json', '/probe', 'x-component-token', { action, ...input });
         if (!['component-fields', 'scene-snapshot', 'load-asset', 'assets'].includes(action)) { return execute(); }
         return ComponentNativeLogGuard.run(this.project, action, execute, event => { this.events.push(event); this.save(); });
+    }
+
+    /**
+     * @description 经过逐次进程与认证检查取得夹具URL，并独立校验实际HTTP字节。
+     * @returns 当前原生socket的有限URL清单。
+     */
+    public async fixtureUrls() {
+        const result = await this.probe('fixture-urls');
+        const descriptor = this.record(JSON.parse(readFileSync(join(this.project, '.peanut-ai/component-probe.json'), 'utf8')));
+        if (descriptor.pid !== this.lease.pid || descriptor.projectPath !== this.project || descriptor.owner !== this.registration.owner ||
+            descriptor.runId !== this.registration.runId || typeof descriptor.port !== 'number') throw new Error('component_matrix_probe_identity_invalid');
+        const files = await ComponentProjectUrlResolver.verify(this.project, this.registration, descriptor.port, result);
+        this.events.push({ step: 'fixture-urls-byte-verified', files }); this.save(); return files;
     }
 
     /**

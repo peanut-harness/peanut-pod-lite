@@ -14,6 +14,8 @@ export class LumenNativeComponentPropertySchema {
         'cc.HingeConstraint': { pivotA: 'pivotA', pivotB: 'pivotB', axis: 'axisA', limit: 'limitData', motor: 'motorData' },
         'cc.ParticleSystem': { dataCulling: 'enableCulling' },
         'cc.TextureAnimationModule': { numTilesX: 'numTilesX', numTilesY: 'numTilesY' },
+        'cc.animation.AnimationController': { graph: 'graph' },
+        'dragonBones.ArmatureDisplay': { playTimes: 'playTimes' },
     };
 
     /**
@@ -38,7 +40,9 @@ export class LumenNativeComponentPropertySchema {
             if (serializedName == null) { return field; }
             const nestedFields = field.nestedFields?.map(nested => ({ ...nested,
                 serializedName: nested.apiName, nativeReadName: nested.serializedName }));
-            return { ...field, serializedName, nativeReadName: field.serializedName,
+            const nativeReadName = componentType === 'dragonBones.ArmatureDisplay' && field.apiName === 'playTimes'
+                ? 'playTimes' : field.serializedName;
+            return { ...field, serializedName, nativeReadName,
                 ...(nestedFields != null ? { nestedFields } : {}) };
         });
     }

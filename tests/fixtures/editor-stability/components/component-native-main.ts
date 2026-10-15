@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import * as crypto from 'node:crypto';
 import { EditorMcpPreviewWindowInspector } from '../../../../packages/engine/modules/mcp/src/editor-mcp-preview-window-inspector';
 import { ComponentNativeAssetLoader } from './component-native-asset-loader';
+import { ComponentProjectUrlFiles } from './component-project-url-files';
 
 /**
  * @description 隔离工程内的有界原生观测入口；不提供任意消息或代码执行接口。
@@ -13,6 +14,10 @@ class ComponentNativeMain {
     private static token = '';
     private static project = '';
     private static registration: Record<string, unknown> = {};
+    /**
+     * @description 与认证probe共享回环socket的两份固定静态夹具。
+     */
+    private static fixtures: ComponentProjectUrlFiles | null = null;
 
     /**
      * @description 在 Creator 的实际扩展加载入口创建仅本机的窄接口。
@@ -22,8 +27,10 @@ class ComponentNativeMain {
         this.project = fs.realpathSync(editor.Project.path);
         this.registration = JSON.parse(fs.readFileSync(path.join(this.project, '..', 'project-ownership.json'), 'utf8'));
         if (this.registration.projectPath !== this.project || this.registration.task !== '5.1') throw new Error('component_native_project_unregistered');
+        this.fixtures = new ComponentProjectUrlFiles(this.project, this.registration);
         this.token = crypto.randomBytes(32).toString('hex');
         this.server = http.createServer((request, response) => {
+            if (this.fixtures?.serve(request, response)) return;
             const chunks: Buffer[] = []; let bytes = 0;
             request.on('data', (chunk: Buffer) => { bytes += chunk.length; if (bytes > 65536) request.destroy(); else chunks.push(chunk); });
             request.on('end', async () => {
@@ -55,7 +62,7 @@ class ComponentNativeMain {
      * @description 扩展卸载时正常释放本入口。
      */
     public static unload(): void {
-        this.server?.close(); this.server = null;
+        this.server?.close(); this.server = null; this.fixtures = null;
     }
 
     /**
@@ -65,6 +72,12 @@ class ComponentNativeMain {
         const editor = Reflect.get(globalThis, 'Editor');
         if (typeof editor?.Message?.request !== 'function') throw new Error('component_native_message_api_missing');
         const request = editor.Message.request.bind(editor.Message);
+        if (body.action === 'fixture-urls') {
+            const address = this.server?.address();
+            if (!address || typeof address === 'string' || !this.fixtures) throw new Error('component_native_endpoint_missing');
+            return { projectPath: this.project, owner: this.registration.owner, runId: this.registration.runId,
+                candidateSourceCommit: this.registration.candidateSourceCommit, files: this.fixtures.urls(address.port) };
+        }
         if (body.action === 'health') {
             const host = await request('peanut-pod-lite-host', 'query-status');
             return { projectPath: this.project, creatorVersion: editor.App.version, pid: process.pid,

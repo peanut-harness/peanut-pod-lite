@@ -113,12 +113,56 @@ for (const version of ['3.8.3', '3.8.7']) {
         assert.throws(() => document.setComponentProperty('/Root/Target', 'cc.Label', { string: 'partial', actualFontSize: 24 }), /lumen_property_not_persistent/);
         assert.equal(JSON.stringify(document.entries), before);
     });
+    test(version + ' graph and DragonBones public playTimes survive their distinct serialized slots', () => {
+        // 此 UUID 仅用于离线编解码测试，不代表 AssetDB 注册或原生加载通过。
+        const uuid = '12345678-1234-4234-8234-123456789abc';
+        const document = LumenPrefabDocument.createEmptyScene('assets/Animation.scene', 'Root');
+        document.setPropertySchema(schema);
+        document.addChildFromSpec('/Root', { name: 'Graph', components: ['cc.animation.AnimationController'] });
+        document.addChildFromSpec('/Root', { name: 'Dragon', components: ['dragonBones.ArmatureDisplay'] });
+        const dragon = document.entries.find(entry => entry.__type__ === 'dragonBones.ArmatureDisplay');
+        assert(dragon); dragon._playTimes = -1;
+        document.setComponentProperty('/Root/Graph', 'cc.animation.AnimationController', { graph: uuid });
+        document.setComponentProperty('/Root/Dragon', 'dragonBones.ArmatureDisplay', { playTimes: 2 });
+        const reopened = new LumenPrefabDocument('assets/Animation.scene', JSON.parse(JSON.stringify(document.entries)), schema);
+        const graph = reopened.entries.find(entry => entry.__type__ === 'cc.animation.AnimationController');
+        const savedDragon = reopened.entries.find(entry => entry.__type__ === 'dragonBones.ArmatureDisplay');
+        assert(graph && savedDragon);
+        assert.deepEqual(graph.graph, { __uuid__: uuid });
+        assert.equal(Object.hasOwn(graph, '_graph'), false);
+        assert.equal(savedDragon.playTimes, 2); assert.equal(savedDragon._playTimes, -1);
+        assert.equal(schema.decodeComponentSnapshot('cc.animation.AnimationController', graph, () => null).graph, uuid);
+        assert.equal(schema.decodeComponentSnapshot('dragonBones.ArmatureDisplay', savedDragon, () => null).playTimes, 2);
+        for (const [path, type, patch] of [
+            ['/Root/Graph', 'cc.animation.AnimationController', { enabled: false, graph: 7 }],
+            ['/Root/Dragon', 'dragonBones.ArmatureDisplay', { timeScale: 2, playTimes: 'wrong' }],
+        ] as const) {
+            const before = JSON.stringify(reopened.entries);
+            assert.throws(() => reopened.setComponentProperty(path, type, patch), /lumen_property_(type|value)/);
+            assert.equal(JSON.stringify(reopened.entries), before);
+        }
+    });
+    test(version + ' engine managed reflection probe identity rejects single and mixed writes atomically', () => {
+        const field = schema.describeComponent('cc.ReflectionProbe').find(entry => entry.apiName === 'probeId');
+        assert(field); assert.equal(field.writable, false); assert.equal(field.writeRefusedReason, 'native_unsupported');
+        const document = LumenPrefabDocument.createEmptyScene('assets/Probe.scene', 'Root');
+        document.setPropertySchema(schema);
+        document.addChildFromSpec('/Root', { name: 'Target', components: ['cc.ReflectionProbe'] });
+        for (const patch of [{ probeId: 1 }, { size: { x: 2, y: 3, z: 4 }, probeId: 1 }]) {
+            const before = JSON.stringify(document.entries);
+            assert.throws(() => document.setComponentProperty('/Root/Target', 'cc.ReflectionProbe', patch), /lumen_property_not_persistent/);
+            assert.equal(JSON.stringify(document.entries), before);
+        }
+    });
 }
 test('Unknown versions preserve previous field mappings and angle units', () => {
     const schema = new LumenComponentPropertySchema(LumenCocosVersion.parse('3.8.4'));
     assert.deepEqual(schema.encodeComponentPatch('cc.Billboard', { rotation: 1 }, {}), { _rotation: 1 });
     assert.deepEqual(schema.encodeComponentPatch('cc.FixedConstraint', { breakForce: 1 }, {}), { _breakForce: 1 });
     assert.deepEqual(schema.encodeComponentPatch('cc.ParticleSystem', { dataCulling: true }, {}), { _dataCulling: true });
+    assert.deepEqual(schema.encodeComponentPatch('cc.animation.AnimationController', { graph: null }, {}), { _graph: null });
+    assert.deepEqual(schema.encodeComponentPatch('dragonBones.ArmatureDisplay', { playTimes: 2 }, {}), { _playTimes: 2 });
+    assert.notEqual(schema.describeComponent('cc.ReflectionProbe').find(field => field.apiName === 'probeId')?.writable, false);
     assert.notEqual(schema.describeComponent('cc.Label').find(field => field.apiName === 'actualFontSize')?.writable, false);
     for (const [type, name] of [['cc.PointLight', 'intensity'], ['cc.PointLight', 'size'], ['cc.RangedDirectionalLight', 'intensity'], ['cc.SafeArea', 'symmetric'], ['cc.SpriteRenderer', 'sortLayer'], ['cc.SpriteRenderer', 'sortOrder']]) {
         assert(type && name); assert.notEqual(schema.describeComponent(type).find(field => field.apiName === name)?.writable, false);

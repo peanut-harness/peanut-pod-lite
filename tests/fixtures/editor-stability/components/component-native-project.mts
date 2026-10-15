@@ -17,6 +17,7 @@ import { ComponentPresentationFixture } from './component-presentation-fixture.m
 import { ComponentEngineProfile } from './component-engine-profile.mts';
 import { ComponentSpriteImport } from './component-sprite-import.mts';
 import { ComponentTerrainEffect } from './component-terrain-effect.mts';
+import { ComponentProjectUrlFiles } from './component-project-url-files.ts';
 
 const root = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
 const args = process.argv.slice(2);
@@ -105,6 +106,7 @@ for (const source of sources.values()) {
     staged.push({ source, relativePath, sha256: createHash('sha256').update(authored).digest('hex'), originalUnchanged: true, derivation });
 }
 const importMetaAuthoring = ComponentSpriteImport.stage(project, engine);
+ComponentProjectUrlFiles.stage(root, project, registration);
 const sceneSource = join(root, `evidence/task-5.1/checkpoint-510400c-${version}/assets/components/cc.Sprite.scene`);
 mkdirSync(join(project, 'assets/components'), { recursive: true }); copyFileSync(sceneSource, join(project, 'assets/components/cc.Sprite.scene'));
 const controlSource = join(root, `evidence/task-5.1/checkpoint-510400c-${version}/assets/components/cc.UIOpacity.scene`);

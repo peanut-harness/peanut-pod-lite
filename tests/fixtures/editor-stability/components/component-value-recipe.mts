@@ -48,7 +48,7 @@ export interface IComponentValueRecipe {
      */
     readonly items?: readonly IComponentValueRecipe[];
     /**
-     * @description 由已核实工程的实际预览服务生成 URL 的本地文件，禁止猜端口或外部网络地址。
+     * @description 由已核实工程的固定夹具回环端点生成URL的本地文件，禁止猜端口或外部网络地址。
      */
     readonly projectFile?: { readonly path: string; readonly sha256: string };
     /**
@@ -82,7 +82,7 @@ export class ComponentValueRecipeFactory {
         // SDK的custom=false会从plist覆盖粒子参数；独立字段测试必须使用自定义参数上下文。
         if (owner === 'cc.ParticleSystem2D' && field.apiName === 'custom') { return literal(true); }
         // SDK内置default排序层ID为0；通用数值1不是已登记的排序层。
-        if (owner === 'cc.Sorting' && field.apiName === 'sortingLayer') { return literal(0); }
+        if (['cc.Sorting', 'cc.Sorting2D'].includes(owner) && field.apiName === 'sortingLayer') { return literal(0); }
         const native = declarations.find((row) => row.type === owner);
         const properties = native?.properties.filter((property) => property.name === field.apiName || property.name === field.serializedName) ?? [];
         if (field.kind === 'boolean') return literal(false);

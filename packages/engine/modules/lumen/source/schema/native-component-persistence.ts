@@ -32,6 +32,7 @@ export class LumenNativeComponentPersistence {
             'cc.RangedDirectionalLight.intensity',
             'cc.SpriteRenderer.sortLayer',
             'cc.SpriteRenderer.sortOrder',
+            'cc.ReflectionProbe.probeId',
         ].includes(field);
     }
 }

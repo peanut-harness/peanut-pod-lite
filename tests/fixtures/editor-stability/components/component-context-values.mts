@@ -8,7 +8,7 @@ import type { IComponentResourceBinding, IComponentValueRecipe } from './compone
  */
 export class ComponentContextValues {
     /**
-     * @description 固定源数据约束的字段值；URL 在本次隔离工程启动预览后解析。
+     * @description 固定源数据约束的字段值；URL 在本次原生probe回环socket启动后解析并核验真实字节。
      * @param root 当前产品工作树。
      * @param bindings 已独立核对原始摘要的资源闭包。
      * @returns 有真实来源的公开输入配方。

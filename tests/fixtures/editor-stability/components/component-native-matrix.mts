@@ -6,6 +6,7 @@ import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 import { ComponentNativeAssetLoader } from './component-native-asset-loader.ts';
 import { ComponentNativeMatrixReport } from './component-native-matrix-report.mts';
 import { ComponentNativeResourceSelector } from './component-native-resource-selector.mts';
+import { ComponentProjectUrlResolver } from './component-project-url-resolver.mts';
 
 /**
  * @description 保留99组件/795字段分母，逐场景验证实际六项写、原生getter和拒绝后的零文件变化。
@@ -35,6 +36,10 @@ class ComponentNativeMatrix {
      * @description 只读实际AssetDB条目，不能使用配方中的静态UUID。
      */
     private assets: Record<string, unknown>[] = [];
+    /**
+     * @description 从当前认证端点取得且实际HTTP字节吻合的两份夹具URL。
+     */
+    private projectUrls: Awaited<ReturnType<ComponentNativeClient['fixtureUrls']>> = [];
     /**
      * @description 当前工程真实后端观测。
      */
@@ -118,6 +123,7 @@ class ComponentNativeMatrix {
             types: Object.keys(this.client.record(resources.bindings)),
         });
         const rawAssets = await this.client.probe('assets'); this.assets = this.records(rawAssets);
+        this.projectUrls = await this.client.fixtureUrls();
         try {
             await this.client.attach(true);
             await this.open('assets/components/_lifecycle/cc.UIOpacity.scene');
@@ -212,7 +218,7 @@ class ComponentNativeMatrix {
         let persisted = this.hash(scene);
         let carrierReadback: Record<string, unknown> | null = null;
         const control = scene === 'assets/components/_lifecycle/cc.UIOpacity.scene' ? 'assets/components/_lifecycle/cc.Sprite.scene' : 'assets/components/_lifecycle/cc.UIOpacity.scene';
-        if (!cases.length) {
+        if (!roots.size) {
             await this.commit(scene); persisted = this.hash(scene);
             await this.open(control); await this.open(scene);
             await this.read(suffix, type, true, expectedSceneUuid);
@@ -315,7 +321,7 @@ class ComponentNativeMatrix {
                 reference: recipe.form === 'node-reference' ? 'node' : 'component', path: path.replace(/^\/Root/u, ''),
                 ...(recipe.form === 'component-reference' ? { type: recipe.componentType } : {}), valid: true }, resources: [] };
         }
-        if (recipe.form === 'project-file-url') throw new Error('component_matrix_project_preview_url_pending');
+        if (recipe.form === 'project-file-url') return ComponentProjectUrlResolver.resolve(this.projectUrls, recipe.projectFile);
         if (recipe.form === 'literal') {
             const input = structuredClone(recipe.value);
             if (Array.isArray(input)) {

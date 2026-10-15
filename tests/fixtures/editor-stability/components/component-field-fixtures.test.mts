@@ -26,6 +26,9 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
         assert.deepEqual(sorting?.cases.find(row => row.selector.join('.') === 'sortingLayer')?.validValue, { form: 'literal', value: 0 });
         assert.equal(sorting?.assemblyRequirements.modelRendererCarrier?.componentType, 'cc.MeshRenderer');
         assert.equal(sorting?.assemblyRequirements.modelRendererCarrier?.enabled, false);
+        const sorting2d = saved.components.find(row => row.componentType === 'cc.Sorting2D');
+        assert.deepEqual(sorting2d?.cases.find(row => row.selector.join('.') === 'sortingLayer')?.validValue, { form: 'literal', value: 0 });
+        assert.deepEqual(sorting2d?.cases.find(row => row.selector.join('.') === 'sortingOrder')?.validValue, { form: 'literal', value: 1 });
         const uiModel = saved.components.find(row => row.componentType === 'cc.UIMeshRenderer');
         assert.equal(uiModel?.assemblyRequirements.uiScene, true);
         assert.equal(uiModel?.assemblyRequirements.modelRendererCarrier?.componentType, 'cc.MeshRenderer');
@@ -34,7 +37,7 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
         assert.deepEqual(saved.components.find(row => row.componentType === 'cc.Widget')?.cases.find(row => row.selector.join('.') === 'target')?.validValue,
             { form: 'node-reference', value: '/Root/Canvas' });
         for (const [type, name] of [['cc.PointLight', 'intensity'], ['cc.PointLight', 'size'], ['cc.RangedDirectionalLight', 'intensity'],
-            ['cc.SpriteRenderer', 'sortLayer'], ['cc.SpriteRenderer', 'sortOrder']]) {
+            ['cc.SpriteRenderer', 'sortLayer'], ['cc.SpriteRenderer', 'sortOrder'], ['cc.ReflectionProbe', 'probeId']]) {
             const row = saved.components.find(row => row.componentType === type)?.cases.find(row => row.selector.join('.') === name);
             assert.equal(row?.expectedWrite, 'reject-native-persistence');
         }
