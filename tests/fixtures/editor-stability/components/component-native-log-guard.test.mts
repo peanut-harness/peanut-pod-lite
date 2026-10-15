@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, appendFileSync, rmSync, realpathSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, appendFileSync, rmSync, realpathSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -25,6 +25,22 @@ test('delayed getter warning is caught before returning a successful read', asyn
         await assert.rejects(ComponentNativeLogGuard.run(root, 'component-fields', async () => {
             timer = setTimeout(() => appendFileSync(log, '10-15-2026 10:47:00 - warn: delayed getter\n'), 50); return true;
         }, () => {}), /component_native_log_failed/);
+    } finally { clearTimeout(timer); rmSync(root, { recursive: true, force: true }); }
+});
+test('a normal process exit still rejects a delayed GuestView shutdown error and keeps physical exit evidence', async () => {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'native-close-log-')));
+    let timer: ReturnType<typeof setTimeout> | undefined; let calls = 0; const events: Record<string, unknown>[] = [];
+    try {
+        mkdirSync(join(root, 'temp/logs'), { recursive: true }); const log = join(root, 'temp/logs/project.log'); writeFileSync(log, '');
+        const receipt = join(root, 'closed.json');
+        await assert.rejects(ComponentNativeLogGuard.run(root, 'creator-normal-close', async () => {
+            calls++; writeFileSync(receipt, JSON.stringify({ originalProcessGone: true, forced: false }));
+            timer = setTimeout(() => appendFileSync(log, "10-15-2026 19:51:39 - error: Error occurred in handler for 'GUEST_VIEW_MANAGER_CALL': Error: Invalid guestInstanceId: 6\n"), 50);
+            return { code: 0 };
+        }, event => events.push(event)), /component_native_log_failed:creator-normal-close/);
+        assert.equal(calls, 1); assert.equal(events[0]?.actionSucceeded, true);
+        assert.equal(Reflect.get(Object(events[0]?.result), 'newErrorCount'), 1);
+        assert.deepEqual(JSON.parse(readFileSync(receipt, 'utf8')), { originalProcessGone: true, forced: false });
     } finally { clearTimeout(timer); rmSync(root, { recursive: true, force: true }); }
 });
 test('missing, removed or truncated log cannot be accepted as zero diagnostics', async () => {

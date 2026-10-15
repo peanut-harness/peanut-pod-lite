@@ -101,6 +101,20 @@ export class ComponentPresentationFixture {
                 (entry.node as { __id__?: unknown } | undefined)?.__id__ === node)) document.attachBuiltinComponent(targetPath, dependency);
         }
         document.findComponentIndex(document.findNodeIndex(targetPath), type);
+        if (type === 'cc.Sprite' || type === 'cc.Sorting2D') {
+            const backdrop = type === 'cc.Sorting2D'
+                ? document.addChildFromTemplate(parent, source('default_prefab/ui/Sprite.prefab'), 'SortingBackdrop') : null;
+            for (const path of backdrop ? [targetPath, backdrop] : [targetPath]) {
+                document.setComponentProperty(path, 'cc.Sprite', { sizeMode: 0,
+                    color: path === backdrop ? { r: 255, g: 75, b: 85, a: 255 } : { r: 30, g: 130, b: 255, a: 255 } });
+                document.setComponentProperty(path, 'cc.UITransform', { width: 240, height: 240 });
+                if (type === 'cc.Sorting2D') {
+                    if (path === backdrop) document.attachBuiltinComponent(path, type);
+                    // 后创建的红色对照仍在order=1蓝色目标之下，才能验证真实排序而非仅看见单个Sprite。
+                    document.setComponentProperty(path, type, { sortingLayer: 0, sortingOrder: path === backdrop ? 0 : 1 });
+                }
+            }
+        }
         if (container || ['cc.Layout', 'cc.Widget', 'cc.Mask', 'cc.Canvas'].includes(type)) {
             document.addChildFromTemplate(targetPath, source('default_prefab/ui/Label.prefab'), 'VisibleLabel');
         }

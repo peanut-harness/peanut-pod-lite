@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { ComponentPresentationFixture } from './component-presentation-fixture.mts';
 import type { ComponentFieldFixtures } from './component-field-fixtures.mts';
+import type { PrefabEntry } from '../../../../packages/engine/modules/lumen/source/types.ts';
 
 const root = fileURLToPath(new URL('../../../../', import.meta.url));
 for (const version of ['3.8.3', '3.8.7'] as const) {
@@ -19,7 +20,7 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
             cpSync(join(root, 'packages/engine/modules/lumen/bundled/default_prefab'), join(assets, 'default_prefab'), { recursive: true });
             const fixtures: ReturnType<typeof ComponentFieldFixtures.create> = JSON.parse(readFileSync(
                 new URL(`./${version}/component-field-fixtures.json`, import.meta.url), 'utf8'));
-            for (const type of ['cc.Label', 'cc.Button', 'cc.ScrollView', 'cc.ProgressBar', 'cc.RichText', 'cc.UIStaticBatch', 'cc.UIMeshRenderer', ...(version === '3.8.7' ? ['cc.Sorting2D'] : [])]) {
+            for (const type of ['cc.Label', 'cc.Sprite', 'cc.Button', 'cc.ScrollView', 'cc.ProgressBar', 'cc.RichText', 'cc.UIStaticBatch', 'cc.UIMeshRenderer', ...(version === '3.8.7' ? ['cc.Sorting2D'] : [])]) {
                 const row = fixtures.components.find(row => row.componentType === type); assert(row);
                 const result = ComponentPresentationFixture.create(scratch, version, row);
                 assert.equal(result.status, 'authored-presentation-native-pending'); if (!('document' in result)) throw Error('presentation missing');
@@ -28,6 +29,21 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
                 result.document.findComponentIndex(result.document.findNodeIndex(result.targetPath), type);
                 const camera = result.document.entries.find(entry => entry.__type__ === 'cc.Camera'); assert(camera);
                 assert.equal(camera._enabled, true); assert((Number(camera._visibility) & 33554432) !== 0);
+                if (type === 'cc.Sprite' || type === 'cc.Sorting2D') {
+                    const paths = type === 'cc.Sorting2D' ? [result.targetPath, '/Root/Canvas/SortingBackdrop'] : [result.targetPath];
+                    for (const path of paths) {
+                        const node = result.document.findNodeIndex(path);
+                        const sprite: PrefabEntry | undefined = result.document.entries[result.document.findComponentIndex(node, 'cc.Sprite')];
+                        const transform: PrefabEntry | undefined = result.document.entries[result.document.findComponentIndex(node, 'cc.UITransform')];
+                        assert(sprite && transform); assert.equal(sprite._sizeMode, 0);
+                        assert.deepEqual(transform._contentSize, { __type__: 'cc.Size', width: 240, height: 240 });
+                        if (type === 'cc.Sorting2D') {
+                            const sorting: PrefabEntry | undefined = result.document.entries[result.document.findComponentIndex(node, type)]; assert(sorting);
+                            assert.equal(sorting._sortingLayer, 0); assert.equal(sorting._sortingOrder, path === result.targetPath ? 1 : 0);
+                        }
+                    }
+                    if (type === 'cc.Sorting2D') assert(result.document.findNodeIndex('/Root/Canvas/SortingBackdrop') > result.document.findNodeIndex(result.targetPath));
+                }
                 if (type === 'cc.UIMeshRenderer') {
                     const node = result.document.findNodeIndex(result.targetPath);
                     const rendererIndex = result.document.findComponentIndex(node, 'cc.MeshRenderer');

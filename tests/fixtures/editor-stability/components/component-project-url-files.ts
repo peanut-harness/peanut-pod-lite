@@ -85,7 +85,11 @@ export class ComponentProjectUrlFiles {
         catch { response.writeHead(503); response.end(); return true; }
         response.setHeader('content-type', row.mime); response.setHeader('cache-control', 'no-store');
         response.setHeader('x-content-type-options', 'nosniff'); response.setHeader('access-control-allow-origin', '*');
-        response.setHeader('content-security-policy', "default-src 'none'; base-uri 'none'; form-action 'none'; sandbox");
+        // 只允许已通过整文件SHA验证的HTML中精确style字节；脚本、外部资源和任意内联样式仍禁止。
+        const styles = row.mime.startsWith('text/html') ? [...bytes.toString('utf8').matchAll(/<style>([\s\S]*?)<\/style>/gu)] : [];
+        const hashes = styles.map(match => "'sha256-" + createHash('sha256').update(match[1] ?? '').digest('base64') + "'");
+        response.setHeader('content-security-policy', "default-src 'none'; " +
+            (hashes.length ? 'style-src ' + hashes.join(' ') + '; ' : '') + "base-uri 'none'; form-action 'none'; sandbox");
         response.setHeader('accept-ranges', 'bytes');
         let start = 0; let end = bytes.length - 1;
         const range = request.headers.range;

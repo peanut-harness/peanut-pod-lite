@@ -230,7 +230,7 @@ const sync = LumenDefaultTemplateRoot.ensurePluginCache(pluginCacheDir);
 
 在实际验证的 Creator 3.8.3 / 3.8.7 中，`cc.UITransform.priority` 是已弃用的运行时排序属性，不经原生场景序列化持久化。完整属性目录仍保留该字段并标记 `writable: false`、`writeRefusedReason: native_runtime_only`；`comp-set` 在任何补丁变化和保存前拒绝它（包括混合补丁）。尺寸与锚点的六个公开属性保持可写。运行时排序应使用引擎的节点 sibling 顺序；本条不声明已实现新的原生排序操作。
 
-3.8.3 / 3.8.7 精确 SDK 的 AnimationController 图引用从 JSON `graph` 读取；DragonBones 的公开 `playTimes` 与旧私有 `_playTimes` 是不同成员，写入与检视使用前者。两类动画映射先校验整补丁，失败不留下部分修改。ReflectionProbe 的 `_probeId` 由原生注册表分配，启用/重开时可能重新分配；完整目录保留 `probeId`，以 `native_unsupported` 在整补丁修改前拒绝持久化写入。未知版本保留既有行为。这些新修复有离线回归，尚待新候选实机复验。
+3.8.3 / 3.8.7 精确 SDK 的 AnimationController 图引用从 JSON `graph` 读取；DragonBones 的公开 `playTimes` 与旧私有 `_playTimes` 是不同成员，写入与检视使用前者。两类动画映射先校验整补丁，失败不留下部分修改。ReflectionProbe 的 `_probeId` 由原生注册表分配，启用/重开时可能重新分配；完整目录保留 `probeId`，以 `native_unsupported` 在整补丁修改前拒绝持久化写入。未知版本保留既有行为。两版动画映射与探针ID拒绝已在13e46db候选完成原生保存/重开定向验证；此结论不覆盖其他组件或完整矩阵。
 
 SpriteAtlas XML `.plist` 导入会从 `frames` / `metadata` 中的 `textureFileName`、`realTextureFileName` 发现同目录贴图，先导入贴图并等待原生就绪，再导入图集。默认依赖闭包无需调用方重复提供这张依赖表；声明的贴图缺失、越界路径或未知 XML 实体会在原生调用前拒绝。这里仅支持同目录文件名和 XML 内建/数值文本实体，不读取外部 DTD，不将粒子 plist 当作图集，也不声明所有 plist 格式或贴图字段已经过原生验收。
 

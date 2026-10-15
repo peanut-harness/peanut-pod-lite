@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, 
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'node:http';
+import { createHash } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import test from 'node:test';
 import { ComponentProjectUrlFiles } from './component-project-url-files.ts';
@@ -73,13 +74,31 @@ test('fixed URL HTTP serves exact GET, HEAD and video byte ranges without arbitr
             const response = await fetch(video.url, { headers: { range } }); assert.equal(response.status, 416);
         }
         const html = await fetch(web.url); assert.equal(html.status, 200);
-        assert.match(html.headers.get('content-security-policy') ?? '', /default-src 'none'/u);
-        assert.equal(await html.text(), readFileSync(join(root, web.sourcePath), 'utf8'));
+        const policy = html.headers.get('content-security-policy') ?? '';
+        assert.match(policy, /default-src 'none'/u); assert.equal(policy.includes('unsafe-inline'), false);
+        const body = await html.text(); assert.equal(body, readFileSync(join(root, web.sourcePath), 'utf8'));
+        const styles = [...body.matchAll(/<style>([\s\S]*?)<\/style>/gu)]; assert.equal(styles.length, 1);
+        for (const style of styles) assert(policy.includes("'sha256-" + createHash('sha256').update(style[1] ?? '').digest('base64') + "'"));
         for (const method of ['POST', 'PUT', 'DELETE', 'OPTIONS']) assert.equal((await fetch(video.url, { method })).status, 405);
         assert.equal((await fetch(video.url + '?path=other')).status, 404);
         assert.equal((await fetch(`http://127.0.0.1:${endpoint.port}/task51-fixtures/unknown`)).status, 404);
         assert.equal((await fetch(`http://127.0.0.1:${endpoint.port}/probe`, { method: 'POST' })).status, 403);
     } finally { await endpoint.close(); rmSync(fixture.project, { recursive: true, force: true }); }
+});
+
+test('WebView fixture has opaque contrasting content and a readable logical text size', () => {
+    const html = readFileSync(join(root, 'tests/fixtures/editor-stability/components/fixtures/web/index.html'), 'utf8');
+    const background = /\bbackground:\s*(#[\da-f]{6})/u.exec(html)?.[1];
+    const foreground = /\bcolor:\s*(#[\da-f]{6})/u.exec(html)?.[1];
+    const size = /\bfont-size:\s*(\d+)px/u.exec(html)?.[1]; assert(background && foreground && size);
+    const luminance = (hex: string) => {
+        const rgb = [1, 3, 5].map(at => Number.parseInt(hex.slice(at, at + 2), 16) / 255)
+            .map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+        return 0.2126 * (rgb[0] ?? 0) + 0.7152 * (rgb[1] ?? 0) + 0.0722 * (rgb[2] ?? 0);
+    };
+    const light = luminance(background); const dark = luminance(foreground);
+    assert((Math.max(light, dark) + 0.05) / (Math.min(light, dark) + 0.05) >= 4.5);
+    assert(Number(size) >= 48); assert(html.includes('WebView OK'));
 });
 
 test('staging refuses linked ancestors before creating directories outside the project', () => {

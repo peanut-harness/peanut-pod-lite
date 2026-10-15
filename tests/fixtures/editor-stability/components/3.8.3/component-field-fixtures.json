@@ -35799,14 +35799,14 @@
             "form": "project-file-url",
             "projectFile": {
               "path": "tests/fixtures/editor-stability/components/fixtures/web/index.html",
-              "sha256": "29459217ec721f512a7cca20f9e4e9b4a420598a029f8cf009898fc96c1229c7"
+              "sha256": "363123da6426a3748803830d5b2540ef084247d10704e63376adc72ad9ae0b1c"
             }
           },
           "validValue": {
             "form": "project-file-url",
             "projectFile": {
               "path": "tests/fixtures/editor-stability/components/fixtures/web/index.html",
-              "sha256": "29459217ec721f512a7cca20f9e4e9b4a420598a029f8cf009898fc96c1229c7"
+              "sha256": "363123da6426a3748803830d5b2540ef084247d10704e63376adc72ad9ae0b1c"
             }
           },
           "invalidValue": 1,

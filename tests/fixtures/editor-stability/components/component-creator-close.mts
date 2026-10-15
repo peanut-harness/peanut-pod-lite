@@ -2,6 +2,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 
 /**
  * @description 按原始启动身份仅向本任务实例发送正常退出请求；没有全局退出或强杀入口。
@@ -27,22 +28,26 @@ class ComponentCreatorClose {
             return result.stdout.trim();
         };
         if (!identity()) throw new Error('component_creator_close_original_process_missing');
-        const requestedAt = new Date().toISOString();
-        const result = execFileSync('/usr/bin/osascript', ['-l', 'JavaScript', '-e',
-            `ObjC.import('AppKit'); var app=$.NSRunningApplication.runningApplicationWithProcessIdentifier(${lease.pid}); if(!app) throw Error('owned instance missing'); app.terminate;`], { encoding: 'utf8' }).trim();
-        writeFileSync(join(output, 'owned-normal-close-request.json'), JSON.stringify({
-            pid: lease.pid, method: 'pid-scoped-NSRunningApplication-normal-terminate', requestedAt, result,
-        }, null, 2) + '\n', { flag: 'wx' });
-        if (result !== 'true') throw new Error('component_creator_normal_close_not_accepted');
-        const until = Date.now() + 30000;
-        while (identity()) {
-            if (Date.now() >= until) throw new Error('component_creator_normal_close_not_observed');
-            await new Promise((done) => setTimeout(done, 500));
-        }
-        const receipt = { pid: lease.pid, owner: lease.owner, runId: lease.runId, requestedAt,
-            observedExitedAt: new Date().toISOString(), originalProcessGone: true, forced: false };
-        writeFileSync(join(output, 'owned-normal-close-receipt.json'), JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx' });
-        process.stdout.write(JSON.stringify(receipt) + '\n');
+        const receipt = await ComponentNativeLogGuard.run(project, 'creator-normal-close', async () => {
+            const requestedAt = new Date().toISOString();
+            const result = execFileSync('/usr/bin/osascript', ['-l', 'JavaScript', '-e',
+                `ObjC.import('AppKit'); var app=$.NSRunningApplication.runningApplicationWithProcessIdentifier(${lease.pid}); if(!app) throw Error('owned instance missing'); app.terminate;`], { encoding: 'utf8' }).trim();
+            writeFileSync(join(output, 'owned-normal-close-request.json'), JSON.stringify({
+                pid: lease.pid, method: 'pid-scoped-NSRunningApplication-normal-terminate', requestedAt, result,
+            }, null, 2) + '\n', { flag: 'wx' });
+            if (result !== 'true') throw new Error('component_creator_normal_close_not_accepted');
+            const until = Date.now() + 30000;
+            while (identity()) {
+                if (Date.now() >= until) throw new Error('component_creator_normal_close_not_observed');
+                await new Promise((done) => setTimeout(done, 500));
+            }
+            // 物理退出事实单独保留；后验有错误时仍抛错，不能把exit 0当成整个会话零诊断。
+            const closed = { pid: lease.pid, owner: lease.owner, runId: lease.runId, requestedAt,
+                observedExitedAt: new Date().toISOString(), originalProcessGone: true, forced: false };
+            writeFileSync(join(output, 'owned-normal-close-receipt.json'), JSON.stringify(closed, null, 2) + '\n', { flag: 'wx' });
+            return closed;
+        }, event => writeFileSync(join(output, 'owned-normal-close-postflight.json'), JSON.stringify(event, null, 2) + '\n', { flag: 'wx' }));
+        process.stdout.write(JSON.stringify({ ...receipt, closeDiagnosticsVerified: true }) + '\n');
     }
 }
 
