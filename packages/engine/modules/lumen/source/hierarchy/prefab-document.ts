@@ -717,6 +717,8 @@ export class LumenPrefabDocument {
      * @param patch 公开属性补丁，如 `{ string: "Hello", fontSize: 28 }`
      */
     public setComponentProperty(nodePath: string, componentType: string, patch: Readonly<Record<string, unknown>>): void {
+        LumenNativeComponentBinding.validate(this, componentType, this._propertySchema,
+            document => document._writeComponentProperty(nodePath, componentType, patch));
         if (LumenButtonColorBinding.apply(this, nodePath, componentType, this._propertySchema,
             document => document._writeComponentProperty(nodePath, componentType, patch))) {
             return;

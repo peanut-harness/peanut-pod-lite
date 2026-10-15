@@ -19,6 +19,7 @@ export class LumenNativeComponentPersistence {
         if (!['3.8.3', '3.8.7'].includes(version.toString())) { return false; }
         return [
             'cc.UITransform.priority',
+            'cc.Label.actualFontSize',
             'cc.Camera.targetDisplay',
             'cc.DirectionalLight.intensity',
             'cc.SphereLight.intensity',

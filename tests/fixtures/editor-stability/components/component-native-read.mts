@@ -1,8 +1,10 @@
-import { existsSync, readFileSync, writeFileSync, realpathSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, realpathSync, appendFileSync } from 'node:fs';
 import { join, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
+import { ComponentEngineProfile } from './component-engine-profile.mts';
+import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 
 /**
  * @description 每次重读令牌与端口，并把原生响应绑定到登记工程及本任务实际启动进程。
@@ -18,27 +20,32 @@ class ComponentNativeRead {
         const registration = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8'));
         const lease = JSON.parse(readFileSync(join(output, 'creator-owned-start.json'), 'utf8'));
         const request = async (action: string, input: Record<string, unknown> = {}): Promise<unknown> => {
-            const descriptorPath = join(project, '.peanut-ai/component-probe.json');
-            if (realpathSync(descriptorPath) !== descriptorPath) throw new Error('component_native_descriptor_link');
-            const descriptor = JSON.parse(readFileSync(descriptorPath, 'utf8'));
-            if (descriptor.projectPath !== project || descriptor.owner !== registration.owner || descriptor.pid !== lease.pid
-                || descriptor.runId !== registration.runId || !Number.isInteger(descriptor.port)) throw new Error('component_native_descriptor_identity_mismatch');
-            const current = execFileSync('/bin/ps', ['-p', String(lease.pid), '-o', 'pid=,ppid=,lstart=,args=', '-ww'], { encoding: 'utf8' }).trim();
-            if (current !== lease.identity.trim()) throw new Error('component_native_owned_process_changed');
-            const response = await fetch(`http://127.0.0.1:${descriptor.port}/probe`, {
-                method: 'POST', headers: { 'content-type': 'application/json', 'x-component-token': descriptor.token },
-                body: JSON.stringify({ action, ...input }), signal: AbortSignal.timeout(30000),
-            });
-            const body = await response.json();
-            if (!response.ok || body.ok !== true) throw new Error(body.error ?? 'component_native_request_failed');
-            return body.result;
+            const execute = async (): Promise<unknown> => {
+                const descriptorPath = join(project, '.peanut-ai/component-probe.json');
+                if (realpathSync(descriptorPath) !== descriptorPath) throw new Error('component_native_descriptor_link');
+                const descriptor = JSON.parse(readFileSync(descriptorPath, 'utf8'));
+                if (descriptor.projectPath !== project || descriptor.owner !== registration.owner || descriptor.pid !== lease.pid
+                    || descriptor.runId !== registration.runId || !Number.isInteger(descriptor.port)) throw new Error('component_native_descriptor_identity_mismatch');
+                const current = execFileSync('/bin/ps', ['-p', String(lease.pid), '-o', 'pid=,ppid=,lstart=,args=', '-ww'], { encoding: 'utf8' }).trim();
+                if (current !== lease.identity.trim()) throw new Error('component_native_owned_process_changed');
+                const response = await fetch(`http://127.0.0.1:${descriptor.port}/probe`, {
+                    method: 'POST', headers: { 'content-type': 'application/json', 'x-component-token': descriptor.token },
+                    body: JSON.stringify({ action, ...input }), signal: AbortSignal.timeout(30000),
+                });
+                const body = await response.json();
+                if (!response.ok || body.ok !== true) throw new Error(body.error ?? 'component_native_request_failed');
+                return body.result;
+            };
+            if (action === 'health') { return execute(); }
+            return ComponentNativeLogGuard.run(project, action, execute,
+                event => appendFileSync(join(output, 'native-read-log-events.ndjson'), JSON.stringify(event) + '\n'));
         };
         const until = Date.now() + 90000;
         while (!existsSync(join(project, '.peanut-ai/component-probe.json'))) {
             if (Date.now() >= until) throw new Error('component_native_probe_not_loaded');
             await new Promise((done) => setTimeout(done, 1000));
         }
-        type Health = { host: { ready: boolean; artifacts: unknown }; creatorVersion: string; pid: number; localProfiles: unknown };
+        type Health = { host: { ready: boolean; artifacts: unknown }; creatorVersion: string; pid: number; localProfiles: unknown; effectiveEngineProfile: unknown };
         let health: Health | null = null;
         const hostUntil = Date.now() + 120000;
         const startupObservations: unknown[] = [];
@@ -56,6 +63,7 @@ class ComponentNativeRead {
             await new Promise((done) => setTimeout(done, 1000));
         } while (true);
         if (!health) throw new Error('component_native_health_missing');
+        ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(registration.creatorVersion));
         writeFileSync(join(output, 'native-health.json'), JSON.stringify(health, null, 2) + '\n', { mode: 0o600 });
         const { CpmPackageStore } = createRequire(import.meta.url)('../../../../packages/hosts/modules/creator-38/src/cpm-package-store.js');
         const descriptor = JSON.parse(readFileSync(join(root, 'release/peanut.pod-lite-0.2.0/lite-release-descriptor.json'), 'utf8'));

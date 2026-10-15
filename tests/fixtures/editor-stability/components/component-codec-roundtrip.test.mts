@@ -39,6 +39,7 @@ for(const version of ['3.8.3','3.8.7']) test(`${version} all prepared component 
     throw Error('unknown recipe')
    };
    const rootKey=row.selector[0];if(!rootKey)throw Error('selector_missing');
+   if(comp.componentType==='cc.Mask'&&rootKey!=='type')doc.setComponentProperty('/Root/Target',comp.componentType,{type:3});
    doc.setComponentProperty('/Root/Target',comp.componentType,{[rootKey]:resolve(row.rootValue)});
    doc.save(scratch,false,LumenCocosVersion.parse(version));
    const data=JSON.parse(readFileSync(scratch+'/assets/probe.prefab','utf8'));
@@ -55,8 +56,8 @@ for(const version of ['3.8.3','3.8.7']) test(`${version} all prepared component 
   }catch(e){failures.push({component:comp.componentType,field:row.selector[0],message:e instanceof Error?e.message:String(e)})}
  }
  assert.deepEqual(failures,[]);
- assert.equal(passed,version==='3.8.3'?786:789);assert.equal(invalidRejected,passed);
- assert.equal(rejected,version==='3.8.3'?9:6);
+ assert.equal(passed,version==='3.8.3'?785:788);assert.equal(invalidRejected,passed);
+ assert.equal(rejected,version==='3.8.3'?10:7);
 });
 
 test.after(async()=>{await import("node:fs/promises").then(m=>m.rm(scratch,{recursive:true,force:true}))});

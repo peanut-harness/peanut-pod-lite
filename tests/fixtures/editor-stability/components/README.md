@@ -62,3 +62,11 @@ node --import tsx tests/fixtures/editor-stability/components/component-catalog-c
 预览安全暂停：旧矩阵逐字段调用preview.refresh导致重复open-terminal，原始日志和中断报告保留。矩阵的preview-refresh入口继续禁用，commit不再刷新浏览器。`component-preview-safety.mts --project <新工程>` 是独立安全分片：真实候选、浏览器标签只读计数、query不打开窗口及最多三次refresh均需核对；未知状态立即停止，不重放写入。
 
 仅安全验收回执真实通过后才登记 `evidence/task-5.1/preview-safety-approved-<version>.json`。矩阵拒绝缺失或不匹配候选、Host/Core摘要的回执。`component-native-matrix.mts` 保留99组件/795字段分母，逐根字段验证避免别名覆盖，记录原生getter或有精确SDK源码证明的原生序列化槽；后端候选、Tiled源拥有层次、蒙皮和管线条件不会被暂存提升为原生通过。
+
+2026-10-15：b484e4 的内置浏览器有限验收完成3次真实MCP刷新，始终复用一个标签；仅证明已有连接页面的reload分支，Chrome原生窗口观测与自动打开分支仍未验收。随后矩阵处理43/99行，29行原生通过，因发现继承全局自定义引擎而暂停，六项已撤销；报告只归属于该实际运行环境，不能作为完整安装SDK验收。相关7个源码文件与SDK摘要一致，旧日志与失败行保留。
+
+后续全新验证工程通过本地engine profile显式选择内置JavaScript和原生引擎；启动前和健康检查都拒绝缺失或非内置配置，不修改全局配置。EditBox五项扁平样式由源码及SHA证明的textLabel / placeholderLabel公开getter读取。Mask配方使用3模式和合法segments，重跑组件前先读取实际存在性，已移除组件不再盲目删除。Label.actualFontSize另列持久化拒绝后，离线codec用例为1573项写入保存重开、17项来源或持久化拒绝；两版分母仍各99/795。这些新增修复尚需新候选实机复验，5.1保持未完成。
+
+警告根因修复：原生Camera.color/depth/stencil读取路径改为clearColor/clearDepth/clearStencil，ParticleSystem.enableCulling改为dataCulling。公开目录名和795字段分母保持原样；生成契约时同时核对版本源码SHA、目标类getter及replaceProperty对该类的实际转发声明，探针运行时也拒绝这四个旧getter。无法读取源码证明或现代getter时停止，不能静默回退旧getter。
+
+`ComponentNativeLogGuard`把组件、资源、场景只读观测及整轮矩阵纳入project.log增量验收；日志必须存在、身份不变且未截断。读取后最多观察1000ms，按50ms只读轮询并要求连续200ms稳定，以捕获异步转发日志；此窗口不保证捕获任意更晚的外部事件。警告/错误、日志失去观测或执行异常立即停止，finally仅撤销精确六项挂接，不继续打开控制场景或执行下一组件。报告另记nativeFieldVerifiedComponents；只有整轮动作与日志后验均成功才计入nativeVerifiedComponents，原始失败行和旧日志不覆盖。新增保护尚待新候选实机复验。

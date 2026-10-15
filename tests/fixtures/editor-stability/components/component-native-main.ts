@@ -68,6 +68,7 @@ class ComponentNativeMain {
             const host = await request('peanut-pod-lite-host', 'query-status');
             return { projectPath: this.project, creatorVersion: editor.App.version, pid: process.pid,
                 nodeVersion: process.versions.node, electronVersion: process.versions.electron,
+                effectiveEngineProfile: await editor.Profile.getConfig('engine'),
                 host, localProfiles: {
                     project: await editor.Profile.getConfig('project', undefined, 'local'),
                     engine: await editor.Profile.getConfig('engine', undefined, 'local'),

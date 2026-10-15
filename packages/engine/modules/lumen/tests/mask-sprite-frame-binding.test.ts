@@ -21,6 +21,25 @@ function setup(version: string): { document: LumenPrefabDocument; schema: LumenC
 }
 
 for (const version of ['3.8.3', '3.8.7']) {
+    test(version + ' Mask refuses switching an owned Graphics carrier into Sprite mode without destroying it', () => {
+        const { document } = setup(version);
+        document.attachBuiltinComponent('/Root/MaskNode', 'cc.Graphics');
+        const before = JSON.stringify(document.entries);
+        assert.throws(() => document.setComponentProperty('/Root/MaskNode', 'cc.Mask', { type: 3 }), /lumen_property_value:type:mask_graphics_carrier_conflict/);
+        assert.equal(JSON.stringify(document.entries), before);
+    });
+    test(version + ' incompatible Mask mode and Sprite carrier refuse before mutation or allocation', () => {
+        const { document } = setup(version);
+        let before = JSON.stringify(document.entries);
+        assert.throws(() => document.setComponentProperty('/Root/MaskNode', 'cc.Mask', { type: 0, spriteFrame: frame }), /lumen_property_value:type:mask_sprite_carrier/);
+        assert.equal(JSON.stringify(document.entries), before);
+        document.setComponentProperty('/Root/MaskNode', 'cc.Mask', { type: 3, spriteFrame: frame });
+        before = JSON.stringify(document.entries);
+        assert.throws(() => document.setComponentProperty('/Root/MaskNode', 'cc.Mask', { inverted: true, type: 1 }), /lumen_property_value:type:mask_sprite_carrier/);
+        assert.equal(JSON.stringify(document.entries), before);
+        document.setComponentProperty('/Root/MaskNode', 'cc.Mask', { type: 3 });
+        assert.equal(JSON.stringify(document.entries), before);
+    });
     test(version + ' Mask spriteFrame writes native-owned Sprite carrier and inspector survives serialization', (): void => {
         const { document, schema, node, mask } = setup(version);
         document.setComponentProperty('/Root/MaskNode', 'cc.Mask', { type: 3, inverted: true, segments: 37, alphaThreshold: 0.23, spriteFrame: frame });

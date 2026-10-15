@@ -11249,8 +11249,8 @@
           "invalidValue": {
             "invalidType": true
           },
-          "expectedWrite": "set-and-readback",
-          "refusalReason": null,
+          "expectedWrite": "reject-native-persistence",
+          "refusalReason": "native_runtime_only",
           "sourceOrigin": "static-recipe",
           "nativeAcceptance": false
         }
@@ -12183,11 +12183,11 @@
           "kind": "enum",
           "rootValue": {
             "form": "literal",
-            "value": 0
+            "value": 3
           },
           "validValue": {
             "form": "literal",
-            "value": 0
+            "value": 3
           },
           "invalidValue": {
             "invalidType": true
@@ -12227,11 +12227,11 @@
           "kind": "number",
           "rootValue": {
             "form": "literal",
-            "value": 1
+            "value": 32
           },
           "validValue": {
             "form": "literal",
-            "value": 1
+            "value": 32
           },
           "invalidValue": {
             "invalidType": true

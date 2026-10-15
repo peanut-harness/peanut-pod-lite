@@ -4,6 +4,7 @@ import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { verifyReleaseCandidate } from '../../../../tools/release-candidate.mts';
+import { ComponentEngineProfile } from './component-engine-profile.mts';
 
 /**
  * @description 5.1 独占隔离工程的外层 npm 启动入口；记录 PID、启动时间与完整二进制日志。
@@ -26,6 +27,7 @@ class ComponentCreatorSession {
         const sdk = join(registration.creatorApp ?? '', 'Contents/Resources/resources/3d/engine/package.json');
         if (JSON.parse(readFileSync(sdk, 'utf8')).version !== manifest.creator?.version
             || manifest.creator.version !== registration.creatorVersion) throw new Error('component_creator_exact_version_mismatch');
+        ComponentEngineProfile.assertProject(project, registration.creatorVersion);
         const descriptor = verifyReleaseCandidate(join(repository, 'release/peanut.pod-lite-0.2.0'), {
             expectedVersion: '0.2.0', expectedSourceCommit: registration.candidateSourceCommit,
         });

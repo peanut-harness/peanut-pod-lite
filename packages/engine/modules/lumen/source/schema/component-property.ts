@@ -9,6 +9,7 @@ import { LumenPropertyDenyList } from './deny-list';
 import { LumenSerializedFieldDiscoverer } from './field-discoverer';
 import { LumenComponentPropertyValueParser } from './component-property-value-parser';
 import { LumenComponentPropertyReferenceDecoder } from './component-property-reference-decoder';
+import { LumenNativeComponentPropertySchema } from './native-component-property-schema';
 import type {
     ILumenEmbeddedEntryHost,
     ILumenPropertyDescriptor,
@@ -424,16 +425,6 @@ export class LumenComponentPropertySchema {
     }
 
     /**
-     * @description 已实测版本中不能通过序列化持久化的运行时或原生不支持字段。
-     * @param componentType 组件类型。
-     * @param apiName 公开属性名。
-     * @returns 是否拒绝离线写入；未实测版本不外推此原生结论。
-     */
-    private _isNativeNonPersistentField(componentType: string, apiName: string): boolean {
-        return LumenNativeComponentPersistence.isNonPersistent(this._version, componentType, apiName);
-    }
-
-    /**
      * @description 整个补丁写前核对原生持久化边界，混合补丁不得留下前半段变化。
      * @param componentType 组件类型。
      * @param patch 公开属性补丁。
@@ -443,7 +434,7 @@ export class LumenComponentPropertySchema {
         patch: Readonly<Record<string, unknown>>,
     ): void {
         for (const apiName of Object.keys(patch)) {
-            if (this._isNativeNonPersistentField(componentType, apiName)) {
+            if (LumenNativeComponentPersistence.isNonPersistent(this._version, componentType, apiName)) {
                 throw new Error(`lumen_property_not_persistent:${componentType}.${apiName}`);
             }
         }
@@ -600,7 +591,7 @@ export class LumenComponentPropertySchema {
         if (specs == null) {
             return [];
         }
-        return LumenNativeMeshPropertySchema.forVersion(this._version, componentType, specs.filter((spec) => this._isFieldAvailable(spec)));
+        return LumenNativeComponentPropertySchema.forVersion(this._version, componentType, specs.filter((spec) => this._isFieldAvailable(spec)));
     }
 
     /**
@@ -679,8 +670,8 @@ export class LumenComponentPropertySchema {
             apiName: spec.apiName,
             serializedName: spec.serializedName,
             kind: spec.kind,
-            ...(this._isNativeNonPersistentField(ownerKey, spec.apiName)
-                ? { writable: false, writeRefusedReason: ['cc.UITransform', 'cc.PolygonCollider2D'].includes(ownerKey)
+            ...(LumenNativeComponentPersistence.isNonPersistent(this._version, ownerKey, spec.apiName)
+                ? { writable: false, writeRefusedReason: ['cc.UITransform', 'cc.PolygonCollider2D', 'cc.Label'].includes(ownerKey)
                     ? 'native_runtime_only' : 'native_unsupported' }
                 : {}),
             ...(spec.refComponentType != null ? { refComponentType: spec.refComponentType } : {}),
@@ -1190,6 +1181,9 @@ export class LumenComponentPropertySchema {
                 }
                 return value;
             case 'number':
+                return spec.nativeAngleDegrees === true
+                    ? this._valueParser.asNumber(value, apiName) * (Math.PI / 180)
+                    : this._valueParser.asNumber(value, apiName);
             case 'enum':
                 return this._valueParser.asNumber(value, apiName);
             case 'boolean':
@@ -1361,6 +1355,9 @@ export class LumenComponentPropertySchema {
             return null;
         }
         switch (spec.kind) {
+            case 'number':
+                return spec.nativeAngleDegrees === true && typeof raw === 'number'
+                    ? Math.round(raw * 180 / Math.PI * 100) / 100 : raw === undefined ? null : raw;
             case 'uuid':
                 if (raw != null && typeof raw === 'object' && '__uuid__' in raw) {
                     const uuid = (raw as { __uuid__?: unknown }).__uuid__;

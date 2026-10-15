@@ -5,6 +5,8 @@ import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
 import { McpScopedResourceBoundary } from '../../../../packages/engine/modules/kernel/src/mcp/mcp-scoped-resource-boundary.ts';
+import { ComponentEngineProfile } from './component-engine-profile.mts';
+import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 
 /**
  * @description 矩阵验证的实际认证传输；只允许精确六项写及只读观测，令牌不进入证据。
@@ -68,6 +70,7 @@ export class ComponentNativeClient {
             try {
                 const health = this.record(await this.probe('health')); const host = this.record(health.host);
                 if (host.ready === true) {
+                    ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(this.registration.creatorVersion));
                     const { CpmPackageStore } = createRequire(import.meta.url)('../../../../packages/hosts/modules/creator-38/src/cpm-package-store.js');
                     const descriptor = JSON.parse(readFileSync(join(this.root, 'release/peanut.pod-lite-0.2.0/lite-release-descriptor.json'), 'utf8'));
                     if (health.creatorVersion !== this.registration.creatorVersion || health.pid !== this.lease.pid
@@ -123,7 +126,9 @@ export class ComponentNativeClient {
      * @returns 原始result。
      */
     public async probe(action: string, input: Record<string, unknown> = {}): Promise<unknown> {
-        return this.request('component-probe.json', '/probe', 'x-component-token', { action, ...input });
+        const execute = (): Promise<unknown> => this.request('component-probe.json', '/probe', 'x-component-token', { action, ...input });
+        if (!['component-fields', 'scene-snapshot', 'load-asset', 'assets'].includes(action)) { return execute(); }
+        return ComponentNativeLogGuard.run(this.project, action, execute, event => { this.events.push(event); this.save(); });
     }
 
     /**

@@ -12,6 +12,7 @@ import { ComponentFieldFixtures } from './component-field-fixtures.mts';
 import { ComponentSceneFixture } from './component-scene-fixture.mts';
 import { LumenCocosVersion } from '../../../../packages/engine/modules/lumen/source/schema/cocos-version.ts';
 import { ComponentNativeFieldContract } from './component-native-field-contract.mts';
+import { ComponentEngineProfile } from './component-engine-profile.mts';
 
 const root = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
 const args = process.argv.slice(2);
@@ -37,6 +38,7 @@ writeFileSync(join(project, 'package.json'), JSON.stringify({ name: `peanut-comp
     creator: { version }, scripts: { precreator: command + 'preflight', creator: command + 'launch', postcreator: command + 'post' } }, null, 2) + '\n');
 cpSync(join(resources, 'templates/empty-quality/settings'), join(project, 'settings'), { recursive: true });
 copyFileSync(join(resources, 'templates/empty-quality/tsconfig.json'), join(project, 'tsconfig.json'));
+ComponentEngineProfile.configure(project, version);
 mkdirSync(join(project, 'node_modules'), { recursive: true });
 cpSync(join(engine, 'node_modules/tslib'), join(project, 'node_modules/tslib'), { recursive: true });
 const registration = { kind: 'worktree-local-validation-project', task: '5.1',

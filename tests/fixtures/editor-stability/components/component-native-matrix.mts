@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { ComponentNativeClient } from './component-native-client.mts';
+import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 
 /**
  * @description 保留99组件/795字段分母，逐场景验证实际六项写、原生getter和拒绝后的零文件变化。
@@ -37,6 +38,11 @@ class ComponentNativeMatrix {
     private readonly rows: Record<string, unknown>[] = [];
 
     /**
+     * @description 包含全部读写、异常和撤销阶段的整轮日志证据。
+     */
+    private campaignLog: Record<string, unknown> | null = null;
+
+    /**
      * @description 验证新分片和完整分母；可选择定向分片，但不能据此改变分母。
      * @param project 当前任务工程。
      * @param campaign 新证据标识。
@@ -59,6 +65,16 @@ class ComponentNativeMatrix {
      * @returns 分母不变的完整状态报告。
      */
     public async run(selected: readonly string[]): Promise<void> {
+        await ComponentNativeLogGuard.run(this.client.project, 'matrix-campaign', () => this.runMatrix(selected), event => {
+            this.campaignLog = event; this.client.events.push(event); this.save();
+        });
+    }
+
+    /**
+     * @description 固定候选和安全回执后串行执行；执行异常立即停止，由finally撤销精确挂接。
+     * @param selected 可选定向组件名单。
+     */
+    private async runMatrix(selected: readonly string[]): Promise<void> {
         const descriptor = this.client.record(JSON.parse(readFileSync(join(this.client.root, 'release/peanut.pod-lite-0.2.0/lite-release-descriptor.json'), 'utf8')));
         const safetyPath = join(this.client.root, 'evidence/task-5.1', `preview-safety-approved-${this.client.registration.creatorVersion}.json`);
         let safety: Record<string, unknown>;
@@ -69,8 +85,8 @@ class ComponentNativeMatrix {
             throw new Error('component_matrix_preview_safety_receipt_mismatch');
         await this.client.health();
         const rawAssets = await this.client.probe('assets'); this.assets = this.records(rawAssets);
-        await this.client.attach(true);
         try {
+            await this.client.attach(true);
             await this.open('assets/components/cc.UIOpacity.scene');
             this.backend = this.client.record(await this.client.probe('scene-snapshot'));
             for (const component of this.components) {
@@ -84,7 +100,7 @@ class ComponentNativeMatrix {
                 catch (error) {
                     this.rows.push({ componentType: type, status: 'failed', reason: error instanceof Error ? error.message : String(error),
                         fields: cases.map(f => ({ id: f.id, status: 'component-execution-failed' })) }); this.save();
-                    await this.open('assets/components/cc.UIOpacity.scene');
+                    throw error;
                 }
                 process.stdout.write(JSON.stringify({ componentType: type, status: this.rows.at(-1)?.status }) + '\n');
             }
@@ -127,7 +143,13 @@ class ComponentNativeMatrix {
         }
         const resources = [...new Set([`db://${scene}`, ...[...roots.values()].flatMap(value => value.resources)])];
         const input = { prefabRelativePath: scene, nodePath: target, resources };
-        await this.client.write('lumen-comp-rm', { ...input, componentType: type, confirmDestructive: true });
+        await this.open(scene);
+        const initial = this.client.record(await this.client.probe('component-fields', { nodeSuffix: suffix, componentType: type }));
+        if (initial.present === true) {
+            await this.client.write('lumen-comp-rm', { ...input, componentType: type, confirmDestructive: true });
+        } else if (initial.present !== false || initial.reason !== 'target-component-missing') {
+            throw new Error('component_matrix_initial_presence_unknown');
+        }
         await this.client.write('lumen-comp-add', { ...input, builtinType: type });
         // 先装配完整引用上下文；例如defaultClip必须存在于clips中，随后逐根字段独立验证别名。
         if (roots.size) await this.client.write('lumen-comp-set', { ...input, componentType: type,
@@ -362,11 +384,18 @@ class ComponentNativeMatrix {
     private save(): void {
         const counts: Record<string, number> = {};
         for (const row of this.rows) for (const field of this.records(row.fields)) counts[String(field.status)] = (counts[String(field.status)] ?? 0) + 1;
+        const log = this.client.record(this.campaignLog?.result);
+        const campaignAccepted = this.campaignLog?.actionSucceeded === true && log.logChecked === true && log.verified === true
+            && log.newErrorCount === 0 && log.newWarningCount === 0;
+        const fieldVerifiedComponents = this.rows.filter(row => row.status === 'native-verified').length;
         writeFileSync(join(this.client.output, `matrix-${this.campaign}-report.json`), JSON.stringify({ schemaVersion: 1,
             creatorVersion: this.client.registration.creatorVersion, candidateSourceCommit: this.client.registration.candidateSourceCommit,
             componentCount: 99, fieldCount: 795, processedComponents: this.rows.length,
-            nativeVerifiedComponents: this.rows.filter(row => row.status === 'native-verified').length, fieldStatusCounts: counts,
+            nativeVerifiedComponents: campaignAccepted ? fieldVerifiedComponents : 0,
+            nativeFieldVerifiedComponents: fieldVerifiedComponents, fieldStatusCounts: counts,
             backend: { physics3d: this.backend.physics3d, physics2d: this.backend.physics2d, pipeline: this.backend.pipelineConstructor },
+            campaignLogPostflight: this.campaignLog,
+            campaignAcceptance: this.campaignLog === null ? 'pending' : campaignAccepted ? 'accepted' : 'rejected',
             allEnabled: false, zeroDiagnosticsClaimed: false, task51Complete: false, rows: this.rows }, null, 2) + '\n');
         this.client.save();
     }

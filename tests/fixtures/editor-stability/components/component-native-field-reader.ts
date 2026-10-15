@@ -43,6 +43,13 @@ export class ComponentNativeFieldReader {
                     return key;
                 });
                 const root = selector[0];
+                if (componentType === 'cc.Camera' && ['color', 'depth', 'stencil'].includes(root ?? '') ||
+                    componentType === 'cc.ParticleSystem' && root === 'enableCulling') {
+                    throw new Error('component_native_deprecated_getter_contract');
+                }
+                if (root && !(root in component) && field.getterSource != null) {
+                    throw new Error('component_native_proven_getter_missing:' + root);
+                }
                 if (root && !(root in component) && Array.isArray(field.nativeSerializedSelector)) {
                     selector = field.nativeSerializedSelector.map((key: unknown) => {
                         if (typeof key !== 'string' || !/^[a-zA-Z0-9_]+$/u.test(key)) throw new Error('component_native_serialized_selector_invalid');

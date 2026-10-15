@@ -76,6 +76,9 @@ export class ComponentValueRecipeFactory {
         if (contextual) return contextual;
         const literal = (value: unknown): IComponentValueRecipe => ({ form: 'literal', value });
         const list = (items: readonly IComponentValueRecipe[]): IComponentValueRecipe => ({ form: 'list', items });
+        // 图片载体与Mask模式必须相容；避免把完整配方装配成Graphics与Sprite冲突的场景。
+        if (owner === 'cc.Mask' && field.apiName === 'type') { return literal(3); }
+        if (owner === 'cc.Mask' && field.apiName === 'segments') { return literal(32); }
         const native = declarations.find((row) => row.type === owner);
         const properties = native?.properties.filter((property) => property.name === field.apiName || property.name === field.serializedName) ?? [];
         if (field.kind === 'boolean') return literal(false);

@@ -22,7 +22,7 @@ export class LumenMaskSpriteFrameBinding {
         schema: LumenComponentPropertySchema,
     ): boolean {
         if (componentType !== 'cc.Mask' || !['3.8.3', '3.8.7'].includes(schema.version.toString()) ||
-            !Object.prototype.hasOwnProperty.call(patch, 'spriteFrame')) {
+            !Object.prototype.hasOwnProperty.call(patch, 'spriteFrame') && !Object.prototype.hasOwnProperty.call(patch, 'type')) {
             return false;
         }
         const nodeIndex = document.findNodeIndex(nodePath);
@@ -33,6 +33,13 @@ export class LumenMaskSpriteFrameBinding {
         const encoded = schema.encodeComponentPatch(componentType, patch, mask);
         let sprite = this._sprite(mask, index => document.entries[index] ?? null);
         const { _spriteFrame: frame, ...maskFields } = encoded;
+        const type = maskFields._type ?? mask._type ?? 0;
+        if (type !== 3 && (sprite != null || frame != null)) {
+            throw new Error('lumen_property_value:type:mask_sprite_carrier_requires_sprite_stencil');
+        }
+        if (type === 3 && document.entries.some(entry => entry.__type__ === 'cc.Graphics' && this._index(entry.node) === nodeIndex)) {
+            throw new Error('lumen_property_value:type:mask_graphics_carrier_conflict');
+        }
         if (sprite == null && frame != null) {
             document.attachBuiltinComponent(nodePath, 'cc.Sprite');
             sprite = this._sprite(mask, index => document.entries[index] ?? null);
@@ -40,7 +47,7 @@ export class LumenMaskSpriteFrameBinding {
                 throw new Error('lumen_mask_sprite_owner_missing');
             }
         }
-        if (sprite != null) {
+        if (sprite != null && Object.prototype.hasOwnProperty.call(encoded, '_spriteFrame')) {
             sprite._spriteFrame = frame;
         }
         Object.assign(mask, maskFields);
