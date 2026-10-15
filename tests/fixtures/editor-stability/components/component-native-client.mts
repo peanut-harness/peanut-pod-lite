@@ -1,4 +1,4 @@
-import { appendFileSync, readFileSync, realpathSync } from 'node:fs';
+import { appendFileSync, readFileSync, realpathSync, existsSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
 import { McpScopedResourceBoundary } from '../../../../packages/engine/modules/kernel/src/mcp/mcp-scoped-resource-boundary.ts';
 import { ComponentEngineProfile } from './component-engine-profile.mts';
+import { ComponentEngineModules } from './component-engine-modules.mts';
 import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 import { ComponentProjectUrlResolver } from './component-project-url-resolver.mts';
 
@@ -72,6 +73,12 @@ export class ComponentNativeClient {
                 const health = this.record(await this.probe('health')); const host = this.record(health.host);
                 if (host.ready === true) {
                     ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(this.registration.creatorVersion));
+                    if (existsSync(join(this.output, 'component-matrix-staging.json'))) {
+                        this.events.push({ step: 'health-engine-modules-observed', creatorVersion: health.creatorVersion,
+                            engineModulesProfile: health.engineModulesProfile ?? null }); this.save();
+                        ComponentEngineModules.assertProject(this.project, String(this.registration.creatorVersion));
+                        ComponentEngineModules.assertActive(health.engineModulesProfile, String(this.registration.creatorVersion));
+                    }
                     const { CpmPackageStore } = createRequire(import.meta.url)('../../../../packages/hosts/modules/creator-38/src/cpm-package-store.js');
                     const descriptor = JSON.parse(readFileSync(join(this.root, 'release/peanut.pod-lite-0.2.0/lite-release-descriptor.json'), 'utf8'));
                     if (health.creatorVersion !== this.registration.creatorVersion || health.pid !== this.lease.pid

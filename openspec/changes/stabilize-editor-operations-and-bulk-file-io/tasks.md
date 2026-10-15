@@ -107,3 +107,10 @@ A1 本地检查点 72899da 的 parent、tree、精确 27 文件及 1023 当前�
 
 
 完整日志补查：13e46db的3.8.7整份工程日志无警告/错误；3.8.3在19:51:39正常退出的同一秒新增Electron GUEST_VIEW_MANAGER_CALL / Invalid guestInstanceId: 6，栈仅见Electron GuestView。其矩阵campaign零诊断证据保持，但整会话零错误验收不通过；根因尚未确定，不能宣称无害或已修好。物理退出事实和原始错误均保留，未重开该工程盲试、未改Creator安装包。关闭工具新增既有日志guard后验：即使进程正常退出也保留单独物理回执，并对退出期间新增诊断返回失败；延迟GuestView错误回归验证不重放关闭。这个门禁修复不等于SDK退出错误已解决，后续仍须安全定向复验。
+
+
+2026-10-15后续：13文件批准已用于e90fb77，完整verify1256项、官方打包和候选校验通过。两版新工程资源分别20/20与19/19加载，展示55/55与53/53首次导入及末尾SHA均不变；WebView新URL的保存/移除重开定向campaign零诊断，795完整分母保留。两版原始Sprite截图确认240逻辑尺寸内容清晰可见；独立WebView生命周期对照截图确认WebView OK、64px深色文字和不透明浅色背景，浏览器无新诊断。原标签各仅一次existing-preview+reload-terminal刷新，未增窗口/标签。按先停放预览、切回自有Label、撤销六项并确认连接0和短暂安静的流程，两版自有PID49095/6412正常退出，关闭后验与整份工程日志均0警告/0错误。旧3.8.3 GuestView退出错误本轮未复现；根因仍未建立，不宣称SDK缺陷已普遍消除。
+
+Sorting2D原始重叠对照在原生字段为蓝色order1/红色order0时仍显示红色，呈现拒绝；SDK源码确认USE_SORTING_2D默认false，sorting-2d模块覆盖为true，官方说明也要求在功能裁剪启用2D渲染排序（https://docs.cocos.com/creator/3.8/manual/zh/engine/rendering/sorting-2d.html）。仅对本任务3.8.7工程通过官方UI切换该项，取消额外动画实验功能提示，保留模块配置物化前后文件；相同未修改场景的原标签截图随后确认蓝色order1覆盖后创建红色order0，零新诊断。这是条件配置对照，不将原失败报告改为通过。
+
+新夹具工具将官方UI导出配置冻结为3.8.7精确模块档案，并显式使用官方默认配置键；保持PhysX、XR、实验动画和其他原本关闭的选项关闭，不改变MCP暴露档位。仅在新矩阵工程暂存，拒绝已启动工程、已有配置、链接、错误SDK功能契约及额外模块/后端/加载标志变化；3.8.3不加未知模块。外层npm preflight及原生读客户端均校验落盘配置；health改用公开Editor.Profile.getProject读回项目模块（https://docs.cocos.com/creator/3.8/manual/zh/editor/extension/profile），不使用全局编辑器配置替代。90项夹具、严格类型及源码规范通过，实际SDK离线装配检查通过；新档案和Profile有效配置门禁仍待新的clean检查点、完整verify/候选及原生呈现复验，其余原生拥有层次、后端及完整5.1未完成，不开all、不推送、不发布。

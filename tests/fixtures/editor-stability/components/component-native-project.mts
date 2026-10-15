@@ -15,6 +15,7 @@ import { ComponentNativeFieldContract } from './component-native-field-contract.
 import { ComponentLifecycleFixture } from './component-lifecycle-fixture.mts';
 import { ComponentPresentationFixture } from './component-presentation-fixture.mts';
 import { ComponentEngineProfile } from './component-engine-profile.mts';
+import { ComponentEngineModules } from './component-engine-modules.mts';
 import { ComponentSpriteImport } from './component-sprite-import.mts';
 import { ComponentTerrainEffect } from './component-terrain-effect.mts';
 import { ComponentProjectUrlFiles } from './component-project-url-files.ts';
@@ -45,6 +46,7 @@ writeFileSync(join(project, 'package.json'), JSON.stringify({ name: `peanut-comp
 cpSync(join(resources, 'templates/empty-quality/settings'), join(project, 'settings'), { recursive: true });
 copyFileSync(join(resources, 'templates/empty-quality/tsconfig.json'), join(project, 'tsconfig.json'));
 ComponentEngineProfile.configure(project, version);
+if (fixtureProfile === 'component-matrix') ComponentEngineModules.stage(project, engine, version);
 mkdirSync(join(project, 'node_modules'), { recursive: true });
 cpSync(join(engine, 'node_modules/tslib'), join(project, 'node_modules/tslib'), { recursive: true });
 const registration = { kind: 'worktree-local-validation-project', task: '5.1',
