@@ -43,6 +43,14 @@ class ComponentNativeMatrix {
      * @description 包含全部读写、异常和撤销阶段的整轮日志证据。
      */
     private campaignLog: Record<string, unknown> | null = null;
+    /**
+     * @description 展示场景冻结摘要，字段测试只能改变独立副本。
+     */
+    private readonly presentationDigests = new Map<string, string>();
+    /**
+     * @description finally中实际核对的展示文件不变性。
+     */
+    private presentationsUnchanged: boolean | null = null;
 
     /**
      * @description 验证新分片和完整分母；可选择定向分片，但不能据此改变分母。
@@ -55,6 +63,16 @@ class ComponentNativeMatrix {
         const fields = this.client.record(JSON.parse(readFileSync(join(this.client.project, 'extensions/peanut-component-probe/public-field-contract.json'), 'utf8')));
         const staging = this.client.record(JSON.parse(readFileSync(join(this.client.output, 'component-matrix-staging.json'), 'utf8')));
         this.components = this.records(fields.components); this.staged = this.records(staging.rows);
+        if (this.staged.some(row => row.status !== 'blocked' && row.scenePath !== `assets/components/_lifecycle/${row.componentType}.scene`)) {
+            throw new Error('component_matrix_disposable_lifecycle_scene_required');
+        }
+        for (const row of this.staged) {
+            const presentation = this.client.record(row.presentation);
+            if (typeof presentation.scenePath !== 'string') continue;
+            if (presentation.scenePath !== `assets/components/${row.componentType}.scene` ||
+                this.hash(presentation.scenePath) !== presentation.stagedSha256) throw new Error('component_matrix_presentation_identity_invalid');
+            this.presentationDigests.set(presentation.scenePath, this.hash(presentation.scenePath));
+        }
         if (fields.componentCount !== 99 || fields.fieldCount !== 795 || this.components.length !== 99 || this.staged.length !== 99
             || this.components.reduce((sum, row) => sum + this.records(row.cases).length, 0) !== 795) throw new Error('component_matrix_denominator_invalid');
         writeFileSync(join(this.client.output, `matrix-${campaign}-start.json`), JSON.stringify({ startedAt: new Date().toISOString(),
@@ -96,7 +114,7 @@ class ComponentNativeMatrix {
         const rawAssets = await this.client.probe('assets'); this.assets = this.records(rawAssets);
         try {
             await this.client.attach(true);
-            await this.open('assets/components/cc.UIOpacity.scene');
+            await this.open('assets/components/_lifecycle/cc.UIOpacity.scene');
             this.backend = this.client.record(await this.client.probe('scene-snapshot'));
             for (const component of this.components) {
                 const type = this.string(component.componentType); const cases = this.records(component.cases);
@@ -113,7 +131,12 @@ class ComponentNativeMatrix {
                 }
                 process.stdout.write(JSON.stringify({ componentType: type, status: this.rows.at(-1)?.status }) + '\n');
             }
-        } finally { await this.client.attach(false); this.save(); }
+        } finally {
+            try {
+                this.presentationsUnchanged = [...this.presentationDigests].every(([path, digest]) => this.hash(path) === digest);
+                if (!this.presentationsUnchanged) throw new Error('component_matrix_presentation_changed');
+            } finally { await this.client.attach(false); this.save(); }
+        }
     }
 
     /**
@@ -141,6 +164,7 @@ class ComponentNativeMatrix {
      */
     private async component(component: Record<string, unknown>, staged: Record<string, unknown>): Promise<void> {
         const type = this.string(component.componentType); const scene = this.string(staged.scenePath); const target = this.string(staged.targetPath);
+        const expectedSceneUuid = await this.client.sceneIdentity(scene);
         const suffix = target.replace(/^\/Root/u, ''); const cases = this.records(component.cases); const paths = this.client.record(staged.nodePaths);
         const carrier = this.client.record(this.client.record(component.assemblyRequirements).modelRendererCarrier);
         if (type === 'cc.Sorting' && (carrier.componentType !== 'cc.MeshRenderer' || carrier.requiredBase !== 'cc.ModelRenderer')) {
@@ -161,7 +185,8 @@ class ComponentNativeMatrix {
             ...mesh.map(asset => this.string(asset.url))])];
         const input = { prefabRelativePath: scene, nodePath: target, resources };
         await this.open(scene);
-        const initial = this.client.record(await this.client.probe('component-fields', { nodeSuffix: suffix, componentType: type }));
+        const initial = this.client.record(await this.client.probe('component-fields', { nodeSuffix: suffix, componentType: type, expectedSceneUuid }));
+        this.requireScene(initial, expectedSceneUuid);
         if (initial.present === true) {
             await this.client.write('lumen-comp-rm', { ...input, componentType: type, confirmDestructive: true });
         } else if (initial.present !== false || initial.reason !== 'target-component-missing') {
@@ -176,12 +201,12 @@ class ComponentNativeMatrix {
         if (roots.size) await this.client.write('lumen-comp-set', { ...input, componentType: type,
             props: Object.fromEntries([...roots].map(([key, value]) => [key, value.input])) });
         let persisted = this.hash(scene);
-        const control = scene === 'assets/components/cc.UIOpacity.scene' ? 'assets/components/cc.Sprite.scene' : 'assets/components/cc.UIOpacity.scene';
+        const control = scene === 'assets/components/_lifecycle/cc.UIOpacity.scene' ? 'assets/components/_lifecycle/cc.Sprite.scene' : 'assets/components/_lifecycle/cc.UIOpacity.scene';
         for (const [root, value] of roots) {
             await this.client.write('lumen-comp-set', { ...input, componentType: type, props: { [root]: value.input } });
             await this.commit(scene); persisted = this.hash(scene);
             await this.open(control); await this.open(scene);
-            const read = await this.read(suffix, type, true);
+            const read = await this.read(suffix, type, true, expectedSceneUuid);
             if (this.hash(scene) !== persisted) throw new Error('component_matrix_reopen_wrote_scene');
             const actual = this.records(read.fields);
             const current = cases.filter(field => this.recordsOrStrings(field.selector)[0] === root && field.expectedWrite === 'set-and-readback');
@@ -196,7 +221,7 @@ class ComponentNativeMatrix {
                 fieldRows.push({ id: field.id, status: matched ? 'native-field-readback-verified' : 'native-field-readback-failed',
                     expected, observed, invalidTypeRefused: true, persistedAndReopened: true });
             }
-            const after = await this.read(suffix, type, true);
+            const after = await this.read(suffix, type, true, expectedSceneUuid);
             const ids = new Set(current.map(field => field.id));
             if (JSON.stringify(this.records(read.fields).filter(field => ids.has(field.id)))
                 !== JSON.stringify(this.records(after.fields).filter(field => ids.has(field.id))))
@@ -215,8 +240,8 @@ class ComponentNativeMatrix {
         }
         await this.client.write('lumen-comp-rm', { ...input, componentType: type, confirmDestructive: true });
         await this.commit(scene); const removed = this.hash(scene);
-        await this.open('assets/components/cc.UIOpacity.scene'); await this.open(scene);
-        await this.read(suffix, type, false);
+        await this.open(control); await this.open(scene);
+        await this.read(suffix, type, false, expectedSceneUuid);
         if (this.hash(scene) !== removed) throw new Error('component_matrix_removed_reopen_wrote_scene');
         this.rows.push({ componentType: type, status: fieldRows.every(row => ['native-field-readback-verified', 'expected-public-refusal-verified'].includes(String(row.status)))
             ? 'native-verified' : 'field-gaps', fields: fieldRows, addedAndRemoved: true, persistedAndReopened: true,
@@ -294,12 +319,14 @@ class ComponentNativeMatrix {
      * @param suffix 场景根以下路径。
      * @param type 实际组件类型。
      * @param present 预期存在或已移除。
+     * @param expectedSceneUuid 目标场景真实UUID。
      * @returns 原生字段快照。
      */
-    private async read(suffix: string, type: string, present: boolean): Promise<Record<string, unknown>> {
+    private async read(suffix: string, type: string, present: boolean, expectedSceneUuid: string): Promise<Record<string, unknown>> {
         const until = Date.now() + 30000;
         do {
-            const result = this.client.record(await this.client.probe('component-fields', { nodeSuffix: suffix, componentType: type }));
+            const result = this.client.record(await this.client.probe('component-fields', { nodeSuffix: suffix, componentType: type, expectedSceneUuid }));
+            this.requireScene(result, expectedSceneUuid);
             if (result.present === present && (!present || result.valid === true)) {
                 this.client.events.push({ step: 'native-fields', componentType: type, result }); this.client.save(); return result;
             }
@@ -321,7 +348,22 @@ class ComponentNativeMatrix {
      * @description 使用精确挂接的公开scene.open呈现指定场景。
      * @param scene 明确场景文件。
      */
-    private async open(scene: string): Promise<void> { await this.client.write('scene-open', { path: `db://${scene}`, resources: [`db://${scene}`] }); }
+    private async open(scene: string): Promise<void> {
+        const expectedSceneUuid = await this.client.sceneIdentity(scene);
+        await this.client.write('scene-open', { path: `db://${scene}`, resources: [`db://${scene}`] });
+        this.requireScene(this.client.record(await this.client.probe('scene-snapshot')), expectedSceneUuid);
+    }
+
+    /**
+     * @description 原生场景漂移立即停止并保留观测，不重放打开或写入。
+     * @param result 原生观测。
+     * @param expectedSceneUuid 目标UUID。
+     */
+    private requireScene(result: Record<string, unknown>, expectedSceneUuid: string): void {
+        if (result.sceneUuid === expectedSceneUuid) return;
+        this.client.events.push({ step: 'native-scene-identity-refused', expectedSceneUuid, result }); this.client.save();
+        throw new Error('component_matrix_native_scene_identity_mismatch');
+    }
 
     /**
      * @description 错误类型输入保留其它有效嵌套字段，数组逐项替换相同公开叶字段。
@@ -420,6 +462,7 @@ class ComponentNativeMatrix {
             backend: { physics3d: this.backend.physics3d, physics2d: this.backend.physics2d, pipeline: this.backend.pipelineConstructor },
             campaignLogPostflight: this.campaignLog,
             campaignAcceptance: this.campaignLog === null ? 'pending' : campaignAccepted ? 'accepted' : 'rejected',
+            presentationFilesUnchanged: this.presentationsUnchanged, presentationRenderedComponents: 0,
             allEnabled: false, zeroDiagnosticsClaimed: false, task51Complete: false, rows: completeRows }, null, 2) + '\n');
         this.client.save();
     }

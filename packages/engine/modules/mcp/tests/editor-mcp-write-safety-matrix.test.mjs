@@ -96,7 +96,8 @@ async function activateRouter(options = {}) {
             },
             assetRead: { query: async (pathOrUuid) => ({ pathOrUuid, type: 'prefab' }) },
             scene: {
-                getCurrent: async () => options.sceneCurrent ?? null,
+                getCurrent: async () => typeof options.sceneCurrent === 'function' ? options.sceneCurrent()
+                    : options.sceneCurrent ?? 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
                 getHierarchy: async () =>
                     (typeof options.sceneHierarchy === 'function'
                         ? options.sceneHierarchy()
@@ -135,7 +136,7 @@ async function activateRouter(options = {}) {
                     if (target === 'scene' && message === 'query-current-scene') {
                         return options.currentScene ?? { uuid: null, url: null };
                     }
-                    if (message === 'query-ready') {
+                    if (message === 'query-ready' || message === 'query-is-ready') {
                         return true;
                     }
                     if (message === 'query-asset-info') {
@@ -216,7 +217,7 @@ test('matrix: asset.writeText creates a new text asset before it exists on disk'
                 registered = true;
                 return { uuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' };
             }
-            if (message === 'query-ready') {
+            if (message === 'query-ready' || message === 'query-is-ready') {
                 return true;
             }
             return null;
@@ -273,7 +274,7 @@ test('matrix: asset.writeText recovers an unregistered disk orphan without overw
                 nativeReimported = true;
                 return undefined;
             }
-            if (message === 'query-ready') {
+            if (message === 'query-ready' || message === 'query-is-ready') {
                 return true;
             }
             return null;
@@ -487,7 +488,7 @@ test('matrix: builder platforms + asset propertySchema/inheritance', async () =>
             if (target === 'builder' && message === 'query-all-builder') {
                 return [{ platform: 'web-desktop' }, { platform: 'ios' }];
             }
-            if (message === 'query-ready') {
+            if (message === 'query-ready' || message === 'query-is-ready') {
                 return true;
             }
             return null;
@@ -649,34 +650,35 @@ test('matrix: scene.open uses one-way Scene delivery before AssetDB fallback', a
     );
 });
 
-test('matrix: scene.open retries through AssetDB when Scene delivery leaves hierarchy empty', async () => {
-    let openedByAssetDb = false;
+test('matrix: accepted scene delivery waits for the target UUID without replaying open', async () => {
+    let reads = 0;
     const { pluginModule, importCalls } = await activateRouter({
-        sceneHierarchy: () =>
-            openedByAssetDb
-                ? [{ uuid: 'canvas-uuid', name: 'Canvas', active: true, path: 'Canvas', children: [] }]
-                : [],
-        messageSendHandler: async (target, message, uuid) => {
-            assert.equal(target, 'asset-db');
-            assert.equal(message, 'open-asset');
-            assert.equal(uuid, 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
-            openedByAssetDb = true;
-        },
+        sceneCurrent: () => ++reads < 3 ? 'old-scene' : 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
     });
     const opened = await pluginModule.dispatchMcpAction('cocos.call', {
-        operation: 'scene.open',
-        input: { path: 'assets/Main.scene' },
+        operation: 'scene.open', input: { path: 'assets/Main.scene' },
     });
     assert.equal(opened.data.available, true);
-    assert.equal(opened.data.data.openVia, 'asset-db:open-asset');
-    assert.equal(opened.data.initialSettle.settled, false);
-    assert.equal(opened.data.settle.settled, true);
-    assert.equal(
-        importCalls.some(
-            (call) => call.delivery === 'send' && call.target === 'asset-db' && call.message === 'open-asset',
-        ),
-        true,
-    );
+    assert.equal(opened.data.settle.actualSceneUuid, 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
+    assert.equal(opened.data.settle.expectedSceneUuid, opened.data.settle.actualSceneUuid);
+    assert.equal(opened.data.fallback, null);
+    assert(reads >= 3);
+    assert.equal(importCalls.filter(call => call.target === 'asset-db' && call.message === 'open-asset').length, 0);
+    assert.equal(importCalls.filter(call => call.target === 'scene' && call.message === 'open-scene').length, 1);
+});
+
+test('matrix: a nonempty wrong scene never passes scene.open or triggers another open', async () => {
+    const { pluginModule, importCalls } = await activateRouter({ sceneCurrent: { uuid: 'old-scene' } });
+    const opened = await pluginModule.dispatchMcpAction('cocos.call', {
+        operation: 'scene.open', input: { path: 'assets/Main.scene' },
+    });
+    assert.equal(opened.data.available, false);
+    assert.equal(opened.data.message, 'scene_open_incomplete:target_scene_not_settled');
+    assert.equal(opened.data.settle.settled, false);
+    assert.equal(opened.data.settle.actualSceneUuid, 'old-scene');
+    assert.equal(opened.data.fallback, null);
+    assert.equal(importCalls.filter(call => call.target === 'asset-db' && call.message === 'open-asset').length, 0);
+    assert.equal(importCalls.filter(call => call.target === 'scene' && call.message === 'open-scene').length, 1);
 });
 
 test('matrix: scene hierarchy returns refused instead of hanging on unavailable probes', async () => {

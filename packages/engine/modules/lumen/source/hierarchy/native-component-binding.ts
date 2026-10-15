@@ -9,7 +9,7 @@ import { LumenDeepClone } from './deep-clone';
  */
 export class LumenNativeComponentBinding {
     /**
-     * @description 原生角度及约束的新映射先在独立内存文档校验，失败不改变真实文档或分配内嵌条目。
+     * @description 原生角度、约束及粒子的新映射先在独立内存文档校验，失败不改变真实文档或分配内嵌条目。
      * @param document 当前真实文档。
      * @param componentType 实际组件类型。
      * @param schema 精确版本属性表。
@@ -17,7 +17,7 @@ export class LumenNativeComponentBinding {
      */
     public static validate(document: LumenPrefabDocument, componentType: string, schema: LumenComponentPropertySchema, write: (target: LumenPrefabDocument) => void): void {
         if (!['3.8.3', '3.8.7'].includes(schema.version.toString()) ||
-            !['cc.Billboard', 'cc.FixedConstraint', 'cc.HingeConstraint'].includes(componentType)) { return; }
+            !['cc.Billboard', 'cc.FixedConstraint', 'cc.HingeConstraint', 'cc.ParticleSystem'].includes(componentType)) { return; }
         write(new LumenPrefabDocument(document.relativePath, LumenDeepClone.clone([...document.entries]), schema));
     }
 

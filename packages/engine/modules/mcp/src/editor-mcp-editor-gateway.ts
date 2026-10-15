@@ -20,23 +20,41 @@ import { EditorMcpThinLayerAvailabilityMapper } from './editor-mcp-thin-layer-av
  * @description editor gateway 宿主依赖。
  */
 export interface IEditorMcpEditorHost {
-    /** @description 授权 runtime。 */
+    /**
+     * @description 授权 runtime。
+     */
     readonly runtime: IGrantedRuntimeClientSet;
-    /** @description 工程根。 */
+    /**
+     * @description 工程根。
+     */
     readonly requireProjectPath: () => Promise<string>;
-    /** @description asset read grant。 */
+    /**
+     * @description asset read grant。
+     */
     readonly requireAssetRead: () => NonNullable<IGrantedRuntimeClientSet['assetRead']>;
-    /** @description selection grant。 */
+    /**
+     * @description selection grant。
+     */
     readonly requireSelection: () => NonNullable<IGrantedRuntimeClientSet['selection']>;
-    /** @description scene grant。 */
+    /**
+     * @description scene grant。
+     */
     readonly requireScene: () => NonNullable<IGrantedRuntimeClientSet['scene']>;
-    /** @description message grant。 */
+    /**
+     * @description message grant。
+     */
     readonly requireMessage: () => NonNullable<IGrantedRuntimeClientSet['message']>;
-    /** @description 资产诊断。 */
+    /**
+     * @description 资产诊断。
+     */
     readonly diagnostics: EditorMcpAssetDiagnostics;
-    /** @description 场景薄层网关。 */
+    /**
+     * @description 场景薄层网关。
+     */
     readonly sceneGateway: EditorMcpSceneGateway;
-    /** @description 普通对象判定。 */
+    /**
+     * @description 普通对象判定。
+     */
     readonly isRecord: (value: unknown) => value is Record<string, unknown>;
 }
 
@@ -44,7 +62,9 @@ export interface IEditorMcpEditorHost {
  * @description 编辑器选区、资源打开/查询与场景打开/恢复执行面。
  */
 export class EditorMcpEditorGateway {
-    /** @description 宿主依赖。 */
+    /**
+     * @description 宿主依赖。
+     */
     private readonly _host: IEditorMcpEditorHost;
 
     /**
@@ -300,27 +320,23 @@ export class EditorMcpEditorGateway {
         }
         const initial = await this._host.sceneGateway.open(openInput);
         const projectRoot = await this._host.requireProjectPath().catch(() => null);
+        const expectedSceneUuid = initial.data != null && typeof initial.data === 'object' &&
+            'uuid' in initial.data && typeof initial.data.uuid === 'string' ? initial.data.uuid : null;
         const initialSettle =
-            initial.available === true
-                ? await this._host.sceneGateway.waitForHierarchySettle(1500)
+            initial.available === true && expectedSceneUuid != null
+                ? await this._host.sceneGateway.waitForHierarchySettle(8000, expectedSceneUuid)
                 : { waitedMs: 0, nodeCount: 0, settled: false };
-        const fallback =
-            initial.available === true && initialSettle.settled !== true
-                ? await this._host.sceneGateway.retryOpenViaAssetDb(openInput)
-                : null;
-        const result = fallback?.available === true ? fallback : initial;
-        const settle =
-            fallback?.available === true
-                ? await this._host.sceneGateway.waitForHierarchySettle()
-                : initialSettle;
-        // open-scene 消息常不抛错；层次未沉降则视为打开未完成，避免 Agent 以为成功。
+        // 已受理的打开仅等待，不因未沉降而重复投递打开消息。
+        const fallback = null;
+        const result = initial;
+        const settle = initialSettle;
         const available = result.available === true && settle.settled === true;
         const message =
             result.available !== true
                 ? result.message
                 : settle.settled
                   ? result.message
-                  : 'scene_open_incomplete:hierarchy_empty_after_open';
+                  : 'scene_open_incomplete:target_scene_not_settled';
         if (projectRoot == null) {
             return { ...result, available, message, settle, initial, initialSettle, fallback };
         }

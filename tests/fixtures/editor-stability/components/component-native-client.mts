@@ -132,6 +132,32 @@ export class ComponentNativeClient {
     }
 
     /**
+     * @description 宿主ready不等于场景已导入；只读等待AssetDB与落盘meta报告同一UUID后才能打开。
+     * @param scene 本任务展示或独立生命周期场景。
+     * @returns 当前实际登记UUID；超时或元数据损坏时拒绝，不触发导入和打开。
+     */
+    public async sceneIdentity(scene: string): Promise<string> {
+        if (!/^assets\/components\/(?:_lifecycle\/)?(?:cc(?:\.[a-zA-Z0-9_]+)+|(?:sp|dragonBones)\.[a-zA-Z0-9_]+)\.scene$/u.test(scene)) {
+            throw new Error('component_matrix_scene_path_invalid');
+        }
+        const until = Date.now() + 60000;
+        do {
+            const assets = await this.probe('assets', { scope: 'components' });
+            const asset = Array.isArray(assets) ? assets.map(row => this.record(row)).find(row => row.url === `db://${scene}`) : null;
+            if (asset && typeof asset.uuid === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/iu.test(asset.uuid)) {
+                try {
+                    const meta = this.record(JSON.parse(readFileSync(join(this.project, scene + '.meta'), 'utf8')));
+                    if (meta.uuid === asset.uuid) return asset.uuid;
+                } catch (error) {
+                    if (this.record(error).code !== 'ENOENT') throw error;
+                }
+            }
+            if (Date.now() >= until) throw new Error('component_matrix_scene_registration_timeout');
+            await new Promise(done => setTimeout(done, 500));
+        } while (true);
+    }
+
+    /**
      * @description 仅发送真实MCP协议，不提供内部消息写入旁路。
      * @param body 明确控制或业务请求。
      * @returns 原始result。

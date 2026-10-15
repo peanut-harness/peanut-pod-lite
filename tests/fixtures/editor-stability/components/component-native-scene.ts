@@ -61,4 +61,4 @@ class ComponentNativeScene {
 }
 
 export const methods = { loadAsset: ComponentNativeScene.loadAsset, snapshot: ComponentNativeScene.snapshot,
-    fields: (nodeSuffix: string, componentType: string) => ComponentNativeFieldReader.read(nodeSuffix, componentType) };
+    fields: (nodeSuffix: string, componentType: string, expectedSceneUuid: string) => ComponentNativeFieldReader.read(nodeSuffix, componentType, expectedSceneUuid) };

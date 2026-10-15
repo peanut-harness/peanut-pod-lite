@@ -12,6 +12,8 @@ import { ComponentFieldFixtures } from './component-field-fixtures.mts';
 import { ComponentSceneFixture } from './component-scene-fixture.mts';
 import { LumenCocosVersion } from '../../../../packages/engine/modules/lumen/source/schema/cocos-version.ts';
 import { ComponentNativeFieldContract } from './component-native-field-contract.mts';
+import { ComponentLifecycleFixture } from './component-lifecycle-fixture.mts';
+import { ComponentPresentationFixture } from './component-presentation-fixture.mts';
 import { ComponentEngineProfile } from './component-engine-profile.mts';
 import { ComponentSpriteImport } from './component-sprite-import.mts';
 
@@ -113,10 +115,17 @@ if (fixtureProfile === 'component-matrix') {
     const rows = fields.components.map((row) => {
         const assembled = ComponentSceneFixture.create(root, version, row, audit.nativeDeclarations, true);
         if (assembled.status === 'blocked') return { componentType: row.componentType, status: 'blocked', blockers: assembled.blockers };
-        assembled.document.save(project, false, LumenCocosVersion.parse(version));
+        const lifecycle = ComponentLifecycleFixture.create(assembled.document, version, row.componentType);
+        lifecycle.save(project, false, LumenCocosVersion.parse(version));
+        const presentation = ComponentPresentationFixture.create(engine, version, row);
+        if (presentation.status === 'authored-presentation-native-pending') presentation.document.save(project, false, LumenCocosVersion.parse(version));
+        const { document: presentationDocument, ...presentationEvidence } = presentation.status === 'authored-presentation-native-pending'
+            ? presentation : { ...presentation, document: null };
         return { componentType: row.componentType, status: assembled.status, pendingRequirements: assembled.pendingRequirements,
-            targetPath: assembled.targetPath, nodePaths: assembled.nodePaths, scenePath: assembled.document.relativePath,
-            stagedSha256: createHash('sha256').update(readFileSync(join(project, assembled.document.relativePath))).digest('hex'),
+            targetPath: assembled.targetPath, nodePaths: assembled.nodePaths, scenePath: lifecycle.relativePath,
+            stagedSha256: createHash('sha256').update(readFileSync(join(project, lifecycle.relativePath))).digest('hex'),
+            presentation: { ...presentationEvidence, scenePath: presentationDocument?.relativePath ?? null,
+                stagedSha256: presentationDocument ? createHash('sha256').update(readFileSync(join(project, presentationDocument.relativePath))).digest('hex') : null },
             fieldStates: assembled.fieldStates };
     });
     matrixStaging = { creatorVersion: version, componentCount: fields.componentCount, fieldCount: fields.fieldCount, rows, nativePassedRows: 0 };

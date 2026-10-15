@@ -13,6 +13,7 @@ export class LumenNativeComponentPropertySchema {
         'cc.FixedConstraint': { breakForce: 'breakForce', breakTorque: 'breakTorque' },
         'cc.HingeConstraint': { pivotA: 'pivotA', pivotB: 'pivotB', axis: 'axisA', limit: 'limitData', motor: 'motorData' },
         'cc.ParticleSystem': { dataCulling: 'enableCulling' },
+        'cc.TextureAnimationModule': { numTilesX: 'numTilesX', numTilesY: 'numTilesY' },
     };
 
     /**
@@ -27,6 +28,9 @@ export class LumenNativeComponentPropertySchema {
         if (!['3.8.3', '3.8.7'].includes(version.toString())) { return mesh; }
         const names = this._serializedNames[componentType];
         return mesh.map(field => {
+            if (field.embeddedType != null && field.nestedFields != null) {
+                field = { ...field, nestedFields: this.forVersion(version, field.embeddedType, field.nestedFields) };
+            }
             if (componentType === 'cc.Billboard' && field.apiName === 'rotation') {
                 return { ...field, nativeAngleDegrees: true };
             }

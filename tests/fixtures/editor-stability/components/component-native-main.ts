@@ -61,7 +61,7 @@ class ComponentNativeMain {
     /**
      * @description 仅允许实际工程的健康信息、资源查询与已登记场景观测。
      */
-    private static async call(body: { action: string; uuid?: string; scope?: string; nodeSuffix?: string; componentType?: string; inspectWindows?: boolean }): Promise<unknown> {
+    private static async call(body: { action: string; uuid?: string; scope?: string; nodeSuffix?: string; componentType?: string; expectedSceneUuid?: string; inspectWindows?: boolean }): Promise<unknown> {
         const editor = Reflect.get(globalThis, 'Editor');
         if (typeof editor?.Message?.request !== 'function') throw new Error('component_native_message_api_missing');
         const request = editor.Message.request.bind(editor.Message);
@@ -104,9 +104,10 @@ class ComponentNativeMain {
         });
         if (body.action === 'component-fields') {
             if (typeof body.nodeSuffix !== 'string' || body.nodeSuffix.length > 256 || typeof body.componentType !== 'string'
-                || !/^[a-zA-Z0-9_.]{1,100}$/u.test(body.componentType)) throw new Error('component_native_field_input_invalid');
+                || !/^[a-zA-Z0-9_.]{1,100}$/u.test(body.componentType) || typeof body.expectedSceneUuid !== 'string'
+                || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/iu.test(body.expectedSceneUuid)) throw new Error('component_native_field_input_invalid');
             return request('scene', 'execute-scene-script', { name: 'peanut-component-probe', method: 'fields',
-                args: [body.nodeSuffix, body.componentType] });
+                args: [body.nodeSuffix, body.componentType, body.expectedSceneUuid] });
         }
         throw new Error('component_native_action_not_allowed');
     }

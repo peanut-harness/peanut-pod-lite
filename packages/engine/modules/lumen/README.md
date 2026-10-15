@@ -35,6 +35,8 @@ Cocos 内容组装会话（品牌名 **lumen**）。**Creator 平台能力，非
 
 同一精确版本下，ParticleSystem.dataCulling 与旧 enableCulling 公开别名共用 SDK 实际读取的 `enableCulling` JSON 字段，避免写入 `_dataCulling` 后原生仍保持默认 false。回归覆盖两个别名的 true/false 往返及未知版本保持原映射。
 
+TextureAnimationModule.numTilesX/numTilesY同样按3.8.3/3.8.7实际`formerlySerializedAs`写入无下划线JSON名字，映射递归应用于ParticleSystem内嵌模块，原生读取仍使用实际成员。粒子完整补丁先在独立内存文档校验，无效嵌套字段不留下部分修改；未知版本保留旧映射。新别名已有非默认值保存重开回归，原生实机仍须新候选复验。
+
 这两版实际SDK也不存在PointLight.intensity、PointLight.size、RangedDirectionalLight.intensity对应的原生成员；SafeArea.symmetric仅3.8.3缺失，3.8.7保持正常写入。完整目录保留这四项，以现有native_unsupported边界在写入前拒绝；有效字段与拒绝字段混合时保持文档原样。光度参数不猜测别名，未知版本保持原行为；新增边界仍待新候选原生拒绝验证。
 
 ## 布局

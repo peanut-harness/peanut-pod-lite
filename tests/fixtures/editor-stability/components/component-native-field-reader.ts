@@ -1,3 +1,5 @@
+import { ComponentNativeRangeReader } from './component-native-range-reader';
+
 /**
  * @description 在真实场景进程读取版本固定白名单中的公开字段，不提供写入或代码执行。
  */
@@ -6,15 +8,19 @@ export class ComponentNativeFieldReader {
      * @description 按暂存契约读取指定组件；数组中的嵌套字段保留逐项结果。
      * @param nodeSuffix 省略场景根名的节点路径。
      * @param componentType 已审计组件类型。
+     * @param expectedSceneUuid 从目标场景meta解析的实际UUID。
      * @returns 实际身份、公开getter及明确读取失败。
      */
-    public static read(nodeSuffix: string, componentType: string): unknown {
+    public static read(nodeSuffix: string, componentType: string, expectedSceneUuid: string): unknown {
+        if (typeof expectedSceneUuid !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/iu.test(expectedSceneUuid)) throw new Error('component_native_scene_identity_required');
         const cc = require('cc'); const contract: unknown = require(__dirname + '/public-field-contract.json');
         if (!this.isRecord(contract) || !Array.isArray(contract.components)
             || !/^\/(?:[a-zA-Z0-9_]+\/)*[a-zA-Z0-9_]+$/u.test(nodeSuffix)) throw new Error('component_native_field_contract_invalid');
         const row: unknown = contract.components.find((entry: unknown) => this.isRecord(entry) && entry.componentType === componentType);
         if (!this.isRecord(row) || !Array.isArray(row.cases)) throw new Error('component_native_field_type_unlisted');
         const scene = cc.director.getScene(); if (!scene) throw new Error('component_native_scene_missing');
+        const sceneUuid: unknown = scene.uuid;
+        if (sceneUuid !== expectedSceneUuid) return { present: false, reason: 'scene-identity-mismatch', expectedSceneUuid, sceneUuid };
         const found: Record<string, unknown>[] = [];
         const visit = (value: unknown, prefix: string): void => {
             if (!this.isRecord(value) || typeof value.name !== 'string' || !Array.isArray(value.children))
@@ -25,14 +31,14 @@ export class ComponentNativeFieldReader {
         };
         for (const child of scene.children) visit(child, '');
         const node = found[0];
-        if (found.length !== 1 || !node) return { present: false, reason: 'target-node-missing', nodeSuffix, componentType };
+        if (found.length !== 1 || !node) return { present: false, reason: 'target-node-missing', nodeSuffix, componentType, sceneUuid };
         if (typeof node.getComponents !== 'function') throw new Error('component_native_components_api_missing');
         const list: unknown = Reflect.apply(node.getComponents, node, [cc.Component]);
         if (!Array.isArray(list)) throw new Error('component_native_components_shape');
         const components = list.filter((value: unknown) => cc.js.getClassName(value) === componentType);
         const component: unknown = components[0];
-        if (components.length !== 1 || !this.isRecord(component)) return { present: false, reason: 'target-component-missing', nodeSuffix, componentType };
-        return { present: true, type: cc.js.getClassName(component), uuid: component.uuid, valid: cc.isValid(component), nodeSuffix,
+        if (components.length !== 1 || !this.isRecord(component)) return { present: false, reason: 'target-component-missing', nodeSuffix, componentType, sceneUuid };
+        return { present: true, type: cc.js.getClassName(component), uuid: component.uuid, valid: cc.isValid(component), nodeSuffix, sceneUuid,
             fields: row.cases.map((field: unknown) => {
                 if (!this.isRecord(field) || typeof field.id !== 'string' || !Array.isArray(field.selector))
                     throw new Error('component_native_field_shape');
@@ -114,7 +120,8 @@ export class ComponentNativeFieldReader {
             shape = Object.fromEntries(Object.entries(recipe.value).map(([key, item]) => [key, { form: 'literal', value: item }]));
         else throw new Error('component_native_object_shape_missing');
         if (!this.isRecord(value)) throw new Error('component_native_value_shape');
-        return Object.fromEntries(Object.entries(shape).map(([key, item]) => [key, this.value(value[key], item, depth + 1)]));
+        const projected = ComponentNativeRangeReader.project(value, cc.js.getClassName(value), Object.keys(shape));
+        return Object.fromEntries(Object.entries(shape).map(([key, item]) => [key, this.value(projected[key], item, depth + 1)]));
     }
 
     /**

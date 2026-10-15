@@ -86,3 +86,11 @@ ParticleSystem2D独立字段配方改为custom=true，因为两版SDK的_applyFi
 Sorting补充实机对照在原实例内先修复待提交内容，再保存重开：真实MeshRenderer绑定已加载Mesh，sortingLayer=0、sortingOrder=1原生读回正确，移除重开通过，新增日志warn/error均为0。粒子custom=false补充对照也验证plist参数和实际SpriteFrame绑定，保存与移除重开通过，新增日志warn/error均为0；首次补充脚本因comp-add额外参数被入口拒绝、未写组件，原拒绝证据保留，修正参数后的B对照另存。旧Sorting失败整轮与41组件字段证据不升级为通过。
 
 中途失败的报告同样保留完整分母：ComponentNativeMatrixReport为尚未遍历的组件补not-executed及逐字段pending，processedComponents仍是实际已记录行数，失败组件和原始日志后验不变。旧失败报告保留，另存complete-reassessment推导报告，不能把补齐状态当作新增执行或验收。
+
+2026-10-15：用户指出Label等场景为空。旧生命周期脚本在移除重开后留下空目标，不能作为展示场景；旧Label初始字体开关为false但字体为空，SDK的onEnable会回退系统字体，因此不能单凭这一配置断言黑屏原因。新生成器将字段/移除测试放到`assets/components/_lifecycle/`副本，根目录展示场景使用实际同版本SDK的完整预设，保留Canvas、相机、UI尺寸、渲染组件及控件子树。矩阵拒绝旧布局，并在finally核对展示文件摘要；报告中的字段验收不包含实际呈现通过。两版SDK分别装配52/54份展示候选，47/45项保留专门内容、后端或原生层次待补条件，不用空节点替代。
+
+1d4579a候选已完成完整verify（1247项）和官方打包/候选校验。新3.8.3展示工程使用同一候选与单独记录SHA的独立工具、夹具；Label真实原生字段、Canvas相机引用、相机可见层及正布局尺寸通过，用户仅授权的一次截图确认实际文字显示。只复用IAB标签1并刷新一次，没有创建标签；原生Label核验新增warn/error均为0。切换工程期间浏览器保留两条早于显式刷新的启动错误，整段浏览器过程不能宣称零错误，后续冷启动须单独复验。之前全矩阵因手动切场景在RigidBody处停止，45组件仅保留字段证据，整轮拒绝；99/795分母完整，5.1仍未完成。
+
+后续操作顺序：先确认唯一已绑定的本任务预览标签；切换自有Creator工程前将该标签暂留空白页，正常关闭且只关闭租约对应PID。新工程必须走最外层`npm run creator`，等宿主、AssetDB/meta场景UUID一致、场景脚本和目标原生场景就绪后，再用同一标签恢复已观测的预览URL。存在标签时禁止调用浏览器打开路径；独立预览刷新有明确次数上限。不能观察窗口/连接时停止，不把未知当作零，也不重复刷新或重放打开。
+
+新增场景门禁在已受理打开后只读等待目标UUID，不因层次非空或等待未结束再次投递打开；兼容实际Lite返回的UUID字符串和完整宿主快照对象。原生字段探针在访问节点/getter前核对目标Scene UUID。ParticleSystem纹理分块序列化采用精确版本原生JSON别名；曲线/渐变探针从现代`spline.keyframes()`及`gradient.colorKeys/alphaKeys`读取实际数据，禁止已废弃curve getter和以配方值代替实际值。上述新产品改动尚未进入官方候选，需新批准的clean检查点后构建并复验。

@@ -32,7 +32,10 @@ class ComponentPreviewSafety {
         await this.client.health(); await this.client.attach(true);
         const scene = 'assets/components/cc.UIOpacity.scene'; const resources = [`db://${scene}`];
         try {
+            const expectedSceneUuid = await this.client.sceneIdentity(scene);
             await this.client.write('scene-open', { path: `db://${scene}`, resources });
+            const snapshot = this.client.record(await this.client.probe('scene-snapshot'));
+            if (snapshot.sceneUuid !== expectedSceneUuid) throw new Error('preview_safety_native_scene_identity_mismatch');
             const before = await this.state(true); const initialTabs = this.tabs(before);
             await this.client.mcp({ action: 'call', name: 'peanut.editor-mcp.preview-query', input: {} });
             const queried = await this.state(true);
