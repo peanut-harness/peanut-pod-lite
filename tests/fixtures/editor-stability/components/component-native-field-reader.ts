@@ -36,6 +36,11 @@ export class ComponentNativeFieldReader {
             fields: row.cases.map((field: unknown) => {
                 if (!this.isRecord(field) || typeof field.id !== 'string' || !Array.isArray(field.selector))
                     throw new Error('component_native_field_shape');
+                if (field.expectedWrite === 'reject-native-persistence' || field.expectedWrite === 'reject-version-gate') {
+                    return { id: field.id, status: 'expected-public-refusal',
+                        reason: typeof field.refusalReason === 'string' ? field.refusalReason : 'public-write-refused' };
+                }
+                if (field.expectedWrite !== 'set-and-readback') { throw new Error('component_native_field_write_contract_invalid'); }
                 const selectorSource = Array.isArray(field.safeSelector) ? field.safeSelector : field.selector;
                 let access = 'native-public-getter';
                 let selector = selectorSource.map((key: unknown) => {

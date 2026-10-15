@@ -69,6 +69,13 @@ export class ComponentSceneFixture {
             for (const item of dependency.attachOrder) document.attachBuiltinComponent(actualPath, item);
             return actualPath;
         };
+        if (requirements.modelRendererCarrier) {
+            const carrier = requirements.modelRendererCarrier;
+            const provider = declarations.find(item => item.type === carrier.componentType);
+            if (carrier.sources.length !== 1 || carrier.sources[0]?.reference !== 'sorting/sorting.ts'
+                || !provider?.baseTypes.includes(carrier.requiredBase)) throw new Error('component_sorting_renderer_source_missing');
+            attach(row.nodePath, carrier.componentType);
+        }
         const targetPath = attach(row.nodePath, row.componentType);
         const visit = (recipe: IComponentValueRecipe): void => {
             if (recipe.form === 'component-reference') {

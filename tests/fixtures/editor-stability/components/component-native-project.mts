@@ -13,6 +13,7 @@ import { ComponentSceneFixture } from './component-scene-fixture.mts';
 import { LumenCocosVersion } from '../../../../packages/engine/modules/lumen/source/schema/cocos-version.ts';
 import { ComponentNativeFieldContract } from './component-native-field-contract.mts';
 import { ComponentEngineProfile } from './component-engine-profile.mts';
+import { ComponentSpriteImport } from './component-sprite-import.mts';
 
 const root = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
 const args = process.argv.slice(2);
@@ -99,18 +100,7 @@ for (const source of sources.values()) {
     writeFileSync(absolute, authored, { flag: 'wx' });
     staged.push({ source, relativePath, sha256: createHash('sha256').update(authored).digest('hex'), originalUnchanged: true, derivation });
 }
-const imageMetaSource = join(engine, 'editor/assets/default_ui/default_sprite.png.meta');
-const imageMetaBytes = readFileSync(imageMetaSource);
-const imageMeta = JSON.parse(imageMetaBytes.toString('utf8'));
-if (imageMeta.importer !== 'image' || imageMeta.userData.type !== 'sprite-frame') throw new Error('component_native_image_import_template_invalid');
-const importMeta = { ver: imageMeta.ver, importer: imageMeta.importer, imported: false, uuid: randomUUID(),
-    files: [], subMetas: {}, userData: { type: imageMeta.userData.type } };
-const importMetaPath = 'assets/fixtures/media/assets/image/checker.png.meta';
-const importMetaBytes = Buffer.from(JSON.stringify(importMeta, null, 2) + '\n');
-writeFileSync(join(project, importMetaPath), importMetaBytes, { flag: 'wx' });
-const importMetaAuthoring = { source: imageMetaSource, sourceSha256: createHash('sha256').update(imageMetaBytes).digest('hex'),
-    relativePath: importMetaPath, sha256: createHash('sha256').update(importMetaBytes).digest('hex'),
-    derivation: '从精确 SDK image 元数据获取版本和 sprite-frame 导入选项；子资源完全交由实际 importer 生成，不复制内置图片尺寸或身份' };
+const importMetaAuthoring = ComponentSpriteImport.stage(project, engine);
 const sceneSource = join(root, `evidence/task-5.1/checkpoint-510400c-${version}/assets/components/cc.Sprite.scene`);
 mkdirSync(join(project, 'assets/components'), { recursive: true }); copyFileSync(sceneSource, join(project, 'assets/components/cc.Sprite.scene'));
 const controlSource = join(root, `evidence/task-5.1/checkpoint-510400c-${version}/assets/components/cc.UIOpacity.scene`);

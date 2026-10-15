@@ -3,6 +3,8 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { ComponentNativeClient } from './component-native-client.mts';
 import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
+import { ComponentNativeAssetLoader } from './component-native-asset-loader.ts';
+import { ComponentNativeMatrixReport } from './component-native-matrix-report.mts';
 
 /**
  * @description 保留99组件/795字段分母，逐场景验证实际六项写、原生getter和拒绝后的零文件变化。
@@ -83,7 +85,14 @@ class ComponentNativeMatrix {
         if (safety.verified !== true || safety.candidateSourceCommit !== this.client.registration.candidateSourceCommit
             || safety.hostSha256 !== this.client.record(descriptor.host).sha256 || safety.coreSha256 !== this.client.record(descriptor.core).sha256)
             throw new Error('component_matrix_preview_safety_receipt_mismatch');
-        await this.client.health();
+        const health = await this.client.health();
+        if (typeof health.pid !== 'number' || !Number.isInteger(health.pid)) throw new Error('component_matrix_pid_invalid');
+        const resources = this.client.record(JSON.parse(readFileSync(join(this.client.output, 'staging-receipt.json'), 'utf8')));
+        ComponentNativeAssetLoader.assertResources(JSON.parse(readFileSync(join(this.client.output, 'native-resource-loads.json'), 'utf8')), {
+            candidateSourceCommit: this.string(this.client.registration.candidateSourceCommit),
+            creatorVersion: this.string(this.client.registration.creatorVersion), pid: health.pid,
+            types: Object.keys(this.client.record(resources.bindings)),
+        });
         const rawAssets = await this.client.probe('assets'); this.assets = this.records(rawAssets);
         try {
             await this.client.attach(true);
@@ -133,6 +142,13 @@ class ComponentNativeMatrix {
     private async component(component: Record<string, unknown>, staged: Record<string, unknown>): Promise<void> {
         const type = this.string(component.componentType); const scene = this.string(staged.scenePath); const target = this.string(staged.targetPath);
         const suffix = target.replace(/^\/Root/u, ''); const cases = this.records(component.cases); const paths = this.client.record(staged.nodePaths);
+        const carrier = this.client.record(this.client.record(component.assemblyRequirements).modelRendererCarrier);
+        if (type === 'cc.Sorting' && (carrier.componentType !== 'cc.MeshRenderer' || carrier.requiredBase !== 'cc.ModelRenderer')) {
+            throw new Error('component_sorting_renderer_precondition_missing');
+        }
+        const mesh = carrier.componentType ? this.assets.filter(asset => asset.type === 'cc.Mesh' && asset.imported === true
+            && asset.invalid !== true && typeof asset.url === 'string' && asset.url.startsWith('db://assets/fixtures/')) : [];
+        if (carrier.componentType && mesh.length !== 1) throw new Error('component_sorting_mesh_precondition_missing');
         const roots = new Map<string, { input: unknown; expected: unknown; resources: string[] }>();
         const fieldRows: Record<string, unknown>[] = [];
         for (const field of cases) {
@@ -141,7 +157,8 @@ class ComponentNativeMatrix {
             try { roots.set(root, this.resolve(field.rootValue, paths)); }
             catch (error) { fieldRows.push({ id: field.id, status: 'native-input-blocked', reason: error instanceof Error ? error.message : String(error) }); }
         }
-        const resources = [...new Set([`db://${scene}`, ...[...roots.values()].flatMap(value => value.resources)])];
+        const resources = [...new Set([`db://${scene}`, ...[...roots.values()].flatMap(value => value.resources),
+            ...mesh.map(asset => this.string(asset.url))])];
         const input = { prefabRelativePath: scene, nodePath: target, resources };
         await this.open(scene);
         const initial = this.client.record(await this.client.probe('component-fields', { nodeSuffix: suffix, componentType: type }));
@@ -151,6 +168,10 @@ class ComponentNativeMatrix {
             throw new Error('component_matrix_initial_presence_unknown');
         }
         await this.client.write('lumen-comp-add', { ...input, builtinType: type });
+        if (carrier.componentType && mesh[0]) {
+            await this.client.write('lumen-comp-set', { ...input, componentType: this.string(carrier.componentType),
+                props: { mesh: mesh[0].uuid, enabled: false } });
+        }
         // 先装配完整引用上下文；例如defaultClip必须存在于clips中，随后逐根字段独立验证别名。
         if (roots.size) await this.client.write('lumen-comp-set', { ...input, componentType: type,
             props: Object.fromEntries([...roots].map(([key, value]) => [key, value.input])) });
@@ -288,7 +309,7 @@ class ComponentNativeMatrix {
     }
 
     /**
-     * @description 公共保存后仅刷新预览，不启动全资产刷新。
+     * @description 公共保存仅提交明确场景，不刷新预览或启动全资产刷新。
      * @param scene 明确场景文件。
      */
     private async commit(scene: string): Promise<void> {
@@ -382,8 +403,11 @@ class ComponentNativeMatrix {
      * @description 保留原始分母和所有逐字段状态，不把字段或资源通过等同完整任务完成。
      */
     private save(): void {
+        const completeRows = ComponentNativeMatrixReport.complete(this.components.map(component => ({
+            componentType: this.string(component.componentType), cases: this.records(component.cases).map(field => ({ id: this.string(field.id) })),
+        })), this.rows);
         const counts: Record<string, number> = {};
-        for (const row of this.rows) for (const field of this.records(row.fields)) counts[String(field.status)] = (counts[String(field.status)] ?? 0) + 1;
+        for (const row of completeRows) for (const field of this.records(row.fields)) counts[String(field.status)] = (counts[String(field.status)] ?? 0) + 1;
         const log = this.client.record(this.campaignLog?.result);
         const campaignAccepted = this.campaignLog?.actionSucceeded === true && log.logChecked === true && log.verified === true
             && log.newErrorCount === 0 && log.newWarningCount === 0;
@@ -396,7 +420,7 @@ class ComponentNativeMatrix {
             backend: { physics3d: this.backend.physics3d, physics2d: this.backend.physics2d, pipeline: this.backend.pipelineConstructor },
             campaignLogPostflight: this.campaignLog,
             campaignAcceptance: this.campaignLog === null ? 'pending' : campaignAccepted ? 'accepted' : 'rejected',
-            allEnabled: false, zeroDiagnosticsClaimed: false, task51Complete: false, rows: this.rows }, null, 2) + '\n');
+            allEnabled: false, zeroDiagnosticsClaimed: false, task51Complete: false, rows: completeRows }, null, 2) + '\n');
         this.client.save();
     }
 }

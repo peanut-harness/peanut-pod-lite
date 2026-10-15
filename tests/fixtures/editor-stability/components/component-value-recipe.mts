@@ -79,6 +79,10 @@ export class ComponentValueRecipeFactory {
         // 图片载体与Mask模式必须相容；避免把完整配方装配成Graphics与Sprite冲突的场景。
         if (owner === 'cc.Mask' && field.apiName === 'type') { return literal(3); }
         if (owner === 'cc.Mask' && field.apiName === 'segments') { return literal(32); }
+        // SDK的custom=false会从plist覆盖粒子参数；独立字段测试必须使用自定义参数上下文。
+        if (owner === 'cc.ParticleSystem2D' && field.apiName === 'custom') { return literal(true); }
+        // SDK内置default排序层ID为0；通用数值1不是已登记的排序层。
+        if (owner === 'cc.Sorting' && field.apiName === 'sortingLayer') { return literal(0); }
         const native = declarations.find((row) => row.type === owner);
         const properties = native?.properties.filter((property) => property.name === field.apiName || property.name === field.serializedName) ?? [];
         if (field.kind === 'boolean') return literal(false);

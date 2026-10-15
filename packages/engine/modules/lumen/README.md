@@ -33,6 +33,10 @@ Cocos 内容组装会话（品牌名 **lumen**）。**Creator 平台能力，非
 
 3.8.3 / 3.8.7 原生组件映射由 `LumenNativeComponentPropertySchema` 统一装配：Billboard.rotation 以度公开、以弧度持久化；FixedConstraint / HingeConstraint 的 JSON 字段遵循对应 SDK 的 `formerlySerializedAs`，原生探针另用实际成员名读取。三类组件先在独立内存文档验证完整补丁，类型失败不留下部分变化。未知版本保留既有映射。Label.actualFontSize 是排版计算值，保留目录但在整补丁写入前拒绝持久化；Mask 图片绑定必须使用 SPRITE_STENCIL（3），与现有 Sprite 不兼容的模式切换原子拒绝。
 
+同一精确版本下，ParticleSystem.dataCulling 与旧 enableCulling 公开别名共用 SDK 实际读取的 `enableCulling` JSON 字段，避免写入 `_dataCulling` 后原生仍保持默认 false。回归覆盖两个别名的 true/false 往返及未知版本保持原映射。
+
+这两版实际SDK也不存在PointLight.intensity、PointLight.size、RangedDirectionalLight.intensity对应的原生成员；SafeArea.symmetric仅3.8.3缺失，3.8.7保持正常写入。完整目录保留这四项，以现有native_unsupported边界在写入前拒绝；有效字段与拒绝字段混合时保持文档原样。光度参数不猜测别名，未知版本保持原行为；新增边界仍待新候选原生拒绝验证。
+
 ## 布局
 
 ```text

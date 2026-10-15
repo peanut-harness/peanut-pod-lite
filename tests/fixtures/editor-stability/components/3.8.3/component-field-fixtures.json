@@ -24543,11 +24543,11 @@
           "kind": "boolean",
           "rootValue": {
             "form": "literal",
-            "value": false
+            "value": true
           },
           "validValue": {
             "form": "literal",
-            "value": false
+            "value": true
           },
           "invalidValue": {
             "invalidType": true
@@ -25182,8 +25182,8 @@
           "invalidValue": {
             "invalidType": true
           },
-          "expectedWrite": "set-and-readback",
-          "refusalReason": null,
+          "expectedWrite": "reject-native-persistence",
+          "refusalReason": "native_unsupported",
           "sourceOrigin": "static-recipe",
           "nativeAcceptance": false
         },
@@ -25226,8 +25226,8 @@
           "invalidValue": {
             "invalidType": true
           },
-          "expectedWrite": "set-and-readback",
-          "refusalReason": null,
+          "expectedWrite": "reject-native-persistence",
+          "refusalReason": "native_unsupported",
           "sourceOrigin": "static-recipe",
           "nativeAcceptance": false
         }
@@ -26025,8 +26025,8 @@
           "invalidValue": {
             "invalidType": true
           },
-          "expectedWrite": "set-and-readback",
-          "refusalReason": null,
+          "expectedWrite": "reject-native-persistence",
+          "refusalReason": "native_unsupported",
           "sourceOrigin": "static-recipe",
           "nativeAcceptance": false
         }
@@ -27649,8 +27649,8 @@
           "invalidValue": {
             "invalidType": true
           },
-          "expectedWrite": "set-and-readback",
-          "refusalReason": null,
+          "expectedWrite": "reject-native-persistence",
+          "refusalReason": "native_unsupported",
           "sourceOrigin": "static-recipe",
           "nativeAcceptance": false
         }
@@ -30694,6 +30694,18 @@
       },
       "assemblyRequirements": {
         "referenceNodesAndComponents": "从值配方的实际路径和类型创建；先完成它们各自的 requireComponent 闭包",
+        "modelRendererCarrier": {
+          "componentType": "cc.MeshRenderer",
+          "requiredBase": "cc.ModelRenderer",
+          "sources": [
+            {
+              "reference": "sorting/sorting.ts",
+              "sha256": "b2d15d531f03f34668c4f42de2c2cc921396f58482aff14f19ed49f58f07526e",
+              "line": 42
+            }
+          ],
+          "rule": "Sorting.__preload必须取得真实ModelRenderer；使用实际MeshRenderer并在矩阵写入前绑定已加载Mesh"
+        },
         "uiScene": false,
         "physicsBackend": null,
         "physicsBackendMustBeConfirmedFromActiveCreator": false,
@@ -30724,11 +30736,11 @@
           "kind": "number",
           "rootValue": {
             "form": "literal",
-            "value": 1
+            "value": 0
           },
           "validValue": {
             "form": "literal",
-            "value": 1
+            "value": 0
           },
           "invalidValue": {
             "invalidType": true

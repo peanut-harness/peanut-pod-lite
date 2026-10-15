@@ -10,9 +10,9 @@
 
 物理后端、UI 场景、同源蒙皮层次、TiledMap 生成的内部组件及高质量渲染管线具有明确装配前置要求。这些要求尚须实际装配及原生端口验证；输入配方不等于完整原生夹具。5.1 当前保持未完成，`nativePassedRows` 始终为 0。
 
-`ComponentSceneFixture` 现在从同版本已审计的官方 2D Scene 模板实际创建依赖、Canvas 下的 UI 节点、引用节点及事件控制器，并写入不需要原生资源身份的完整字段值。3.8.3 可生成53个场景，498个字段已写入；3.8.7 可生成55个场景，502个字段已写入。这是场景源的离线装配，没有执行 Creator 加载。
+`ComponentSceneFixture` 现在从同版本已审计的官方 2D Scene 模板实际创建依赖、Canvas 下的 UI 节点、引用节点及事件控制器，并写入不需要原生资源身份的完整字段值。3.8.3 可生成53个场景，493个字段已写入；3.8.7 可生成55个场景，498个字段已写入。这是场景源的离线装配，没有执行 Creator 加载。
 
-每版仍有39个字段等待真实资源导入或工程预览 URL。3.8.3 的46个组件／253个字段、3.8.7 的44个组件／249个字段受原生层次、后端或缺声明阻塞；每版另保留5个公共 API 预期拒绝字段。全部795个字段均有明确状态，不删除阻塞行。独立图校验拒绝悬空 id、重复链接、双向父子关系或组件所属节点失配；定向测试覆盖场景保存、重开、移除组件后保存重开，以及 ScrollView 引用与真实事件控制器绑定。
+每版仍有39个字段等待真实资源导入或工程预览 URL。3.8.3 的46个组件／253个字段、3.8.7 的44个组件／249个字段受原生层次、后端或缺声明阻塞；两版各保留10个公共 API 预期拒绝字段（3.8.7含后端待验行）。全部795个字段均有明确状态，不删除阻塞行。独立图校验拒绝悬空 id、重复链接、双向父子关系或组件所属节点失配；定向测试覆盖场景保存、重开、移除组件后保存重开，以及 ScrollView 引用与真实事件控制器绑定。
 
 生成一次新的离线场景集（`--run-id` 必须是新的目录标识；已有产物不覆盖），再以同样参数追加 `--check`：
 
@@ -29,7 +29,7 @@ node --import tsx tests/fixtures/editor-stability/components/component-scene-com
 node --import tsx --test tests/fixtures/editor-stability/components/*.test.mts
 ```
 
-序列化测试通过真实产品 API 添加依赖、写字段、保存、重开并拒绝错误类型。合计 1575 个字段用例成功保存/重开并拒绝错误类型；15 项明确分列为版本来源阻塞或现有公共持久化拒绝。测试的资源解析 UUID 和预览 URL 仅为 codec 单元测试合成输入，不是资产登记、原生加载、引用绑定或生命周期验收证据。
+序列化测试通过真实产品 API 添加依赖、写字段、保存、重开并拒绝错误类型。合计 1566 个字段用例成功保存/重开并拒绝错误类型；24 项明确分列为版本来源阻塞或现有公共持久化拒绝。测试的资源解析 UUID 和预览 URL 仅为 codec 单元测试合成输入，不是资产登记、原生加载、引用绑定或生命周期验收证据。
 
 独立重新核对单版本的来源审计（资源目录必须指向对应实际安装包）：
 
@@ -70,3 +70,19 @@ node --import tsx tests/fixtures/editor-stability/components/component-catalog-c
 警告根因修复：原生Camera.color/depth/stencil读取路径改为clearColor/clearDepth/clearStencil，ParticleSystem.enableCulling改为dataCulling。公开目录名和795字段分母保持原样；生成契约时同时核对版本源码SHA、目标类getter及replaceProperty对该类的实际转发声明，探针运行时也拒绝这四个旧getter。无法读取源码证明或现代getter时停止，不能静默回退旧getter。
 
 `ComponentNativeLogGuard`把组件、资源、场景只读观测及整轮矩阵纳入project.log增量验收；日志必须存在、身份不变且未截断。读取后最多观察1000ms，按50ms只读轮询并要求连续200ms稳定，以捕获异步转发日志；此窗口不保证捕获任意更晚的外部事件。警告/错误、日志失去观测或执行异常立即停止，finally仅撤销精确六项挂接，不继续打开控制场景或执行下一组件。报告另记nativeFieldVerifiedComponents；只有整轮动作与日志后验均成功才计入nativeVerifiedComponents，原始失败行和旧日志不覆盖。新增保护尚待新候选实机复验。
+
+拒绝字段保护：expectedWrite为reject-native-persistence或reject-version-gate时只保留字段行和拒绝原因，不调用原生getter；这避免UITransform.priority等已明确拒绝持久化的弃用字段产生探针警告。缺失或未知expectedWrite会在任何getter之前停止。分母仍为每版99组件/795字段。
+
+2026-10-15实机复验：c30f60a候选通过完整verify（1243项）和官方候选校验；独立探针的上述拒绝字段修正另记源码SHA及差异，不冒充c30f60a的一部分。新3.8.3工程日志确认内置引擎，19种已暂存资源真实加载；9个已修复组件整轮通过88项字段读回及3项预期拒绝，project.log新增警告/错误均为0。同一IAB标签完成新候选最多3次刷新，未创建新标签；矩阵仍禁止preview-refresh。
+
+非默认值对照进一步复现ParticleSystem.dataCulling设置true后原生仍为false，落盘_dataCulling=true但SDK实际读取enableCulling。已恢复隔离夹具的false状态，后续版本适配统一写入enableCulling；该新增产品修复仍须新候选实机true/false对照，不能把默认false读回当作它已经通过。5.1保持未完成。
+
+后续剩余矩阵在ParticleSystem2D处因粒子plist引用的SpriteFrame不存在而停止，六项挂接已撤销；停止前27组件只保留字段证据，整轮拒绝。根因是粒子相邻checker.png首次导入没有预置SpriteFrame选项，实际仅生成Texture2D，而plist元数据引用了缺失的SpriteFrame。原始日志、UUID和失败报告保留。ComponentSpriteImport现在为主图片及粒子相邻图片从精确SDK派生导入选项，子资源仍由实际importer生成。ComponentNativeAssetLoader先检查AssetDB登记，再加载ParticleAsset、实际绑定的SpriteFrame及该依赖本身。资源检查遇到缺失或失败立即停止，矩阵挂接前要求同候选、同进程、全部暂存类型和粒子依赖均有原生加载证据。
+
+ParticleSystem2D独立字段配方改为custom=true，因为两版SDK的_applyFile在custom=false时会以plist覆盖参数和spriteFrame；这保留全部字段，不能视为custom=false模式也已独立验收。新3.8.3隔离工程已生成真实粒子SpriteFrame，19种暂存资源及粒子依赖通过原生加载。该轮仍使用c30f60a产品候选，未提交的独立工具与夹具变更另记源码SHA，不包含待构建的dataCulling产品修复。
+
+剩余分片在Sorting处因缺少ModelRenderer和无效排序层停止，新增1条warn及2条error，整轮拒绝；此前41组件只保留字段证据。新夹具显式先装配源码证明的MeshRenderer，在矩阵写入前绑定实际已加载Mesh，排序层采用SDK内置default ID 0；这属于运行时装配要求，不伪造requireComponent装饰器。新矩阵遇到旧契约缺少载体要求时在打开场景前拒绝。PointLight.intensity/size、RangedDirectionalLight.intensity及仅3.8.3的SafeArea.symmetric缺少原生成员，新增写前拒绝并保留字段、错误类型和未知版本回归；新增产品边界仍待新候选实机验证。
+
+Sorting补充实机对照在原实例内先修复待提交内容，再保存重开：真实MeshRenderer绑定已加载Mesh，sortingLayer=0、sortingOrder=1原生读回正确，移除重开通过，新增日志warn/error均为0。粒子custom=false补充对照也验证plist参数和实际SpriteFrame绑定，保存与移除重开通过，新增日志warn/error均为0；首次补充脚本因comp-add额外参数被入口拒绝、未写组件，原拒绝证据保留，修正参数后的B对照另存。旧Sorting失败整轮与41组件字段证据不升级为通过。
+
+中途失败的报告同样保留完整分母：ComponentNativeMatrixReport为尚未遍历的组件补not-executed及逐字段pending，processedComponents仍是实际已记录行数，失败组件和原始日志后验不变。旧失败报告保留，另存complete-reassessment推导报告，不能把补齐状态当作新增执行或验收。

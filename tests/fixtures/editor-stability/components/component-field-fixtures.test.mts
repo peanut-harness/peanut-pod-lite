@@ -20,6 +20,17 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
         assert.equal(saved.componentCount, 99);
         assert.equal(saved.fieldCount, 795);
         assert.equal(saved.nativePassedRows, 0);
+        const particle = saved.components.find(row => row.componentType === 'cc.ParticleSystem2D');
+        assert.deepEqual(particle?.cases.find(row => row.selector.join('.') === 'custom')?.validValue, { form: 'literal', value: true });
+        const sorting = saved.components.find(row => row.componentType === 'cc.Sorting');
+        assert.deepEqual(sorting?.cases.find(row => row.selector.join('.') === 'sortingLayer')?.validValue, { form: 'literal', value: 0 });
+        assert.equal(sorting?.assemblyRequirements.modelRendererCarrier?.componentType, 'cc.MeshRenderer');
+        for (const [type, name] of [['cc.PointLight', 'intensity'], ['cc.PointLight', 'size'], ['cc.RangedDirectionalLight', 'intensity']]) {
+            const row = saved.components.find(row => row.componentType === type)?.cases.find(row => row.selector.join('.') === name);
+            assert.equal(row?.expectedWrite, 'reject-native-persistence');
+        }
+        assert.equal(saved.components.find(row => row.componentType === 'cc.SafeArea')?.cases[0]?.expectedWrite,
+            version === '3.8.3' ? 'reject-native-persistence' : 'set-and-readback');
         for (const component of saved.components) {
             const fields = audit.rows.find((row: { componentType: string }) => row.componentType === component.componentType).fields;
             assert.deepEqual(component.cases.map((row) => row.id), fields.map((row: { id: string }) => row.id));

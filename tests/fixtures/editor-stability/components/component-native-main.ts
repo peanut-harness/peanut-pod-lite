@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as crypto from 'node:crypto';
 import { EditorMcpPreviewWindowInspector } from '../../../../packages/engine/modules/mcp/src/editor-mcp-preview-window-inspector';
+import { ComponentNativeAssetLoader } from './component-native-asset-loader';
 
 /**
  * @description 隔离工程内的有界原生观测入口；不提供任意消息或代码执行接口。
@@ -92,8 +93,10 @@ class ComponentNativeMain {
             if (typeof body.uuid !== 'string') throw new Error('component_native_uuid_missing');
             const info = await request('asset-db', 'query-asset-info', body.uuid);
             if (!info?.url?.startsWith('db://assets/fixtures/')) throw new Error('component_native_asset_out_of_scope');
+            const dependencies = await ComponentNativeAssetLoader.dependencies(info,
+                (message, uuid) => request('asset-db', message, uuid));
             return { info, native: await request('scene', 'execute-scene-script', {
-                name: 'peanut-component-probe', method: 'loadAsset', args: [body.uuid],
+                name: 'peanut-component-probe', method: 'loadAsset', args: [body.uuid, dependencies],
             }) };
         }
         if (body.action === 'scene-snapshot') return request('scene', 'execute-scene-script', {

@@ -1,4 +1,5 @@
 import { ComponentNativeFieldReader } from './component-native-field-reader';
+import { ComponentNativeAssetLoader } from './component-native-asset-loader';
 
 /**
  * @description 运行于目标 Creator 场景进程；返回纯 JSON，绝不传输引擎对象。
@@ -7,13 +8,13 @@ class ComponentNativeScene {
     /**
      * @description 从真正的 assetManager 加载 AssetDB 已登记资源并读回原生类型。
      */
-    public static async loadAsset(uuid: string): Promise<unknown> {
+    public static async loadAsset(uuid: string, dependencies: readonly string[]): Promise<unknown> {
         const cc = require('cc');
-        const asset = await new Promise<unknown>((resolve, reject) => {
-            cc.assetManager.loadAny(uuid, (error: Error | null, value: unknown) => error ? reject(error) : resolve(value));
+        return ComponentNativeAssetLoader.load(uuid, dependencies, {
+            load: (id) => new Promise((resolve, reject) => {
+                cc.assetManager.loadAny(id, (error: Error | null, value: unknown) => error ? reject(error) : resolve(value));
+            }), valid: asset => cc.isValid(asset), type: asset => cc.js.getClassName(asset),
         });
-        if (!asset || !cc.isValid(asset)) throw new Error('component_native_asset_invalid');
-        return { uuid, actualUuid: Reflect.get(asset as object, '_uuid'), type: cc.js.getClassName(asset), valid: cc.isValid(asset) };
     }
 
     /**

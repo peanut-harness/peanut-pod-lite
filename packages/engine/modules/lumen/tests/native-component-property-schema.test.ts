@@ -6,6 +6,42 @@ import { LumenCocosVersion } from '../source/schema/cocos-version';
 
 for (const version of ['3.8.3', '3.8.7']) {
     const schema = new LumenComponentPropertySchema(LumenCocosVersion.parse(version));
+    test(version + ' unavailable light and SafeArea fields remain listed and reject scene writes without partial changes', () => {
+        const cases = [['cc.PointLight', 'intensity'], ['cc.PointLight', 'size'], ['cc.RangedDirectionalLight', 'intensity'],
+            ...(version === '3.8.3' ? [['cc.SafeArea', 'symmetric']] : [])];
+        for (const [type, name] of cases) {
+            assert(type && name);
+            const field = schema.describeComponent(type).find(entry => entry.apiName === name);
+            assert(field); assert.equal(field.writable, false); assert.equal(field.writeRefusedReason, 'native_unsupported');
+            const document = LumenPrefabDocument.createEmptyScene('assets/Light.scene', 'Root');
+            document.setPropertySchema(schema); document.addChildFromSpec('/Root', { name: 'Target', components: [type] });
+            const before = JSON.stringify(document.entries);
+            assert.throws(() => document.setComponentProperty('/Root/Target', type, {
+                ...(type === 'cc.SafeArea' ? {} : { color: { r: 20, g: 40, b: 60, a: 255 } }), [name]: name === 'symmetric' ? false : 1,
+            }), /lumen_property_not_persistent/);
+            assert.equal(JSON.stringify(document.entries), before);
+        }
+        if (version === '3.8.7') {
+            assert.notEqual(schema.describeComponent('cc.SafeArea').find(field => field.apiName === 'symmetric')?.writable, false);
+            assert.deepEqual(schema.encodeComponentPatch('cc.SafeArea', { symmetric: false }, {}), { _symmetric: false });
+        }
+    });
+    test(version + ' ParticleSystem modern and legacy culling names survive true/false serialization through the native JSON slot', () => {
+        let document = LumenPrefabDocument.createEmptyScene('assets/Particle.scene', 'Root');
+        document.setPropertySchema(schema); document.addChildFromSpec('/Root', { name: 'Target', components: ['cc.ParticleSystem'] });
+        for (const [key, value] of [['dataCulling', true], ['enableCulling', false], ['enableCulling', true], ['dataCulling', false]] as const) {
+            document.setComponentProperty('/Root/Target', 'cc.ParticleSystem', { [key]: value });
+            document = new LumenPrefabDocument('assets/Particle.scene', JSON.parse(JSON.stringify(document.entries)), schema);
+            const component = document.entries.find(entry => entry.__type__ === 'cc.ParticleSystem'); assert(component);
+            assert.equal(component.enableCulling, value);
+            assert.equal(Object.hasOwn(component, '_dataCulling'), false);
+            const snapshot = schema.decodeComponentSnapshot('cc.ParticleSystem', component, () => null);
+            assert.equal(snapshot.dataCulling, value); assert.equal(snapshot.enableCulling, value);
+        }
+        const existing = { enableCulling: false, _renderCulling: false }; const before = JSON.stringify(existing);
+        assert.throws(() => schema.encodeComponentPatch('cc.ParticleSystem', { renderCulling: true, dataCulling: 1 }, existing), /lumen_property_type:dataCulling:boolean/);
+        assert.equal(JSON.stringify(existing), before);
+    });
     test(version + ' Billboard public degrees survive serialized radians and native getter rounding', () => {
         assert.equal(schema.decodeComponentSnapshot('cc.Billboard', {}, () => null).rotation, null);
         assert.equal(schema.decodeComponentSnapshot('cc.PolygonCollider2D', {}, () => null).threshold, null);
@@ -79,5 +115,9 @@ test('Unknown versions preserve previous field mappings and angle units', () => 
     const schema = new LumenComponentPropertySchema(LumenCocosVersion.parse('3.8.4'));
     assert.deepEqual(schema.encodeComponentPatch('cc.Billboard', { rotation: 1 }, {}), { _rotation: 1 });
     assert.deepEqual(schema.encodeComponentPatch('cc.FixedConstraint', { breakForce: 1 }, {}), { _breakForce: 1 });
+    assert.deepEqual(schema.encodeComponentPatch('cc.ParticleSystem', { dataCulling: true }, {}), { _dataCulling: true });
     assert.notEqual(schema.describeComponent('cc.Label').find(field => field.apiName === 'actualFontSize')?.writable, false);
+    for (const [type, name] of [['cc.PointLight', 'intensity'], ['cc.PointLight', 'size'], ['cc.RangedDirectionalLight', 'intensity'], ['cc.SafeArea', 'symmetric']]) {
+        assert(type && name); assert.notEqual(schema.describeComponent(type).find(field => field.apiName === name)?.writable, false);
+    }
 });

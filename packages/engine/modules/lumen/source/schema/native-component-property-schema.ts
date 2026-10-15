@@ -7,15 +7,16 @@ import { LumenNativeMeshPropertySchema } from './native-mesh-property-schema';
  */
 export class LumenNativeComponentPropertySchema {
     /**
-     * @description 约束的JSON名字遵循引擎formerlySerializedAs，原生读取仍使用实际成员。
+     * @description JSON名字遵循版本精确的formerlySerializedAs，原生读取仍使用实际成员。
      */
-    private static readonly _constraintNames: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+    private static readonly _serializedNames: Readonly<Record<string, Readonly<Record<string, string>>>> = {
         'cc.FixedConstraint': { breakForce: 'breakForce', breakTorque: 'breakTorque' },
         'cc.HingeConstraint': { pivotA: 'pivotA', pivotB: 'pivotB', axis: 'axisA', limit: 'limitData', motor: 'motorData' },
+        'cc.ParticleSystem': { dataCulling: 'enableCulling' },
     };
 
     /**
-     * @description 只对源码一致的3.8.3/3.8.7应用角度和约束适配，不改变公开字段数量。
+     * @description 只对源码一致的3.8.3/3.8.7应用单位和持久化名字适配，不改变公开字段数量。
      * @param version 实际Creator版本。
      * @param componentType 实际组件类型。
      * @param fields 策展字段。
@@ -24,7 +25,7 @@ export class LumenNativeComponentPropertySchema {
     public static forVersion(version: LumenCocosVersion, componentType: string, fields: readonly ILumenPropertyFieldSpec[]): readonly ILumenPropertyFieldSpec[] {
         const mesh = LumenNativeMeshPropertySchema.forVersion(version, componentType, fields);
         if (!['3.8.3', '3.8.7'].includes(version.toString())) { return mesh; }
-        const names = this._constraintNames[componentType];
+        const names = this._serializedNames[componentType];
         return mesh.map(field => {
             if (componentType === 'cc.Billboard' && field.apiName === 'rotation') {
                 return { ...field, nativeAngleDegrees: true };

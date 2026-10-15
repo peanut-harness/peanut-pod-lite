@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { ComponentEngineProfile } from './component-engine-profile.mts';
 import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
+import { ComponentNativeAssetLoader } from './component-native-asset-loader.ts';
 
 /**
  * @description 每次重读令牌与端口，并把原生响应绑定到登记工程及本任务实际启动进程。
@@ -86,13 +87,20 @@ class ComponentNativeRead {
         } while (true);
         writeFileSync(join(output, 'native-assets.json'), JSON.stringify(assets, null, 2) + '\n');
         const rows: unknown[] = [];
+        const resourceIdentity = { candidateSourceCommit: registration.candidateSourceCommit, creatorVersion: health.creatorVersion,
+            pid: lease.pid, types: Object.keys(staging.bindings) };
+        const saveResources = (): void => writeFileSync(join(output, 'native-resource-loads.json'), JSON.stringify({
+            candidateSourceCommit: resourceIdentity.candidateSourceCommit, creatorVersion: health.creatorVersion, pid: lease.pid, rows }, null, 2) + '\n');
         for (const [type, binding] of Object.entries(staging.bindings)) {
             const urls = binding.sources.filter((source) => !source.path.endsWith('.meta')).map((source) =>
                 `db://assets/fixtures/${source.path.replace('tests/fixtures/editor-stability/', '')}`);
             const candidates = assets.filter((asset) => asset.type === type && asset.imported && !asset.invalid
                 && urls.some((url) => asset.url === url || asset.url.startsWith(`${url}/`)));
             const candidate = candidates[0];
-            if (!candidate) { rows.push({ type, status: 'blocked', reason: '实际已导入资源中缺少与声明源匹配的类型', candidates }); continue; }
+            if (!candidate) {
+                rows.push({ type, status: 'blocked', reason: '实际已导入资源中缺少与声明源匹配的类型', candidates });
+                saveResources(); throw new Error(`component_native_asset_registration_missing:${type}`);
+            }
             try {
                 const loaded = await request('load-asset', { uuid: candidate.uuid }) as {
                     info: AssetInfo; native: { type: string; actualUuid: string; valid: boolean };
@@ -102,9 +110,12 @@ class ComponentNativeRead {
                 rows.push({ type, status: 'native-loaded', candidateCount: candidates.length, loaded });
             } catch (error) {
                 rows.push({ type, status: 'failed', uuid: candidate.uuid, error: error instanceof Error ? error.message : String(error) });
+                saveResources();
+                throw error;
             }
-            writeFileSync(join(output, 'native-resource-loads.json'), JSON.stringify({ creatorVersion: health.creatorVersion, pid: lease.pid, rows }, null, 2) + '\n');
+            saveResources();
         }
+        ComponentNativeAssetLoader.assertResources({ ...resourceIdentity, rows }, resourceIdentity);
         const snapshot = await request('scene-snapshot');
         writeFileSync(join(output, 'native-backend-snapshot.json'), JSON.stringify(snapshot, null, 2) + '\n');
         process.stdout.write(JSON.stringify({ project, pid: lease.pid, creatorVersion: health.creatorVersion,

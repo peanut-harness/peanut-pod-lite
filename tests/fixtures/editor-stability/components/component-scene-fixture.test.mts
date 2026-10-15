@@ -23,6 +23,18 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
         return found;
     };
     const create = (type: string) => ComponentSceneFixture.create(root, version, component(type), audit.nativeDeclarations);
+    test(`${version} Sorting fixture supplies a source-proven concrete ModelRenderer before Sorting loads`, () => {
+        const result = create('cc.Sorting');
+        assert.notEqual(result.status, 'blocked'); if (result.status === 'blocked') return;
+        const node = result.document.findNodeIndex(result.targetPath);
+        const renderer = result.document.findComponentIndex(node, 'cc.MeshRenderer');
+        const sorting = result.document.findComponentIndex(node, 'cc.Sorting');
+        assert(renderer < sorting);
+        assert.equal(result.document.entries[sorting]?._sortingLayer, 0);
+        const declarations = audit.nativeDeclarations.map(item => item.type === 'cc.MeshRenderer'
+            ? { ...item, baseTypes: item.baseTypes.filter(type => type !== 'cc.ModelRenderer') } : item);
+        assert.throws(() => ComponentSceneFixture.create(root, version, component('cc.Sorting'), declarations), /sorting_renderer_source_missing/);
+    });
     test(`${version} official scene assembly preserves dependencies and references after save/reopen/removal`, () => {
         const scratch = mkdtempSync('/private/tmp/pod-component-scene-');
         const failures: { component: string; message: string }[] = [];
@@ -79,7 +91,6 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
         }
         const physicsCandidate = ComponentSceneFixture.create(root, version, component('cc.BoxCollider'), audit.nativeDeclarations, true);
         assert.equal(physicsCandidate.status, 'staged-backend-pending');
-        if (physicsCandidate.status === 'blocked') throw new Error('expected_staged_candidate');
         assert.deepEqual(physicsCandidate.pendingRequirements, ['active-physics-backend-unverified:bullet']);
         assert.equal(physicsCandidate.nativePassed, false);
         const tiledCandidate = ComponentSceneFixture.create(root, version, component('cc.TiledLayer'), audit.nativeDeclarations, true);
