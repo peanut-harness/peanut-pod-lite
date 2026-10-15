@@ -63,6 +63,12 @@ export class ComponentSceneIntegrity {
             const node = nodeId === undefined ? undefined : entries[nodeId];
             if (!node || !Array.isArray(node._components) || !node._components.some((ref) => id(ref) === index))
                 throw new Error('component_scene_orphan_component');
+            if (entry.__type__ === 'cc.Widget' && entry._target != null) {
+                const target = id(entry._target);
+                let ancestor = id(node._parent);
+                while (ancestor !== undefined && ancestor !== target) ancestor = id(entries[ancestor]?._parent);
+                if (target === undefined || ancestor === undefined) throw new Error('component_scene_widget_target_not_ancestor');
+            }
         });
     }
 }

@@ -94,6 +94,20 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
             assert.equal(assembled + blocked, 99);
         } finally { rmSync(scratch, { recursive: true, force: true }); }
     });
+    test(`${version} Widget alignment target is an actual ancestor and sibling/self references fail before native loading`, () => {
+        const result = create('cc.Widget');
+        assert.notEqual(result.status, 'blocked'); if (result.status === 'blocked') return;
+        const document = result.document; const node = document.findNodeIndex(result.targetPath);
+        const widget = document.entries[document.findComponentIndex(node, 'cc.Widget')]; assert(widget);
+        const canvas = document.findNodeIndex('/Root/Canvas');
+        assert.deepEqual(widget._target, { __id__: canvas });
+        const sibling = document.addChildFromSpec('/Root/Canvas', { name: 'Sibling' });
+        widget._target = { __id__: document.findNodeIndex(sibling) };
+        assert.throws(() => ComponentSceneIntegrity.assert(document), /widget_target_not_ancestor/);
+        widget._target = { __id__: node };
+        assert.throws(() => ComponentSceneIntegrity.assert(document), /widget_target_not_ancestor/);
+        widget._target = { __id__: canvas }; ComponentSceneIntegrity.assert(document);
+    });
     test(`${version} active backend and native-owned hierarchy requirements cannot be replaced with empty components`, () => {
         const examples = {
             'cc.RigidBody': 'active-physics-backend-unverified:bullet',

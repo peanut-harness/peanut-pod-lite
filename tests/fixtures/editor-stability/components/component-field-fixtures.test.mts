@@ -31,6 +31,8 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
         assert.equal(uiModel?.assemblyRequirements.modelRendererCarrier?.componentType, 'cc.MeshRenderer');
         assert.equal(uiModel?.assemblyRequirements.modelRendererCarrier?.enabled, true);
         assert.equal(uiModel?.assemblyRequirements.modelRendererCarrier?.materialRequired, true);
+        assert.deepEqual(saved.components.find(row => row.componentType === 'cc.Widget')?.cases.find(row => row.selector.join('.') === 'target')?.validValue,
+            { form: 'node-reference', value: '/Root/Canvas' });
         for (const [type, name] of [['cc.PointLight', 'intensity'], ['cc.PointLight', 'size'], ['cc.RangedDirectionalLight', 'intensity'],
             ['cc.SpriteRenderer', 'sortLayer'], ['cc.SpriteRenderer', 'sortOrder']]) {
             const row = saved.components.find(row => row.componentType === type)?.cases.find(row => row.selector.join('.') === name);

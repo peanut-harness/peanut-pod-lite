@@ -38,6 +38,9 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
                     assert.equal(result.document.entries[node]?._layer, 33554432);
                     assert.deepEqual(result.document.entries[node]?._lscale, { __type__: 'cc.Vec3', x: 160, y: 160, z: 160 });
                     assert(result.sources.some(source => source.path.endsWith('/3d/Cube.prefab')));
+                    const light = result.document.entries[result.document.findComponentIndex(result.document.findNodeIndex('/Root/Main Light'), 'cc.DirectionalLight')];
+                    assert(light); assert.equal(Number(light._visibility) & 33554432, 33554432);
+                    assert(result.sources.some(source => source.path.endsWith('/light/Directional Light.prefab')));
                 }
                 if (type === 'cc.Label') {
                     const label = result.document.entries.find(entry => entry.__type__ === type); assert(label);

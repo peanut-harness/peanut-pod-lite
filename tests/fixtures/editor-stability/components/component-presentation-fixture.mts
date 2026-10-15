@@ -86,6 +86,11 @@ export class ComponentPresentationFixture {
         const targetPath = type === 'cc.Canvas' ? parent : container ? document.addChildFromSpec(parent, { name: 'Target', components: ['cc.UITransform'] }) : document.addChildFromTemplate(parent,
             source(`default_prefab/${is2d && !uiModel ? 'ui/' + (ui ?? 'Sprite') : '3d/Cube'}.prefab`), 'Target');
         if (uiModel) {
+            const lightPath = document.addChildFromTemplate('/Root', source('default_prefab/light/Directional Light.prefab'), 'Main Light');
+            const light = document.entries[document.findComponentIndex(document.findNodeIndex(lightPath), 'cc.DirectionalLight')];
+            if (!light) throw new Error('component_presentation_light_missing');
+            // SDK的Light.visibility序列化为_visibility；默认灯光排除UI_2D，桥接模型须显式加入该层。
+            light._visibility = 33554432;
             document.attachBuiltinComponent(targetPath, 'cc.UITransform');
             document.setNodeProperty(targetPath, { layer: 33554432, scale: { x: 160, y: 160, z: 160 }, euler: { x: 15, y: 30, z: 0 } });
             document.setComponentProperty(targetPath, 'cc.UITransform', { width: 240, height: 240 });

@@ -36320,11 +36320,11 @@
           "kind": "nodeRef",
           "rootValue": {
             "form": "node-reference",
-            "value": "/Root/References/Node"
+            "value": "/Root/Canvas"
           },
           "validValue": {
             "form": "node-reference",
-            "value": "/Root/References/Node"
+            "value": "/Root/Canvas"
           },
           "invalidValue": {
             "invalidType": true

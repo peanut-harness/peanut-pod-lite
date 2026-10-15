@@ -117,7 +117,8 @@ export class ComponentValueRecipeFactory {
             return field.kind === 'uuidList' ? list([value]) : value;
         }
         if (field.kind === 'nodeRef' || field.kind === 'nodeRefList') {
-            const value: IComponentValueRecipe = { form: 'node-reference', value: '/Root/References/Node' };
+            const value: IComponentValueRecipe = { form: 'node-reference',
+                value: owner === 'cc.Widget' && field.apiName === 'target' ? '/Root/Canvas' : '/Root/References/Node' };
             return field.kind === 'nodeRefList' ? list([value]) : value;
         }
         if (field.kind === 'componentRef' || field.kind === 'componentRefList') {

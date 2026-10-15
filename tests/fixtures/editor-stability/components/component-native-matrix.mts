@@ -5,6 +5,7 @@ import { ComponentNativeClient } from './component-native-client.mts';
 import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 import { ComponentNativeAssetLoader } from './component-native-asset-loader.ts';
 import { ComponentNativeMatrixReport } from './component-native-matrix-report.mts';
+import { ComponentNativeResourceSelector } from './component-native-resource-selector.mts';
 
 /**
  * @description 保留99组件/795字段分母，逐场景验证实际六项写、原生getter和拒绝后的零文件变化。
@@ -18,6 +19,10 @@ class ComponentNativeMatrix {
      * @description 从已暂存版本契约读取的完整组件配方。
      */
     private readonly components: Record<string, unknown>[];
+    /**
+     * @description 冻结的源资源绑定；载体与字段使用同一精确来源选择规则。
+     */
+    private readonly resourceBindings: Record<string, unknown>;
     /**
      * @description 所有装配候选及不能替换为占位的阻塞。
      */
@@ -63,6 +68,7 @@ class ComponentNativeMatrix {
         const fields = this.client.record(JSON.parse(readFileSync(join(this.client.project, 'extensions/peanut-component-probe/public-field-contract.json'), 'utf8')));
         const staging = this.client.record(JSON.parse(readFileSync(join(this.client.output, 'component-matrix-staging.json'), 'utf8')));
         this.components = this.records(fields.components); this.staged = this.records(staging.rows);
+        this.resourceBindings = this.client.record(fields.resources);
         if (this.staged.some(row => row.status !== 'blocked' && row.scenePath !== `assets/components/_lifecycle/${row.componentType}.scene`)) {
             throw new Error('component_matrix_disposable_lifecycle_scene_required');
         }
@@ -172,13 +178,9 @@ class ComponentNativeMatrix {
             || carrier.materialRequired !== (type === 'cc.UIMeshRenderer'))) {
             throw new Error('component_model_renderer_precondition_missing');
         }
-        const mesh = carrier.componentType ? this.assets.filter(asset => asset.type === 'cc.Mesh' && asset.imported === true
-            && asset.invalid !== true && typeof asset.url === 'string' && asset.url.startsWith('db://assets/fixtures/')) : [];
-        if (carrier.componentType && mesh.length !== 1) throw new Error('component_model_mesh_precondition_missing');
-        const materials = carrier.materialRequired === true ? this.assets.filter(asset => asset.type === 'cc.Material'
-            && asset.imported === true && asset.invalid !== true && typeof asset.url === 'string'
-            && asset.url.startsWith('db://assets/fixtures/')) : [];
-        if (carrier.materialRequired === true && materials.length !== 1) throw new Error('component_model_material_precondition_missing');
+        const mesh = carrier.componentType ? ComponentNativeResourceSelector.resolve(this.client.record(this.resourceBindings['cc.Mesh']), this.assets) : null;
+        const material = carrier.materialRequired === true
+            ? ComponentNativeResourceSelector.resolve(this.client.record(this.resourceBindings['cc.Material']), this.assets) : null;
         const roots = new Map<string, { input: unknown; expected: unknown; resources: string[] }>();
         const fieldRows: Record<string, unknown>[] = [];
         for (const field of cases) {
@@ -188,7 +190,7 @@ class ComponentNativeMatrix {
             catch (error) { fieldRows.push({ id: field.id, status: 'native-input-blocked', reason: error instanceof Error ? error.message : String(error) }); }
         }
         const resources = [...new Set([`db://${scene}`, ...[...roots.values()].flatMap(value => value.resources),
-            ...mesh.map(asset => this.string(asset.url)), ...materials.map(asset => this.string(asset.url))])];
+            ...(mesh?.resources ?? []), ...(material?.resources ?? [])])];
         const input = { prefabRelativePath: scene, nodePath: target, resources };
         await this.open(scene);
         const initial = this.client.record(await this.client.probe('component-fields', { nodeSuffix: suffix, componentType: type, expectedSceneUuid }));
@@ -198,10 +200,10 @@ class ComponentNativeMatrix {
         } else if (initial.present !== false || initial.reason !== 'target-component-missing') {
             throw new Error('component_matrix_initial_presence_unknown');
         }
-        if (carrier.componentType && mesh[0]) {
+        if (carrier.componentType && mesh) {
             await this.client.write('lumen-comp-set', { ...input, componentType: this.string(carrier.componentType),
-                props: { mesh: mesh[0].uuid, enabled: carrier.enabled,
-                    ...(materials[0] ? { materials: [materials[0].uuid] } : {}) } });
+                props: { mesh: mesh.input, enabled: carrier.enabled,
+                    ...(material ? { materials: [material.input] } : {}) } });
         }
         await this.client.write('lumen-comp-add', { ...input, builtinType: type });
         // 先装配完整引用上下文；例如defaultClip必须存在于clips中，随后逐根字段独立验证别名。
@@ -222,8 +224,8 @@ class ComponentNativeMatrix {
                 if (nodes.length !== 1) throw new Error('component_matrix_ui_model_node_missing');
                 const models = this.records(nodes[0]?.components).filter(item => item.type === type);
                 const observed = this.client.record(models[0]?.observed);
-                const expectedMesh = { uuid: mesh[0]?.uuid, type: 'cc.Mesh', valid: true };
-                const expectedMaterials = [{ uuid: materials[0]?.uuid, type: 'cc.Material', valid: true }];
+                const expectedMesh = { uuid: mesh?.input, type: 'cc.Mesh', valid: true };
+                const expectedMaterials = [{ uuid: material?.input, type: 'cc.Material', valid: true }];
                 if (models.length !== 1 || observed.modelPresent !== true || observed.modelType !== 'cc.MeshRenderer'
                     || observed.modelValid !== true || observed.modelNodeMatches !== true || observed.modelEnabled !== true
                     || !this.equal(observed.mesh, expectedMesh) || !this.equal(observed.sharedMaterials, expectedMaterials)) {
@@ -306,12 +308,7 @@ class ComponentNativeMatrix {
     private resolve(value: unknown, paths: Record<string, unknown>): { input: unknown; expected: unknown; resources: string[] } {
         const recipe = this.client.record(value);
         if (recipe.form === 'resource') {
-            const resource = this.client.record(recipe.resource); const sources = this.records(resource.sources)
-                .filter(source => !this.string(source.path).endsWith('.meta')).map(source => `db://assets/fixtures/${this.string(source.path).replace('tests/fixtures/editor-stability/', '')}`);
-            const assets = this.assets.filter(asset => asset.type === resource.nativeType && asset.imported === true && asset.invalid !== true
-                && sources.some(url => asset.url === url || typeof asset.url === 'string' && asset.url.startsWith(url + '/')));
-            const asset = assets[0]; if (assets.length !== 1 || !asset) throw new Error('component_matrix_resource_not_unique:' + resource.nativeType);
-            return { input: this.string(asset.uuid), expected: { reference: 'asset', uuid: asset.uuid, type: asset.type, valid: true }, resources: [this.string(asset.url)] };
+            return ComponentNativeResourceSelector.resolve(this.client.record(recipe.resource), this.assets);
         }
         if (recipe.form === 'node-reference' || recipe.form === 'component-reference') {
             const path = this.string(paths[this.string(recipe.value)]); return { input: path, expected: {
