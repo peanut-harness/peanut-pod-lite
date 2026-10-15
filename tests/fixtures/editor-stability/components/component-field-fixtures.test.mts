@@ -25,10 +25,17 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
         const sorting = saved.components.find(row => row.componentType === 'cc.Sorting');
         assert.deepEqual(sorting?.cases.find(row => row.selector.join('.') === 'sortingLayer')?.validValue, { form: 'literal', value: 0 });
         assert.equal(sorting?.assemblyRequirements.modelRendererCarrier?.componentType, 'cc.MeshRenderer');
-        for (const [type, name] of [['cc.PointLight', 'intensity'], ['cc.PointLight', 'size'], ['cc.RangedDirectionalLight', 'intensity']]) {
+        for (const [type, name] of [['cc.PointLight', 'intensity'], ['cc.PointLight', 'size'], ['cc.RangedDirectionalLight', 'intensity'],
+            ['cc.SpriteRenderer', 'sortLayer'], ['cc.SpriteRenderer', 'sortOrder']]) {
             const row = saved.components.find(row => row.componentType === type)?.cases.find(row => row.selector.join('.') === name);
             assert.equal(row?.expectedWrite, 'reject-native-persistence');
         }
+        const sprite = audit.nativeDeclarations.find((row: { type: string }) => row.type === 'cc.SpriteRenderer');
+        assert(sprite);
+        assert.equal(sprite.properties.some((row: { name: string }) => ['sortLayer', '_sortLayer', 'sortOrder', '_sortOrder'].includes(row.name)), false);
+        const terrain = saved.components.find(row => row.componentType === 'cc.Terrain')?.cases.find(row => row.selector.join('.') === 'effectAsset');
+        assert.equal(terrain?.validValue.form, 'resource');
+        assert(terrain?.validValue.resource?.sources.some(source => source.path.endsWith('/terrain-effect/task51-terrain.effect')));
         assert.equal(saved.components.find(row => row.componentType === 'cc.SafeArea')?.cases[0]?.expectedWrite,
             version === '3.8.3' ? 'reject-native-persistence' : 'set-and-readback');
         for (const component of saved.components) {

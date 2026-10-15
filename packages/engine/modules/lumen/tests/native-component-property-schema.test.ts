@@ -8,6 +8,7 @@ for (const version of ['3.8.3', '3.8.7']) {
     const schema = new LumenComponentPropertySchema(LumenCocosVersion.parse(version));
     test(version + ' unavailable light and SafeArea fields remain listed and reject scene writes without partial changes', () => {
         const cases = [['cc.PointLight', 'intensity'], ['cc.PointLight', 'size'], ['cc.RangedDirectionalLight', 'intensity'],
+            ['cc.SpriteRenderer', 'sortLayer'], ['cc.SpriteRenderer', 'sortOrder'],
             ...(version === '3.8.3' ? [['cc.SafeArea', 'symmetric']] : [])];
         for (const [type, name] of cases) {
             assert(type && name);
@@ -93,6 +94,8 @@ for (const version of ['3.8.3', '3.8.7']) {
         const motor = component.motorData;
         assert(limit && typeof limit === 'object' && !Array.isArray(limit));
         assert(motor && typeof motor === 'object' && !Array.isArray(motor));
+        assert('upperLimit' in limit && 'lowerLimit' in limit);
+        assert('motorVelocity' in motor && 'motorForceLimit' in motor);
         assert.equal(limit.upperLimit, 30); assert.equal(limit.lowerLimit, -20);
         assert.equal(motor.motorVelocity, 4); assert.equal(motor.motorForceLimit, 5);
         const snapshot = schema.decodeComponentSnapshot('cc.HingeConstraint', component, () => null, index => document.entries[index] ?? null);
@@ -117,7 +120,7 @@ test('Unknown versions preserve previous field mappings and angle units', () => 
     assert.deepEqual(schema.encodeComponentPatch('cc.FixedConstraint', { breakForce: 1 }, {}), { _breakForce: 1 });
     assert.deepEqual(schema.encodeComponentPatch('cc.ParticleSystem', { dataCulling: true }, {}), { _dataCulling: true });
     assert.notEqual(schema.describeComponent('cc.Label').find(field => field.apiName === 'actualFontSize')?.writable, false);
-    for (const [type, name] of [['cc.PointLight', 'intensity'], ['cc.PointLight', 'size'], ['cc.RangedDirectionalLight', 'intensity'], ['cc.SafeArea', 'symmetric']]) {
+    for (const [type, name] of [['cc.PointLight', 'intensity'], ['cc.PointLight', 'size'], ['cc.RangedDirectionalLight', 'intensity'], ['cc.SafeArea', 'symmetric'], ['cc.SpriteRenderer', 'sortLayer'], ['cc.SpriteRenderer', 'sortOrder']]) {
         assert(type && name); assert.notEqual(schema.describeComponent(type).find(field => field.apiName === name)?.writable, false);
     }
 });

@@ -30,6 +30,8 @@ export class LumenNativeComponentPersistence {
             'cc.PointLight.intensity',
             'cc.PointLight.size',
             'cc.RangedDirectionalLight.intensity',
+            'cc.SpriteRenderer.sortLayer',
+            'cc.SpriteRenderer.sortOrder',
         ].includes(field);
     }
 }

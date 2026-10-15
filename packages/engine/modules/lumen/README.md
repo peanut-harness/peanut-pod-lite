@@ -261,3 +261,5 @@ Creator 3.8.3 / 3.8.7 的 MeshRenderer `receiveShadow` 保留公开 boolean，�
 实际 Creator 3.8.7 的 `cc.PolygonCollider2D.threshold` 是运行时辅助属性：公开 source/library 保存0.5后，真正 Scene 加载实例仍恢复默认1。完整8字段目录保留该项并标记 `writable: false`、`writeRefusedReason: native_runtime_only`；single/mixed补丁在任何变化、保存或提交前拒绝，MCP沿原受信Host版本契约防调用方切旧版绕过。其余7字段及Box/Circle字段保持原行为。本条只覆盖已实测3.8.7；3.8.3安装缺失与其他未知版本仍保留验证缺口，不据静态声明外推。原生 Polygon public `worldPoints` 不含offset，而shape/AABB/raycast包含offset，按各公开对象的实际身份分别核对，不改官方引擎或输入点造一致。
 
 公开 `asset.ensureSpriteFramesBatch` 的本批新帧在原 writer/资源锁窗口内，保存、刷新和就绪后使用与 FNT/TMX 相同的强制原生规范化职责：一次 `reimport-asset`，冻结完整磁盘 meta 语义、PNG 字节/物理身份、主和已有 Texture 子 UUID，并验证真实 SpriteFrame 登记，再报告 ensured。只接受原生输出，不在产品中排序或改写 meta。inline 与 refreshRoot 两条路线均覆盖；already、skipped 和原逐项 legacy DTO/counts 保持。新增必需 ready/query/reimport 错误直接传播原对象，不经旧 alias 重试或错误字符串转录；未知状态仍由原任务模型保守处理，不回滚或重放。离线公开协议测试不作 native 通过，首次冷导入须另绑定确切新包和暖态原字节实测。
+
+Creator 3.8.3 / 3.8.7 的 SpriteRenderer 及其继承声明均没有目录 sortLayer、sortOrder 对应成员；3.8.3 原生读回也确认缺失。两项保留在完整目录，标记 writable:false、writeRefusedReason:native_unsupported；单独及混合补丁在任何改动前拒绝，不猜测为其它排序参数。未知版本保持原行为；新候选的原生拒绝验证仍待执行。

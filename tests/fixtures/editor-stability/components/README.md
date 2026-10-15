@@ -98,3 +98,7 @@ Sorting补充实机对照在原实例内先修复待提交内容，再保存重�
 后续操作顺序：先确认唯一已绑定的本任务预览标签；切换自有Creator工程前将该标签暂留空白页，正常关闭且只关闭租约对应PID。新工程必须走最外层`npm run creator`，等宿主、AssetDB/meta场景UUID一致、场景脚本和目标原生场景就绪后，再用同一标签恢复已观测的预览URL。存在标签时禁止调用浏览器打开路径；独立预览刷新有明确次数上限。不能观察窗口/连接时停止，不把未知当作零，也不重复刷新或重放打开。
 
 新增场景门禁在已受理打开后只读等待目标UUID，不因层次非空或等待未结束再次投递打开；兼容实际Lite返回的UUID字符串和完整宿主快照对象。原生字段探针在访问节点/getter前核对目标Scene UUID。ParticleSystem纹理分块序列化采用精确版本原生JSON别名；曲线/渐变探针从现代`spline.keyframes()`及`gradient.colorKeys/alphaKeys`读取实际数据，禁止已废弃curve getter和以配方值代替实际值。上述新产品改动尚未进入官方候选，需新批准的clean检查点后构建并复验。
+
+2026-10-15，5ce3543：完整verify1251项及官方打包/候选校验通过，新3.8.3工程52/52展示文件首次真实导入SHA完全不变，资源19/19加载通过；三次已有预览刷新无新标签或诊断。ParticleSystem独立campaign的127/127字段、增删、保存重开和零诊断验收通过；真实checker SpriteFrame绑定、保存重开后截图确认棋盘显示。
+
+其余矩阵在Terrain处因4条detailMap0/UVScale警告停止并撤销六项，整个campaign拒绝；60组件仅保留字段证据，SpriteRenderer两项排序字段getter缺失、ReflectionProbe.cubemap缺TextureCube输入。99/795分母与所有未执行行保留，52展示源未改；自有PID1372已正常关闭。不能把这60项计为整轮通过。新修复为两版SpriteRenderer无原生成员的排序字段写前拒绝，并保持目录；Terrain引用改为同版本SDK完整effect副本，任务专用名称防覆盖全局SDK注册，启动前校验源、meta及75项传递builtin chunk。新源的原生零警告及剩余分片仍待新的clean检查点候选验证，不复用旧campaign为通过。

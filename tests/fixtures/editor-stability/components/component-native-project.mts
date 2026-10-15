@@ -16,6 +16,7 @@ import { ComponentLifecycleFixture } from './component-lifecycle-fixture.mts';
 import { ComponentPresentationFixture } from './component-presentation-fixture.mts';
 import { ComponentEngineProfile } from './component-engine-profile.mts';
 import { ComponentSpriteImport } from './component-sprite-import.mts';
+import { ComponentTerrainEffect } from './component-terrain-effect.mts';
 
 const root = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
 const args = process.argv.slice(2);
@@ -29,6 +30,7 @@ if (version !== '3.8.3' && version !== '3.8.7') throw new Error('component_nativ
 const resources = join(realpathSync(app), 'Contents/Resources');
 const engine = join(resources, 'resources/3d/engine');
 if (JSON.parse(readFileSync(join(engine, 'package.json'), 'utf8')).version !== version) throw new Error('component_native_sdk_version_mismatch');
+ComponentTerrainEffect.assertSdk(root, engine, version);
 const descriptor = verifyReleaseCandidate(join(root, 'release/peanut.pod-lite-0.2.0'), {
     expectedVersion: '0.2.0', expectedSourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
 });

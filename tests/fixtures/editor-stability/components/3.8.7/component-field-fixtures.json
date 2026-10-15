@@ -608,150 +608,18 @@
     },
     "cc.EffectAsset": {
       "nativeType": "cc.EffectAsset",
-      "fixtureReference": "tests/fixtures/editor-stability/serialized/resource-fixtures.json#creator-3.8.7-effect-task41",
+      "fixtureReference": "tests/fixtures/editor-stability/components/3.8.7/terrain-effect/source-provenance.json",
       "sources": [
         {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/fog.chunk",
-          "sha256": "7c6a691b9ad36e90a075bde22c9fe8c8503af99f000db1078c9d0288f7b71b0b"
+          "path": "tests/fixtures/editor-stability/components/3.8.7/terrain-effect/task51-terrain.effect",
+          "sha256": "0e1fcba76743b66d27ad8d72ba74208fe6d0572c8511c39eb7cca405bc3bdf94"
         },
         {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/morph-animation.chunk",
-          "sha256": "f2f13d331445c514ab86c9214afa528eac9f8541655950c0047f20c8b88bb5c3"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/shadow-map.chunk",
-          "sha256": "15ae137f9206b292fe8286ca77ab2b504ac52201df2ae23deff4c9ff84945b6f"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/skinning-animation-lbs.chunk",
-          "sha256": "c84ab5f88c601a1a69ddcfaecb25f1707403ba549b9a1b7b8d609332a853ddc8"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/world-transform.chunk",
-          "sha256": "14f0d3d066a04424360d94d8123a0a64f1fa13245cce4c812a42bdbee32d2bf8"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-csm.chunk",
-          "sha256": "cd4c797461cb3f8d1ddc782de766a30635c115c299afe024e1c2b8f5145a8637"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-global.chunk",
-          "sha256": "4036cab1daf2dbaa906ac5b934a608ac66836478a96c9e94d51025f44a5f75b6"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-local-batched.chunk",
-          "sha256": "763a6b0ad0b26f1ad6114fe15d444de2cc82ae0115057a862d6ee5a608c77503"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-local.chunk",
-          "sha256": "e7ee504b5dd91c441574490e1b27d63c04fdb198b7703d175692f05c5710aceb"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-morph.chunk",
-          "sha256": "cf38599aedbf9db4b9edcc168a2e6a94bcda0c385858f067447f93d59df0a265"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-shadow-map.chunk",
-          "sha256": "dba252944aa1589d5fb297eed39ea67b9d9cfd2fe42b329b3211d90ce9dc13bd"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-shadow.chunk",
-          "sha256": "3218d3d2787d46938df66bebb40148a9660d2a9884656a86b1252e332d0a8bb5"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-skinning.chunk",
-          "sha256": "b1429c387d5c556ea6af3cba2707fb745a6efd82273645746d9688bb97ede49f"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/color/gamma.chunk",
-          "sha256": "58e8a46747db5c2e15fa88bd9e383aa3d693fd550a56486b8eb3c26f7b3b62a6"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/common-define.chunk",
-          "sha256": "abe3f169e995672d4b904fbe89a6af3e498309b8a61932bd51723aed3059ebbd"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/data/packing.chunk",
-          "sha256": "d7f8da3964692ffccf098c79ed4b513dc7f7a15aad2a4dfe04fef878152ed2e8"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/data/unpack.chunk",
-          "sha256": "88fe68850825ca851211642b08fcbf0089f2cce0a62a4940b6bb7dfbbbae7910"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/effect/fog.chunk",
-          "sha256": "17a3ecec65eaa1b153888b315e2655f2b223000faaaaac221f13c7fab55a9f40"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/math/coordinates.chunk",
-          "sha256": "599d8262e20e173b915e1947bf47047c41460c8646ab86a5238020d6e779bc06"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/shadow/native-pcf.chunk",
-          "sha256": "e41499c6ab669db86341125ba319e5964f69072c4841d1918d6a2cee6d98ef35"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/decode-base.chunk",
-          "sha256": "4787a7db395b6bf2cf701008fe6814518cd2f177c6487b940be195a38912fd82"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/decode-standard.chunk",
-          "sha256": "01545a317c907fa9f89f14a27498dd6db7e1e0fec92d254e69c5f63d31fad49c"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/fog-base.chunk",
-          "sha256": "54160468d055bd3cc0b832e550556e2ba98ac216a16aa84654ff5993f4f4cec7"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/fog-fs.chunk",
-          "sha256": "7ea30cdaea20423a1db8951c3a35c87e02890b1cac64106300ae81d4acf944dd"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/fog-vs.chunk",
-          "sha256": "a065cc2a528dad0fba466ec0149b8ead4898fbe2aa64bfc9ee82aa95a774112d"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/input-standard.chunk",
-          "sha256": "ca34ef850015792f54254aa0cbe9a99d2f45477c03130d176f2a8654c456f719"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/local-batch.chunk",
-          "sha256": "2058a68d2d97b365a02bbc25c440fbf1311544f707b0a35bf94c428392b207fa"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/main-functions/general-vs.chunk",
-          "sha256": "5f96aafa2995b3a6d623031464051b2042e56d892acf419a475c063f25d0be75"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/morph.chunk",
-          "sha256": "c4e352252c261a0534a43b88fe3baaaa87eff731bc42961766ce4b4eb406859a"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/output.chunk",
-          "sha256": "89a57d193d446477e5db77d20e51b0b879dc781815317296caf6c1a53a867ebc"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/shadow-map-base.chunk",
-          "sha256": "f688e8696b55f4ccbd8394d8758d2a38498099a275328f68f7065e5a72ab74a9"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/shadow-map-vs.chunk",
-          "sha256": "254623c4ac0f07675777160f42a47347dd9c4ad49f1ba268fa55763f603ef8a5"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/skinning.chunk",
-          "sha256": "88661202838911530e1b5d1e51fc3142bc0230b72256a47508ca8287adbe5fc5"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/effect/default.effect",
-          "sha256": "b5809361ef0736ef431f68e789343f151b2db1d98eaeaf737326d2e4f6617412"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/effect/default.effect.meta",
-          "sha256": "5ba171b6243350c32840b1a87b3d9f46d75ba986bd2481cab3cefd4aa4f28fe1"
+          "path": "tests/fixtures/editor-stability/components/3.8.7/terrain-effect/task51-terrain.effect.meta",
+          "sha256": "ce9d19e07d2fed56363601103b187d8df0a525ceb5c662ff975c40d7bb284396"
         }
       ],
-      "selector": "导入后读取 cc.EffectAsset 根身份；模板 UUID 必须在隔离 staging 重映射"
+      "selector": "实际导入同版本builtin-terrain效果；完整Terrain属性与SDK shader chunk须一致，UUID只从AssetDB读取"
     }
   },
   "components": [
@@ -33693,8 +33561,8 @@
           "invalidValue": {
             "invalidType": true
           },
-          "expectedWrite": "set-and-readback",
-          "refusalReason": null,
+          "expectedWrite": "reject-native-persistence",
+          "refusalReason": "native_unsupported",
           "sourceOrigin": "static-recipe",
           "nativeAcceptance": false
         },
@@ -33715,8 +33583,8 @@
           "invalidValue": {
             "invalidType": true
           },
-          "expectedWrite": "set-and-readback",
-          "refusalReason": null,
+          "expectedWrite": "reject-native-persistence",
+          "refusalReason": "native_unsupported",
           "sourceOrigin": "static-recipe",
           "nativeAcceptance": false
         }
@@ -34013,300 +33881,36 @@
             "form": "resource",
             "resource": {
               "nativeType": "cc.EffectAsset",
-              "fixtureReference": "tests/fixtures/editor-stability/serialized/resource-fixtures.json#creator-3.8.7-effect-task41",
+              "fixtureReference": "tests/fixtures/editor-stability/components/3.8.7/terrain-effect/source-provenance.json",
               "sources": [
                 {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/fog.chunk",
-                  "sha256": "7c6a691b9ad36e90a075bde22c9fe8c8503af99f000db1078c9d0288f7b71b0b"
+                  "path": "tests/fixtures/editor-stability/components/3.8.7/terrain-effect/task51-terrain.effect",
+                  "sha256": "0e1fcba76743b66d27ad8d72ba74208fe6d0572c8511c39eb7cca405bc3bdf94"
                 },
                 {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/morph-animation.chunk",
-                  "sha256": "f2f13d331445c514ab86c9214afa528eac9f8541655950c0047f20c8b88bb5c3"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/shadow-map.chunk",
-                  "sha256": "15ae137f9206b292fe8286ca77ab2b504ac52201df2ae23deff4c9ff84945b6f"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/skinning-animation-lbs.chunk",
-                  "sha256": "c84ab5f88c601a1a69ddcfaecb25f1707403ba549b9a1b7b8d609332a853ddc8"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/world-transform.chunk",
-                  "sha256": "14f0d3d066a04424360d94d8123a0a64f1fa13245cce4c812a42bdbee32d2bf8"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-csm.chunk",
-                  "sha256": "cd4c797461cb3f8d1ddc782de766a30635c115c299afe024e1c2b8f5145a8637"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-global.chunk",
-                  "sha256": "4036cab1daf2dbaa906ac5b934a608ac66836478a96c9e94d51025f44a5f75b6"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-local-batched.chunk",
-                  "sha256": "763a6b0ad0b26f1ad6114fe15d444de2cc82ae0115057a862d6ee5a608c77503"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-local.chunk",
-                  "sha256": "e7ee504b5dd91c441574490e1b27d63c04fdb198b7703d175692f05c5710aceb"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-morph.chunk",
-                  "sha256": "cf38599aedbf9db4b9edcc168a2e6a94bcda0c385858f067447f93d59df0a265"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-shadow-map.chunk",
-                  "sha256": "dba252944aa1589d5fb297eed39ea67b9d9cfd2fe42b329b3211d90ce9dc13bd"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-shadow.chunk",
-                  "sha256": "3218d3d2787d46938df66bebb40148a9660d2a9884656a86b1252e332d0a8bb5"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-skinning.chunk",
-                  "sha256": "b1429c387d5c556ea6af3cba2707fb745a6efd82273645746d9688bb97ede49f"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/color/gamma.chunk",
-                  "sha256": "58e8a46747db5c2e15fa88bd9e383aa3d693fd550a56486b8eb3c26f7b3b62a6"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/common-define.chunk",
-                  "sha256": "abe3f169e995672d4b904fbe89a6af3e498309b8a61932bd51723aed3059ebbd"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/data/packing.chunk",
-                  "sha256": "d7f8da3964692ffccf098c79ed4b513dc7f7a15aad2a4dfe04fef878152ed2e8"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/data/unpack.chunk",
-                  "sha256": "88fe68850825ca851211642b08fcbf0089f2cce0a62a4940b6bb7dfbbbae7910"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/effect/fog.chunk",
-                  "sha256": "17a3ecec65eaa1b153888b315e2655f2b223000faaaaac221f13c7fab55a9f40"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/math/coordinates.chunk",
-                  "sha256": "599d8262e20e173b915e1947bf47047c41460c8646ab86a5238020d6e779bc06"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/shadow/native-pcf.chunk",
-                  "sha256": "e41499c6ab669db86341125ba319e5964f69072c4841d1918d6a2cee6d98ef35"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/decode-base.chunk",
-                  "sha256": "4787a7db395b6bf2cf701008fe6814518cd2f177c6487b940be195a38912fd82"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/decode-standard.chunk",
-                  "sha256": "01545a317c907fa9f89f14a27498dd6db7e1e0fec92d254e69c5f63d31fad49c"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/fog-base.chunk",
-                  "sha256": "54160468d055bd3cc0b832e550556e2ba98ac216a16aa84654ff5993f4f4cec7"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/fog-fs.chunk",
-                  "sha256": "7ea30cdaea20423a1db8951c3a35c87e02890b1cac64106300ae81d4acf944dd"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/fog-vs.chunk",
-                  "sha256": "a065cc2a528dad0fba466ec0149b8ead4898fbe2aa64bfc9ee82aa95a774112d"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/input-standard.chunk",
-                  "sha256": "ca34ef850015792f54254aa0cbe9a99d2f45477c03130d176f2a8654c456f719"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/local-batch.chunk",
-                  "sha256": "2058a68d2d97b365a02bbc25c440fbf1311544f707b0a35bf94c428392b207fa"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/main-functions/general-vs.chunk",
-                  "sha256": "5f96aafa2995b3a6d623031464051b2042e56d892acf419a475c063f25d0be75"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/morph.chunk",
-                  "sha256": "c4e352252c261a0534a43b88fe3baaaa87eff731bc42961766ce4b4eb406859a"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/output.chunk",
-                  "sha256": "89a57d193d446477e5db77d20e51b0b879dc781815317296caf6c1a53a867ebc"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/shadow-map-base.chunk",
-                  "sha256": "f688e8696b55f4ccbd8394d8758d2a38498099a275328f68f7065e5a72ab74a9"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/shadow-map-vs.chunk",
-                  "sha256": "254623c4ac0f07675777160f42a47347dd9c4ad49f1ba268fa55763f603ef8a5"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/skinning.chunk",
-                  "sha256": "88661202838911530e1b5d1e51fc3142bc0230b72256a47508ca8287adbe5fc5"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/effect/default.effect",
-                  "sha256": "b5809361ef0736ef431f68e789343f151b2db1d98eaeaf737326d2e4f6617412"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/effect/default.effect.meta",
-                  "sha256": "5ba171b6243350c32840b1a87b3d9f46d75ba986bd2481cab3cefd4aa4f28fe1"
+                  "path": "tests/fixtures/editor-stability/components/3.8.7/terrain-effect/task51-terrain.effect.meta",
+                  "sha256": "ce9d19e07d2fed56363601103b187d8df0a525ceb5c662ff975c40d7bb284396"
                 }
               ],
-              "selector": "导入后读取 cc.EffectAsset 根身份；模板 UUID 必须在隔离 staging 重映射"
+              "selector": "实际导入同版本builtin-terrain效果；完整Terrain属性与SDK shader chunk须一致，UUID只从AssetDB读取"
             }
           },
           "validValue": {
             "form": "resource",
             "resource": {
               "nativeType": "cc.EffectAsset",
-              "fixtureReference": "tests/fixtures/editor-stability/serialized/resource-fixtures.json#creator-3.8.7-effect-task41",
+              "fixtureReference": "tests/fixtures/editor-stability/components/3.8.7/terrain-effect/source-provenance.json",
               "sources": [
                 {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/fog.chunk",
-                  "sha256": "7c6a691b9ad36e90a075bde22c9fe8c8503af99f000db1078c9d0288f7b71b0b"
+                  "path": "tests/fixtures/editor-stability/components/3.8.7/terrain-effect/task51-terrain.effect",
+                  "sha256": "0e1fcba76743b66d27ad8d72ba74208fe6d0572c8511c39eb7cca405bc3bdf94"
                 },
                 {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/morph-animation.chunk",
-                  "sha256": "f2f13d331445c514ab86c9214afa528eac9f8541655950c0047f20c8b88bb5c3"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/shadow-map.chunk",
-                  "sha256": "15ae137f9206b292fe8286ca77ab2b504ac52201df2ae23deff4c9ff84945b6f"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/skinning-animation-lbs.chunk",
-                  "sha256": "c84ab5f88c601a1a69ddcfaecb25f1707403ba549b9a1b7b8d609332a853ddc8"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/world-transform.chunk",
-                  "sha256": "14f0d3d066a04424360d94d8123a0a64f1fa13245cce4c812a42bdbee32d2bf8"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-csm.chunk",
-                  "sha256": "cd4c797461cb3f8d1ddc782de766a30635c115c299afe024e1c2b8f5145a8637"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-global.chunk",
-                  "sha256": "4036cab1daf2dbaa906ac5b934a608ac66836478a96c9e94d51025f44a5f75b6"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-local-batched.chunk",
-                  "sha256": "763a6b0ad0b26f1ad6114fe15d444de2cc82ae0115057a862d6ee5a608c77503"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-local.chunk",
-                  "sha256": "e7ee504b5dd91c441574490e1b27d63c04fdb198b7703d175692f05c5710aceb"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-morph.chunk",
-                  "sha256": "cf38599aedbf9db4b9edcc168a2e6a94bcda0c385858f067447f93d59df0a265"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-shadow-map.chunk",
-                  "sha256": "dba252944aa1589d5fb297eed39ea67b9d9cfd2fe42b329b3211d90ce9dc13bd"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-shadow.chunk",
-                  "sha256": "3218d3d2787d46938df66bebb40148a9660d2a9884656a86b1252e332d0a8bb5"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-skinning.chunk",
-                  "sha256": "b1429c387d5c556ea6af3cba2707fb745a6efd82273645746d9688bb97ede49f"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/color/gamma.chunk",
-                  "sha256": "58e8a46747db5c2e15fa88bd9e383aa3d693fd550a56486b8eb3c26f7b3b62a6"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/common-define.chunk",
-                  "sha256": "abe3f169e995672d4b904fbe89a6af3e498309b8a61932bd51723aed3059ebbd"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/data/packing.chunk",
-                  "sha256": "d7f8da3964692ffccf098c79ed4b513dc7f7a15aad2a4dfe04fef878152ed2e8"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/data/unpack.chunk",
-                  "sha256": "88fe68850825ca851211642b08fcbf0089f2cce0a62a4940b6bb7dfbbbae7910"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/effect/fog.chunk",
-                  "sha256": "17a3ecec65eaa1b153888b315e2655f2b223000faaaaac221f13c7fab55a9f40"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/math/coordinates.chunk",
-                  "sha256": "599d8262e20e173b915e1947bf47047c41460c8646ab86a5238020d6e779bc06"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/shadow/native-pcf.chunk",
-                  "sha256": "e41499c6ab669db86341125ba319e5964f69072c4841d1918d6a2cee6d98ef35"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/decode-base.chunk",
-                  "sha256": "4787a7db395b6bf2cf701008fe6814518cd2f177c6487b940be195a38912fd82"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/decode-standard.chunk",
-                  "sha256": "01545a317c907fa9f89f14a27498dd6db7e1e0fec92d254e69c5f63d31fad49c"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/fog-base.chunk",
-                  "sha256": "54160468d055bd3cc0b832e550556e2ba98ac216a16aa84654ff5993f4f4cec7"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/fog-fs.chunk",
-                  "sha256": "7ea30cdaea20423a1db8951c3a35c87e02890b1cac64106300ae81d4acf944dd"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/fog-vs.chunk",
-                  "sha256": "a065cc2a528dad0fba466ec0149b8ead4898fbe2aa64bfc9ee82aa95a774112d"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/input-standard.chunk",
-                  "sha256": "ca34ef850015792f54254aa0cbe9a99d2f45477c03130d176f2a8654c456f719"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/local-batch.chunk",
-                  "sha256": "2058a68d2d97b365a02bbc25c440fbf1311544f707b0a35bf94c428392b207fa"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/main-functions/general-vs.chunk",
-                  "sha256": "5f96aafa2995b3a6d623031464051b2042e56d892acf419a475c063f25d0be75"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/morph.chunk",
-                  "sha256": "c4e352252c261a0534a43b88fe3baaaa87eff731bc42961766ce4b4eb406859a"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/output.chunk",
-                  "sha256": "89a57d193d446477e5db77d20e51b0b879dc781815317296caf6c1a53a867ebc"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/shadow-map-base.chunk",
-                  "sha256": "f688e8696b55f4ccbd8394d8758d2a38498099a275328f68f7065e5a72ab74a9"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/shadow-map-vs.chunk",
-                  "sha256": "254623c4ac0f07675777160f42a47347dd9c4ad49f1ba268fa55763f603ef8a5"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/skinning.chunk",
-                  "sha256": "88661202838911530e1b5d1e51fc3142bc0230b72256a47508ca8287adbe5fc5"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/effect/default.effect",
-                  "sha256": "b5809361ef0736ef431f68e789343f151b2db1d98eaeaf737326d2e4f6617412"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/effect/default.effect.meta",
-                  "sha256": "5ba171b6243350c32840b1a87b3d9f46d75ba986bd2481cab3cefd4aa4f28fe1"
+                  "path": "tests/fixtures/editor-stability/components/3.8.7/terrain-effect/task51-terrain.effect.meta",
+                  "sha256": "ce9d19e07d2fed56363601103b187d8df0a525ceb5c662ff975c40d7bb284396"
                 }
               ],
-              "selector": "导入后读取 cc.EffectAsset 根身份；模板 UUID 必须在隔离 staging 重映射"
+              "selector": "实际导入同版本builtin-terrain效果；完整Terrain属性与SDK shader chunk须一致，UUID只从AssetDB读取"
             }
           },
           "invalidValue": {

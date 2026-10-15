@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, realpathSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
+import { ComponentTerrainEffect } from './component-terrain-effect.mts';
 import type { IComponentResourceBinding } from './component-value-recipe.mts';
 
 /**
@@ -47,7 +48,7 @@ export class ComponentResourceBindings {
             fixtures: { id: string; creatorVersion: string; assetKind: string; files: { source: { path: string; sha256: string } }; dependencies: unknown[] }[];
         };
         const serializedTypes: Readonly<Record<string, string>> = { 'cc.Material': 'material', 'cc.PhysicsMaterial': 'physicsMaterial',
-            'cc.AnimationClip': 'animationClip', 'cc.animation.AnimationGraph': 'animationGraph', 'cc.TerrainAsset': 'terrain', 'cc.EffectAsset': 'effect' };
+            'cc.AnimationClip': 'animationClip', 'cc.animation.AnimationGraph': 'animationGraph', 'cc.TerrainAsset': 'terrain' };
         for (const [nativeType, kind] of Object.entries(serializedTypes)) {
             const fixture = serialized.fixtures.find((fixture) => fixture.creatorVersion === version && fixture.assetKind === kind);
             if (!fixture) throw new Error(`component_serialized_fixture_missing:${nativeType}`);
@@ -69,6 +70,7 @@ export class ComponentResourceBindings {
                 sources: [...records].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([path, hash]) => this.source(root, path, hash)),
                 selector: `导入后读取 ${nativeType} 根身份；模板 UUID 必须在隔离 staging 重映射` };
         }
+        result['cc.EffectAsset'] = ComponentTerrainEffect.binding(root, version);
         return result;
     }
 
