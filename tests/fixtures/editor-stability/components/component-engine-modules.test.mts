@@ -24,6 +24,10 @@ test('3.8.7 matrix stages the official single-feature profile without changing e
         ComponentEngineModules.stage(f.project, f.engine, '3.8.7'); ComponentEngineModules.assertProject(f.project, '3.8.7');
         const settings = JSON.parse(readFileSync(f.path, 'utf8')); const modules = settings.modules;
         assert.equal(settings.__version__, '1.0.12'); assert.equal(settings.fixtureControl, true); assert.equal(settings.engine, undefined);
+        assert.deepEqual(settings.macroConfig, { CUSTOM_PIPELINE_NAME: 'Builtin' });
+        ComponentEngineModules.assertMacros(settings.macroConfig, '3.8.7');
+        assert.throws(() => ComponentEngineModules.assertMacros(undefined, '3.8.7'), /macro_profile_mismatch/u);
+        assert.throws(() => ComponentEngineModules.assertMacros({}, '3.8.7'), /macro_profile_mismatch/u);
         assert.equal(modules.globalConfigKey, 'defaultConfig');
         const config = modules.configs.defaultConfig; assert(config.includeModules.includes('sorting-2d'));
         assert.equal(config.cache['sorting-2d']._value, true);

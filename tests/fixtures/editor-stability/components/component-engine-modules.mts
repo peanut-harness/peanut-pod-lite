@@ -47,10 +47,10 @@ export class ComponentEngineModules {
         // 官方空工程模板尚无engine.json；版本来自本任务同版官方UI导出的工程配置。
         const settings = present ? this.record(JSON.parse(readFileSync(path, 'utf8'))) : { __version__: '1.0.12' };
         if (Object.hasOwn(settings, 'modules')) throw new Error('component_engine_modules_existing_config_refused');
-        if (context !== 'sorting' && 'macroConfig' in settings && !isDeepStrictEqual(settings.macroConfig, {}))
+        if ('macroConfig' in settings && !isDeepStrictEqual(settings.macroConfig, {}))
             throw new Error('component_engine_modules_existing_macros_refused');
         writeFileSync(path, JSON.stringify({ ...settings,
-            ...(context !== 'sorting' ? { macroConfig: { CUSTOM_PIPELINE_NAME: context === 'post-process' ? 'Forward' : 'Builtin' } } : {}),
+            macroConfig: { CUSTOM_PIPELINE_NAME: context === 'post-process' ? 'Forward' : 'Builtin' },
             modules: this.expected(context) }, null, 2) + '\n', { flag: present ? 'w' : 'wx' });
         this.assertProject(project, version, context);
     }
@@ -85,15 +85,14 @@ export class ComponentEngineModules {
     }
 
     /**
-     * @description 后处理必须选择同版SDK实际注册的Forward；原排序上下文不接纳额外宏。
+     * @description 后处理选择同版SDK实际注册的Forward，其余上下文显式固化SDK默认Builtin，均不接纳额外宏。
      * @param value 磁盘或公开项目Profile读取的宏配置。
      * @param version 实际版本。
      * @param context 登记上下文。
      */
     public static assertMacros(value: unknown, version: string, context: ComponentEngineContext = 'sorting'): void {
         if (!this.needsSorting(version, context)) return;
-        if (context === 'sorting' && value === undefined) return;
-        const expected = context === 'sorting' ? {} : { CUSTOM_PIPELINE_NAME: context === 'post-process' ? 'Forward' : 'Builtin' };
+        const expected = { CUSTOM_PIPELINE_NAME: context === 'post-process' ? 'Forward' : 'Builtin' };
         if (!isDeepStrictEqual(value, expected)) throw new Error('component_engine_modules_macro_profile_mismatch');
     }
 
