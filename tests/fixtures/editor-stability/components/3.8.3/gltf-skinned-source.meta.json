@@ -1,0 +1,182 @@
+{
+  "ver": "2.3.13",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "9ab61684-88ea-4e99-b766-5d714b56147d",
+  "files": [
+    "__original-animation-0.cconb"
+  ],
+  "subMetas": {
+    "bcca5": {
+      "importer": "gltf-mesh",
+      "uuid": "9ab61684-88ea-4e99-b766-5d714b56147d@bcca5",
+      "displayName": "",
+      "id": "bcca5",
+      "name": "UnnamedMesh.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 1
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "9bfcd": {
+      "importer": "gltf-animation",
+      "uuid": "9ab61684-88ea-4e99-b766-5d714b56147d@9bfcd",
+      "displayName": "",
+      "id": "9bfcd",
+      "name": "JointLift.animation",
+      "userData": {
+        "gltfIndex": 0,
+        "wrapMode": 2,
+        "sample": 30,
+        "span": {
+          "from": 0,
+          "to": 1
+        },
+        "events": []
+      },
+      "ver": "1.0.17",
+      "imported": true,
+      "files": [
+        ".cconb"
+      ],
+      "subMetas": {}
+    },
+    "438fe": {
+      "importer": "gltf-skeleton",
+      "uuid": "9ab61684-88ea-4e99-b766-5d714b56147d@438fe",
+      "displayName": "",
+      "id": "438fe",
+      "name": "UnnamedSkeleton.skeleton",
+      "userData": {
+        "gltfIndex": 0,
+        "jointsLength": 1
+      },
+      "ver": "1.0.1",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "e39f7": {
+      "importer": "texture",
+      "uuid": "9ab61684-88ea-4e99-b766-5d714b56147d@e39f7",
+      "displayName": "",
+      "id": "e39f7",
+      "name": "UnnamedTexture.texture",
+      "userData": {
+        "wrapModeS": "repeat",
+        "wrapModeT": "repeat",
+        "minfilter": "linear",
+        "magfilter": "linear",
+        "mipfilter": "none",
+        "anisotropy": 0,
+        "isUuid": false,
+        "imageUuidOrDatabaseUri": "db://assets/fixtures/media/assets/image/checker.png"
+      },
+      "ver": "1.0.22",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "f7779": {
+      "importer": "gltf-material",
+      "uuid": "9ab61684-88ea-4e99-b766-5d714b56147d@f7779",
+      "displayName": "",
+      "id": "f7779",
+      "name": "UnnamedMaterial.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "36e19": {
+      "importer": "gltf-scene",
+      "uuid": "9ab61684-88ea-4e99-b766-5d714b56147d@36e19",
+      "displayName": "",
+      "id": "36e19",
+      "name": "triangle.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [
+      {
+        "uri": "db://assets/fixtures/media/assets/image/checker.png"
+      }
+    ],
+    "animationImportSettings": [
+      {
+        "name": "JointLift",
+        "duration": 1,
+        "fps": 30,
+        "splits": [
+          {
+            "name": "JointLift",
+            "from": 0,
+            "to": 1,
+            "wrapMode": 2,
+            "previousId": "9bfcd"
+          }
+        ]
+      }
+    ],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "9ab61684-88ea-4e99-b766-5d714b56147d@bcca5"
+      ],
+      "skeletons": [
+        "9ab61684-88ea-4e99-b766-5d714b56147d@438fe"
+      ],
+      "textures": [
+        "9ab61684-88ea-4e99-b766-5d714b56147d@e39f7"
+      ],
+      "materials": [
+        "9ab61684-88ea-4e99-b766-5d714b56147d@f7779"
+      ],
+      "scenes": [
+        "9ab61684-88ea-4e99-b766-5d714b56147d@36e19"
+      ]
+    }
+  }
+}

@@ -31,11 +31,11 @@ export class ComponentSkinnedHierarchy {
      */
     public static stage(root: string, project: string, engine: string, version: string,
         sdkSourceHash: (path: string) => string = path => createHash('sha256').update(readFileSync(path)).digest('hex')): IComponentSkinnedContext | null {
-        if (version !== '3.8.7') return null;
+        if (!['3.8.3', '3.8.7'].includes(version)) return null;
         project = realpathSync(project); const output = dirname(project);
         if (['library', 'temp', '.peanut-ai/component-probe.json'].some(path => existsSync(join(project, path)))
             || existsSync(join(output, 'creator-owned-start.json'))) throw new Error('component_skinned_project_already_started');
-        const sourceRoot = join(root, 'tests/fixtures/editor-stability/components/3.8.7');
+        const sourceRoot = join(root, 'tests/fixtures/editor-stability/components', version);
         const proof = this.record(JSON.parse(readFileSync(join(sourceRoot, 'skinned-hierarchy-provenance.json'), 'utf8')));
         if (proof.creatorVersion !== version || typeof proof.sourceRootUuid !== 'string'
             || !/^[a-f0-9-]{36}$/u.test(proof.sourceRootUuid) || !Array.isArray(proof.sdkSources) || proof.sdkSources.length !== 6)

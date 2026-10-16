@@ -50,7 +50,7 @@ const tiledHierarchy = args.includes('--tiled-hierarchy');
 const sdkSceneCacheCompat = args.includes('--sdk-scene-cache-compat');
 if (sdkSceneCacheCompat && (version !== '3.8.3' || fixtureProfile !== 'component-matrix')) throw new Error('component_sdk_cache_requires_383_matrix');
 if (tiledHierarchy && fixtureProfile !== 'component-matrix') throw new Error('component_tiled_requires_verified_matrix');
-if (skinnedHierarchy && (version !== '3.8.7' || fixtureProfile !== 'component-matrix')) throw new Error('component_skinned_requires_verified_matrix');
+if (skinnedHierarchy && fixtureProfile !== 'component-matrix') throw new Error('component_skinned_requires_verified_matrix');
 if (sdkUiReadyCompat && (version === '3.8.7' ? !sdkListenerCompat || !sdkStartupTimerCompat : !sdkSceneCacheCompat)) throw new Error('component_sdk_ui_ready_requires_compat_project');
 if (sdkStartupTimerCompat && (!sdkListenerCompat || version !== '3.8.7')) throw new Error('component_sdk_startup_timer_requires_compat_project');
 if (sdkTimerTrace && (!sdkListenerCompat || version !== '3.8.7')) throw new Error('component_sdk_timer_trace_requires_compat_project');
