@@ -80,6 +80,13 @@ class ComponentNativeMain {
         const editor = Reflect.get(globalThis, 'Editor');
         if (typeof editor?.Message?.request !== 'function') throw new Error('component_native_message_api_missing');
         const request = editor.Message.request.bind(editor.Message);
+        if (body.action === 'sdk-scene-cache-compat-status') {
+            if (this.registration.sdkSceneCacheCompat !== true || editor.App.version !== '3.8.3') throw new Error('component_sdk_cache_compat_not_registered');
+            const marker: unknown = Reflect.get(globalThis, Symbol.for('peanut.component.sdk-scene-cache-compat'));
+            const status: unknown = marker && typeof marker === 'object' ? Reflect.get(marker, 'status') : null;
+            if (typeof status !== 'function') throw new Error('component_matrix_probe_not_ready');
+            return Reflect.apply(status, marker, []);
+        }
         if (body.action === 'sdk-scene-cache-diagnostics') {
             if (editor.App.version !== '3.8.3') throw new Error('component_sdk_cache_source_version_unverified');
             return ComponentSdkSceneCacheSources.read(createRequire(path.join(this.project, 'package.json')).cache);

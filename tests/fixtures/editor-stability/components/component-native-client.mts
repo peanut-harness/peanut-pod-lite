@@ -111,6 +111,12 @@ export class ComponentNativeClient {
                         this.events.push({ step: 'sdk-ui-ready-compat-observed', result: compatibility }); this.save();
                     }
                     ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(this.registration.creatorVersion));
+                    if (this.registration.sdkSceneCacheCompat === true) {
+                        const compatibility = this.record(await this.probe('sdk-scene-cache-compat-status'));
+                        if (compatibility.installed !== true || compatibility.managerHookVerified !== true || compatibility.creatorVersion !== '3.8.3'
+                            || compatibility.projectPath !== this.project || compatibility.pid !== this.lease.pid) throw new Error('component_sdk_cache_compat_identity_mismatch');
+                        this.events.push({ step: 'sdk-scene-cache-compat-observed', result: compatibility }); this.save();
+                    }
                     if (this.registration.startupSceneProfile === true) {
                         const startup = this.record(JSON.parse(readFileSync(join(this.output, 'startup-scene-staging.json'), 'utf8')));
                         if (startup.creatorVersion !== '3.8.3' || typeof startup.uuid !== 'string'
@@ -181,7 +187,7 @@ export class ComponentNativeClient {
      */
     public async probe(action: string, input: Record<string, unknown> = {}): Promise<unknown> {
         const execute = (): Promise<unknown> => this.request('component-probe.json', '/probe', 'x-component-token', { action, ...input });
-        if (!['component-fields', 'scene-snapshot', 'scene-readiness', 'sdk-metrics-diagnostics', 'sdk-window-timer-diagnostics', 'sdk-ui-ready-compat-status', 'sdk-lifecycle-diagnostics', 'sdk-listener-compat-status', 'sdk-scene-cache-diagnostics', 'load-asset', 'assets'].includes(action)) { return execute(); }
+        if (!['component-fields', 'scene-snapshot', 'scene-readiness', 'sdk-metrics-diagnostics', 'sdk-window-timer-diagnostics', 'sdk-ui-ready-compat-status', 'sdk-lifecycle-diagnostics', 'sdk-listener-compat-status', 'sdk-scene-cache-diagnostics', 'sdk-scene-cache-compat-status', 'load-asset', 'assets'].includes(action)) { return execute(); }
         return ComponentNativeLogGuard.run(this.project, action, execute, event => { this.events.push(event); this.save(); });
     }
 

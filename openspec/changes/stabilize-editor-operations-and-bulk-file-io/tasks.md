@@ -162,3 +162,5 @@ Sorting2D原始重叠对照在原生字段为蓝色order1/红色order0时仍显�
 2026-10-16 3.8.3启动输入诊断：3.8.3首轮13c6d14实际加载19/19资源、捕获真实glTF prefab/meta/骨架/动画后，默认未保存场景在脚本编译触发刷新时产生scene cache removing dir not exists .../unSave Error，五来源终扫1错误0警告；零组件写入前拒绝，仅正常关闭自有80681，失败不覆盖。已从本版app.asar/builtin/scene/package.json公开profile.project找到current-scene；新矩阵启动输入拟指向已保存Label UUID，固定公开JSON摘要、未知契约/已有值/已启动工程写前拒绝，不执行ccc，不修改SDK或temp缓存。新增只读Profile身份门禁；启动实际场景及零诊断仍待新工程证明。
 
 2026-10-16 3.8.3保存场景对照：0e92c4c对照确认公开Profile正确读回Label UUID，但缓存清理仍对该真实UUID的缺失目录记录错误，故指定保存场景不等于缓存问题修复；探针在engine reload中getScene=null时抛错又新增1条诊断。仅正常关闭自有7200，物理退出全5来源2错误0警告，零字段写。新探针将明确返回scenePresent=false/null UUID，等待实际场景且不认作通过；新增仅3.8.3固定已加载scene-cache.ccc方法原文只读入口，既不执行方法/getter也不提供任意SDK执行，准备定位真正幂等清理修复点。
+
+2026-10-16 3.8.3缓存根因与修复准备：486ad4c只读捕获已加载SceneCacheManager原文，clearSceneCache在每次onSceneReady中无条件safeRemove目录，缺目录也报错，随后才delete cacheTimerList/cacheJsonList并清空_currentSceneUUID。仅正常关闭自有23972，全5来源1错误0警告，未做字段写。新显式sdk-scene-cache-compat仅3.8.3新矩阵工程，精确核验5个SDK方法摘要和SDK getCachePath实际工程根；缺目录只执行原内存清理，不创建/删除缓存文件，目录存在仍完整调用SDK原删除，非ENOENT/原删除错误保留；只恢复自身单例方法。真实SDK源码离线对照、未知实现/跨项目拒绝、权限错误和恢复行为通过；冷启动及保存重开零诊断仍待新工程验证。

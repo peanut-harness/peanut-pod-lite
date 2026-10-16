@@ -1,0 +1,29 @@
+{
+  "creatorVersion": "3.8.3",
+  "module": "builtin/scene/dist/browser/scene-cache.ccc",
+  "origin": "evidence/task-5.1/cache-sources-383-20261016/sdk-scene-cache-method-sources.json",
+  "methods": {
+    "getCachePath": {
+      "sha256": "569dd8b05e3595a346925d7f5c2bdb3f6b30339ec218ce2e32cde21209e7809e",
+      "source": "function getCachePath(e,t){return(0,path_1.join)(SCENE_CACHE_DIR,e,t+\".json\")}"
+    },
+    "clearSceneCache": {
+      "sha256": "020a514f09dd5fe1d4a2a128285ce9fcb0a459a6a3a67513d882a406231863f3",
+      "source": "async clearSceneCache(e){this.disabled||(e=e||await this.getCurrentSceneUUID())&&(await safeRemove(getCacheDirWithId(e=await this.getCurrentCacheID(e))),delete this.cacheTimerList[e],delete this.cacheJsonList[e],this._currentSceneUUID=\"\")}"
+    },
+    "getCurrentSceneUUID": {
+      "sha256": "9dc9d97e4172ba348a17d34d45fc472deb1f097ed066200f6b20a35d93adf121",
+      "source": "async getCurrentSceneUUID(){return this._currentSceneUUID||(this._currentSceneUUID=await Editor.Message.request(\"scene\",\"query-current-scene\",!0)),this._currentSceneUUID}"
+    },
+    "getCurrentCacheID": {
+      "sha256": "8325cd2f120e5cfb18e2ae50f076125c551f46e4ddf82742ca56db450dec70fa",
+      "source": "async getCurrentCacheID(e){var t;return this._unSaveSceneUUID===e?UnSaveSceneId:(t=await Editor.Message.request(\"asset-db\",\"query-asset-info\",e))&&t.visible?e:(this._unSaveSceneUUID=e,UnSaveSceneId)}"
+    },
+    "onSceneReady": {
+      "sha256": "277efba2ac38b022afca563f3be91ab103ccead01070e16efd5b4e6ceb55c115",
+      "source": "async onSceneReady(e){this._sceneReady=!1,this._currentSceneUUID=e,this.clearSceneCache(e),this._sceneReadyTimer=setTimeout(()=>{this._sceneReady=!0},1e3)}"
+    }
+  },
+  "nativeAcceptance": false,
+  "scope": "固定已装载SDK原方法来源；修复只补缺目录幂等语义，存在目录仍走原SDK删除，绝不改安装包/缓存文件或过滤日志"
+}

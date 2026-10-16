@@ -47,6 +47,8 @@ const sdkStartupTimerCompat = args.includes('--sdk-startup-timer-compat');
 const sdkUiReadyCompat = args.includes('--sdk-ui-ready-compat');
 const skinnedHierarchy = args.includes('--skinned-hierarchy');
 const tiledHierarchy = args.includes('--tiled-hierarchy');
+const sdkSceneCacheCompat = args.includes('--sdk-scene-cache-compat');
+if (sdkSceneCacheCompat && (version !== '3.8.3' || fixtureProfile !== 'component-matrix')) throw new Error('component_sdk_cache_requires_383_matrix');
 if (tiledHierarchy && fixtureProfile !== 'component-matrix') throw new Error('component_tiled_requires_verified_matrix');
 if (skinnedHierarchy && (version !== '3.8.7' || fixtureProfile !== 'component-matrix')) throw new Error('component_skinned_requires_verified_matrix');
 if (sdkUiReadyCompat && (!sdkListenerCompat || !sdkStartupTimerCompat || version !== '3.8.7')) throw new Error('component_sdk_ui_ready_requires_compat_project');
@@ -83,7 +85,7 @@ cpSync(join(engine, 'node_modules/tslib'), join(project, 'node_modules/tslib'), 
 const registration = { kind: 'worktree-local-validation-project', task: '5.1',
     owner, change: 'stabilize-editor-operations-and-bulk-file-io',
     projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics, sdkListenerCompat, sdkTimerTrace, sdkRendererTimerTrace: sdkTimerTrace, sdkStartupTimerCompat, sdkUiReadyCompat, skinnedHierarchy,
-    tiledHierarchy, startupSceneProfile: version === '3.8.3' && fixtureProfile === 'component-matrix', candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
+    tiledHierarchy, sdkSceneCacheCompat, startupSceneProfile: version === '3.8.3' && fixtureProfile === 'component-matrix', candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
     registeredAt: new Date().toISOString(), userAuthorization: '推进5.1真实导入、后端确认和原生加载验证；按Hub操作Cocos，只关闭自己实例' };
 writeFileSync(join(output, 'project-ownership.json'), JSON.stringify(registration, null, 2) + '\n');
 cpSync(join(root, 'packages/hosts/modules/creator-38/release/peanut-pod-lite-host-0.2.0'), join(project, 'extensions/peanut-pod-lite-host'), { recursive: true });
@@ -111,6 +113,13 @@ if (sdkListenerCompat) {
     if (sdkTimerTrace) buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-window-timer-trace.ts', import.meta.url))], outfile: join(compat, 'window-trace.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14' });
     if (sdkTimerTrace || sdkStartupTimerCompat) buildSync({ entryPoints: [fileURLToPath(new URL(sdkStartupTimerCompat ? './component-sdk-startup-timer-worker.ts' : './component-sdk-worker-diagnostics.ts', import.meta.url))], outfile: join(compat, 'worker.js'),
+        bundle: true, platform: 'node', format: 'cjs', target: 'node14' });
+}
+if (sdkSceneCacheCompat) {
+    const compat = join(project, 'extensions/peanut-component-cache-compat'); mkdirSync(compat);
+    writeFileSync(join(compat, 'package.json'), JSON.stringify({ package_version: 2, name: 'peanut-component-cache-compat', version: '0.1.0',
+        main: './main.js' }, null, 2) + '\n', { flag: 'wx' });
+    buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-scene-cache-main.ts', import.meta.url))], outfile: join(compat, 'main.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14' });
 }
 const allBindings = ComponentResourceBindings.create(root, version);
