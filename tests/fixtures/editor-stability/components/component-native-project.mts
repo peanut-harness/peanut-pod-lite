@@ -24,6 +24,7 @@ import { ComponentTaskOwnership } from './component-task-ownership.mts';
 import { ComponentCreatorDiagnostics } from './component-creator-diagnostics.mts';
 import { ComponentBlitScreenMaterial } from './component-blit-screen-material.mts';
 import { ComponentSkinnedHierarchy } from './component-skinned-hierarchy.mts';
+import { ComponentTiledHierarchy } from './component-tiled-hierarchy.mts';
 
 const root = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
 const args = process.argv.slice(2);
@@ -44,6 +45,8 @@ const sdkTimerTrace = args.includes('--sdk-timer-trace');
 const sdkStartupTimerCompat = args.includes('--sdk-startup-timer-compat');
 const sdkUiReadyCompat = args.includes('--sdk-ui-ready-compat');
 const skinnedHierarchy = args.includes('--skinned-hierarchy');
+const tiledHierarchy = args.includes('--tiled-hierarchy');
+if (tiledHierarchy && (version !== '3.8.7' || fixtureProfile !== 'component-matrix')) throw new Error('component_tiled_requires_verified_matrix');
 if (skinnedHierarchy && (version !== '3.8.7' || fixtureProfile !== 'component-matrix')) throw new Error('component_skinned_requires_verified_matrix');
 if (sdkUiReadyCompat && (!sdkListenerCompat || !sdkStartupTimerCompat || version !== '3.8.7')) throw new Error('component_sdk_ui_ready_requires_compat_project');
 if (sdkStartupTimerCompat && (!sdkListenerCompat || version !== '3.8.7')) throw new Error('component_sdk_startup_timer_requires_compat_project');
@@ -79,7 +82,7 @@ cpSync(join(engine, 'node_modules/tslib'), join(project, 'node_modules/tslib'), 
 const registration = { kind: 'worktree-local-validation-project', task: '5.1',
     owner, change: 'stabilize-editor-operations-and-bulk-file-io',
     projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics, sdkListenerCompat, sdkTimerTrace, sdkRendererTimerTrace: sdkTimerTrace, sdkStartupTimerCompat, sdkUiReadyCompat, skinnedHierarchy,
-    candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
+    tiledHierarchy, candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
     registeredAt: new Date().toISOString(), userAuthorization: '推进5.1真实导入、后端确认和原生加载验证；按Hub操作Cocos，只关闭自己实例' };
 writeFileSync(join(output, 'project-ownership.json'), JSON.stringify(registration, null, 2) + '\n');
 cpSync(join(root, 'packages/hosts/modules/creator-38/release/peanut-pod-lite-host-0.2.0'), join(project, 'extensions/peanut-pod-lite-host'), { recursive: true });
@@ -181,6 +184,11 @@ if (fixtureProfile === 'component-matrix') {
             fieldStates: assembled.fieldStates };
     });
     matrixStaging = { creatorVersion: version, componentCount: fields.componentCount, fieldCount: fields.fieldCount, rows, nativePassedRows: 0 };
+    if (tiledHierarchy) {
+        const tiledMap = rows.find(row => row.componentType === 'cc.TiledMap');
+        if (!tiledMap || !('targetPath' in tiledMap) || typeof tiledMap.targetPath !== 'string') throw new Error('component_tiled_map_carrier_missing');
+        ComponentTiledHierarchy.stage(root, project, engine, version, tiledMap.targetPath);
+    }
     writeFileSync(join(output, 'component-matrix-staging.json'), JSON.stringify(matrixStaging, null, 2) + '\n', { flag: 'wx' });
     const contract = ComponentNativeFieldContract.create(root, engine, fields, audit.nativeDeclarations);
     writeFileSync(join(probe, 'public-field-contract.json'), JSON.stringify(contract) + '\n', { flag: 'wx' });

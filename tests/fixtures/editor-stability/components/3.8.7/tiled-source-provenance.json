@@ -1,0 +1,30 @@
+{
+  "creatorVersion": "3.8.7",
+  "nativeMetaOrigin": "evidence/task-5.1/skinned-builtin-387-20261016/project/assets/fixtures/media/assets/map/two-by-two.tmx.meta",
+  "metaSha256": "43f8d392415c6d254c10ad2c64373e8c4cbf1acc7fa2e3baf867d6bc0d1efb5a",
+  "inputSha256": "b372539f36711c34ab710e9c7108d5bc90c277587ec17f2a0741f7122699012d",
+  "sdkSources": [
+    {
+      "path": "package.json",
+      "sha256": "14f5c51d349123656acd76652a03468f754a76df12874e61b176b2d8419926cf"
+    },
+    {
+      "path": "cocos/tiledmap/tiled-map.ts",
+      "sha256": "c4aec95da36bfef44207ccdaffdb4d321749cdd88a26a8246c2aafd639e62f32"
+    },
+    {
+      "path": "cocos/tiledmap/tiled-layer.ts",
+      "sha256": "fc0312d0211b084e19881f9ad17c4ecad5d5d8980e15ff1f3f308ccfc743734b"
+    },
+    {
+      "path": "cocos/tiledmap/tiled-object-group.ts",
+      "sha256": "a11b5ab31d24aac4ad69df49a898a18ffc7a114eee28288567f58fb30291723b"
+    },
+    {
+      "path": "cocos/tiledmap/tiled-tile.ts",
+      "sha256": "b0329dbd99e24e9ed22908dede48d15769481413345fe33be7e0022c6cbf73d5"
+    }
+  ],
+  "nativePassed": false,
+  "derivation": "原2x2 Ground输入副本新增实际Objects tile object；原4.2输入保持不变，SDK必须实际导入并初始化"
+}

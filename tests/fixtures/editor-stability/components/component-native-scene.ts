@@ -1,6 +1,7 @@
 import { ComponentNativeFieldReader } from './component-native-field-reader';
 import { ComponentNativeAssetLoader } from './component-native-asset-loader';
 import { ComponentSdkDiagnostics } from './component-sdk-diagnostics';
+import { ComponentNativeTiledContext } from './component-native-tiled-context';
 
 /**
  * @description 运行于目标 Creator 场景进程；返回纯 JSON，绝不传输引擎对象。
@@ -63,6 +64,8 @@ class ComponentNativeScene {
     private static observe(component: object): unknown {
         const cc = require('cc');
         const type = cc.js.getClassName(component);
+        if (['cc.TiledMap', 'cc.TiledLayer', 'cc.TiledObjectGroup', 'cc.TiledTile', 'cc.TiledUserNodeData'].includes(type))
+            return ComponentNativeTiledContext.read(component);
         if (type === 'cc.Camera') return { enabled: Reflect.get(component, 'enabled'), usePostProcess: Reflect.get(component, 'usePostProcess') };
         if (type === 'cc.PostProcess') return { enabled: Reflect.get(component, 'enabled'), global: Reflect.get(component, 'global') };
         if (type === 'cc.UIOpacity') return { opacity: Reflect.get(component, 'opacity') };
