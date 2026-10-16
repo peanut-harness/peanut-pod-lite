@@ -36,6 +36,7 @@ export class ComponentSdkWindowDiagnostics {
      */
     private static snapshot(): unknown {
         const targets = ['/app.asar/node_modules/@editor/creator/static/windows/script/',
+            '/app.asar/builtin/scene/dist/panel/message/',
             '/app.asar/node_modules/@editor/creator/dist/message/',
             '/app.asar/node_modules/@editor/creator/dist/layout/', '/app.asar/node_modules/@editor/creator/dist/startup/',
             '/app.asar/node_modules/@editor/creator/dist/windows/', '/app.asar/node_modules/@editor/creator/dist/panel/',
