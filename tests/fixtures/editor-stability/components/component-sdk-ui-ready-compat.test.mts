@@ -20,10 +20,14 @@ function sdk() {
         panelData: { $: { tree: { reselected: () => {} } } } };
     const broadcast = { apply: runInNewContext('(' + proof.methods.broadcastApply.source + ')', context) };
     hierarchy.methods.ready = runInNewContext('({' + proof.methods.hierarchyReady.source + '}).ready', context);
+    const runtimeMethods = { ready: hierarchy.methods.ready };
+    const panel = { panel: { methods: runtimeMethods } };
+    const element = { query: runInNewContext('({query(e){const t=name2panel[e];return t?0===t.length?t[0]:t:null}}).query', { name2panel: { hierarchy: [panel] } }) };
     const cache = { '/sdk/app.asar/builtin/scene/dist/panel/message/broadcast.ccc': { exports: broadcast },
-        '/sdk/app.asar/modules/editor-extensions/extensions/hierarchy/dist/panel.ccc': { exports: hierarchy } };
+        '/sdk/app.asar/modules/editor-extensions/extensions/hierarchy/dist/panel.ccc': { exports: hierarchy },
+        '/sdk/app.asar/node_modules/@editor/panel/lib/element.ccc': { exports: element } };
     const handlers: any = {}; broadcast.apply(handlers);
-    return { cache, window, hierarchy, handlers, metrics, events, starts, hidden: () => hidden, refreshed: () => refreshed,
+    return { cache, window, hierarchy, runtimeMethods, handlers, metrics, events, starts, hidden: () => hidden, refreshed: () => refreshed,
         fail: (error: Error) => { failure = error; } };
 }
 
@@ -44,7 +48,7 @@ test('real hierarchy ready overlaps one label; compatibility serializes all orig
     const broken = sdk(); const results = await Promise.allSettled([broken.hierarchy.methods.ready(), broken.hierarchy.methods.ready()]);
     assert.equal(results.filter(result => result.status === 'rejected').length, 1);
     const fixed = sdk(); const patch = ComponentSdkUiReadyCompat.install(fixed.cache, fixed.window, '3.8.7');
-    await Promise.all(Array.from({ length: 20 }, () => fixed.hierarchy.methods.ready()));
+    await Promise.all(Array.from({ length: 20 }, (_, i) => i % 2 ? fixed.hierarchy.methods.ready() : fixed.runtimeMethods.ready()));
     assert.equal(fixed.refreshed(), 20); assert.equal(patch.state.calls, 20); assert.equal(patch.state.maximumActive, 1);
     assert.equal(fixed.events.filter(event => event === 'start:hierarchy:render-tree').length, 20);
     assert.equal(fixed.events.filter(event => event === 'end:hierarchy:render-tree').length, 20);

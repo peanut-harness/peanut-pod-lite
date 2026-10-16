@@ -9,6 +9,11 @@
     "hierarchyReady": {
       "source": "async ready(){vm&&(Editor.Metrics.trackTimeStart(\"hierarchy:render-tree\"),vm.sceneReady=!0,await exports.methods.unstaging(),vm&&(await vm.refresh(),vm)&&panelData.$.tree.reselected(),Editor.Metrics.trackTimeEnd(\"hierarchy:render-tree\",{output:!0}))}",
       "sha256": "fa0ed17e2f7a5d5d3630d974800dcb9bde348e7a95cc61d0a7a04ad629820060"
+    },
+    "panelQuery": {
+      "source": "query(e){const t=name2panel[e];return t?0===t.length?t[0]:t:null}",
+      "sha256": "7547de1e9755bd9a8e22be3b7fbc4873bf0c67882fa7b5ee2883f1d6dcc70dbc",
+      "observation": "evidence/task-5.1/sdk-panel-dispatch-387-20261016/sdk-runtime-source-observation.json"
     }
   }
 }
