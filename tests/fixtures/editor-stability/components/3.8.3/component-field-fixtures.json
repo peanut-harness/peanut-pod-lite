@@ -152,12 +152,8 @@
           "sha256": "5dd37b0e2023a6fb9a50f4c10b2004ca06287895e43ab2accfd0acc565c9187b"
         },
         {
-          "path": "tests/fixtures/editor-stability/media/assets/map/one-tile.tsx",
-          "sha256": "87051f75295d60c5bcdec8c6b26a68c73decc83119e9e3913d43886001cbcd64"
-        },
-        {
           "path": "tests/fixtures/editor-stability/components/fixtures/tiled/source-owned.tmx",
-          "sha256": "6760837618c5a0d900e3f71cbec8e4ea655d50a11f48d8eaf45aec6a0f6c739b"
+          "sha256": "be7965c67c6cc67a79d17f352a5c8382d421b8539ad5785424e2eccc8f86d7e1"
         }
       ],
       "selector": "实际SDK导入的唯一1.4.0派生TMX；真实图层/对象仍须SDK初始化核验"
@@ -34339,12 +34335,8 @@
                   "sha256": "5dd37b0e2023a6fb9a50f4c10b2004ca06287895e43ab2accfd0acc565c9187b"
                 },
                 {
-                  "path": "tests/fixtures/editor-stability/media/assets/map/one-tile.tsx",
-                  "sha256": "87051f75295d60c5bcdec8c6b26a68c73decc83119e9e3913d43886001cbcd64"
-                },
-                {
                   "path": "tests/fixtures/editor-stability/components/fixtures/tiled/source-owned.tmx",
-                  "sha256": "6760837618c5a0d900e3f71cbec8e4ea655d50a11f48d8eaf45aec6a0f6c739b"
+                  "sha256": "be7965c67c6cc67a79d17f352a5c8382d421b8539ad5785424e2eccc8f86d7e1"
                 }
               ],
               "selector": "实际SDK导入的唯一1.4.0派生TMX；真实图层/对象仍须SDK初始化核验"
@@ -34361,12 +34353,8 @@
                   "sha256": "5dd37b0e2023a6fb9a50f4c10b2004ca06287895e43ab2accfd0acc565c9187b"
                 },
                 {
-                  "path": "tests/fixtures/editor-stability/media/assets/map/one-tile.tsx",
-                  "sha256": "87051f75295d60c5bcdec8c6b26a68c73decc83119e9e3913d43886001cbcd64"
-                },
-                {
                   "path": "tests/fixtures/editor-stability/components/fixtures/tiled/source-owned.tmx",
-                  "sha256": "6760837618c5a0d900e3f71cbec8e4ea655d50a11f48d8eaf45aec6a0f6c739b"
+                  "sha256": "be7965c67c6cc67a79d17f352a5c8382d421b8539ad5785424e2eccc8f86d7e1"
                 }
               ],
               "selector": "实际SDK导入的唯一1.4.0派生TMX；真实图层/对象仍须SDK初始化核验"

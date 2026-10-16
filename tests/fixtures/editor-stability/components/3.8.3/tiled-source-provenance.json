@@ -3,7 +3,7 @@
   "nativeMetaOrigin": "evidence/task-5.1/native-clean-log-383-20261015-c30/project/assets/fixtures/media/assets/map/two-by-two.tmx.meta",
   "nativeMetaLoadProof": "evidence/task-5.1/native-clean-log-383-20261015-c30/native-resource-loads.json",
   "metaSha256": "45f192740c06a68b308909f79a600bf4a4e5bad2f6d7fb469d2b91f386617f74",
-  "inputSha256": "6760837618c5a0d900e3f71cbec8e4ea655d50a11f48d8eaf45aec6a0f6c739b",
+  "inputSha256": "be7965c67c6cc67a79d17f352a5c8382d421b8539ad5785424e2eccc8f86d7e1",
   "sdkSources": [
     {
       "path": "package.json",
@@ -31,6 +31,6 @@
     }
   ],
   "nativePassed": false,
-  "derivation": "使用3.8.3实际导入且实际加载为TiledMapAsset的meta配置；独立TMX新增Objects输入仍须新工程真实导入及SDK初始化，不外推3.8.7验收；只在独立派生输入将根version改为两版SDK明示支持的1.4.0，并按组件夹具标准暂存路径修正外部TSX相对引用；原始4.2输入不改",
+  "derivation": "使用3.8.3实际导入且实际加载为TiledMapAsset的meta配置；独立TMX新增Objects输入仍须新工程真实导入及SDK初始化，不外推3.8.7验收；只在独立派生输入将根version改为两版SDK明示支持的1.4.0，并按组件夹具标准暂存路径修正外部TSX相对引用；原始4.2输入不改；外部TSX导入短名与XML路径实际不匹配，派生输入改为真正内嵌tileset，仅依赖原checker图片，避免路径别名或SDK修改",
   "declaredSupportedVersion": "1.4.0"
 }

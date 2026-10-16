@@ -175,7 +175,7 @@ class ComponentTiledNative {
      */
     private input(nodePath: string): Record<string, unknown> {
         return { prefabRelativePath: this.scene(), nodePath, resources: [this.scene(), this.string(this.proof.tmx), this.string(this.proof.script),
-            'assets/fixtures/media/assets/map/one-tile.tsx', 'assets/fixtures/media/assets/image/checker.png'].map(path => 'db://' + path) };
+            'assets/fixtures/media/assets/image/checker.png'].map(path => 'db://' + path) };
     }
 
     /**

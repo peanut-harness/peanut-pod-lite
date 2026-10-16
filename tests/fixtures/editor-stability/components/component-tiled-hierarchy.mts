@@ -21,7 +21,7 @@ export class ComponentTiledHierarchy {
         if (proof.creatorVersion !== version || proof.declaredSupportedVersion !== '1.4.0' || proof.inputSha256 !== sha256
             || original.nativeType !== 'cc.TiledMapAsset' || original.sources.filter(source => source.path.endsWith('.tmx')).length !== 1)
             throw new Error('component_tiled_binding_source_invalid');
-        return { ...original, fixtureReference: proofPath, sources: [...original.sources.filter(source => !source.path.endsWith('.tmx')),
+        return { ...original, fixtureReference: proofPath, sources: [...original.sources.filter(source => !/\.(?:tmx|tsx)$/u.test(source.path)),
             { path, sha256 }], selector: '实际SDK导入的唯一1.4.0派生TMX；真实图层/对象仍须SDK初始化核验' };
     }
     /**

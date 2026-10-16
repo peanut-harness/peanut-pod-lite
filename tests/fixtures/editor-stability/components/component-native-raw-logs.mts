@@ -74,7 +74,8 @@ export class ComponentNativeRawLogs {
                 const text = checkpoint.partial + bytes.subarray(checkpoint.offset).toString('utf8');
                 for (const line of text.split(/\r?\n/u)) {
                     if (/\b(?:error|exception|failed|failure|unhandled|uncaught)\b|object has been destroyed/iu.test(line)
-                        || /\b(?:TypeError|ReferenceError|SyntaxError|RangeError|AssertionError)\b/u.test(line)) errors.push(line);
+                        || /\b(?:TypeError|ReferenceError|SyntaxError|RangeError|AssertionError)\b/u.test(line)
+                        || /\bcc\.TiledMap\.initWithXML\(\):\s*Map not found\b/u.test(line)) errors.push(line);
                     else if (/\bwarn(?:ing)?\b/iu.test(line) || /\b[A-Za-z][A-Za-z0-9]*Warning\b/u.test(line)
                         || /\bTMXFormat:\s*Unsupported TMX version\b/iu.test(line)) warnings.push(line);
                 }

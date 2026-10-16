@@ -27,6 +27,7 @@ test('raw renderer GL errors reject an otherwise clean project.log after a singl
 
 test('typed Node warnings and SDK timing failures cannot disappear outside project.log', async () => {
     for (const [name, message, key] of [
+        ['stdout.log', '[Scene] cc.TiledMap.initWithXML(): Map not found. Please check the filename.\n', 'newErrorCount'],
         ['stdout.log', '[Scene] cocos2d: TMXFormat: Unsupported TMX version: 1.10\n', 'newWarningCount'],
         ['stderr.log', '(node:1) MaxListenersExceededWarning: 11 add listeners\n', 'newWarningCount'],
         ['stdout.log', 'trackTimeEnd failed! Can not find the track time start\n', 'newErrorCount'],
