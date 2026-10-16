@@ -30,7 +30,7 @@ test(`${version} dedicated TMX requires actual SDK initialization; started/unkno
     try {
         assert.throws(() => ComponentTiledHierarchy.stage(root, project, '/sdk', '3.9.0', scene.targetPath, hash), /version_unverified/u);
         assert.throws(() => ComponentTiledHierarchy.stage(root, project, '/sdk', version, scene.targetPath, () => 'drift'), /sdk_source_mismatch/u);
-        const input = join(project, 'assets/fixtures/media/assets/map/source-owned.tmx'); assert.equal(existsSync(input), false);
+        const input = join(project, 'assets/fixtures/components/fixtures/tiled/source-owned.tmx'); assert.equal(existsSync(input), false);
         ComponentTiledHierarchy.stage(root, project, '/sdk', version, scene.targetPath, hash);
         const receipt = JSON.parse(readFileSync(join(output, 'tiled-source-staging.json'), 'utf8'));
         assert.equal(receipt.nativePassed, false); assert.equal(receipt.scene, 'assets/components/_lifecycle/cc.TiledLayer.scene'); assert.match(readFileSync(input, 'utf8'), /objectgroup id="2" name="Objects"/u);

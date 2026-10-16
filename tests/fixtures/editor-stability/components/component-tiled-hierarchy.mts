@@ -1,14 +1,29 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { LumenPrefabDocument } from '../../../../packages/engine/modules/lumen/source/hierarchy/prefab-document.ts';
 import { LumenComponentPropertySchema } from '../../../../packages/engine/modules/lumen/source/schema/component-property.ts';
 import { LumenCocosVersion } from '../../../../packages/engine/modules/lumen/source/schema/cocos-version.ts';
+import type { IComponentResourceBinding } from './component-value-recipe.mts';
 
 /**
  * @description 只暂存独立的真实TMX输入和待初始化场景，原生拥有组件不凭离线骨架计为通过。
  */
 export class ComponentTiledHierarchy {
+    /**
+     * @description 组件字段引用SDK明示支持的独立派生地图，原始媒体输入保持不变。
+     */
+    public static binding(root: string, version: string, original: IComponentResourceBinding): IComponentResourceBinding {
+        const path = 'tests/fixtures/editor-stability/components/fixtures/tiled/source-owned.tmx';
+        const proofPath = `tests/fixtures/editor-stability/components/${version}/tiled-source-provenance.json`;
+        const proof = this.record(JSON.parse(readFileSync(join(root, proofPath), 'utf8')));
+        const sha256 = createHash('sha256').update(readFileSync(join(root, path))).digest('hex');
+        if (proof.creatorVersion !== version || proof.declaredSupportedVersion !== '1.4.0' || proof.inputSha256 !== sha256
+            || original.nativeType !== 'cc.TiledMapAsset' || original.sources.filter(source => source.path.endsWith('.tmx')).length !== 1)
+            throw new Error('component_tiled_binding_source_invalid');
+        return { ...original, fixtureReference: proofPath, sources: [...original.sources.filter(source => !source.path.endsWith('.tmx')),
+            { path, sha256 }], selector: '实际SDK导入的唯一1.4.0派生TMX；真实图层/对象仍须SDK初始化核验' };
+    }
     /**
      * @description 精确核验同版SDK后为新工程装配地图输入；用户脚本须经实际导入和公开组件添加。
      */
@@ -21,11 +36,11 @@ export class ComponentTiledHierarchy {
         const directory = join(root, 'tests/fixtures/editor-stability/components');
         const proof = this.record(JSON.parse(readFileSync(join(directory, version, 'tiled-source-provenance.json'), 'utf8')));
         const digest = (bytes: Buffer): string => createHash('sha256').update(bytes).digest('hex');
-        if (proof.creatorVersion !== version || !Array.isArray(proof.sdkSources) || proof.sdkSources.length !== 5)
+        if (proof.creatorVersion !== version || !Array.isArray(proof.sdkSources) || proof.sdkSources.length !== 6)
             throw new Error('component_tiled_source_proof_invalid');
         for (const item of proof.sdkSources) {
             const source = this.record(item);
-            if (typeof source.path !== 'string' || !/^(?:package\.json|cocos\/tiledmap\/tiled-[a-z-]+\.ts)$/u.test(source.path)
+            if (typeof source.path !== 'string' || !/^(?:package\.json|cocos\/tiledmap\/(?:tiled-[a-z-]+|tmx-xml-parser)\.ts)$/u.test(source.path)
                 || sdkSourceHash(join(engine, source.path)) !== source.sha256) throw new Error('component_tiled_sdk_source_mismatch');
         }
         const input = readFileSync(join(directory, 'fixtures/tiled/source-owned.tmx'));
@@ -34,7 +49,7 @@ export class ComponentTiledHierarchy {
         const meta = this.record(JSON.parse(metaBytes.toString('utf8')));
         if (meta.importer !== 'tiled-map' || typeof meta.uuid !== 'string') throw new Error('component_tiled_meta_invalid');
         const sourceUuid = randomUUID(); meta.uuid = sourceUuid;
-        const tmx = 'assets/fixtures/media/assets/map/source-owned.tmx';
+        const tmx = 'assets/fixtures/components/fixtures/tiled/source-owned.tmx';
         const relativePath = 'assets/components/_lifecycle/cc.TiledMap.scene';
         const document = LumenPrefabDocument.cloneFromTemplate('assets/components/_lifecycle/cc.TiledLayer.scene', join(project, relativePath));
         document.setPropertySchema(new LumenComponentPropertySchema(LumenCocosVersion.parse(version)));
@@ -50,7 +65,9 @@ export class ComponentTiledHierarchy {
         document.addChildFromSpec(`${target}/Ground`, { name: 'OwnedUser' });
         document.attachBuiltinComponent(`${target}/Ground/OwnedUser`, 'cc.UITransform');
         document.setComponentProperty(`${target}/Ground/OwnedUser`, 'cc.UITransform', { contentSize: { width: 8, height: 8 } });
-        writeFileSync(join(project, tmx), input, { flag: 'wx' });
+        if (existsSync(join(project, tmx))) {
+            if (digest(readFileSync(join(project, tmx))) !== proof.inputSha256) throw new Error('component_tiled_staged_source_changed');
+        } else { mkdirSync(dirname(join(project, tmx)), { recursive: true }); writeFileSync(join(project, tmx), input, { flag: 'wx' }); }
         writeFileSync(join(project, tmx + '.meta'), JSON.stringify(meta, null, 2) + '\n', { flag: 'wx' });
         const script = 'assets/components/TiledUserDependency.ts';
         writeFileSync(join(project, script), readFileSync(join(directory, 'fixtures/tiled/TiledUserDependency.ts')), { flag: 'wx' });

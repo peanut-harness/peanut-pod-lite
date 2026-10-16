@@ -60,6 +60,7 @@ if (engineModulesContext === 'post-process' && version !== '3.8.7') throw new Er
 if (engineModulesContext === 'character-physx' && version !== '3.8.7') throw new Error('component_native_physx_version_unverified');
 const resources = join(realpathSync(app), 'Contents/Resources');
 const engine = join(resources, 'resources/3d/engine');
+ComponentServiceProfile.assertSdk(root, resources, version);
 if (engineModulesContext === 'post-process' && fixtureProfile !== 'component-matrix') throw new Error('component_native_post_requires_matrix');
 if (engineModulesContext === 'character-physx' && fixtureProfile !== 'component-matrix') throw new Error('component_native_physx_requires_matrix');
 if (JSON.parse(readFileSync(join(engine, 'package.json'), 'utf8')).version !== version) throw new Error('component_native_sdk_version_mismatch');
@@ -78,13 +79,13 @@ writeFileSync(join(project, 'package.json'), JSON.stringify({ name: `peanut-comp
 cpSync(join(resources, 'templates/empty-quality/settings'), join(project, 'settings'), { recursive: true });
 copyFileSync(join(resources, 'templates/empty-quality/tsconfig.json'), join(project, 'tsconfig.json'));
 ComponentEngineProfile.configure(project, version);
-if (version === '3.8.7') ComponentServiceProfile.stage(project, version);
+ComponentServiceProfile.stage(project, version);
 if (fixtureProfile === 'component-matrix') ComponentEngineModules.stage(project, engine, version, engineModulesContext);
 mkdirSync(join(project, 'node_modules'), { recursive: true });
 cpSync(join(engine, 'node_modules/tslib'), join(project, 'node_modules/tslib'), { recursive: true });
 const registration = { kind: 'worktree-local-validation-project', task: '5.1',
     owner, change: 'stabilize-editor-operations-and-bulk-file-io',
-    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics, sdkListenerCompat, sdkTimerTrace, sdkRendererTimerTrace: sdkTimerTrace, sdkStartupTimerCompat, sdkUiReadyCompat, skinnedHierarchy,
+    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: true, metricsDiagnostics, sdkListenerCompat, sdkTimerTrace, sdkRendererTimerTrace: sdkTimerTrace, sdkStartupTimerCompat, sdkUiReadyCompat, skinnedHierarchy,
     tiledHierarchy, sdkSceneCacheCompat, startupSceneProfile: version === '3.8.3' && fixtureProfile === 'component-matrix', candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
     registeredAt: new Date().toISOString(), userAuthorization: '推进5.1真实导入、后端确认和原生加载验证；按Hub操作Cocos，只关闭自己实例' };
 writeFileSync(join(output, 'project-ownership.json'), JSON.stringify(registration, null, 2) + '\n');

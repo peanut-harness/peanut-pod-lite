@@ -3,7 +3,7 @@
   "nativeMetaOrigin": "evidence/task-5.1/native-clean-log-383-20261015-c30/project/assets/fixtures/media/assets/map/two-by-two.tmx.meta",
   "nativeMetaLoadProof": "evidence/task-5.1/native-clean-log-383-20261015-c30/native-resource-loads.json",
   "metaSha256": "45f192740c06a68b308909f79a600bf4a4e5bad2f6d7fb469d2b91f386617f74",
-  "inputSha256": "b372539f36711c34ab710e9c7108d5bc90c277587ec17f2a0741f7122699012d",
+  "inputSha256": "6760837618c5a0d900e3f71cbec8e4ea655d50a11f48d8eaf45aec6a0f6c739b",
   "sdkSources": [
     {
       "path": "package.json",
@@ -24,8 +24,13 @@
     {
       "path": "cocos/tiledmap/tiled-tile.ts",
       "sha256": "de13b9855f2b192f414af84b9d19bd80578407a793826ae206a1a64c8f45bbbd"
+    },
+    {
+      "path": "cocos/tiledmap/tmx-xml-parser.ts",
+      "sha256": "864da2f5f6deff18a2cd278f1aeafb18616b2de15af8c508964eecb9f599d7d6"
     }
   ],
   "nativePassed": false,
-  "derivation": "使用3.8.3实际导入且实际加载为TiledMapAsset的meta配置；独立TMX新增Objects输入仍须新工程真实导入及SDK初始化，不外推3.8.7验收"
+  "derivation": "使用3.8.3实际导入且实际加载为TiledMapAsset的meta配置；独立TMX新增Objects输入仍须新工程真实导入及SDK初始化，不外推3.8.7验收；只在独立派生输入将根version改为两版SDK明示支持的1.4.0，并按组件夹具标准暂存路径修正外部TSX相对引用；原始4.2输入不改",
+  "declaredSupportedVersion": "1.4.0"
 }

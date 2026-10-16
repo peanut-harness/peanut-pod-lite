@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, realpathSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 import { ComponentTerrainEffect } from './component-terrain-effect.mts';
+import { ComponentTiledHierarchy } from './component-tiled-hierarchy.mts';
 import type { IComponentResourceBinding } from './component-value-recipe.mts';
 
 /**
@@ -43,6 +44,7 @@ export class ComponentResourceBindings {
             });
             result[nativeType] = { nativeType, fixtureReference: `${mediaRoot}/supplemental-catalog.json#versions/${version}/inputs/${kind}`,
                 sources, selector: input.derivedSelector ?? `原生导入后按 ${nativeType} 唯一选择根或子资源；类型及源数据必须匹配` };
+            if (nativeType === 'cc.TiledMapAsset') result[nativeType] = ComponentTiledHierarchy.binding(root, version, result[nativeType]);
         }
         const serialized = JSON.parse(readFileSync(join(root, 'tests/fixtures/editor-stability/serialized/resource-fixtures.json'), 'utf8')) as {
             fixtures: { id: string; creatorVersion: string; assetKind: string; files: { source: { path: string; sha256: string } }; dependencies: unknown[] }[];

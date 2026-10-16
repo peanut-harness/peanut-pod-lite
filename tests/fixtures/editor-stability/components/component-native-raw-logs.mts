@@ -75,7 +75,8 @@ export class ComponentNativeRawLogs {
                 for (const line of text.split(/\r?\n/u)) {
                     if (/\b(?:error|exception|failed|failure|unhandled|uncaught)\b|object has been destroyed/iu.test(line)
                         || /\b(?:TypeError|ReferenceError|SyntaxError|RangeError|AssertionError)\b/u.test(line)) errors.push(line);
-                    else if (/\bwarn(?:ing)?\b/iu.test(line) || /\b[A-Za-z][A-Za-z0-9]*Warning\b/u.test(line)) warnings.push(line);
+                    else if (/\bwarn(?:ing)?\b/iu.test(line) || /\b[A-Za-z][A-Za-z0-9]*Warning\b/u.test(line)
+                        || /\bTMXFormat:\s*Unsupported TMX version\b/iu.test(line)) warnings.push(line);
                 }
             }
             result.sources.push({ path: checkpoint.path, offset: checkpoint.offset, end: bytes.length,

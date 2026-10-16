@@ -270,4 +270,4 @@ UIMeshRenderer在3.8.3/3.8.7中是需要同节点ModelRenderer的Component，不
 
 Creator 3.8.3/3.8.7 的两类蒙皮渲染器继承 MeshRenderer 的接收阴影枚举：公开 receiveShadow 仍为 boolean，写入 _shadowReceivingMode 的0/1，保留各自五字段目录。向已有骨骼动画层次添加蒙皮渲染器时，仅在祖先链有唯一 SkeletalAnimation 才恢复 skinningRoot；多控制器先拒绝。合批初始单元仅从同一动画根、同源 glTF 资源且相对变换均为单位变换的真实子模型取得，其他相对变换明确拒绝自动合批，不猜测矩阵或生成资产；没有源模型不会伪造单元。该准备逻辑不代表新候选已通过实机或实际呈现。
 
-Creator 3.8.7 的 Tiled 原生重开证据确认 `cc.TiledLayer.enableCulling` 由父地图重建，`cc.TiledObjectGroup.premultiplyAlpha` 不序列化；两字段在整补丁变化前返回 `lumen_property_not_persistent`。带有效 TMX 引用的父 `TiledMap` 拥有其 Layer/ObjectGroup，移除返回 `lumen_component_source_owned`；内部 `TiledUserNodeData` 的手工增删同样拒绝，用户节点应通过 SDK `TiledLayer.addUserNode` 登记。图层颜色与 `TiledTile` 坐标、生命周期保留。此边界仅绑定已证实的 3.8.7，不外推其他版本。
+Creator 3.8.3、3.8.7 分别取得的 Tiled 原生重开证据确认 `cc.TiledLayer.enableCulling` 由父地图重建，`cc.TiledObjectGroup.premultiplyAlpha` 不序列化；两字段在整补丁变化前返回 `lumen_property_not_persistent`。带有效 TMX 引用的父 `TiledMap` 拥有其 Layer/ObjectGroup，移除返回 `lumen_component_source_owned`；内部 `TiledUserNodeData` 的手工增删同样拒绝，用户节点应通过 SDK `TiledLayer.addUserNode` 登记。图层颜色与 `TiledTile` 坐标、生命周期保留。此边界仅绑定分别证实的 3.8.3、3.8.7，不外推其他版本；派生TMX兼容输入及完整SDK诊断须独立重验。

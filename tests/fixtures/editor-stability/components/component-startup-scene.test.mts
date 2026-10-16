@@ -42,6 +42,6 @@ test('truncated SDK public manifest archives fail closed without invoking SDK co
         const resources = join(output, 'resources'); mkdirSync(resources);
         const header = Buffer.alloc(8); header.writeUInt32LE(4, 0); header.writeUInt32LE(32, 4);
         writeFileSync(join(resources, 'app.asar'), header);
-        assert.throws(() => ComponentStartupScene.stage(root, join(output, 'project'), resources, '3.8.3'), /asar_truncated/u);
+        assert.throws(() => ComponentStartupScene.stage(root, join(output, 'project'), resources, '3.8.3'), /archive_truncated/u);
     } finally { rmSync(output, { recursive: true, force: true }); }
 });

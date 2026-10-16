@@ -2,7 +2,7 @@
   "creatorVersion": "3.8.7",
   "nativeMetaOrigin": "evidence/task-5.1/skinned-builtin-387-20261016/project/assets/fixtures/media/assets/map/two-by-two.tmx.meta",
   "metaSha256": "43f8d392415c6d254c10ad2c64373e8c4cbf1acc7fa2e3baf867d6bc0d1efb5a",
-  "inputSha256": "b372539f36711c34ab710e9c7108d5bc90c277587ec17f2a0741f7122699012d",
+  "inputSha256": "6760837618c5a0d900e3f71cbec8e4ea655d50a11f48d8eaf45aec6a0f6c739b",
   "sdkSources": [
     {
       "path": "package.json",
@@ -23,8 +23,13 @@
     {
       "path": "cocos/tiledmap/tiled-tile.ts",
       "sha256": "b0329dbd99e24e9ed22908dede48d15769481413345fe33be7e0022c6cbf73d5"
+    },
+    {
+      "path": "cocos/tiledmap/tmx-xml-parser.ts",
+      "sha256": "8f7a4169871ca2b7829569d30f5061ffd505cec18020ba559b311b1a4b585efc"
     }
   ],
   "nativePassed": false,
-  "derivation": "原2x2 Ground输入副本新增实际Objects tile object；原4.2输入保持不变，SDK必须实际导入并初始化"
+  "derivation": "原2x2 Ground输入副本新增实际Objects tile object；原4.2输入保持不变，SDK必须实际导入并初始化；只在独立派生输入将根version改为两版SDK明示支持的1.4.0，并按组件夹具标准暂存路径修正外部TSX相对引用；原始4.2输入不改",
+  "declaredSupportedVersion": "1.4.0"
 }

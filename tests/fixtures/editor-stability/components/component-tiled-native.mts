@@ -41,14 +41,14 @@ class ComponentTiledNative {
     private readonly runnerSha256 = createHash('sha256').update(readFileSync(new URL(import.meta.url))).digest('hex');
 
     /**
-     * @description 仅允许显式Tiled上下文的3.8.7新登记工程。
+     * @description 仅允许分别有实际来源证明的两个版本的显式Tiled新登记工程。
      */
     public constructor(project: string) {
         this.client = new ComponentNativeClient(project);
         this.proof = this.client.record(JSON.parse(readFileSync(join(this.client.output, 'tiled-source-staging.json'), 'utf8')));
-        if (this.client.registration.tiledHierarchy !== true || this.client.registration.creatorVersion !== '3.8.7'
+        if (this.client.registration.tiledHierarchy !== true || !['3.8.3', '3.8.7'].includes(this.string(this.client.registration.creatorVersion))
             || this.proof.scene !== 'assets/components/_lifecycle/cc.TiledLayer.scene' || this.proof.target !== '/Root/Canvas/Target'
-            || this.proof.tmx !== 'assets/fixtures/media/assets/map/source-owned.tmx'
+            || this.proof.tmx !== 'assets/fixtures/components/fixtures/tiled/source-owned.tmx'
             || this.proof.script !== 'assets/components/TiledUserDependency.ts') throw new Error('component_tiled_campaign_context_invalid');
     }
 
@@ -57,14 +57,15 @@ class ComponentTiledNative {
      */
     public async run(): Promise<void> {
         this.raw(); const health = await this.client.health();
-        const safety = this.client.record(JSON.parse(readFileSync(join(this.client.root, 'evidence/task-5.1/preview-safety-approved-3.8.7.json'), 'utf8')));
+        const version = this.string(this.client.registration.creatorVersion);
+        const safety = this.client.record(JSON.parse(readFileSync(join(this.client.root, `evidence/task-5.1/preview-safety-approved-${version}.json`), 'utf8')));
         if (safety.verified !== true || safety.projectPath !== this.client.project
             || ['candidateSourceCommit', 'hostSha256', 'coreSha256'].some(key => safety[key] !== this.client.registration[key]))
             throw new Error('component_tiled_campaign_preview_safety_invalid');
         const staging = this.client.record(JSON.parse(readFileSync(join(this.client.output, 'staging-receipt.json'), 'utf8')));
         if (typeof health.pid !== 'number') throw new Error('component_tiled_campaign_pid_invalid');
         ComponentNativeAssetLoader.assertResources(JSON.parse(readFileSync(join(this.client.output, 'native-resource-loads.json'), 'utf8')), {
-            candidateSourceCommit: this.string(this.client.registration.candidateSourceCommit), creatorVersion: '3.8.7', pid: health.pid,
+            candidateSourceCommit: this.string(this.client.registration.candidateSourceCommit), creatorVersion: version, pid: health.pid,
             types: Object.keys(this.client.record(staging.bindings)),
         });
         const components = this.records(await this.client.probe('assets', { scope: 'components' }));
@@ -219,7 +220,8 @@ class ComponentTiledNative {
             cases: this.records(row.cases).map(field => ({ id: this.string(field.id) })) }));
         if (components.length !== 99 || components.reduce((sum, row) => sum + row.cases.length, 0) !== 795)
             throw new Error('component_tiled_campaign_denominator_invalid');
-        writeFileSync(join(this.client.output, 'tiled-native-campaign.json'), JSON.stringify({ candidateSourceCommit: this.client.registration.candidateSourceCommit, runnerSha256: this.runnerSha256,
+        writeFileSync(join(this.client.output, 'tiled-native-campaign.json'), JSON.stringify({ creatorVersion: this.client.registration.creatorVersion,
+            candidateSourceCommit: this.client.registration.candidateSourceCommit, runnerSha256: this.runnerSha256,
             accepted: this.accepted, renderedAcceptance: false, task51Complete: false, componentCount: 99, fieldCount: 795,
             nativeVerifiedComponents: this.rows.length, rows: ComponentNativeMatrixReport.complete(components, this.rows), events: this.events }, null, 2) + '\n');
     }

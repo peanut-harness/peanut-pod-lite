@@ -1,11 +1,25 @@
 import { existsSync, lstatSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
+import { createHash } from 'node:crypto';
+import { ComponentSdkArchive } from './component-sdk-archive.mts';
 
 /**
- * @description 仅在新建3.8.7隔离工程中提供SDK支持的旧版空服务配置，由Creator自身迁移。
+ * @description 在两版新隔离工程中提供各自SDK已核验的旧版空服务配置，由Creator自身迁移。
  */
 export class ComponentServiceProfile {
+    /**
+     * @description 启动前精确核验本版SDK配置迁移实现，未知实现不能复用迁移输入。
+     */
+    public static assertSdk(root: string, resources: string, version: string): void {
+        this.assertVersion(version);
+        const proof: unknown = JSON.parse(readFileSync(join(root, `tests/fixtures/editor-stability/components/${version}/empty-service-config-provenance.json`), 'utf8'));
+        const bytes = ComponentSdkArchive.read(resources, 'service-config');
+        if (!proof || typeof proof !== 'object' || Reflect.get(proof, 'creatorVersion') !== version
+            || Reflect.get(proof, 'source') !== 'app.asar/extension/cocos-service/utils/config.js'
+            || Reflect.get(proof, 'sourceSha256') !== createHash('sha256').update(bytes).digest('hex'))
+            throw new Error('component_service_sdk_source_mismatch');
+    }
     /**
      * @description 不绑定账号或启用服务，不覆盖任何现有配置，也不通过运行时写接口改变Profile。
      * @param project 全新隔离工程。
@@ -62,10 +76,10 @@ export class ComponentServiceProfile {
     }
 
     /**
-     * @description 旧版迁移契约只在已核验的3.8.7 SDK中使用。
+     * @description 只允许已分别验证实际迁移实现的两个精确版本。
      * @param version 精确SDK版本。
      */
     private static assertVersion(version: string): void {
-        if (version !== '3.8.7') throw new Error('component_service_version_unverified');
+        if (!['3.8.3', '3.8.7'].includes(version)) throw new Error('component_service_version_unverified');
     }
 }

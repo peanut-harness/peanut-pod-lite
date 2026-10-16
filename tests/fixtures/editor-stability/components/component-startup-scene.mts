@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
-import { closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, readSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { ComponentSdkArchive } from './component-sdk-archive.mts';
 
 /**
  * @description 使用3.8.3自身公开场景配置指定已有控制场景，避免把默认未保存场景用作矩阵启动输入。
@@ -38,34 +39,10 @@ export class ComponentStartupScene {
      * @description 只读取SDK归档内固定公开JSON，不载入或执行ccc模块。
      */
     private static contract(resources: string): unknown {
-        const fd = openSync(join(resources, 'app.asar'), 'r');
-        try {
-            const first = this.bytes(fd, 8, 0); const length = first.readUInt32LE(4);
-            if (first.readUInt32LE(0) !== 4 || length < 8 || length > 32 * 1024 * 1024) throw new Error('component_startup_scene_asar_header_invalid');
-            const header = this.bytes(fd, length, 8); const jsonLength = header.readUInt32LE(4);
-            if (jsonLength < 2 || jsonLength > header.length - 8) throw new Error('component_startup_scene_asar_json_invalid');
-            let entry = this.record(JSON.parse(header.subarray(8, 8 + jsonLength).toString('utf8')));
-            for (const part of ['builtin', 'scene', 'package.json']) entry = this.record(this.record(entry.files)[part]);
-            if (entry.unpacked || entry.link || typeof entry.offset !== 'string' || !/^\d+$/u.test(entry.offset)
-                || typeof entry.size !== 'number' || !Number.isSafeInteger(entry.size) || entry.size < 2 || entry.size > 1024 * 1024)
-                throw new Error('component_startup_scene_asar_entry_invalid');
-            const offset = 8 + length + Number(entry.offset);
-            if (!Number.isSafeInteger(offset) || offset < 8 + length || offset + entry.size > fstatSync(fd).size)
-                throw new Error('component_startup_scene_asar_offset_invalid');
-            const data = this.bytes(fd, entry.size, offset); const manifest = this.record(JSON.parse(data.toString('utf8')));
-            const project = this.record(this.record(this.record(manifest.contributions).profile).project);
-            return { sha256: createHash('sha256').update(data).digest('hex'), projectCurrentScene: project['current-scene'] };
-        } finally { closeSync(fd); }
-    }
-
-    /**
-     * @description 固定偏移读满有界归档片段，截断即拒绝，不读取外部链接。
-     */
-    private static bytes(fd: number, length: number, offset: number): Buffer {
-        const bytes = Buffer.alloc(length); let read = 0;
-        while (read < length) { const count = readSync(fd, bytes, read, length - read, offset + read);
-            if (!count) throw new Error('component_startup_scene_asar_truncated'); read += count; }
-        return bytes;
+        const data = ComponentSdkArchive.read(resources, 'scene-profile');
+        const manifest = this.record(JSON.parse(data.toString('utf8')));
+        const project = this.record(this.record(this.record(manifest.contributions).profile).project);
+        return { sha256: createHash('sha256').update(data).digest('hex'), projectCurrentScene: project['current-scene'] };
     }
 
     /**

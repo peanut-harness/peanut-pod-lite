@@ -5,9 +5,10 @@ import { LumenComponentPropertySchema } from '../source/schema/component-propert
 import { LumenCocosVersion } from '../source/schema/cocos-version';
 import { LumenNativeComponentPersistence } from '../source/schema/native-component-persistence';
 
-test('3.8.7 refuses source-owned layer/group removal atomically while allowing persistent fields and tile lifecycle', () => {
+for (const version of ['3.8.3', '3.8.7'] as const) {
+test(`${version} refuses source-owned layer/group removal atomically while allowing persistent fields and tile lifecycle`, () => {
     const document = LumenPrefabDocument.createEmptyScene('assets/tiled.scene', 'Root');
-    document.setPropertySchema(new LumenComponentPropertySchema(LumenCocosVersion.parse('3.8.7')));
+    document.setPropertySchema(new LumenComponentPropertySchema(LumenCocosVersion.parse(version)));
     document.addChildFromSpec('/Root', { name: 'Map' });
     document.attachBuiltinComponent('/Root/Map', 'cc.TiledMap');
     document.setComponentProperty('/Root/Map', 'cc.TiledMap', { tmxFile: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' });
@@ -30,9 +31,9 @@ test('3.8.7 refuses source-owned layer/group removal atomically while allowing p
     document.removeComponent(layer + '/Tile', 'cc.TiledTile'); document.attachBuiltinComponent(layer + '/Tile', 'cc.TiledTile');
 });
 
-test('SDK user registration is never emulated by hand attachment or removal; missing source ownership does not broaden removal refusal', () => {
+test(`${version} SDK user registration is never emulated by hand attachment or removal; missing source ownership does not broaden removal refusal`, () => {
     const document = LumenPrefabDocument.createEmptyScene('assets/tiled.scene', 'Root');
-    document.setPropertySchema(new LumenComponentPropertySchema(LumenCocosVersion.parse('3.8.7')));
+    document.setPropertySchema(new LumenComponentPropertySchema(LumenCocosVersion.parse(version)));
     const before = JSON.stringify(document.entries);
     assert.throws(() => document.attachBuiltinComponent('/Root', 'cc.TiledUserNodeData'), /lumen_component_source_owned:cc.TiledUserNodeData:TiledLayer.addUserNode/u);
     assert.throws(() => document.removeComponent('/Root', 'cc.TiledUserNodeData'), /lumen_component_source_owned:cc.TiledUserNodeData:TiledLayer.addUserNode/u);
@@ -42,6 +43,7 @@ test('SDK user registration is never emulated by hand attachment or removal; mis
     document.removeComponent('/Root/Standalone', 'cc.TiledLayer');
     for (const version of ['3.8.3', '3.8.7', '3.9.0']) {
         for (const [type, field] of [['cc.TiledLayer', 'enableCulling'], ['cc.TiledObjectGroup', 'premultiplyAlpha']] as const)
-            assert.equal(LumenNativeComponentPersistence.isNonPersistent(LumenCocosVersion.parse(version), type, field), version === '3.8.7');
+            assert.equal(LumenNativeComponentPersistence.isNonPersistent(LumenCocosVersion.parse(version), type, field), ['3.8.3', '3.8.7'].includes(version));
     }
 });
+}
