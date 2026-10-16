@@ -36,10 +36,10 @@ async function fixture(run: (client: RegistrationClient) => Promise<void>): Prom
     const root = new URL('../../../../', import.meta.url).pathname;
     const output = mkdtempSync(join(root, 'evidence/task-5.1/test-scene-registration-')); const project = join(output, 'project');
     mkdirSync(join(project, 'assets/components'), { recursive: true });
-    const identity = { owner: '01a13478-7931-7e82-86a4-f4f2fcd47bb1', runId: 'unit-only' };
+    const identity = { owner: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', runId: 'unit-only' };
     writeFileSync(join(output, 'project-ownership.json'), JSON.stringify({ ...identity, task: '5.1', projectPath: project }));
     writeFileSync(join(output, 'creator-owned-start.json'), JSON.stringify({ ...identity, project }));
-    try { await run(new RegistrationClient(project)); } finally { rmSync(output, { recursive: true, force: true }); }
+    try { await run(new RegistrationClient(project, { current: () => identity.owner })); } finally { rmSync(output, { recursive: true, force: true }); }
 }
 
 test('scene identity waits for AssetDB and meta agreement before returning, without opening or importing', async () => {
@@ -64,5 +64,12 @@ test('scene identity rejects escaped paths and broken metadata without attemptin
         writeFileSync(join(client.project, 'assets/components/cc.Label.scene.meta'), '{broken');
         await assert.rejects(client.sceneIdentity('assets/components/cc.Label.scene'), SyntaxError);
         assert.deepEqual(client.calls, ['assets']);
+    });
+});
+
+test('native client refuses a project lease owned by the previous actor before any transport', async () => {
+    await fixture(async client => {
+        assert.throws(() => new RegistrationClient(client.project, { current: () => 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff' }), /component_matrix_owner_invalid/);
+        assert.equal(client.calls.length, 0);
     });
 });

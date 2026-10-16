@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { McpScopedResourceBoundary } from '../../../../packages/engine/modules/kernel/src/mcp/mcp-scoped-resource-boundary.ts';
+import { ComponentTaskOwnership } from './component-task-ownership.mts';
 
 /**
  * @description 仅在本任务登记工程验证六项受管能力，令牌不进入输出或回执。
@@ -45,7 +46,7 @@ class ComponentNativeRoundtrip {
             throw new Error('component_roundtrip_project_out_of_scope');
         this.registration = this.record(JSON.parse(readFileSync(join(this.output, 'project-ownership.json'), 'utf8')));
         this.lease = this.record(JSON.parse(readFileSync(join(this.output, 'creator-owned-start.json'), 'utf8')));
-        if (this.registration.task !== '5.1' || this.registration.owner !== '01a13478-7931-7e82-86a4-f4f2fcd47bb1'
+        if (this.registration.task !== '5.1' || this.registration.owner !== ComponentTaskOwnership.current(root)
             || this.registration.projectPath !== this.project || this.lease.owner !== this.registration.owner
             || this.lease.runId !== this.registration.runId || this.lease.project !== this.project) throw new Error('component_roundtrip_owner_invalid');
         writeFileSync(join(this.output, 'component-roundtrip-start.json'), JSON.stringify({ startedAt: new Date().toISOString(),

@@ -9,6 +9,7 @@ import { ComponentEngineProfile } from './component-engine-profile.mts';
 import { ComponentEngineModules } from './component-engine-modules.mts';
 import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 import { ComponentProjectUrlResolver } from './component-project-url-resolver.mts';
+import { ComponentTaskOwnership } from './component-task-ownership.mts';
 
 /**
  * @description 矩阵验证的实际认证传输；只允许精确六项写及只读观测，令牌不进入证据。
@@ -50,14 +51,15 @@ export class ComponentNativeClient {
     /**
      * @description 将传输绑定到任务5.1的新工程和原始实际Creator启动身份。
      * @param project 已登记工程。
+     * @param ownership 当前归属读取器；离线测试可注入隔离登记边界。
      */
-    public constructor(project: string) {
+    public constructor(project: string, ownership: Pick<typeof ComponentTaskOwnership, 'current'> = ComponentTaskOwnership) {
         this.project = realpathSync(project); this.output = dirname(this.project);
         if (!this.project.startsWith(`${this.root}${sep}evidence${sep}task-5.1${sep}`) || this.project !== join(this.output, 'project'))
             throw new Error('component_matrix_project_out_of_scope');
         this.registration = JSON.parse(readFileSync(join(this.output, 'project-ownership.json'), 'utf8'));
         this.lease = JSON.parse(readFileSync(join(this.output, 'creator-owned-start.json'), 'utf8'));
-        if (this.registration.task !== '5.1' || this.registration.owner !== '01a13478-7931-7e82-86a4-f4f2fcd47bb1'
+        if (this.registration.task !== '5.1' || this.registration.owner !== ownership.current(this.root)
             || this.registration.projectPath !== this.project || this.lease.owner !== this.registration.owner
             || this.lease.runId !== this.registration.runId || this.lease.project !== this.project) throw new Error('component_matrix_owner_invalid');
     }

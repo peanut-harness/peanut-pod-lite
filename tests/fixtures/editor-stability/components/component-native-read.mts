@@ -7,6 +7,7 @@ import { ComponentEngineProfile } from './component-engine-profile.mts';
 import { ComponentEngineModules } from './component-engine-modules.mts';
 import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 import { ComponentNativeAssetLoader } from './component-native-asset-loader.ts';
+import { ComponentTaskOwnership } from './component-task-ownership.mts';
 
 /**
  * @description 每次重读令牌与端口，并把原生响应绑定到登记工程及本任务实际启动进程。
@@ -21,6 +22,9 @@ class ComponentNativeRead {
         if (!project.startsWith(`${root}${sep}evidence${sep}task-5.1${sep}`)) throw new Error('component_native_read_project_out_of_scope');
         const registration = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8'));
         const lease = JSON.parse(readFileSync(join(output, 'creator-owned-start.json'), 'utf8'));
+        if (registration.task !== '5.1' || registration.owner !== ComponentTaskOwnership.current(root)
+            || registration.projectPath !== project || lease.owner !== registration.owner || lease.project !== project
+            || lease.runId !== registration.runId) throw new Error('component_native_read_ownership_invalid');
         const request = async (action: string, input: Record<string, unknown> = {}): Promise<unknown> => {
             const execute = async (): Promise<unknown> => {
                 const descriptorPath = join(project, '.peanut-ai/component-probe.json');

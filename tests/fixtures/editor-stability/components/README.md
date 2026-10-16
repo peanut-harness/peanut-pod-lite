@@ -40,6 +40,8 @@ node --import tsx tests/fixtures/editor-stability/components/component-catalog-c
 
 共享分母的遗漏已通过任务 1.2 修复。旧 coverage 草稿和原始报告保留；新矩阵保存于工作树 evidence。任务 5.3/6 的原生结果必须使用独立重算的新分母，不能将这里的输入配方或序列化读回升级为原生通过。
 
+任务归属由 `ComponentTaskOwnership` 从所属工作空间的设备登记读取，并与宿主 `CODEX_THREAD_ID` 核对；要求原工作树、唯一 active 记录及 self-delivery 的三项 owner 一致。新工程使用当前 owner，启动、原生客户端、资源读取和关闭工具拒绝旧 owner 的工程或租约；不会因会话接管而收养旧实例。缺少会话身份或登记时，在启动和操作之前停止。
+
 原生观测使用 `component-native-project.mts` 创建全新的任务工程，核对官方候选的双画像、载荷摘要和源码检查点，通过实际安装事务安装 Core。参数为 `--creator-version`、`--creator-app`、`--run-id`。源文件逐项校验 SHA；cube meta 必须配对在 HDR 副本旁，checker 的 SpriteFrame 导入选项来自精确 SDK，子资源由实际 importer 生成。源及旧报告保持原样。
 
 在输出的 `project/` 内运行 `npm --ignore-scripts=false run creator`，保留 precreator/creator/postcreator。同版本已有其它工程时使用 macOS `open -na` 新实例，并记录实际 Creator PID；`open -W` 仅有启动器退出状态，不能据此宣称 Creator 的退出码为 0。本工程已有实例时拒绝重启，交回会话附着流程。所有二进制 stdout/stderr 和 project.log 完整保留。

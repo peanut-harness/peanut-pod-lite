@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { verifyReleaseCandidate } from '../../../../tools/release-candidate.mts';
 import { ComponentEngineProfile } from './component-engine-profile.mts';
 import { ComponentEngineModules } from './component-engine-modules.mts';
+import { ComponentTaskOwnership } from './component-task-ownership.mts';
 
 /**
  * @description 5.1 独占隔离工程的外层 npm 启动入口；记录 PID、启动时间与完整二进制日志。
@@ -21,7 +22,7 @@ class ComponentCreatorSession {
             throw new Error('component_creator_project_out_of_scope');
         const registration = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8')) as Record<string, string>;
         if (registration.task !== '5.1' || registration.kind !== 'worktree-local-validation-project'
-            || registration.projectPath !== project || registration.owner !== '01a13478-7931-7e82-86a4-f4f2fcd47bb1')
+            || registration.projectPath !== project || registration.owner !== ComponentTaskOwnership.current(repository))
             throw new Error('component_creator_project_unregistered');
         const manifest = JSON.parse(readFileSync(join(project, 'package.json'), 'utf8'));
         const binary = join(registration.creatorApp ?? '', 'Contents/MacOS/CocosCreator');

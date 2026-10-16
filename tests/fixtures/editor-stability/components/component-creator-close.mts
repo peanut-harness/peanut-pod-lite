@@ -3,6 +3,7 @@ import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
+import { ComponentTaskOwnership } from './component-task-ownership.mts';
 
 /**
  * @description 按原始启动身份仅向本任务实例发送正常退出请求；没有全局退出或强杀入口。
@@ -18,7 +19,7 @@ class ComponentCreatorClose {
             throw new Error('component_creator_close_project_out_of_scope');
         const registration = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8'));
         const lease = JSON.parse(readFileSync(join(output, 'creator-owned-start.json'), 'utf8'));
-        if (registration.owner !== '01a13478-7931-7e82-86a4-f4f2fcd47bb1' || registration.task !== '5.1'
+        if (registration.owner !== ComponentTaskOwnership.current(root) || registration.task !== '5.1'
             || registration.projectPath !== project || lease.owner !== registration.owner || lease.runId !== registration.runId
             || lease.project !== project || !Number.isInteger(lease.pid) || lease.pid <= 0) throw new Error('component_creator_close_ownership_invalid');
         const identity = (): string | null => {
