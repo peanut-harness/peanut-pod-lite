@@ -166,3 +166,5 @@ SDK UI就绪兼容：显式 `--sdk-ui-ready-compat` 要求3.8.7、监听器及�
 修复候选实机入口：`node --import tsx tests/fixtures/editor-stability/components/component-tiled-native.mts --project <已登记工程>`。要求同候选20类型实际加载、精确预览回执及全段原始日志为零；固定六项能力内执行公开脚本附着、3字段类型拒绝与持久化、2字段写前拒绝、TMX移除拒绝、SDK用户登记与手工生命周期拒绝、Tile移除/添加/再移除并各次保存切换重开。`tiled-native-campaign.json`补全99/795，其余pending，实际呈现保持false；正常关闭后另做五来源终扫，不把campaign通过代替整个会话通过。
 
 61ead74完整verify1262/1262、145夹具、定向严格类型/源码规范/OpenSpec及官方本地候选通过。tiled-policy-387-20261016完成Tiled4/5：颜色/x/y三项持久读回、两项整补丁写前拒绝；层/对象组幂等附着且TMX移除拒绝；真实SDK用户登记及手工增删拒绝；Tile移除/添加/再移除各次保存切换重开均通过。最初工具仅识别带冒号拒绝码而中止，保留失败报告，修正为精确稳定码或其后缀后重验；Host/Core候选未变，独立runner摘要另记。31项实机事件后监听器1/1、阈值10；复用唯一预览单次刷新零诊断，先停泊标签再仅正常关闭自有55626，物理退出全5来源零错误/零警告，结论tiled-final-conclusion.json。99/795保留，其余790字段在本专用campaign仍为pending；不以本轮覆盖替代其它版本和组件。3.8.3专用上下文、跨campaign覆盖核对及实际呈现仍待完成，5.1不勾选。
+
+下一版本准备：冻结3.8.3实际导入并加载为TiledMapAsset的meta和该安装包五份源码摘要，为显式tiled-hierarchy新增同版输入暂存；尚未证明3.8.3字段/生命周期，不外推3.8.7拒绝。专用可变场景统一为_lifecycle/cc.TiledLayer.scene，展示场景仍独立；旧非展示专用文件的实机证据仅覆盖原输入，不能当作新路径已验。 两版本分别核验源和meta；stage证明nativePassed始终false，3.8.3当前仅准备研究输入，专用修复验收工具仍限制3.8.7。

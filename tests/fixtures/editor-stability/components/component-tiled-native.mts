@@ -47,7 +47,7 @@ class ComponentTiledNative {
         this.client = new ComponentNativeClient(project);
         this.proof = this.client.record(JSON.parse(readFileSync(join(this.client.output, 'tiled-source-staging.json'), 'utf8')));
         if (this.client.registration.tiledHierarchy !== true || this.client.registration.creatorVersion !== '3.8.7'
-            || this.proof.scene !== 'assets/components/task51-tiled-source.scene' || this.proof.target !== '/Root/Canvas/Target'
+            || this.proof.scene !== 'assets/components/_lifecycle/cc.TiledLayer.scene' || this.proof.target !== '/Root/Canvas/Target'
             || this.proof.tmx !== 'assets/fixtures/media/assets/map/source-owned.tmx'
             || this.proof.script !== 'assets/components/TiledUserDependency.ts') throw new Error('component_tiled_campaign_context_invalid');
     }

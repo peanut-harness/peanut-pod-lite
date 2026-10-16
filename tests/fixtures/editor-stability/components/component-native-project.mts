@@ -46,7 +46,7 @@ const sdkStartupTimerCompat = args.includes('--sdk-startup-timer-compat');
 const sdkUiReadyCompat = args.includes('--sdk-ui-ready-compat');
 const skinnedHierarchy = args.includes('--skinned-hierarchy');
 const tiledHierarchy = args.includes('--tiled-hierarchy');
-if (tiledHierarchy && (version !== '3.8.7' || fixtureProfile !== 'component-matrix')) throw new Error('component_tiled_requires_verified_matrix');
+if (tiledHierarchy && fixtureProfile !== 'component-matrix') throw new Error('component_tiled_requires_verified_matrix');
 if (skinnedHierarchy && (version !== '3.8.7' || fixtureProfile !== 'component-matrix')) throw new Error('component_skinned_requires_verified_matrix');
 if (sdkUiReadyCompat && (!sdkListenerCompat || !sdkStartupTimerCompat || version !== '3.8.7')) throw new Error('component_sdk_ui_ready_requires_compat_project');
 if (sdkStartupTimerCompat && (!sdkListenerCompat || version !== '3.8.7')) throw new Error('component_sdk_startup_timer_requires_compat_project');

@@ -14,12 +14,12 @@ export class ComponentTiledHierarchy {
      */
     public static stage(root: string, project: string, engine: string, version: string, target: string,
         sdkSourceHash: (path: string) => string = path => createHash('sha256').update(readFileSync(path)).digest('hex')): void {
-        if (version !== '3.8.7') throw new Error('component_tiled_version_unverified');
+        if (!['3.8.3', '3.8.7'].includes(version)) throw new Error('component_tiled_version_unverified');
         if (['library', 'temp', '.peanut-ai/component-probe.json'].some(path => existsSync(join(project, path))))
             throw new Error('component_tiled_project_already_started');
         if (target !== '/Root/Canvas/Target') throw new Error('component_tiled_source_target_unverified');
         const directory = join(root, 'tests/fixtures/editor-stability/components');
-        const proof = this.record(JSON.parse(readFileSync(join(directory, '3.8.7/tiled-source-provenance.json'), 'utf8')));
+        const proof = this.record(JSON.parse(readFileSync(join(directory, version, 'tiled-source-provenance.json'), 'utf8')));
         const digest = (bytes: Buffer): string => createHash('sha256').update(bytes).digest('hex');
         if (proof.creatorVersion !== version || !Array.isArray(proof.sdkSources) || proof.sdkSources.length !== 5)
             throw new Error('component_tiled_source_proof_invalid');
@@ -29,14 +29,14 @@ export class ComponentTiledHierarchy {
                 || sdkSourceHash(join(engine, source.path)) !== source.sha256) throw new Error('component_tiled_sdk_source_mismatch');
         }
         const input = readFileSync(join(directory, 'fixtures/tiled/source-owned.tmx'));
-        const metaBytes = readFileSync(join(directory, '3.8.7/tiled-source.meta.json'));
+        const metaBytes = readFileSync(join(directory, version, 'tiled-source.meta.json'));
         if (digest(input) !== proof.inputSha256 || digest(metaBytes) !== proof.metaSha256) throw new Error('component_tiled_input_changed');
         const meta = this.record(JSON.parse(metaBytes.toString('utf8')));
         if (meta.importer !== 'tiled-map' || typeof meta.uuid !== 'string') throw new Error('component_tiled_meta_invalid');
         const sourceUuid = randomUUID(); meta.uuid = sourceUuid;
         const tmx = 'assets/fixtures/media/assets/map/source-owned.tmx';
         const relativePath = 'assets/components/_lifecycle/cc.TiledMap.scene';
-        const document = LumenPrefabDocument.cloneFromTemplate('assets/components/task51-tiled-source.scene', join(project, relativePath));
+        const document = LumenPrefabDocument.cloneFromTemplate('assets/components/_lifecycle/cc.TiledLayer.scene', join(project, relativePath));
         document.setPropertySchema(new LumenComponentPropertySchema(LumenCocosVersion.parse(version)));
         document.setComponentProperty(target, 'cc.TiledMap', { tmxFile: sourceUuid });
         for (const [name, type] of [['Ground', 'cc.TiledLayer'], ['Objects', 'cc.TiledObjectGroup']] as const) {
