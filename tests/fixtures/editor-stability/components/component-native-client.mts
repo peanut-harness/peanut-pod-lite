@@ -141,7 +141,7 @@ export class ComponentNativeClient {
      */
     public async probe(action: string, input: Record<string, unknown> = {}): Promise<unknown> {
         const execute = (): Promise<unknown> => this.request('component-probe.json', '/probe', 'x-component-token', { action, ...input });
-        if (!['component-fields', 'scene-snapshot', 'scene-readiness', 'load-asset', 'assets'].includes(action)) { return execute(); }
+        if (!['component-fields', 'scene-snapshot', 'scene-readiness', 'sdk-metrics-diagnostics', 'sdk-lifecycle-diagnostics', 'load-asset', 'assets'].includes(action)) { return execute(); }
         return ComponentNativeLogGuard.run(this.project, action, execute, event => { this.events.push(event); this.save(); });
     }
 

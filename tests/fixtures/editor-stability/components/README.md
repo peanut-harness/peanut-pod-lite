@@ -50,6 +50,8 @@ node --import tsx tests/fixtures/editor-stability/components/component-catalog-c
 
 2026-10-16实机对照：c9a5b1c的113项组件回归、完整verify1256项和官方候选通过；真实专用材质UUID及启用列表、Forward/PostProcessBuilder、相机usePostProcess和全局PostProcess均确认。同条件standard材质出现2条GL错误，专用材质在激活、冷却及正常退出后为0。SDK计时器仍有4条原始错误、零警告，整轮nativeAcceptance仍false，未作图像或呈现验收；SDK监听器泄漏另在有界循环中复现并定位。自有18592正常关闭，六项撤销，不开all。
 
+SDK诊断续查仅增加两个固定只读动作：`sdk-metrics-diagnostics`读取计时器起始Map、计时事件及固定SDK派发函数文本；`sdk-lifecycle-diagnostics`读取Component/Node/Facade固定生命周期方法文本。扩展每次加载追加一条计时缓存观测，不覆盖旧证据；不执行函数文本，不调用reset/register/释放方法，不导出其它统计事件或账号数据。所有观测仍经过原始日志门禁，不能据此将既有错误记作通过。
+
 在输出的 `project/` 内运行 `npm --ignore-scripts=false run creator`，保留 precreator/creator/postcreator。macOS统一使用 `open -na` 的应用启动入口，捕获应用stdout/stderr并记录实际Creator PID；同工程已有进程时拒绝重复启动。`open -W` 仅有启动器退出状态，不能据此宣称 Creator 的退出码为 0。本工程已有实例时拒绝重启，交回会话附着流程。所有二进制 stdout/stderr 和 project.log 完整保留。
 
 `component-native-read.mts --project <隔离工程>` 每次重读私有描述符并核对 PID、启动时间、工程路径和 owner，分别等待 Host 注册和 AssetDB 导入，再按声明源核对资源的实际 UUID、类型和有效性。运行于场景进程的探针只提供资源加载、场景快照和后端观测，没有场景打开或任意消息执行入口。资源加载成功仍不等于组件字段写入、引用绑定、保存重开或零日志通过，`nativePassedRows` 保持 0。

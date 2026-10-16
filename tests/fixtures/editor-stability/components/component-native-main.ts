@@ -5,6 +5,7 @@ import * as crypto from 'node:crypto';
 import { EditorMcpPreviewWindowInspector } from '../../../../packages/engine/modules/mcp/src/editor-mcp-preview-window-inspector';
 import { ComponentNativeAssetLoader } from './component-native-asset-loader';
 import { ComponentProjectUrlFiles } from './component-project-url-files';
+import { ComponentSdkDiagnostics } from './component-sdk-diagnostics';
 
 /**
  * @description 隔离工程内的有界原生观测入口；不提供任意消息或代码执行接口。
@@ -28,6 +29,8 @@ class ComponentNativeMain {
         this.project = fs.realpathSync(editor.Project.path);
         this.registration = JSON.parse(fs.readFileSync(path.join(this.project, '..', 'project-ownership.json'), 'utf8'));
         if (this.registration.projectPath !== this.project || this.registration.task !== '5.1') throw new Error('component_native_project_unregistered');
+        fs.appendFileSync(path.join(this.project, '..', 'sdk-metrics-at-probe-load.ndjson'),
+            JSON.stringify(ComponentSdkDiagnostics.metrics(editor.Metrics)) + '\n');
         this.fixtures = new ComponentProjectUrlFiles(this.project, this.registration);
         this.token = crypto.randomBytes(32).toString('hex');
         this.server = http.createServer((request, response) => {
@@ -73,6 +76,10 @@ class ComponentNativeMain {
         const editor = Reflect.get(globalThis, 'Editor');
         if (typeof editor?.Message?.request !== 'function') throw new Error('component_native_message_api_missing');
         const request = editor.Message.request.bind(editor.Message);
+        if (body.action === 'sdk-metrics-diagnostics') return ComponentSdkDiagnostics.metrics(editor.Metrics);
+        if (body.action === 'sdk-lifecycle-diagnostics') return request('scene', 'execute-scene-script', {
+            name: 'peanut-component-probe', method: 'sdkLifecycleDiagnostics', args: [],
+        });
         if (body.action === 'fixture-urls') {
             const address = this.server?.address();
             if (!address || typeof address === 'string' || !this.fixtures) throw new Error('component_native_endpoint_missing');

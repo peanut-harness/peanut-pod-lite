@@ -16,6 +16,7 @@ test('authenticated health reads actual project engine modules through getProjec
     const calls: string[] = []; let sceneReady = true;
     const prior = Reflect.get(globalThis, 'Editor'); const priorTrace = Reflect.get(process, 'traceProcessWarnings');
     Reflect.set(globalThis, 'Editor', { Project: { path: project }, App: { version: '3.8.7' },
+        Metrics: { __protected__: { getTrackTimeStartMap: () => new Map(), getTrackInfoList: () => [] } },
         Message: { request: async (target: string, message: string) => {
             if (target === 'scene') { assert.equal(message, 'query-is-ready'); calls.push('scene:' + message); return sceneReady; }
             assert.equal(target, 'peanut-pod-lite-host'); assert.equal(message, 'query-status'); return { ready: true };

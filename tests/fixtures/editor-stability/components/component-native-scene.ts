@@ -1,5 +1,6 @@
 import { ComponentNativeFieldReader } from './component-native-field-reader';
 import { ComponentNativeAssetLoader } from './component-native-asset-loader';
+import { ComponentSdkDiagnostics } from './component-sdk-diagnostics';
 
 /**
  * @description 运行于目标 Creator 场景进程；返回纯 JSON，绝不传输引擎对象。
@@ -84,4 +85,5 @@ class ComponentNativeScene {
 }
 
 export const methods = { loadAsset: ComponentNativeScene.loadAsset, snapshot: ComponentNativeScene.snapshot,
+    sdkLifecycleDiagnostics: () => ComponentSdkDiagnostics.lifecycle(Reflect.get(globalThis, 'cce')),
     fields: (nodeSuffix: string, componentType: string, expectedSceneUuid: string) => ComponentNativeFieldReader.read(nodeSuffix, componentType, expectedSceneUuid) };
