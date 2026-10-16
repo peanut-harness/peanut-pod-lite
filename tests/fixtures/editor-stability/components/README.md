@@ -52,7 +52,9 @@ node --import tsx tests/fixtures/editor-stability/components/component-catalog-c
 
 SDK诊断续查仅增加两个固定只读动作：`sdk-metrics-diagnostics`读取计时器起始Map、计时事件及固定SDK派发函数文本；`sdk-lifecycle-diagnostics`读取Component/Node/Facade固定生命周期方法文本。扩展每次加载追加一条计时缓存观测，不覆盖旧证据；不执行函数文本，不调用reset/register/释放方法，不导出其它统计事件或账号数据。所有观测仍经过原始日志门禁，不能据此将既有错误记作通过。
 
-显式`--sdk-listener-compat`只为新登记3.8.7工程暂存独立SDK兼容扩展，原只读probe继续只读。SDK原方法每次init都bind新回调并覆盖旧引用；兼容层在再次注册前调用SDK配对unregister，仅释放该管理器自己保有的回调，保留其它监听器和原阈值。版本及3个原函数文本摘要必须精确匹配，已泄漏进程拒绝安装；卸载仅恢复自己的方法。原SDK方法回归已复现增长，修复后20次初始化保持一对并保留无关监听器，实机仍待验证。这是明确登记的项目内运行时兼容，不能冒称未适配的SDK通过；不改安装包，也不修复或忽略计时器错误。健康回执须确认兼容扩展已实际装载。计时器观测还读取已缓存的固定SDK模块适配器源码，不加载新模块或导出统计数据。
+显式`--sdk-listener-compat`只为新登记3.8.7工程暂存独立SDK兼容扩展，原只读probe继续只读。SDK原方法每次init都bind新回调并覆盖旧引用；兼容层在再次注册前调用SDK配对unregister，仅释放该管理器自己保有的回调，保留其它监听器和原阈值。版本及3个原函数文本摘要必须精确匹配，已泄漏进程拒绝安装；卸载仅恢复自己的方法。原SDK方法回归已复现增长，修复后20次初始化保持一对并保留无关监听器；d7560ca实机10轮增删改保存重开、42次注册始终1/1，零MaxListeners警告，正常退出另有SDK WindowSender已销毁目标错误，整轮仍拒绝。这是明确登记的项目内运行时兼容，不能冒称未适配的SDK通过；不改安装包，也不修复或忽略计时器错误。健康回执须确认兼容扩展已实际装载。计时器观测还读取已缓存的固定SDK模块适配器源码，不加载新模块或导出统计数据。
+
+另可显式启用`--sdk-timer-trace`，仅允许上述新登记3.8.7兼容工程。独立扩展透明包裹SDK唯一计时Map实例的set/has/get/delete/clear，原样返回API结果，记录真实输入、结果和调用栈；不补造start、不修改时间值、不捕获原API异常、不过滤日志，卸载恢复自己安装的方法。该观测与SDK方法/IPC只读探针分开，所有原始失败继续阻止整轮通过。
 
 在输出的 `project/` 内运行 `npm --ignore-scripts=false run creator`，保留 precreator/creator/postcreator。macOS统一使用 `open -na` 的应用启动入口，捕获应用stdout/stderr并记录实际Creator PID；同工程已有进程时拒绝重复启动。`open -W` 仅有启动器退出状态，不能据此宣称 Creator 的退出码为 0。本工程已有实例时拒绝重启，交回会话附着流程。所有二进制 stdout/stderr 和 project.log 完整保留。
 

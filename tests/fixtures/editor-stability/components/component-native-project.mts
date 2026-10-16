@@ -37,6 +37,8 @@ if (!['3.8.3', '3.8.7'].includes(version ?? '') || !app || !runId || !/^[a-z0-9]
 if (version !== '3.8.3' && version !== '3.8.7') throw new Error('component_native_version_unsupported');
 const metricsDiagnostics = args.includes('--metrics-diagnostics');
 const sdkListenerCompat = args.includes('--sdk-listener-compat');
+const sdkTimerTrace = args.includes('--sdk-timer-trace');
+if (sdkTimerTrace && (!sdkListenerCompat || version !== '3.8.7')) throw new Error('component_sdk_timer_trace_requires_compat_project');
 if (sdkListenerCompat && version !== '3.8.7') throw new Error('component_sdk_listener_version_unverified');
 ComponentCreatorDiagnostics.args(metricsDiagnostics, version);
 if (engineModulesContext === 'post-process' && version !== '3.8.7') throw new Error('component_native_post_version_unverified');
@@ -65,7 +67,7 @@ mkdirSync(join(project, 'node_modules'), { recursive: true });
 cpSync(join(engine, 'node_modules/tslib'), join(project, 'node_modules/tslib'), { recursive: true });
 const registration = { kind: 'worktree-local-validation-project', task: '5.1',
     owner, change: 'stabilize-editor-operations-and-bulk-file-io',
-    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics, sdkListenerCompat,
+    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics, sdkListenerCompat, sdkTimerTrace,
     candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
     registeredAt: new Date().toISOString(), userAuthorization: '推进5.1真实导入、后端确认和原生加载验证；按Hub操作Cocos，只关闭自己实例' };
 writeFileSync(join(output, 'project-ownership.json'), JSON.stringify(registration, null, 2) + '\n');
@@ -86,6 +88,8 @@ if (sdkListenerCompat) {
     writeFileSync(join(compat, 'main.js'), 'exports.load = function () {}; exports.unload = function () {};\n', { flag: 'wx' });
     buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-listener-scene.ts', import.meta.url))], outfile: join(compat, 'scene.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14', external: ['cc'] });
+    if (sdkTimerTrace) buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-timer-trace-main.ts', import.meta.url))], outfile: join(compat, 'main.js'),
+        bundle: true, platform: 'node', format: 'cjs', target: 'node14' });
 }
 const allBindings = ComponentResourceBindings.create(root, version);
 const bindings = fixtureProfile === 'sprite-roundtrip' ? Object.fromEntries(Object.entries(allBindings).filter(([type]) =>
