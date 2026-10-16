@@ -11,7 +11,7 @@ const engine = '/Applications/Cocos/Creator/3.8.7/CocosCreator.app/Contents/Reso
 
 test('Blit field recipes use the exact SDK post-process effect without replacing mesh materials or changing coverage', () => {
     ComponentBlitScreenMaterial.assertSdk(root, engine, '3.8.7');
-    assert.equal(ComponentBlitScreenMaterial.binding(root, '3.8.3'), null);
+    assert.equal(ComponentBlitScreenMaterial.binding(root, '3.8.3')?.nativeType, 'cc.Material');
     assert.throws(() => ComponentBlitScreenMaterial.binding(root, '3.9.0'), /version_unverified/u);
     const audit = JSON.parse(readFileSync(new URL('./3.8.7/component-assembly-audit.json', import.meta.url), 'utf8'));
     const fields = ComponentFieldFixtures.create(root, '3.8.7', audit.nativeDeclarations);

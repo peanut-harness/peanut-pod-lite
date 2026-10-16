@@ -50,7 +50,8 @@ export class ComponentFieldFixtures {
                 const visit = (spec: ILumenPropertyFieldSpec, owner: string, selector: readonly string[]): void => {
                     const value = ComponentValueRecipeFactory.create(spec, owner, declarations, resources, context);
                     const descriptor = descriptorAt(selector);
-                    const versionGated = !publicSchema.listSupportedComponents().includes(componentType) || !descriptor;
+                    const versionGated = !declarations.some(declaration => declaration.type === componentType)
+                        || !publicSchema.listSupportedComponents().includes(componentType) || !descriptor;
                     cases.push({ id: `field:component:${componentType}:${selector.join(':')}`, selector: [...selector], kind: spec.kind,
                         rootValue, validValue: value, invalidValue: ComponentValueRecipeFactory.invalid(spec),
                         expectedWrite: versionGated ? 'reject-version-gate' : descriptor?.writable === false ? 'reject-native-persistence' : 'set-and-readback',

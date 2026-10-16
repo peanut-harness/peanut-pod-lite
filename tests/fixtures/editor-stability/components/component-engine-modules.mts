@@ -1,6 +1,7 @@
 import { existsSync, lstatSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
+import { ComponentEngineContext383 } from './component-engine-context-383.mts';
 
 /**
  * @description 任务隔离工程的有限模块上下文；不是MCP暴露档位。
@@ -12,13 +13,15 @@ export type ComponentEngineContext = 'sorting' | 'post-process' | 'character-phy
  */
 export class ComponentEngineModules {
     /**
-     * @description 仅在未启动的新3.8.7矩阵工程暂存官方UI导出的单项排序配置，3.8.3保持原样。
+     * @description 仅在未启动工程暂存单项上下文；3.8.3后处理/PhysX使用独立SDK来源与Profile格式。
      * @param project 新任务工程。
      * @param engine 精确内置SDK根。
      * @param version 已支持版本。
      * @param context 隔离工程的有限模块上下文。
      */
     public static stage(project: string, engine: string, version: string, context: ComponentEngineContext = 'sorting'): void {
+        if (version === '3.8.3' && context !== 'sorting')
+            return ComponentEngineContext383.stage(project, engine, this.projectSettings(project, true), context);
         if (!this.needsSorting(version, context)) return;
         if (existsSync(join(dirname(project), 'creator-owned-start.json'))) throw new Error('component_engine_modules_project_already_started');
         const sdk = realpathSync(engine); const source = join(sdk, 'cc.config.json');
@@ -62,6 +65,11 @@ export class ComponentEngineModules {
      * @param context 登记的有限模块上下文。
      */
     public static assertProject(project: string, version: string, context: ComponentEngineContext = 'sorting'): void {
+        if (version === '3.8.3' && context !== 'sorting') {
+            const settings = this.record(JSON.parse(readFileSync(this.projectSettings(project), 'utf8')));
+            ComponentEngineContext383.assert(settings.modules, context, 'modules');
+            ComponentEngineContext383.assert(settings.macroConfig, context, 'macros'); return;
+        }
         if (!this.needsSorting(version, context)) return;
         const settings = this.record(JSON.parse(readFileSync(this.projectSettings(project), 'utf8')));
         if (!isDeepStrictEqual(settings.modules, this.expected(context))) throw new Error('component_engine_modules_project_profile_mismatch');
@@ -75,6 +83,7 @@ export class ComponentEngineModules {
      * @param context 登记的有限模块上下文。
      */
     public static assertActive(value: unknown, version: string, context: ComponentEngineContext = 'sorting'): void {
+        if (version === '3.8.3' && context !== 'sorting') return ComponentEngineContext383.assert(value, context, 'modules');
         if (!this.needsSorting(version, context)) return;
         const modules = this.expected(context);
         const cache = this.record(this.record(this.record(modules.configs).defaultConfig).cache);
@@ -91,6 +100,7 @@ export class ComponentEngineModules {
      * @param context 登记上下文。
      */
     public static assertMacros(value: unknown, version: string, context: ComponentEngineContext = 'sorting'): void {
+        if (version === '3.8.3' && context !== 'sorting') return ComponentEngineContext383.assert(value, context, 'macros');
         if (!this.needsSorting(version, context)) return;
         const expected = { CUSTOM_PIPELINE_NAME: context === 'post-process' ? 'Forward' : 'Builtin' };
         if (!isDeepStrictEqual(value, expected)) throw new Error('component_engine_modules_macro_profile_mismatch');
@@ -103,6 +113,7 @@ export class ComponentEngineModules {
      * @param context 登记上下文。
      */
     public static assertActiveMacros(value: unknown, version: string, context: ComponentEngineContext = 'sorting'): void {
+        if (version === '3.8.3' && context !== 'sorting') return ComponentEngineContext383.assert(value, context, 'active-macros');
         if (!this.needsSorting(version, context)) return;
         const fixture = this.record(JSON.parse(readFileSync(new URL('./3.8.7/engine-macro-defaults.json', import.meta.url), 'utf8')));
         if (fixture.creatorVersion !== version) throw new Error('component_engine_macro_fixture_version_invalid');
@@ -130,8 +141,6 @@ export class ComponentEngineModules {
     private static needsSorting(version: string, context: ComponentEngineContext): boolean {
         this.context(context);
         if (!['3.8.3', '3.8.7'].includes(version)) throw new Error('component_engine_modules_version_unsupported');
-        if (context === 'post-process' && version !== '3.8.7') throw new Error('component_engine_modules_post_version_unverified');
-        if (context === 'character-physx' && version !== '3.8.7') throw new Error('component_engine_modules_physx_version_unverified');
         return version === '3.8.7';
     }
 

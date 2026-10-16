@@ -61,7 +61,6 @@ export class ComponentPresentationFixture {
      */
     public static create(engine: string, version: '3.8.3' | '3.8.7', row: ComponentRow, postProcessContext = false,
         skinnedContext: IComponentSkinnedContext | null = null) {
-        if (postProcessContext && version !== '3.8.7') throw new Error('component_presentation_post_version_unverified');
         const type = row.componentType; const req = row.assemblyRequirements;
         const container = type === 'cc.UIStaticBatch';
         const uiModel = type === 'cc.UIMeshRenderer';

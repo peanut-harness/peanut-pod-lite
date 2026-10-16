@@ -56,8 +56,6 @@ if (sdkStartupTimerCompat && (!sdkListenerCompat || version !== '3.8.7')) throw 
 if (sdkTimerTrace && (!sdkListenerCompat || version !== '3.8.7')) throw new Error('component_sdk_timer_trace_requires_compat_project');
 if (sdkListenerCompat && version !== '3.8.7') throw new Error('component_sdk_listener_version_unverified');
 ComponentCreatorDiagnostics.args(metricsDiagnostics, version);
-if (engineModulesContext === 'post-process' && version !== '3.8.7') throw new Error('component_native_post_version_unverified');
-if (engineModulesContext === 'character-physx' && version !== '3.8.7') throw new Error('component_native_physx_version_unverified');
 const resources = join(realpathSync(app), 'Contents/Resources');
 const engine = join(resources, 'resources/3d/engine');
 ComponentServiceProfile.assertSdk(root, resources, version);
@@ -65,7 +63,7 @@ if (engineModulesContext === 'post-process' && fixtureProfile !== 'component-mat
 if (engineModulesContext === 'character-physx' && fixtureProfile !== 'component-matrix') throw new Error('component_native_physx_requires_matrix');
 if (JSON.parse(readFileSync(join(engine, 'package.json'), 'utf8')).version !== version) throw new Error('component_native_sdk_version_mismatch');
 ComponentTerrainEffect.assertSdk(root, engine, version);
-if (fixtureProfile === 'component-matrix' && version === '3.8.7') ComponentBlitScreenMaterial.assertSdk(root, engine, version);
+if (fixtureProfile === 'component-matrix') ComponentBlitScreenMaterial.assertSdk(root, engine, version);
 const descriptor = verifyReleaseCandidate(join(root, 'release/peanut.pod-lite-0.2.0'), {
     expectedVersion: '0.2.0', expectedSourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
 });

@@ -184,3 +184,5 @@ ef97989实际首次两项SDK end成功后UI安装，runtimeMethods2；3.8.3真�
 10b39b2完整verify1264及154夹具通过；3.8.3服务实际迁移、19资源、预览均零配置/版本诊断，但新标准路径外部TSX实际仅以one-tile.tsx短名登记，XML完整相对名查找失败，首次scene-open门禁拦截Map-not-found及TiledTile tileset TypeError。零字段验收，仅正常关闭自有53513，终扫5错误0警告；已暂存3.8.7同输入未启动并记录拒绝。派生输入现改真实内嵌tileset，仅引用原checker图片，去掉不需要的TSX闭包/令牌资源；SDK图片有明确短名回退原文，未写SDK别名或缓存。Map-not-found普通日志也升级为错误门禁；产品源码不再变，输入与诊断工具重新回归后换新工程验证。
 
 3.8.3/3.8.7内嵌TMX新轮次均已通过原生字段及生命周期，退出后5类原始日志零诊断；`skinned-hierarchy-provenance.json`现在分别冻结两个精确SDK的实际glTF导入来源，六项SDK摘要独立核验。3.8.3来源采集自缓存报错会话，只证明导入字节；不得用于组件或整轮验收，新工程需独立重验。
+
+3.8.3 新增独立后处理/PhysX来源：`3.8.3/engine-context-provenance.json`固定实际 `Editor.Profile` 模块、宏、六项SDK摘要及engine manifest 1.0.9；`--post-process`选择该版注册名 `Custom`，`--character-physx`只切换已证明的物理选项，不增加3.8.7宏或sorting模块。两版Blit各自使用SDK专用全屏材质。上述新上下文仍须新工程实机验收。3.8.3缺失Sorting2D/UISkew的4字段配方标记版本拒绝，目录分母仍99/795。`remaining-default-383-20261016`有51/365字段局部通过，但退出guest-view错误使整轮验收为false；禁止把退出码0或局部报告当整轮零诊断。

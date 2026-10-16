@@ -155,7 +155,7 @@ test('unproven post-process versions, missing SDK dependencies and undeclared co
     const f = create();
     try {
         const before = readFileSync(f.path);
-        assert.throws(() => ComponentEngineModules.stage(f.project, f.engine, '3.8.3', 'post-process'), /post_version_unverified/);
+        assert.throws(() => ComponentEngineModules.stage(f.project, f.engine, '3.8.3', 'post-process'), /engine_383_sdk_source_mismatch/);
         f.config.features['custom-pipeline-post-process'].dependentModules = [];
         writeFileSync(join(f.engine, 'cc.config.json'), JSON.stringify(f.config));
         assert.throws(() => ComponentEngineModules.stage(f.project, f.engine, '3.8.7', 'post-process'), /post_sdk_contract_invalid/);
@@ -209,7 +209,7 @@ test('PhysX context rejects unverified versions and missing SDK prerequisites wi
     const f = create();
     try {
         const before = readFileSync(f.path);
-        assert.throws(() => ComponentEngineModules.stage(f.project, f.engine, '3.8.3', 'character-physx'), /physx_version_unverified/u);
+        assert.throws(() => ComponentEngineModules.stage(f.project, f.engine, '3.8.3', 'character-physx'), /engine_383_sdk_source_mismatch/u);
         assert.throws(() => ComponentEngineModules.stage(f.project, f.engine, '3.8.7', 'character-physx'), /physx_sdk_contract_invalid/u);
         assert.deepEqual(readFileSync(f.path), before);
     } finally { rmSync(f.root, { recursive: true, force: true }); }

@@ -9,7 +9,7 @@ import { LumenDeepClone } from './deep-clone';
  */
 export class LumenNativeComponentBinding {
     /**
-     * @description 拒绝两版实机已证明由TMX重建的移除，以及SDK内部用户登记组件的手工生命周期。
+     * @description 按精确SDK拒绝缺失类挂载、TMX重建层移除及内部用户登记组件的手工生命周期。
      * @param document 当前内存文档。
      * @param nodePath 实际目标节点。
      * @param componentType 公开内置类型。
@@ -18,7 +18,10 @@ export class LumenNativeComponentBinding {
      */
     public static assertLifecycle(document: LumenPrefabDocument, nodePath: string, componentType: string,
         schema: LumenComponentPropertySchema, operation: 'attach' | 'remove'): void {
-        if (!['3.8.3', '3.8.7'].includes(schema.version.toString())) return;
+        const version = schema.version.toString();
+        if (operation === 'attach' && version === '3.8.3' && ['cc.Sorting2D', 'cc.UISkew'].includes(componentType))
+            throw new Error(`lumen_component_not_supported:${componentType}:cocos=${version}:reason=native_declaration_absent`);
+        if (!['3.8.3', '3.8.7'].includes(version)) return;
         if (componentType === 'cc.TiledUserNodeData') throw new Error(`lumen_component_source_owned:${componentType}:TiledLayer.addUserNode`);
         if (operation !== 'remove' || !['cc.TiledLayer', 'cc.TiledObjectGroup'].includes(componentType)) return;
         const node = document.entries[document.findNodeIndex(nodePath)];

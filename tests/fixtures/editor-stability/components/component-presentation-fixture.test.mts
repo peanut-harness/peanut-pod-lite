@@ -84,7 +84,7 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
             const pending = ComponentPresentationFixture.create(scratch, version, postProcess);
             assert.equal(pending.status, 'presentation-context-pending'); assert.equal('document' in pending, false);
             assert(pending.reasons.includes('presentation-active-pipeline-and-effect-context-required'));
-            if (version === '3.8.7') {
+            {
                 // 此处只核对候选条目图；实际同版3D模板、有效管线和画面须另外验证。
                 cpSync(join(assets, 'default_file_content/scene/scene-2d.scene'), join(assets, 'default_file_content/scene/default.scene'));
                 const rows = fixtures.components.filter(row => row.assemblyRequirements.highQualityRenderPipeline);
@@ -101,8 +101,6 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
                     result.document.findComponentIndex(node, row.componentType);
                     assert.equal(result.nativePassed, false); assert.equal(result.rendered, false);
                 }
-            } else {
-                assert.throws(() => ComponentPresentationFixture.create(scratch, version, postProcess, true), /post_version_unverified/);
             }
         } finally { rmSync(scratch, { recursive: true, force: true }); }
     });

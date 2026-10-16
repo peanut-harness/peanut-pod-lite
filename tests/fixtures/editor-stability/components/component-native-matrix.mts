@@ -179,7 +179,7 @@ class ComponentNativeMatrix {
         if (req.physicsBackend === 'physx' && p3 !== 'PhysXWorld') errors.push('actual-physx-backend-missing');
         if (req.highQualityRenderPipeline === true && (this.client.registration.engineModulesContext !== 'post-process'
             || this.backend.usesCustomPipeline !== true || this.backend.postProcessBuilderConstructor !== 'PostProcessBuilder'
-            || this.backend.customPipelineName !== 'Forward'))
+            || this.backend.customPipelineName !== (this.client.registration.creatorVersion === '3.8.3' ? 'Custom' : 'Forward')))
             errors.push('high-quality-render-pipeline-not-yet-proven');
         return errors;
     }

@@ -22,7 +22,9 @@ test('window inspection selects exactly the current SDK main window and refuses 
             calls++; assert.equal(source, ComponentSdkWindowDiagnostics.rendererSource()); assert.equal(userGesture, false); return { complete: true };
         } };
     const electron = { BrowserWindow: { getAllWindows: () => [{ webContents: contents }] } };
-    assert.deepEqual(await ComponentSdkWindowDiagnostics.read(electron, app, '3.8.7'), { webContentsId: 3, observation: { complete: true } });
+    assert.deepEqual(await ComponentSdkWindowDiagnostics.read(electron, app, '3.8.7'), { webContentsId: 3, guestViewHandlers: [
+        { channel: 'GUEST_VIEW_MANAGER_CALL', present: false, source: null },
+        { channel: 'GUEST_VIEW_MANAGER_SYNC_CALL', present: false, source: null }], observation: { complete: true } });
     await ComponentSdkWindowDiagnostics.read(electron, app, '3.8.3');
     await assert.rejects(ComponentSdkWindowDiagnostics.read(electron, app, '3.9.0'), /version_unverified/u);
     await assert.rejects(ComponentSdkWindowDiagnostics.read(electron, app + '-other', '3.8.7'), /identity_invalid/u);

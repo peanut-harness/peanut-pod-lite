@@ -8,7 +8,19 @@ export class ComponentSdkWindowDiagnostics {
     public static async read(electron: any, creatorApp: string, version: string): Promise<unknown> {
         const contents = this.mainContents(electron, creatorApp, version);
         if (!contents) throw new Error('component_sdk_window_diagnostics_main_window_identity_invalid');
-        return { webContentsId: contents.id, observation: await contents.executeJavaScript(this.rendererSource(), false) };
+        return { webContentsId: contents.id, guestViewHandlers: this.guestViewHandlers(electron), observation: await contents.executeJavaScript(this.rendererSource(), false) };
+    }
+
+    /**
+     * @description 只读当前进程两个固定Electron guest IPC处理函数的源码与类型，不调用或替换处理器。
+     */
+    private static guestViewHandlers(electron: any): unknown {
+        const handlers = Object.getOwnPropertyDescriptor(electron.ipcMain ?? {}, '_invokeHandlers')?.value;
+        return ['GUEST_VIEW_MANAGER_CALL', 'GUEST_VIEW_MANAGER_SYNC_CALL'].map(channel => {
+            const handler = handlers instanceof Map ? handlers.get(channel) : undefined;
+            return { channel, present: typeof handler === 'function',
+                source: typeof handler === 'function' ? Function.prototype.toString.call(handler).slice(0, 65536) : null };
+        });
     }
 
     /**
@@ -39,7 +51,7 @@ export class ComponentSdkWindowDiagnostics {
             '/app.asar/builtin/scene/dist/panel/message/',
             '/app.asar/node_modules/@editor/creator/dist/message/',
             '/app.asar/node_modules/@editor/creator/dist/layout/', '/app.asar/node_modules/@editor/creator/dist/startup/',
-            '/app.asar/node_modules/@editor/creator/dist/windows/', '/app.asar/node_modules/@editor/creator/dist/panel/',
+            '/app.asar/node_modules/@editor/creator/dist/windows/', '/app.asar/node_modules/@editor/creator/dist/panel/', '/app.asar/node_modules/@editor/creator/dist/app/',
             '/app.asar/node_modules/@editor/dock/lib/renderer/',
             '/app.asar/node_modules/@editor/panel/lib/',
             '/app.asar/modules/editor-extensions/extensions/hierarchy/dist/'];
@@ -49,7 +61,7 @@ export class ComponentSdkWindowDiagnostics {
             if (seen.size >= 2048) { complete = false; return; } seen.add(value);
             if (typeof value === 'function') {
                 const source = Function.prototype.toString.call(value);
-                if (/main-window:ready|hierarchy:render-tree/u.test(source) || path.startsWith('node_modules/@editor/panel/lib/')
+                if (/main-window:ready|hierarchy:render-tree/u.test(source) || path.startsWith('node_modules/@editor/panel/lib/') || path.startsWith('node_modules/@editor/creator/dist/app/')
                     || /\/(?:__eb__|addBroadcastListener|removeBroadcastListener)$/u.test(path)
                     || /hierarchy\/dist\/panel\.ccc\/(?:ready|close|beforeClose)$/u.test(path)
                     || (/hierarchy\/dist\/panel\.ccc\/listeners\//u.test(path) && /methods\.ready|scene:ready|query-is-ready/u.test(source))) {
