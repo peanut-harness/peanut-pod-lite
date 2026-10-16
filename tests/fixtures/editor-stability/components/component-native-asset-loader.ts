@@ -1,3 +1,5 @@
+import { ComponentNativeCubeContext } from './component-native-cube-context';
+
 /**
  * @description 粒子根资产通过不等于纹理闭包通过；先核对AssetDB，再真实加载依赖。
  */
@@ -54,12 +56,23 @@ export class ComponentNativeAssetLoader {
      */
     public static async load(uuid: string, dependencies: readonly string[], port: {
         load: (uuid: string) => Promise<any>; valid: (asset: any) => boolean; type: (asset: any) => string;
+        requireCubeFaces?: boolean;
     }) {
         const describe = (asset: any, expected: string) => {
             if (!asset || !port.valid(asset) || asset._uuid !== expected) throw new Error('component_native_asset_invalid');
             return { uuid: expected, actualUuid: asset._uuid as string, type: port.type(asset), valid: true };
         };
         const asset = await port.load(uuid); const root = describe(asset, uuid);
+        if (root.type === 'cc.TextureCube' && port.requireCubeFaces === true) {
+            if (dependencies.length) throw new Error('component_native_unexpected_asset_dependencies');
+            const cube = ComponentNativeCubeContext.read(asset, image => {
+                if (!image || typeof image !== 'object') throw new Error('component_native_cube_face_missing');
+                const id = Reflect.get(image, '_uuid');
+                if (typeof id !== 'string' || !id) throw new Error('component_native_cube_image_identity_missing');
+                return describe(image, id);
+            });
+            return { ...root, dependencies: [], cube };
+        }
         if (root.type !== 'cc.ParticleAsset') {
             if (dependencies.length) throw new Error('component_native_unexpected_asset_dependencies');
             return { ...root, dependencies: [] };

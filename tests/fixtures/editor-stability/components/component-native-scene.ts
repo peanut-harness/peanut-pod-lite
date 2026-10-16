@@ -10,12 +10,12 @@ class ComponentNativeScene {
     /**
      * @description 从真正的 assetManager 加载 AssetDB 已登记资源并读回原生类型。
      */
-    public static async loadAsset(uuid: string, dependencies: readonly string[]): Promise<unknown> {
+    public static async loadAsset(uuid: string, dependencies: readonly string[], requireCubeFaces = false): Promise<unknown> {
         const cc = require('cc');
         return ComponentNativeAssetLoader.load(uuid, dependencies, {
             load: (id) => new Promise((resolve, reject) => {
                 cc.assetManager.loadAny(id, (error: Error | null, value: unknown) => error ? reject(error) : resolve(value));
-            }), valid: asset => cc.isValid(asset), type: asset => cc.js.getClassName(asset),
+            }), valid: asset => cc.isValid(asset), type: asset => cc.js.getClassName(asset), requireCubeFaces,
         });
     }
 

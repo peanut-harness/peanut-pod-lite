@@ -29,6 +29,7 @@ test('typed Node warnings and SDK timing failures cannot disappear outside proje
     for (const [name, message, key] of [
         ['stdout.log', '[Scene] cc.TiledMap.initWithXML(): Map not found. Please check the filename.\n', 'newErrorCount'],
         ['stdout.log', '[Scene] cocos2d: TMXFormat: Unsupported TMX version: 1.10\n', 'newWarningCount'],
+        ['stderr.log', '[Assets] the importer version need to upgrade.\n', 'newWarningCount'],
         ['stderr.log', '(node:1) MaxListenersExceededWarning: 11 add listeners\n', 'newWarningCount'],
         ['stdout.log', 'trackTimeEnd failed! Can not find the track time start\n', 'newErrorCount'],
         ['launcher-stderr.log', 'Warning: launch diagnostic\n', 'newWarningCount'],

@@ -1,3 +1,4 @@
+import { ComponentDefaultCube383 } from './component-default-cube-383.mts';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -134,6 +135,8 @@ class ComponentNativeMatrix {
             creatorVersion: this.string(this.client.registration.creatorVersion), pid: health.pid,
             types: Object.keys(this.client.record(resources.bindings)),
         });
+        if (this.client.registration.sdkDefaultCube === true) ComponentDefaultCube383.assertLoaded(this.client.root,
+            JSON.parse(readFileSync(join(this.client.output, 'native-resource-loads.json'), 'utf8')));
         const rawAssets = await this.client.probe('assets'); this.assets = this.records(rawAssets);
         this.projectUrls = await this.client.fixtureUrls();
         try {

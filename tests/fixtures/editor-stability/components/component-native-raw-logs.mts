@@ -77,7 +77,7 @@ export class ComponentNativeRawLogs {
                         || /\b(?:TypeError|ReferenceError|SyntaxError|RangeError|AssertionError)\b/u.test(line)
                         || /\bcc\.TiledMap\.initWithXML\(\):\s*Map not found\b/u.test(line)) errors.push(line);
                     else if (/\bwarn(?:ing)?\b/iu.test(line) || /\b[A-Za-z][A-Za-z0-9]*Warning\b/u.test(line)
-                        || /\bTMXFormat:\s*Unsupported TMX version\b/iu.test(line)) warnings.push(line);
+                        || /\bTMXFormat:\s*Unsupported TMX version\b|\bthe importer version need to upgrade\b/iu.test(line)) warnings.push(line);
                 }
             }
             result.sources.push({ path: checkpoint.path, offset: checkpoint.offset, end: bytes.length,

@@ -194,11 +194,15 @@ export class ComponentNativeClient {
      * @description 只读真实原生观测入口，每次重新读取描述符。
      * @param action 固定窄观测动作。
      * @param input 有界只读参数。
+     * @param observe 可选保存原始响应的只读诊断回执；执行于后验前，后验失败仍抛错。
      * @returns 原始result。
      */
-    public async probe(action: string, input: Record<string, unknown> = {}): Promise<unknown> {
-        const execute = (): Promise<unknown> => this.request('component-probe.json', '/probe', 'x-component-token', { action, ...input });
-        if (!['component-fields', 'scene-snapshot', 'scene-readiness', 'sdk-metrics-diagnostics', 'sdk-window-timer-diagnostics', 'sdk-ui-ready-compat-status', 'sdk-lifecycle-diagnostics', 'sdk-listener-compat-status', 'sdk-scene-cache-diagnostics', 'sdk-scene-cache-compat-status', 'sdk-window-ready-sources', 'sdk-cube-importer-contract', 'load-asset', 'assets'].includes(action)) { return execute(); }
+    public async probe(action: string, input: Record<string, unknown> = {}, observe?: (value: unknown) => void): Promise<unknown> {
+        const execute = async (): Promise<unknown> => {
+            const value = await this.request('component-probe.json', '/probe', 'x-component-token', { action, ...input });
+            observe?.(value); return value;
+        };
+        if (!['component-fields', 'scene-snapshot', 'scene-readiness', 'sdk-metrics-diagnostics', 'sdk-window-timer-diagnostics', 'sdk-ui-ready-compat-status', 'sdk-lifecycle-diagnostics', 'sdk-listener-compat-status', 'sdk-scene-cache-diagnostics', 'sdk-scene-cache-compat-status', 'sdk-window-ready-sources', 'load-asset', 'assets'].includes(action)) { return execute(); }
         return ComponentNativeLogGuard.run(this.project, action, execute, event => { this.events.push(event); this.save(); });
     }
 

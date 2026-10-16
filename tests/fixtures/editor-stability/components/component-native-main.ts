@@ -92,12 +92,6 @@ class ComponentNativeMain {
         const editor = Reflect.get(globalThis, 'Editor');
         if (typeof editor?.Message?.request !== 'function') throw new Error('component_native_message_api_missing');
         const request = editor.Message.request.bind(editor.Message);
-        if (body.action === 'sdk-cube-importer-contract') {
-            if (this.registration.sdkSceneCacheCompat !== true || editor.App.version !== '3.8.3')
-                throw new Error('component_cube_importer_sources_not_registered');
-            return { creatorVersion: editor.App.version, importers: await request('asset-db', 'query-all-importer'),
-                createList: await request('asset-db', 'query-create-list') };
-        }
         if (body.action === 'sdk-window-ready-sources') {
             if (this.registration.sdkSceneCacheCompat !== true || editor.App.version !== '3.8.3' || !process.versions.electron)
                 throw new Error('component_sdk_window_ready_sources_not_registered');
@@ -191,7 +185,7 @@ class ComponentNativeMain {
             const dependencies = await ComponentNativeAssetLoader.dependencies(info,
                 (message, uuid) => request('asset-db', message, uuid));
             return { info, native: await request('scene', 'execute-scene-script', {
-                name: 'peanut-component-probe', method: 'loadAsset', args: [body.uuid, dependencies],
+                name: 'peanut-component-probe', method: 'loadAsset', args: [body.uuid, dependencies, this.registration.sdkDefaultCube === true && info.type === 'cc.TextureCube'],
             }) };
         }
         if (body.action === 'scene-snapshot') return request('scene', 'execute-scene-script', {

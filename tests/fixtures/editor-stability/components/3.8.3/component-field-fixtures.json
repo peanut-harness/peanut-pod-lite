@@ -29,18 +29,14 @@
     },
     "cc.TextureCube": {
       "nativeType": "cc.TextureCube",
-      "fixtureReference": "tests/fixtures/editor-stability/media/supplemental-catalog.json#versions/3.8.3/inputs/cubeMap",
+      "fixtureReference": "tests/fixtures/editor-stability/components/3.8.3/default-cube-provenance.json",
       "sources": [
         {
-          "path": "tests/fixtures/editor-stability/media/supplemental/3.8.3/cube-source.hdr.meta",
-          "sha256": "74547d4a453a5120160d94a0c2ff9e2cd29f9b5bfaef53aa9fd86cde40c44056"
-        },
-        {
-          "path": "tests/fixtures/editor-stability/media/supplemental/hdr/equirect.hdr",
-          "sha256": "3dc783521c9c305635f0cf47024bbcf495a2d82e924a027582a3e10340658294"
+          "path": "tests/fixtures/editor-stability/components/3.8.3/default-cube/cubemap.cubemap",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         }
       ],
-      "selector": "image importer type=texture cube; ERP texture-cube subasset; exact installed source meta is frozen; rebind UUID only after AssetDB import"
+      "selector": "3.8.3 SDK native .cubemap root; six distinct actual default ImageAssets and GPU cube required"
     },
     "cc.Mesh": {
       "nativeType": "cc.Mesh",
@@ -23851,36 +23847,28 @@
             "form": "resource",
             "resource": {
               "nativeType": "cc.TextureCube",
-              "fixtureReference": "tests/fixtures/editor-stability/media/supplemental-catalog.json#versions/3.8.3/inputs/cubeMap",
+              "fixtureReference": "tests/fixtures/editor-stability/components/3.8.3/default-cube-provenance.json",
               "sources": [
                 {
-                  "path": "tests/fixtures/editor-stability/media/supplemental/3.8.3/cube-source.hdr.meta",
-                  "sha256": "74547d4a453a5120160d94a0c2ff9e2cd29f9b5bfaef53aa9fd86cde40c44056"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/media/supplemental/hdr/equirect.hdr",
-                  "sha256": "3dc783521c9c305635f0cf47024bbcf495a2d82e924a027582a3e10340658294"
+                  "path": "tests/fixtures/editor-stability/components/3.8.3/default-cube/cubemap.cubemap",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
                 }
               ],
-              "selector": "image importer type=texture cube; ERP texture-cube subasset; exact installed source meta is frozen; rebind UUID only after AssetDB import"
+              "selector": "3.8.3 SDK native .cubemap root; six distinct actual default ImageAssets and GPU cube required"
             }
           },
           "validValue": {
             "form": "resource",
             "resource": {
               "nativeType": "cc.TextureCube",
-              "fixtureReference": "tests/fixtures/editor-stability/media/supplemental-catalog.json#versions/3.8.3/inputs/cubeMap",
+              "fixtureReference": "tests/fixtures/editor-stability/components/3.8.3/default-cube-provenance.json",
               "sources": [
                 {
-                  "path": "tests/fixtures/editor-stability/media/supplemental/3.8.3/cube-source.hdr.meta",
-                  "sha256": "74547d4a453a5120160d94a0c2ff9e2cd29f9b5bfaef53aa9fd86cde40c44056"
-                },
-                {
-                  "path": "tests/fixtures/editor-stability/media/supplemental/hdr/equirect.hdr",
-                  "sha256": "3dc783521c9c305635f0cf47024bbcf495a2d82e924a027582a3e10340658294"
+                  "path": "tests/fixtures/editor-stability/components/3.8.3/default-cube/cubemap.cubemap",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
                 }
               ],
-              "selector": "image importer type=texture cube; ERP texture-cube subasset; exact installed source meta is frozen; rebind UUID only after AssetDB import"
+              "selector": "3.8.3 SDK native .cubemap root; six distinct actual default ImageAssets and GPU cube required"
             }
           },
           "invalidValue": {
