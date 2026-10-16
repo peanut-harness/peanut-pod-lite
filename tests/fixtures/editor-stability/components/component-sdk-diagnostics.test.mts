@@ -80,3 +80,18 @@ test('current facade source uses only the exact observed pure SDK query and refu
     const changed: any = ComponentSdkDiagnostics.lifecycle({ SceneFacadeManager: facade });
     assert.equal(changed.currentFacade.onSceneOpened, null); assert.equal(mutations, 0);
 });
+
+test('actual facade dispatch registry observation never invokes hooks or reads unrelated listener state', () => {
+    let mutations = 0; const listener = { onSceneOpened: () => { mutations++; } };
+    Object.defineProperty(listener, 'privateAccount', { get: () => { throw Error('unrelated listener state read'); } });
+    const state = { _sceneEventListener: [listener], dispatchEvents(t: string, ...r: any[]) {
+        this._sceneEventListener.forEach((e: any) => { e && e[t] && e[t].apply(e, r); });
+    } };
+    const facade = { _facadeFSM: { currentState: state }, getCurrentFacade() { return this._facadeFSM.currentState; } };
+    const result: any = ComponentSdkDiagnostics.lifecycle({ SceneFacadeManager: facade });
+    assert.equal(result.facadeEventListeners.length, 1);
+    assert.equal(result.facadeEventListeners[0].hooks.onSceneOpened, listener.onSceneOpened.toString()); assert.equal(mutations, 0);
+    state.dispatchEvents = () => { mutations++; };
+    assert.deepEqual((ComponentSdkDiagnostics.lifecycle({ SceneFacadeManager: facade }) as any).facadeEventListeners, []);
+    assert.equal(mutations, 0);
+});

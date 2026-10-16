@@ -146,13 +146,29 @@ export class ComponentSdkDiagnostics {
             ? query.call(facade) : null;
         return { component: this.sources(cce?.Component, ['init', 'registerCompMgrEvents', 'unregisterCompMgrEvents', 'clear']),
             node: this.sources(cce?.Node, ['initWithScene', 'onSceneOpened', 'onSceneClosed', 'clear', 'registerNodeMgrEvents', 'unregisterNodeMgrEvents']),
-            facade: this.sources(cce?.SceneFacadeManager, ['openScene', 'closeScene', 'onSceneOpened', 'getCurrentFacade']),
+            facade: this.sources(cce?.SceneFacadeManager, ['openScene', 'closeScene', 'onSceneOpened', 'getCurrentFacade', 'init', 'initManager', 'initEventListener']),
             currentFacade: this.sources(current, ['onSceneOpened', 'onSceneClosed', 'openScene', 'changeScene', 'closeScene', 'reloadScene', 'load']),
             managerHooks: Object.fromEntries(['Animation', 'Asset', 'Camera', 'Engine', 'Gizmo', 'Node', 'Prefab', 'Scene', 'Component', 'Terrain', 'Preview', 'Plugin']
                 .map(name => [name, this.sources(cce?.[name], ['onSceneOpened', 'onSceneClosed', 'init'])])),
             facadeDispatch: this.sources(current, ['dispatchEvents']),
+            facadeRegistration: this.sources(current, ['init', 'initEventListener']),
+            facadeEventListeners: this.facadeListeners(current),
             startup: this.sources(cce?.Startup, ['requireEngine', 'configEngine', 'openEngine', 'initManager']),
             preview: this.sources(cce?.EditorPreview, ['init', 'initialize', 'open', 'onSceneReady', 'onSceneOpened']) };
+    }
+
+    /**
+     * @description 仅在实际SDK分发器原文一致时读取其注册表的固定生命周期回调，不派发事件或导出其它状态。
+     */
+    private static facadeListeners(current: any): unknown[] {
+        if (typeof current?.dispatchEvents !== 'function' || Function.prototype.toString.call(current.dispatchEvents)
+            !== 'dispatchEvents(t,...r){this._sceneEventListener.forEach(e=>{e&&e[t]&&e[t].apply(e,r)})}') return [];
+        const listeners = Object.getOwnPropertyDescriptor(current, '_sceneEventListener')?.value;
+        if (!Array.isArray(listeners)) return [];
+        if (listeners.length > 128) throw new Error('component_sdk_facade_listener_sources_over_budget');
+        return listeners.map((listener, index) => ({ index,
+            hooks: this.sources(listener, ['onSceneOpened', 'onSceneClosed', 'onSceneReload']),
+            prototypeHooks: this.sources(listener ? Object.getPrototypeOf(listener) : null, ['onSceneOpened', 'onSceneClosed', 'onSceneReload']) }));
     }
 
     /**
