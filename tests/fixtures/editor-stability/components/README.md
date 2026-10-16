@@ -56,6 +56,8 @@ SDK诊断续查仅增加两个固定只读动作：`sdk-metrics-diagnostics`读�
 
 另可显式启用`--sdk-timer-trace`，仅允许上述新登记3.8.7兼容工程。独立扩展透明包裹SDK唯一计时Map实例的set/has/get/delete/clear，原样返回API结果，记录真实输入、结果和调用栈；不补造start、不修改时间值、不捕获原API异常、不过滤日志，卸载恢复自己安装的方法。该观测与SDK方法/IPC只读探针分开，所有原始失败继续阻止整轮通过。
 
+显式`--sdk-startup-timer-compat`要求同版监听器兼容工程，仅在实际SDK资产工作进程修复冷启动`_preStartDB`遗漏的worker-startup计时start；原始SDK`_startupDB`的end、动态`_startDB`路径和日志不变。安装前核验3.8.7、3个数据库方法及Metrics公开start的实机原文摘要；在真实数据库开始工作前调用一次SDK start，不合成时间、不重放启动、不缓存或抑制end。独立worker回执记录真实调用与PID，health必须确认internal/assets实际覆盖。`sdk-startup-timer-source.json`冻结实际SDK原方法；离线原SDK重放复现缺start，修复对照验证真实工作前start与原end配对、未知源码写前拒绝。工作进程只读观测仅取函数文本，renderer的缓存API是抛错桩，禁止调用。新修复尚待clean候选完整验证和实机，5.1未完成。
+
 在输出的 `project/` 内运行 `npm --ignore-scripts=false run creator`，保留 precreator/creator/postcreator。macOS统一使用 `open -na` 的应用启动入口，捕获应用stdout/stderr并记录实际Creator PID；同工程已有进程时拒绝重复启动。`open -W` 仅有启动器退出状态，不能据此宣称 Creator 的退出码为 0。本工程已有实例时拒绝重启，交回会话附着流程。所有二进制 stdout/stderr 和 project.log 完整保留。
 
 `component-native-read.mts --project <隔离工程>` 每次重读私有描述符并核对 PID、启动时间、工程路径和 owner，分别等待 Host 注册和 AssetDB 导入，再按声明源核对资源的实际 UUID、类型和有效性。运行于场景进程的探针只提供资源加载、场景快照和后端观测，没有场景打开或任意消息执行入口。资源加载成功仍不等于组件字段写入、引用绑定、保存重开或零日志通过，`nativePassedRows` 保持 0。

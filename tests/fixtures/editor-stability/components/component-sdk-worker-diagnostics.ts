@@ -5,7 +5,7 @@ import { ComponentSdkDiagnostics } from './component-sdk-diagnostics';
 /**
  * @description 仅在显式登记的计时诊断工程观察SDK资产工作进程，不变更数据库、计时事件或原始日志。
  */
-class ComponentSdkWorkerDiagnostics {
+export class ComponentSdkWorkerDiagnostics {
     /**
      * @description 由SDK实际全局生命周期钩子触发固定函数源码和真实计时缓存的只读快照。
      */

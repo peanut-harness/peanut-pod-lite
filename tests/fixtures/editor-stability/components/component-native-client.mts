@@ -81,6 +81,14 @@ export class ComponentNativeClient {
                             || compatibility.maximum !== 10) throw new Error('component_sdk_listener_compat_unverified');
                         this.events.push({ step: 'sdk-listener-compat-observed', result: compatibility }); this.save();
                     }
+                    if (this.registration.sdkStartupTimerCompat === true) {
+                        const compatibility = JSON.parse(readFileSync(join(this.output, 'sdk-startup-timer-compat-state.json'), 'utf8'));
+                        if (compatibility.installed !== true || compatibility.creatorVersion !== this.registration.creatorVersion
+                            || !Number.isSafeInteger(compatibility.workerPid) || !Array.isArray(compatibility.starts)
+                            || !['internal', 'assets'].every(name => compatibility.starts.some((item: any) => item.database === name)))
+                            throw new Error('component_sdk_startup_timer_compat_unverified');
+                        this.events.push({ step: 'sdk-startup-timer-compat-observed', result: compatibility }); this.save();
+                    }
                     ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(this.registration.creatorVersion));
                     if (existsSync(join(this.output, 'component-matrix-staging.json'))) {
                         this.events.push({ step: 'health-engine-modules-observed', creatorVersion: health.creatorVersion,

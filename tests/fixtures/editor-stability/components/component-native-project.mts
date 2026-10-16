@@ -38,6 +38,8 @@ if (version !== '3.8.3' && version !== '3.8.7') throw new Error('component_nativ
 const metricsDiagnostics = args.includes('--metrics-diagnostics');
 const sdkListenerCompat = args.includes('--sdk-listener-compat');
 const sdkTimerTrace = args.includes('--sdk-timer-trace');
+const sdkStartupTimerCompat = args.includes('--sdk-startup-timer-compat');
+if (sdkStartupTimerCompat && (!sdkListenerCompat || version !== '3.8.7')) throw new Error('component_sdk_startup_timer_requires_compat_project');
 if (sdkTimerTrace && (!sdkListenerCompat || version !== '3.8.7')) throw new Error('component_sdk_timer_trace_requires_compat_project');
 if (sdkListenerCompat && version !== '3.8.7') throw new Error('component_sdk_listener_version_unverified');
 ComponentCreatorDiagnostics.args(metricsDiagnostics, version);
@@ -67,7 +69,7 @@ mkdirSync(join(project, 'node_modules'), { recursive: true });
 cpSync(join(engine, 'node_modules/tslib'), join(project, 'node_modules/tslib'), { recursive: true });
 const registration = { kind: 'worktree-local-validation-project', task: '5.1',
     owner, change: 'stabilize-editor-operations-and-bulk-file-io',
-    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics, sdkListenerCompat, sdkTimerTrace,
+    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics, sdkListenerCompat, sdkTimerTrace, sdkStartupTimerCompat,
     candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
     registeredAt: new Date().toISOString(), userAuthorization: '推进5.1真实导入、后端确认和原生加载验证；按Hub操作Cocos，只关闭自己实例' };
 writeFileSync(join(output, 'project-ownership.json'), JSON.stringify(registration, null, 2) + '\n');
@@ -85,13 +87,13 @@ if (sdkListenerCompat) {
     const compat = join(project, 'extensions/peanut-component-sdk-compat'); mkdirSync(compat);
     writeFileSync(join(compat, 'package.json'), JSON.stringify({ package_version: 2, name: 'peanut-component-sdk-compat', version: '0.1.0',
         main: './main.js', contributions: { scene: { script: './scene.js' },
-            ...(sdkTimerTrace ? { 'asset-db': { script: './worker.js', 'global-hook': ['afterInit', 'beforePreStart', 'beforeReady'] } } : {}) } }, null, 2) + '\n', { flag: 'wx' });
+            ...(sdkTimerTrace || sdkStartupTimerCompat ? { 'asset-db': { script: './worker.js', 'global-hook': ['afterInit', 'beforePreStart', 'beforeReady'] } } : {}) } }, null, 2) + '\n', { flag: 'wx' });
     writeFileSync(join(compat, 'main.js'), 'exports.load = function () {}; exports.unload = function () {};\n', { flag: 'wx' });
     buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-listener-scene.ts', import.meta.url))], outfile: join(compat, 'scene.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14', external: ['cc'] });
     if (sdkTimerTrace) buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-timer-trace-main.ts', import.meta.url))], outfile: join(compat, 'main.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14' });
-    if (sdkTimerTrace) buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-worker-diagnostics.ts', import.meta.url))], outfile: join(compat, 'worker.js'),
+    if (sdkTimerTrace || sdkStartupTimerCompat) buildSync({ entryPoints: [fileURLToPath(new URL(sdkStartupTimerCompat ? './component-sdk-startup-timer-worker.ts' : './component-sdk-worker-diagnostics.ts', import.meta.url))], outfile: join(compat, 'worker.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14' });
 }
 const allBindings = ComponentResourceBindings.create(root, version);
