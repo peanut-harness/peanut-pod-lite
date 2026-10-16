@@ -141,9 +141,13 @@ export class ComponentSdkDiagnostics {
      * @description 固定读取SDK已装载生命周期方法的函数文本，既不执行文本也不更改监听器。
      */
     public static lifecycle(cce: any): unknown {
+        const facade = cce?.SceneFacadeManager; const query = facade?.getCurrentFacade;
+        const current = typeof query === 'function' && Function.prototype.toString.call(query) === 'getCurrentFacade(){return this._facadeFSM.currentState}'
+            ? query.call(facade) : null;
         return { component: this.sources(cce?.Component, ['init', 'registerCompMgrEvents', 'unregisterCompMgrEvents', 'clear']),
             node: this.sources(cce?.Node, ['initWithScene', 'onSceneOpened', 'onSceneClosed', 'clear', 'registerNodeMgrEvents', 'unregisterNodeMgrEvents']),
             facade: this.sources(cce?.SceneFacadeManager, ['openScene', 'closeScene', 'onSceneOpened', 'getCurrentFacade']),
+            currentFacade: this.sources(current, ['onSceneOpened', 'onSceneClosed', 'openScene', 'changeScene', 'closeScene', 'reloadScene', 'load']),
             startup: this.sources(cce?.Startup, ['requireEngine', 'configEngine', 'openEngine', 'initManager']),
             preview: this.sources(cce?.EditorPreview, ['init', 'initialize', 'open', 'onSceneReady', 'onSceneOpened']) };
     }

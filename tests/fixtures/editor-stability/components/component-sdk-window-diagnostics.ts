@@ -29,14 +29,18 @@ export class ComponentSdkWindowDiagnostics {
     private static snapshot(): unknown {
         const targets = ['/app.asar/node_modules/@editor/creator/static/windows/script/',
             '/app.asar/node_modules/@editor/creator/dist/message/',
+            '/app.asar/node_modules/@editor/creator/dist/layout/', '/app.asar/node_modules/@editor/creator/dist/startup/',
+            '/app.asar/node_modules/@editor/creator/dist/windows/', '/app.asar/node_modules/@editor/creator/dist/panel/',
+            '/app.asar/node_modules/@editor/dock/lib/renderer/',
             '/app.asar/modules/editor-extensions/extensions/hierarchy/dist/'];
         const modules: unknown[] = []; const sources: unknown[] = []; const seen = new Set<object>(); let complete = true;
         const walker = { walk(value: any, path: string, depth: number): void {
             if (!value || !['object', 'function'].includes(typeof value) || seen.has(value) || depth > 6) return;
-            if (seen.size >= 1024) { complete = false; return; } seen.add(value);
+            if (seen.size >= 2048) { complete = false; return; } seen.add(value);
             if (typeof value === 'function') {
                 const source = Function.prototype.toString.call(value);
-                if (/main-window:ready|hierarchy:render-tree/u.test(source) || /\/(?:__eb__|addBroadcastListener|removeBroadcastListener)$/u.test(path)) {
+                if (/main-window:ready|hierarchy:render-tree/u.test(source) || /\/(?:__eb__|addBroadcastListener|removeBroadcastListener)$/u.test(path)
+                    || /hierarchy\/dist\/panel\.ccc\/(?:ready|close|beforeClose)$/u.test(path)) {
                     if (source.length > 131072 || sources.length >= 128) { complete = false; return; }
                     sources.push({ path, source });
                 }
@@ -45,8 +49,10 @@ export class ComponentSdkWindowDiagnostics {
                 for (const [key, item] of value.entries()) if (typeof key === 'string') walker.walk(item, path + '/' + key, depth + 1);
                 return;
             }
-            for (const [name, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(value))) {
-                if (['constructor', '__proto__', 'caller', 'arguments'].includes(name) || !('value' in descriptor)) continue;
+            for (const name of Object.getOwnPropertyNames(value)) {
+                if (['constructor', '__proto__', 'caller', 'arguments', '_Ctor', '_builtinJSON', 'userInfo', 'account', 'token'].includes(name)) continue;
+                const descriptor = Object.getOwnPropertyDescriptor(value, name);
+                if (!descriptor || !('value' in descriptor)) continue;
                 walker.walk(descriptor.value, path + '/' + name, depth + 1);
             }
         } };

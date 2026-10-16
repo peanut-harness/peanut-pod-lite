@@ -70,3 +70,13 @@ test('worker observation captures actual startup methods without calling them or
     assert.equal(result.timerCacheAvailable, false); assert.equal(calls, 0); assert.deepEqual([...map], [['actual', 123]]);
     assert.equal(result.metrics.sources.protected.getTrackTimeStartMap, metrics.__protected__.getTrackTimeStartMap.toString());
 });
+
+test('current facade source uses only the exact observed pure SDK query and refuses changed query implementations', () => {
+    let mutations = 0; const state = { onSceneOpened: () => { mutations++; } };
+    const facade = { _facadeFSM: { currentState: state }, getCurrentFacade() { return this._facadeFSM.currentState; } };
+    const result: any = ComponentSdkDiagnostics.lifecycle({ SceneFacadeManager: facade });
+    assert.equal(result.currentFacade.onSceneOpened, state.onSceneOpened.toString()); assert.equal(mutations, 0);
+    facade.getCurrentFacade = () => { mutations++; return state; };
+    const changed: any = ComponentSdkDiagnostics.lifecycle({ SceneFacadeManager: facade });
+    assert.equal(changed.currentFacade.onSceneOpened, null); assert.equal(mutations, 0);
+});
