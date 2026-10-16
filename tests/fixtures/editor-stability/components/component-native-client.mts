@@ -99,6 +99,17 @@ export class ComponentNativeClient {
                             throw new Error('component_sdk_startup_timer_compat_unverified');
                         this.events.push({ step: 'sdk-startup-timer-compat-observed', result: compatibility }); this.save();
                     }
+                    if (this.registration.sdkUiReadyCompat === true) {
+                        const path = join(this.output, 'sdk-ui-ready-compat-state.json');
+                        const state = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null;
+                        if (state?.failed === true) throw new Error('component_sdk_ui_ready_install_failed:' + state.error);
+                        if (state?.installed !== true) throw new Error('component_matrix_probe_not_ready');
+                        const compatibility = this.record(await this.probe('sdk-ui-ready-compat-status'));
+                        if (compatibility.installed !== true || compatibility.startupMarkerConsumed !== true
+                            || compatibility.scope !== this.project || compatibility.creatorVersion !== this.registration.creatorVersion)
+                            throw new Error('component_sdk_ui_ready_identity_mismatch');
+                        this.events.push({ step: 'sdk-ui-ready-compat-observed', result: compatibility }); this.save();
+                    }
                     ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(this.registration.creatorVersion));
                     if (existsSync(join(this.output, 'component-matrix-staging.json'))) {
                         this.events.push({ step: 'health-engine-modules-observed', creatorVersion: health.creatorVersion,
@@ -165,7 +176,7 @@ export class ComponentNativeClient {
      */
     public async probe(action: string, input: Record<string, unknown> = {}): Promise<unknown> {
         const execute = (): Promise<unknown> => this.request('component-probe.json', '/probe', 'x-component-token', { action, ...input });
-        if (!['component-fields', 'scene-snapshot', 'scene-readiness', 'sdk-metrics-diagnostics', 'sdk-window-timer-diagnostics', 'sdk-lifecycle-diagnostics', 'sdk-listener-compat-status', 'load-asset', 'assets'].includes(action)) { return execute(); }
+        if (!['component-fields', 'scene-snapshot', 'scene-readiness', 'sdk-metrics-diagnostics', 'sdk-window-timer-diagnostics', 'sdk-ui-ready-compat-status', 'sdk-lifecycle-diagnostics', 'sdk-listener-compat-status', 'load-asset', 'assets'].includes(action)) { return execute(); }
         return ComponentNativeLogGuard.run(this.project, action, execute, event => { this.events.push(event); this.save(); });
     }
 

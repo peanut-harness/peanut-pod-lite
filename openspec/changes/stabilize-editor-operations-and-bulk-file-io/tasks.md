@@ -142,3 +142,5 @@ Sorting2D原始重叠对照在原生字段为蓝色order1/红色order0时仍显�
 2026-10-16启动计时修复准备：真实SDK工作进程方法证明冷启动_preStartDB遗漏worker-startup start而_startupDB结束它；动态_startDB已有配对。新显式项目内兼容仅在真实_preStartDB入口补齐SDK start，严格核对版本和实机函数摘要，不修改SDK安装、不重放操作、不合成计时、不改变end或日志。真实SDK方法离线对照复现并通过修复配对，待完整verify、候选和实机全段日志复验；监听器已实机10轮稳定1/1，UI重开计时及SDK退出sender仍待排查，5.1不勾选。
 
 2026-10-16 ba91afc实机：完整verify1256、123项组件夹具、官方打包与候选通过。两个数据库真实start/end各1/1，启动缺start错误已消除；10轮保存重开42次监听器注册持续1/1、阈值10。正常关闭自有实例后仍52条原始错误（main-window ready重复end 41、hierarchy重叠计时10、Chromium Widget 1），整轮验收false，无过滤。继续准备3.8.7单PhysX上下文，125项夹具通过，b324dde只读实机确认PhysXWorld、正常关闭后全段零错误零警告；SDK补回默认false标志导致严格Profile拒绝，新配置保留默认false；d50ad9d模块Profile精确匹配，未落盘的Builtin默认宏仍被严格拒绝，实际管线Builtin且全段零诊断，新配置显式固化该默认值，8e7562f已通过完整Profile/宏和PhysXWorld实机核验，正常退出全段零诊断；只读捕获层级树SDK异步ready源码，仍在定位主窗口回调。未开放写入，2控制器17字段待验；蒙皮和Tiled源拥有层次仍待补，5.1保持未完成。
+
+2026-10-16 UI就绪计时修复准备：精确广播原文和实际IPC栈证明main-window首次启动标记未消费；层级树异步ready复用单一计时标签。新增项目内显式兼容，须两项真实SDK计时完成才安装：消费完成标记，串行执行原ready，保留hideLoading、全部刷新与原异常。SDK版本及双函数摘要严格核对，无安装包修改、无日志过滤。135项组件夹具、定向严格类型与源码规范通过；完整verify、新候选、实机重开及剩余5.1仍待完成。

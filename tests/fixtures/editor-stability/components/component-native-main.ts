@@ -90,6 +90,14 @@ class ComponentNativeMain {
             const runtime = createRequire(path.join(this.project, 'package.json'));
             return ComponentSdkWindowDiagnostics.read(runtime('electron'), String(this.registration.creatorApp), editor.App.version);
         }
+        if (body.action === 'sdk-ui-ready-compat-status') {
+            if (this.registration.sdkUiReadyCompat !== true || !process.versions.electron) throw new Error('component_sdk_ui_ready_not_registered');
+            const runtime = createRequire(path.join(this.project, 'package.json'));
+            const contents = ComponentSdkWindowDiagnostics.mainContents(runtime('electron'), String(this.registration.creatorApp), editor.App.version);
+            if (!contents) throw new Error('component_matrix_probe_not_ready');
+            const script = fs.realpathSync(path.join(this.project, 'extensions/peanut-component-sdk-compat/ui-ready.js'));
+            return contents.executeJavaScript('require(' + JSON.stringify(script) + ').status()', false);
+        }
         if (body.action === 'sdk-lifecycle-diagnostics') return request('scene', 'execute-scene-script', {
             name: 'peanut-component-probe', method: 'sdkLifecycleDiagnostics', args: [],
         });

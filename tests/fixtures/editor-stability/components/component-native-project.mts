@@ -41,6 +41,8 @@ const metricsDiagnostics = args.includes('--metrics-diagnostics');
 const sdkListenerCompat = args.includes('--sdk-listener-compat');
 const sdkTimerTrace = args.includes('--sdk-timer-trace');
 const sdkStartupTimerCompat = args.includes('--sdk-startup-timer-compat');
+const sdkUiReadyCompat = args.includes('--sdk-ui-ready-compat');
+if (sdkUiReadyCompat && (!sdkListenerCompat || !sdkStartupTimerCompat || version !== '3.8.7')) throw new Error('component_sdk_ui_ready_requires_compat_project');
 if (sdkStartupTimerCompat && (!sdkListenerCompat || version !== '3.8.7')) throw new Error('component_sdk_startup_timer_requires_compat_project');
 if (sdkTimerTrace && (!sdkListenerCompat || version !== '3.8.7')) throw new Error('component_sdk_timer_trace_requires_compat_project');
 if (sdkListenerCompat && version !== '3.8.7') throw new Error('component_sdk_listener_version_unverified');
@@ -73,7 +75,7 @@ mkdirSync(join(project, 'node_modules'), { recursive: true });
 cpSync(join(engine, 'node_modules/tslib'), join(project, 'node_modules/tslib'), { recursive: true });
 const registration = { kind: 'worktree-local-validation-project', task: '5.1',
     owner, change: 'stabilize-editor-operations-and-bulk-file-io',
-    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics, sdkListenerCompat, sdkTimerTrace, sdkRendererTimerTrace: sdkTimerTrace, sdkStartupTimerCompat,
+    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics, sdkListenerCompat, sdkTimerTrace, sdkRendererTimerTrace: sdkTimerTrace, sdkStartupTimerCompat, sdkUiReadyCompat,
     candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
     registeredAt: new Date().toISOString(), userAuthorization: '推进5.1真实导入、后端确认和原生加载验证；按Hub操作Cocos，只关闭自己实例' };
 writeFileSync(join(output, 'project-ownership.json'), JSON.stringify(registration, null, 2) + '\n');
@@ -95,7 +97,9 @@ if (sdkListenerCompat) {
     writeFileSync(join(compat, 'main.js'), 'exports.load = function () {}; exports.unload = function () {};\n', { flag: 'wx' });
     buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-listener-scene.ts', import.meta.url))], outfile: join(compat, 'scene.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14', external: ['cc'] });
-    if (sdkTimerTrace) buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-timer-trace-main.ts', import.meta.url))], outfile: join(compat, 'main.js'),
+    if (sdkTimerTrace || sdkUiReadyCompat) buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-timer-trace-main.ts', import.meta.url))], outfile: join(compat, 'main.js'),
+        bundle: true, platform: 'node', format: 'cjs', target: 'node14' });
+    if (sdkUiReadyCompat) buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-ui-ready-window.ts', import.meta.url))], outfile: join(compat, 'ui-ready.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14' });
     if (sdkTimerTrace) buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-window-timer-trace.ts', import.meta.url))], outfile: join(compat, 'window-trace.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14' });
