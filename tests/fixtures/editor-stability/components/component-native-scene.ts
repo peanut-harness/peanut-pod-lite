@@ -25,7 +25,7 @@ class ComponentNativeScene {
     public static snapshot(): unknown {
         Reflect.set(process, 'traceProcessWarnings', true);
         const cc = require('cc'); const scene = cc.director.getScene();
-        if (!scene) throw new Error('component_native_scene_missing');
+        if (!scene) return { scenePresent: false, sceneName: null, sceneUuid: null, nodes: [] };
         const nodes: unknown[] = [];
         const walk = (node: { name: string; uuid: string; children: unknown[]; getComponents: Function }, prefix: string): void => {
             const nodePath = `${prefix}/${node.name}`;
@@ -45,7 +45,7 @@ class ComponentNativeScene {
             ? { max: manager.getMaxListeners(), add: manager.listenerCount('add'), remove: manager.listenerCount('remove'),
                 callbackNames: ['add', 'remove'].map(event => ({ event, names: typeof manager.rawListeners === 'function'
                     ? manager.rawListeners(event).map((listener: Function) => listener.name) : null })) } : null;
-        return { sceneName: scene.name, sceneUuid: scene.uuid, nodes, warningStacksEnabled: Reflect.get(process, 'traceProcessWarnings') === true,
+        return { scenePresent: true, sceneName: scene.name, sceneUuid: scene.uuid, nodes, warningStacksEnabled: Reflect.get(process, 'traceProcessWarnings') === true,
             componentManagerListeners,
             physics3d: world3d ? { constructor: world3d.constructor.name } : null,
             physics2d: world2d ? { constructor: world2d.constructor.name } : null,

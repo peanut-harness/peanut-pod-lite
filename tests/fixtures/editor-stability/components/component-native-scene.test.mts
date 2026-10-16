@@ -46,3 +46,17 @@ test('UI model observation keeps real mesh/shared-material identities without in
     assert.deepEqual(manager.rawListeners('add'), [observeAdd]);
     assert.deepEqual(manager.rawListeners('remove'), [observeRemove]);
 });
+
+test('engine reload reports an explicit missing-scene state without throwing a diagnostic or claiming an identity', () => {
+    const compiled = buildSync({ entryPoints: [fileURLToPath(new URL('./component-native-scene.ts', import.meta.url))],
+        platform: 'node', format: 'cjs', target: 'node14', write: false, bundle: true, external: ['cc'] });
+    const code = compiled.outputFiles?.[0]?.text; assert(code);
+    const output = { exports: {} };
+    runInNewContext(code, { process: {}, module: output, exports: output.exports, require: (id: string): unknown => {
+        assert.equal(id, 'cc'); return { director: { getScene: () => null } };
+    } });
+    const methods: unknown = Reflect.get(output.exports, 'methods'); assert(methods && typeof methods === 'object');
+    const snapshot: unknown = Reflect.get(methods, 'snapshot'); assert(typeof snapshot === 'function');
+    const result = JSON.parse(JSON.stringify(Reflect.apply(snapshot, methods, [])));
+    assert.deepEqual(result, { scenePresent: false, sceneName: null, sceneUuid: null, nodes: [] });
+});

@@ -8,6 +8,7 @@ import { ComponentNativeAssetLoader } from './component-native-asset-loader';
 import { ComponentProjectUrlFiles } from './component-project-url-files';
 import { ComponentSdkDiagnostics } from './component-sdk-diagnostics';
 import { ComponentSdkWindowDiagnostics } from './component-sdk-window-diagnostics';
+import { ComponentSdkSceneCacheSources } from './component-sdk-scene-cache-sources';
 
 /**
  * @description 隔离工程内的有界原生观测入口；不提供任意消息或代码执行接口。
@@ -79,6 +80,10 @@ class ComponentNativeMain {
         const editor = Reflect.get(globalThis, 'Editor');
         if (typeof editor?.Message?.request !== 'function') throw new Error('component_native_message_api_missing');
         const request = editor.Message.request.bind(editor.Message);
+        if (body.action === 'sdk-scene-cache-diagnostics') {
+            if (editor.App.version !== '3.8.3') throw new Error('component_sdk_cache_source_version_unverified');
+            return ComponentSdkSceneCacheSources.read(createRequire(path.join(this.project, 'package.json')).cache);
+        }
         if (body.action === 'sdk-metrics-diagnostics') {
             const runtime = createRequire(path.join(this.project, 'package.json'));
             return { ...ComponentSdkDiagnostics.metrics(editor.Metrics) as object,
