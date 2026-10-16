@@ -44,6 +44,8 @@
 
 ## 8. Execution Notes
 
+2026-10-16无Host/Core只读对照：代码检查点4b797c3完整verify1256/1256、110项组件回归及官方pack/候选通过后，在新的登记工程首次启动前移除Host/Core，保留同版SDK、精确后处理配置、原始Bloom场景和只读探针；公开Host查询明确不存在，实际Forward/PostProcessBuilder、Main Camera.usePostProcess及全局PostProcess均确认。未调用MCP写、未开预览或截图，场景SHA不变；正常关闭自有PID59543后，五个原始来源仍有2条SDK asset-db启动计时器错误，零警告。本单场景冷启动未复现循环中的GPU/监听器问题，不能据此判定其归因；不将该对照记作产品候选原生通过。最终进程核对仅余原先两个3.8.3工程，自有50275/59543均消失。当前零诊断门禁阻止继续有效campaign；5.1保持未完成，先解决/定位原始诊断，再补角色控制器、蒙皮和Tiled上下文，禁止忽略SDK错误。此后仅更新文档，源码/配置不变，复用4b797c3完整验证；知识另做scoped同步并交sync。
+
 2026-10-16实机收尾：8ae0192完整verify1256项、官方pack/候选通过；同一自有3.8.7 PID50275完成20/20资源加载。Creator公开Profile补齐11项SDK默认宏，磁盘仅保存覆盖项；独立校验按同版macro.ts逐项核对，初次拒绝、原生快照和工具SHA均保留。唯一获准Sorting2D截图确认蓝色order1覆盖后创建红色order0；两字段及完整生命周期观测通过，单次授权已用完，未新增标签。后处理首轮23/24字段读回，BlitScreen.activeMaterials在onLoad按enabled materials重建，补真实启用材质原子上下文后其4字段重验通过；8类后处理共24字段及8份展示的实际Main Camera.usePostProcess/global PostProcess上下文已观测，原展示源不变。
 
 整会话仍拒绝：完整stdout有212条SDK trackTimeEnd错误，stderr有1条SSL及6条uniform-buffer WebGL错误、2条MaxListenersExceededWarning和1条trace提示；project.log没有这些诊断。旧campaign的accepted只覆盖当时project.log增量，不能作全渠道验收，字段观测不升级为后处理呈现通过。新门禁在campaign开始前扫描全部原始来源，逐MCP动作与只读观测同时检查stdout/stderr/启动器及project.log，识别类型化Node警告、异步诊断、缺失/链接/轮换/截断/前缀改写；不忽略SDK消息，也不能重取游标跳过启动错误。已关闭会话的离线回放在0次MCP/0组件前拒绝219错误与3警告，保留99/795完整分母。110项组件回归、严格类型及源码规范通过；新源须clean检查点完整verify/候选，不用关闭的旧实例假装新候选实机。六项已撤销，退回Label后仅正常关闭自有PID50275，启动器退出0不等于Creator退出码0；唯一IAB标签停泊空白。5.1仍未完成，后处理呈现、原始诊断及角色控制器/蒙皮/Tiled专门上下文仍待解决；不勾选、不推送、不发布、不开all。
