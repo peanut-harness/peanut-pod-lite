@@ -189,7 +189,7 @@ test('character context selects only PhysX instead of Bullet and keeps unrelated
             baseline.includeModules.filter((name: string) => name !== 'physics-ammo'));
         const expected = structuredClone(baseline); expected.cache.physics._option = 'physics-physx';
         expected.cache['physics-ammo']._value = false; expected.cache['physics-physx']._value = true;
-        delete expected.flags.LOAD_BULLET_MANUALLY; expected.flags.LOAD_PHYSX_MANUALLY = false; expected.includeModules = config.includeModules;
+        expected.flags.LOAD_PHYSX_MANUALLY = false; expected.includeModules = config.includeModules;
         assert.deepEqual(config, expected);
         const active = { ...modules, graphics: { pipeline: 'custom-pipeline', 'custom-pipeline-post-process': false } };
         ComponentEngineModules.assertActive(active, '3.8.7', 'character-physx');

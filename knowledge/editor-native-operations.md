@@ -73,4 +73,4 @@ Sorting2D原始重叠对照在原生字段为蓝色order1/红色order0时仍显�
 
 启动根因与修复：2257869工程的真实worker load/afterInit/beforePreStart/beforeReady观测确认冷启动_preStartDB没有worker-startup计时start，_startupDB却end；动态_startDB本来配对。显式sdk-startup-timer-compat项目扩展只在真实_preStartDB入口调用一次SDK start，保留SDK end、原始日志和动态路径；版本、3个方法及公开Metrics start原文摘要必须精确匹配，数据库对象须属于当前管理器。观测时间仅落盘，不进入SDK计时；离线实机SDK源码对照已复现缺start并验证修复配对和未知实现拒绝，ba91afc完整verify1256/1256、123项夹具、官方pack/候选通过；新工程实际internal/assets各1次start与原SDK end配对，10轮保存重开42次注册仍1/1，阈值10不变。正常退出后完整5来源52错误（main-window:ready 41、hierarchy 10、Chromium Widget 1）、零分类警告，整轮仍拒绝，5.1未完成。自有实例均正常退出，未强杀。
 
-剩余5.1先准备character-physx有限上下文：仅在新3.8.7矩阵工程从冻结官方UI模块配置切换physics-ammo为physics-physx，按同版SDK功能/自动装载常量核对，保持其它模块和宏原样，拒绝与post-process并用、未知版本或缺SDK契约。125项组件夹具通过，定向严格类型修正后通过；实际PhysXWorld和2个角色控制器17字段仍待实机。SDK场景Startup和固定scene/window计时函数只读观测一并补齐，整段原始日志门禁保持。
+剩余5.1先准备character-physx有限上下文：仅在新3.8.7矩阵工程从冻结官方UI模块配置切换physics-ammo为physics-physx，按同版SDK功能/自动装载常量核对，保持其它模块和宏原样，拒绝与post-process并用、未知版本或缺SDK契约。125项组件夹具通过，定向严格类型修正后通过；b324dde实机只读已确认PhysXWorld，正常退出完整5来源零错误零警告；严格Profile因SDK补回默认false的LOAD_BULLET_MANUALLY拒绝，尚无写权限或控制器字段验收。新配置保留该默认false，不放宽精确比较，2个角色控制器17字段仍待实机。SDK场景Startup和固定scene/window计时函数只读观测一并补齐，整段原始日志门禁保持。

@@ -28,7 +28,8 @@ export class ComponentSdkDiagnostics {
         const prefixes = ['/app.asar/builtin/asset-db/dist/browser/', '/app.asar/modules/editor-extensions/extensions/hierarchy/dist/',
             '/app.asar/modules/editor-extensions/extensions/scene/dist/',
             '/app.asar/builtin/scene/dist/script/', '/app.asar/builtin/window/dist/',
-            '/app.asar/node_modules/@editor/creator/dist/metrics/', '/app.asar/node_modules/@editor/creator/dist/window/'];
+            '/app.asar/node_modules/@editor/creator/dist/metrics/', '/app.asar/node_modules/@editor/creator/dist/windows/',
+            '/app.asar/node_modules/@editor/creator/static/windows/script/'];
         const methods: unknown[] = [];
         for (const [path, entry] of Object.entries(cache)) {
             if (!prefixes.some(prefix => path.includes(prefix))) continue;
@@ -91,14 +92,17 @@ export class ComponentSdkDiagnostics {
         const roots: unknown[] = []; const handlers: unknown[] = []; const seen = new Set<object>(); let complete = true;
         const walk = (value: any, path: string, depth: number): void => {
             if (typeof value === 'function') {
-                if (path.includes('metrics:track-time-')) handlers.push({ path, source: Function.prototype.toString.call(value) });
+                const source = Function.prototype.toString.call(value);
+                if (path.includes('metrics:track-time-') || /scene:(?:ready|opened)/u.test(path)
+                    || /main-window:ready|hierarchy:render-tree/u.test(source)) handlers.push({ path, source });
                 return;
             }
             if (!value || typeof value !== 'object' || seen.has(value) || depth > 4) return;
             if (seen.size >= 256) { complete = false; return; }
             seen.add(value);
             if (Object.prototype.toString.call(value) === '[object Map]') {
-                for (const [name, item] of value.entries()) if (typeof name === 'string' && (name.includes('metrics') || path.includes('metrics')))
+                for (const [name, item] of value.entries()) if (typeof name === 'string'
+                    && (name.includes('metrics') || path.includes('metrics') || /scene:(?:ready|opened)/u.test(name)))
                     walk(item, path + '/' + name, depth + 1);
                 return;
             }
@@ -108,7 +112,9 @@ export class ComponentSdkDiagnostics {
             }
         };
         for (const [path, entry] of Object.entries(cache)) {
-            if (!path.includes('/app.asar/node_modules/@editor/creator/dist/ipc/') && !path.includes('/app.asar/node_modules/@base/electron-base-ipc/')) continue;
+            if (!path.includes('/app.asar/node_modules/@editor/creator/dist/ipc/')
+                && !path.includes('/app.asar/node_modules/@editor/creator/dist/message/')
+                && !path.includes('/app.asar/node_modules/@base/electron-base-ipc/')) continue;
             const module = path.slice(path.indexOf('/app.asar/') + '/app.asar/'.length); const value = entry?.exports;
             roots.push({ module, exportNames: Object.keys(value ?? {}), adapterKeys: Object.keys(value?.adapter ?? {}), defaultKeys: Object.keys(value?.default ?? {}) });
             walk(value, module, 0); walk(value?.adapter, module + '/adapter', 0); walk(value?.default, module + '/default', 0);

@@ -33,10 +33,13 @@ test('timer route diagnostics inspect fixed SDK timer methods and IPC callbacks 
         '/Applications/Cocos/Creator/3.8.7/CocosCreator.app/Contents/Resources/app.asar/node_modules/@editor/creator/dist/ipc/index.ccc': {
             exports: { default: { _events: { 'metrics:track-time-start': [timingMethod] }, privateValue: 'must-not-export' } },
         },
+        '/Applications/Cocos/Creator/3.8.7/CocosCreator.app/Contents/Resources/app.asar/node_modules/@editor/creator/dist/message/protected/renderer/index.ccc': {
+            exports: { listeners: new Map([['scene:ready', [timingMethod]]]) },
+        },
     }, ipc);
     assert.equal(result.methods.length, 1); assert.equal(result.methods[0].source, timingMethod.toString());
     assert.equal(result.ipcRoutes.length, 1); assert.equal(calls, 0);
-    assert.equal(result.receivers.complete, true); assert.equal(result.receivers.handlers.length, 1);
+    assert.equal(result.receivers.complete, true); assert.equal(result.receivers.handlers.length, 2);
     assert.equal(result.receivers.handlers[0].source, timingMethod.toString());
     assert.equal(JSON.stringify(result).includes('must-not-export'), false);
 });

@@ -165,7 +165,7 @@ export class ComponentEngineModules {
                 throw new Error('component_engine_modules_physx_fixture_invalid');
             config.cache = { ...cache, physics: { ...physics, _option: 'physics-physx' },
                 'physics-ammo': { ...bullet, _value: false }, 'physics-physx': { ...physx, _value: true } };
-            delete flags.LOAD_BULLET_MANUALLY; config.flags = { ...flags, LOAD_PHYSX_MANUALLY: false };
+            config.flags = { ...flags, LOAD_PHYSX_MANUALLY: false };
             const included = config.includeModules;
             if (!Array.isArray(included)) throw new Error('component_engine_modules_physx_fixture_invalid');
             config.includeModules = included.filter((name: unknown) => name !== 'physics-ammo').concat('physics-physx').sort();
