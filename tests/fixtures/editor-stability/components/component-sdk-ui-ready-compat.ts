@@ -8,7 +8,7 @@ export class ComponentSdkUiReadyCompat {
      * @description 只匹配实机冻结的广播和层级树函数，未知实现拒绝在任何状态改变前安装。
      */
     public static install(cache: Record<string, any>, rootWindow: any, version: string) {
-        if (version !== '3.8.7') throw new Error('component_sdk_ui_ready_version_unverified');
+        if (!['3.8.3', '3.8.7'].includes(version)) throw new Error('component_sdk_ui_ready_version_unverified');
         const module = (suffix: string): any => {
             const matches = Object.entries(cache).filter(([path]) => path.endsWith('/app.asar/' + suffix));
             if (matches.length !== 1) throw new Error('component_sdk_ui_ready_module_identity_invalid:' + suffix);
@@ -18,7 +18,9 @@ export class ComponentSdkUiReadyCompat {
         const hierarchy = module('modules/editor-extensions/extensions/hierarchy/dist/panel.ccc');
         const owner = hierarchy?.methods; const original = owner?.ready;
         const hash = (value: Function): string => createHash('sha256').update(Function.prototype.toString.call(value)).digest('hex');
-        if (typeof broadcast?.apply !== 'function' || hash(broadcast.apply) !== 'b46ca6c691343f753c5964d765b37b71da0d647f26926ee7d469b629a4e2f3a7'
+        const broadcastHash = version === '3.8.3' ? '9104fd9001138adeabcccc8b20b85d95f2f5d0c66efc4f568b18c0f062535e3d'
+            : 'b46ca6c691343f753c5964d765b37b71da0d647f26926ee7d469b629a4e2f3a7';
+        if (typeof broadcast?.apply !== 'function' || hash(broadcast.apply) !== broadcastHash
             || typeof original !== 'function' || hash(original) !== 'fa0ed17e2f7a5d5d3630d974800dcb9bde348e7a95cc61d0a7a04ad629820060')
             throw new Error('component_sdk_ui_ready_source_mismatch');
         const descriptor = Object.getOwnPropertyDescriptor(owner, 'ready');

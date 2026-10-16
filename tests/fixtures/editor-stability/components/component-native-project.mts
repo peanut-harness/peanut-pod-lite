@@ -51,7 +51,7 @@ const sdkSceneCacheCompat = args.includes('--sdk-scene-cache-compat');
 if (sdkSceneCacheCompat && (version !== '3.8.3' || fixtureProfile !== 'component-matrix')) throw new Error('component_sdk_cache_requires_383_matrix');
 if (tiledHierarchy && fixtureProfile !== 'component-matrix') throw new Error('component_tiled_requires_verified_matrix');
 if (skinnedHierarchy && (version !== '3.8.7' || fixtureProfile !== 'component-matrix')) throw new Error('component_skinned_requires_verified_matrix');
-if (sdkUiReadyCompat && (!sdkListenerCompat || !sdkStartupTimerCompat || version !== '3.8.7')) throw new Error('component_sdk_ui_ready_requires_compat_project');
+if (sdkUiReadyCompat && (version === '3.8.7' ? !sdkListenerCompat || !sdkStartupTimerCompat : !sdkSceneCacheCompat)) throw new Error('component_sdk_ui_ready_requires_compat_project');
 if (sdkStartupTimerCompat && (!sdkListenerCompat || version !== '3.8.7')) throw new Error('component_sdk_startup_timer_requires_compat_project');
 if (sdkTimerTrace && (!sdkListenerCompat || version !== '3.8.7')) throw new Error('component_sdk_timer_trace_requires_compat_project');
 if (sdkListenerCompat && version !== '3.8.7') throw new Error('component_sdk_listener_version_unverified');
@@ -98,13 +98,13 @@ for (const [input, destination] of [['component-native-main.ts', 'main.js'], ['c
     buildSync({ entryPoints: [fileURLToPath(new URL(input, import.meta.url))], outfile: join(probe, destination),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14', external: ['cc'] });
 }
-if (sdkListenerCompat) {
+if (sdkListenerCompat || sdkUiReadyCompat) {
     const compat = join(project, 'extensions/peanut-component-sdk-compat'); mkdirSync(compat);
     writeFileSync(join(compat, 'package.json'), JSON.stringify({ package_version: 2, name: 'peanut-component-sdk-compat', version: '0.1.0',
-        main: './main.js', contributions: { scene: { script: './scene.js' },
+        main: './main.js', contributions: { ...(sdkListenerCompat ? { scene: { script: './scene.js' } } : {}),
             ...(sdkTimerTrace || sdkStartupTimerCompat ? { 'asset-db': { script: './worker.js', 'global-hook': ['afterInit', 'beforePreStart', 'beforeReady'] } } : {}) } }, null, 2) + '\n', { flag: 'wx' });
     writeFileSync(join(compat, 'main.js'), 'exports.load = function () {}; exports.unload = function () {};\n', { flag: 'wx' });
-    buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-listener-scene.ts', import.meta.url))], outfile: join(compat, 'scene.js'),
+    if (sdkListenerCompat) buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-listener-scene.ts', import.meta.url))], outfile: join(compat, 'scene.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14', external: ['cc'] });
     if (sdkTimerTrace || sdkUiReadyCompat) buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-timer-trace-main.ts', import.meta.url))], outfile: join(compat, 'main.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14' });

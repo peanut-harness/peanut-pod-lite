@@ -18,7 +18,7 @@ class ComponentSdkUiReadyWindow {
         const proof = JSON.parse(readFileSync(join(output, 'sdk-ui-ready-phases.json'), 'utf8'));
         const editor = Reflect.get(globalThis, 'Editor');
         if (registration.task !== '5.1' || registration.sdkUiReadyCompat !== true || registration.projectPath !== project
-            || registration.creatorVersion !== '3.8.7' || editor.App.version !== '3.8.7' || realpathSync(editor.Project.path) !== project
+            || !['3.8.3', '3.8.7'].includes(registration.creatorVersion) || editor.App.version !== registration.creatorVersion || realpathSync(editor.Project.path) !== project
             || !project.startsWith(realpathSync(registration.worktree) + sep + 'evidence' + sep + 'task-5.1' + sep)
             || proof.runId !== registration.runId || proof.projectPath !== project
             || !['main-window:ready', 'hierarchy:render-tree'].every(label => proof.observed?.includes(label)))

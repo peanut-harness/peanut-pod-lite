@@ -8,8 +8,13 @@ import { ComponentSdkUiReadyPhases } from './component-sdk-ui-ready-phases.ts';
 /**
  * @description 离线重放实机冻结的两个SDK函数，真实计时配对、刷新次数及异常均由原SDK逻辑产生。
  */
-function sdk() {
+function sdk(version = '3.8.7') {
     const proof = JSON.parse(readFileSync(new URL('./3.8.7/sdk-ui-ready-timer-source.json', import.meta.url), 'utf8'));
+    if (version === '3.8.3') {
+        const captured = JSON.parse(readFileSync(new URL('./3.8.3/sdk-ui-ready-source.json', import.meta.url), 'utf8'));
+        proof.methods.broadcastApply = captured.methods.find((item: { path: string }) => item.path.endsWith('/broadcast.ccc/apply'));
+        proof.methods.hierarchyReady = captured.methods.find((item: { path: string }) => item.path.endsWith('/panel.ccc/methods/ready'));
+    }
     const starts = new Map<string, number>(); const events: string[] = []; const window = { __InitializationTimeEnd__: Date.now() };
     let hidden = 0; let refreshed = 0; let failure: Error | null = null;
     const metrics = { trackTimeStart(label: string): void { starts.set(label, Date.now()); events.push('start:' + label); },
@@ -61,7 +66,7 @@ test('real hierarchy ready overlaps one label; compatibility serializes all orig
 
 test('unknown SDK source and immutable startup marker fail before either SDK state changes', () => {
     const current = sdk(); const original = current.hierarchy.methods.ready; const marker = current.window.__InitializationTimeEnd__;
-    assert.throws(() => ComponentSdkUiReadyCompat.install(current.cache, current.window, '3.8.3'), /version_unverified/u);
+    assert.throws(() => ComponentSdkUiReadyCompat.install(current.cache, current.window, '3.9.0'), /version_unverified/u);
     Object.defineProperty(current.window, '__InitializationTimeEnd__', { configurable: false, writable: false });
     assert.throws(() => ComponentSdkUiReadyCompat.install(current.cache, current.window, '3.8.7'), /state_unverified/u);
     assert.equal(current.hierarchy.methods.ready, original); assert.equal(current.window.__InitializationTimeEnd__, marker);
@@ -81,4 +86,17 @@ test('phase installation requires both actual successful SDK end deletions and r
     map.set('hierarchy:render-tree', 2); map.delete('hierarchy:render-tree');
     assert.equal(map.delete, original); assert.equal(observations.length, 0); await Promise.resolve();
     assert.deepEqual(observations, [['main-window:ready', 'hierarchy:render-tree']]); assert.equal(patch.state.installed, false); patch.restore();
+});
+
+
+test('3.8.3 uses its separately frozen broadcast with actual end and serial hierarchy refreshes, and rejects cross-version broadcast substitution', async () => {
+    const fixed = sdk('3.8.3'); fixed.metrics.trackTimeStart('main-window:ready'); fixed.handlers['scene:ready']();
+    await fixed.hierarchy.methods.ready();
+    assert.throws(() => ComponentSdkUiReadyCompat.install(fixed.cache, fixed.window, '3.8.7'), /source_mismatch/u);
+    const patch = ComponentSdkUiReadyCompat.install(fixed.cache, fixed.window, '3.8.3');
+    for (let i = 0; i < 20; i++) fixed.handlers['scene:ready']();
+    await Promise.all(Array.from({ length: 20 }, () => fixed.runtimeMethods.ready()));
+    assert.equal(fixed.hidden(), 21); assert.equal(fixed.refreshed(), 21);
+    assert.equal(fixed.events.filter(event => event === 'end:main-window:ready').length, 1);
+    assert.equal(patch.state.maximumActive, 1); assert.equal(fixed.starts.size, 0); patch.restore();
 });

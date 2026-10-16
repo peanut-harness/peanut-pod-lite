@@ -23,7 +23,8 @@ class ComponentSdkTimerTraceMain {
         const editor = Reflect.get(globalThis, 'Editor'); const project = realpathSync(editor.Project.path); const output = dirname(project);
         const registration = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8'));
         if (registration.task !== '5.1' || (registration.sdkTimerTrace !== true && registration.sdkUiReadyCompat !== true) || registration.projectPath !== project
-            || registration.creatorVersion !== '3.8.7' || editor.App.version !== '3.8.7'
+            || !['3.8.3', '3.8.7'].includes(registration.creatorVersion) || editor.App.version !== registration.creatorVersion
+            || registration.creatorVersion === '3.8.3' && (registration.sdkUiReadyCompat !== true || registration.sdkSceneCacheCompat !== true)
             || !project.startsWith(realpathSync(registration.worktree) + sep + 'evidence' + sep + 'task-5.1' + sep))
             throw new Error('component_sdk_timer_trace_project_not_registered');
         const map = editor.Metrics.__protected__.getTrackTimeStartMap(); const path = join(output, 'sdk-timer-map-trace.ndjson');
@@ -42,7 +43,7 @@ class ComponentSdkTimerTraceMain {
         }
         const runtime = createRequire(join(project, 'package.json'));
         const install = (script: string, receipt: string): void => {
-            void this.installWindowModule(runtime('electron'), registration.creatorApp, script, receipt)
+            void this.installWindowModule(runtime('electron'), registration.creatorApp, registration.creatorVersion, script, receipt)
                 .catch(error => { writeFileSync(receipt, JSON.stringify({ installed: false, failed: !this.stopping, cancelled: this.stopping,
                     error: error instanceof Error ? error.message : String(error) }) + '\n'); if (!this.stopping) console.error(error); });
         };
@@ -67,9 +68,9 @@ class ComponentSdkTimerTraceMain {
     /**
      * @description 非阻塞等待当前SDK主窗口初始化，仅读取本项目固定观测模块；不创建或选择其它窗口。
      */
-    private static async installWindowModule(electron: any, creatorApp: string, script: string, receipt: string): Promise<void> {
+    private static async installWindowModule(electron: any, creatorApp: string, version: string, script: string, receipt: string): Promise<void> {
         for (let attempt = 0; attempt < 100 && !this.stopping; attempt++) {
-            const contents = ComponentSdkWindowDiagnostics.mainContents(electron, creatorApp, '3.8.7');
+            const contents = ComponentSdkWindowDiagnostics.mainContents(electron, creatorApp, version);
             if (contents) {
                 const result = await contents.executeJavaScript('require(' + JSON.stringify(script) + ').load()', false);
                 if (result?.installed === true) { this.windows.push({ contents, script }); writeFileSync(receipt, JSON.stringify(result, null, 2) + '\n'); return; }

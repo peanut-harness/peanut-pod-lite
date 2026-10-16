@@ -166,3 +166,5 @@ Sorting2D原始重叠对照在原生字段为蓝色order1/红色order0时仍显�
 2026-10-16 3.8.3缓存根因与修复准备：486ad4c只读捕获已加载SceneCacheManager原文，clearSceneCache在每次onSceneReady中无条件safeRemove目录，缺目录也报错，随后才delete cacheTimerList/cacheJsonList并清空_currentSceneUUID。仅正常关闭自有23972，全5来源1错误0警告，未做字段写。新显式sdk-scene-cache-compat仅3.8.3新矩阵工程，精确核验5个SDK方法摘要和SDK getCachePath实际工程根；缺目录只执行原内存清理，不创建/删除缓存文件，目录存在仍完整调用SDK原删除，非ENOENT/原删除错误保留；只恢复自身单例方法。真实SDK源码离线对照、未知实现/跨项目拒绝、权限错误和恢复行为通过；冷启动及保存重开零诊断仍待新工程验证。
 
 2026-10-16 3.8.3缓存修复首次实机：9d46215缓存修复实机：公开Profile及实际Label UUID一致，缓存真回调完成缺目录清理1次，19/19资源加载且冷启动全5来源零诊断；首次Tiled scene-open实际成功、缺目录清理增至2次，但SDK又对main-window:ready重复end，严格门禁当场拒绝。仅正常关闭自有49042，终扫1计时错误0警告，无缓存/探针错误，未新增字段验收。固定窗口只读来源扩展到已核对main.html路径的3.8.3，不开启通用SDK执行，不把3.8.7修复别名当作本版通过。
+
+2026-10-16 3.8.3窗口回调精确适配：bde6a02窗口只读捕获完整30项来源，3.8.3广播apply摘要9104fd…独立于3.8.7的b46ca…，层级树ready与Panel查询原文相同；仅正常关闭自有70872，全5来源零诊断，零组件写入。新UI兼容显式按版本选本版广播摘要，3.8.3需同时启用本版缓存兼容；仍先观察SDK首次main/hierarchy真实trackTimeEnd成功删除，再消费完成标记并串行真实PanelFrame调用，未知来源/跨版替换拒绝。离线本版原方法20轮证明仅一次启动end、每次hideLoading及原刷新保留；新候选实机尚待验证。
