@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
+import { realpathSync } from 'node:fs';
 import { join } from 'node:path';
+import { createRequire } from 'node:module';
 import { ComponentSdkArchive } from './component-sdk-archive.mts';
 
 interface IComponentOwnedQuitEditor {
@@ -51,10 +53,11 @@ export class ComponentOwnedCreatorQuit {
     public static prepare(editor: IComponentOwnedQuitEditor, registration: Record<string, unknown>, lease: Record<string, unknown>, input: unknown):
         { receipt: Record<string, unknown>; run: () => void } {
         const receipt = this.authorize(registration, lease, input,
-            { pid: process.pid, projectPath: editor.Project.path, creatorVersion: editor.App.version });
+            { pid: process.pid, projectPath: realpathSync(editor.Project.path), creatorVersion: editor.App.version });
         const observed = this.inspect(editor);
         if (process.versions.electron !== '13.1.4' || observed.sha256 !== this.pins.fn) throw new Error('component_owned_quit_sdk_function_drift');
-        const bytes = ComponentSdkArchive.read(join(String(registration.creatorApp), 'Contents/Resources'), 'app-lifecycle');
+        const originalFs = createRequire(join(String(registration.projectPath), 'package.json'))('original-fs');
+        const bytes = ComponentSdkArchive.read(join(String(registration.creatorApp), 'Contents/Resources'), 'app-lifecycle', originalFs);
         if (createHash('sha256').update(bytes).digest('hex') !== this.pins.module) throw new Error('component_owned_quit_sdk_module_drift');
         const original = editor.App.quit;
         return { receipt, run: (): void => { original.call(editor.App); } };

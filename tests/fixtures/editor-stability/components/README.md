@@ -188,3 +188,5 @@ ef97989实际首次两项SDK end成功后UI安装，runtimeMethods2；3.8.3真�
 3.8.3 新增独立后处理/PhysX来源：`3.8.3/engine-context-provenance.json`固定实际 `Editor.Profile` 模块、宏、六项SDK摘要及engine manifest 1.0.9；`--post-process`选择该版注册名 `Custom`，`--character-physx`只切换已证明的物理选项，不增加3.8.7宏或sorting模块。两版Blit各自使用SDK专用全屏材质。上述新上下文仍须新工程实机验收。3.8.3缺失Sorting2D/UISkew的4字段配方标记版本拒绝，目录分母仍99/795。`remaining-default-383-20261016`有51/365字段局部通过，但退出guest-view错误使整轮验收为false；禁止把退出码0或局部报告当整轮零诊断。
 
 `--sdk-owned-quit`仅用于3.8.3登记矩阵工程的正常退出：外层关闭工具仍先核验原始PID/启动身份，认证生命周期端点只接受匹配owner、run、project、pid四字段，并核验13.1.4及原始SDK方法/模块摘要；HTTP响应发完后调用SDK公开`App.quit`的窗口退出流程。它不扩展六项MCP业务能力，不接受代码或任意消息，不过滤退出错误，未登记工程保留原正常退出方式。`post-tiled-383-20261016`只有有效Custom后端及两个公开版本拒绝通过，Blit夹具旧版本门禁使字段矩阵拒绝；退出5原始源0诊断。新两字段上下文和SDK退出方式仍待新工程复验。
+
+`post-owned-quit-383-20261016`完成后处理8组件及TiledMap，ReflectionProbe保留1个未暂存的Cube输入缺口；34字段读回、1公开拒绝、1输入阻塞完整保留。SDK退出实际请求被Electron ASAR虚拟FS读取拒绝，未关闭应用；原始PID24993正常OS恢复退出后原始5源零诊断。SDK内归档守卫改用`original-fs`只读端口，绝不改全局`noAsar`；SDK退出修复仍待下一工程验证。新增固定只读导入器/创建模板契约查询，避免重跑已知3.8.3 HDR/cmft失败。
