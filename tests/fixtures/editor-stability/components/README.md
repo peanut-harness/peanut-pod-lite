@@ -122,3 +122,5 @@ UI模型原展示截图为黑屏；新增普通方向光对照仍黑屏。实际
 新3.8.7隔离项目额外暂存SDK `cocos-service.updateConfigFile`支持的 `settings/service.json`：未绑定游戏、固定本地配置和空services，由Creator自身迁移；运行时仅通过公开Profile读取game/configs/appConfigMaps/cscv，并精确核对迁移结果。拒绝已有配置、链接与已启动工程，不修改安装包或全局配置。受限VM直接执行同版SDK原始迁移/读取方法，证实缺配置时重现Config file error，迁移后enabledServices为空；此证据不是实机通过。
 
 上一轮dde82cd的Sorting2D生命周期和2字段读回通过，但关闭后完整原始stdout严格扫描发现27项诊断：3项缺失服务配置及24项SDK trackTimeEnd失败。campaign的project.log增量为零不能替代整会话原始日志验收；该整会话仍拒绝。自有PID6537已正常关闭，六项已撤销；唯一IAB标签停泊空白，用户允许的单次Sorting2D截图尚未使用。新冷启动通过macOS应用入口验证计时器诊断来源，原始失败不覆盖、不筛除。
+
+后处理相机门禁：同版SDK的Camera.usePostProcess默认false；新展示源显式写入其已审计序列化槽，并在原生快照只读核对公开getter及全局PostProcess，避免只有组件而未启用效果。f158519的完整verify1256项通过，此相机补齐仍需新检查点及实机。

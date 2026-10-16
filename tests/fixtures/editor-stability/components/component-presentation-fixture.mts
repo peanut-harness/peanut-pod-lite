@@ -104,7 +104,13 @@ export class ComponentPresentationFixture {
                 (entry.node as { __id__?: unknown } | undefined)?.__id__ === node)) document.attachBuiltinComponent(targetPath, dependency);
         }
         document.findComponentIndex(document.findNodeIndex(targetPath), type);
-        if (postProcessContext && req.highQualityRenderPipeline) document.setComponentProperty(targetPath, 'cc.PostProcess', { global: true });
+        if (postProcessContext && req.highQualityRenderPipeline) {
+            document.setComponentProperty(targetPath, 'cc.PostProcess', { global: true });
+            const cameras = document.entries.filter(entry => entry.__type__ === 'cc.Camera');
+            if (cameras.length !== 1 || !cameras[0]) throw new Error('component_presentation_post_camera_missing');
+            // 同版SDK公开usePostProcess getter的序列化槽，默认false不会执行后处理passes。
+            cameras[0]._usePostProcess = true;
+        }
         if (type === 'cc.Sprite' || type === 'cc.Sorting2D') {
             const backdrop = type === 'cc.Sorting2D'
                 ? document.addChildFromTemplate(parent, source('default_prefab/ui/Sprite.prefab'), 'SortingBackdrop') : null;

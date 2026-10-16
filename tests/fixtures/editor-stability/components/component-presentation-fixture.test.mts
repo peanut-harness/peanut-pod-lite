@@ -96,6 +96,7 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
                     const node = result.document.findNodeIndex(result.targetPath);
                     const post = result.document.entries[result.document.findComponentIndex(node, 'cc.PostProcess')];
                     assert(post); assert.equal(post.global, true);
+                    assert.equal(result.document.entries.find(entry => entry.__type__ === 'cc.Camera')?._usePostProcess, true);
                     result.document.findComponentIndex(node, 'cc.MeshRenderer');
                     result.document.findComponentIndex(node, row.componentType);
                     assert.equal(result.nativePassed, false); assert.equal(result.rendered, false);

@@ -55,6 +55,8 @@ class ComponentNativeScene {
     private static observe(component: object): unknown {
         const cc = require('cc');
         const type = cc.js.getClassName(component);
+        if (type === 'cc.Camera') return { enabled: Reflect.get(component, 'enabled'), usePostProcess: Reflect.get(component, 'usePostProcess') };
+        if (type === 'cc.PostProcess') return { enabled: Reflect.get(component, 'enabled'), global: Reflect.get(component, 'global') };
         if (type === 'cc.UIOpacity') return { opacity: Reflect.get(component, 'opacity') };
         if (type === 'cc.UIMeshRenderer') {
             const model: unknown = Reflect.get(component, 'modelComponent');
