@@ -12,6 +12,7 @@ import type { IComponentValueRecipe } from './component-value-recipe.mts';
 import { ComponentResourceBindings } from './component-resource-bindings.mts';
 import { ComponentContextValues } from './component-context-values.mts';
 import { ComponentAssemblyRequirements } from './component-assembly-requirements.mts';
+import { ComponentBlitScreenMaterial } from './component-blit-screen-material.mts';
 
 /**
  * @description 组件与全部公开字段的可执行输入配方；资源身份和原生加载仍需实机端口证明。
@@ -27,7 +28,7 @@ export class ComponentFieldFixtures {
     public static create(root: string, version: '3.8.3' | '3.8.7', declarations: readonly IComponentNativeDeclaration[]) {
         const catalog = new LumenCuratedSchemaCatalog(join(root, 'packages/engine/modules/lumen/bundled/schema'));
         const resources = ComponentResourceBindings.create(root, version);
-        const context = ComponentContextValues.create(root, resources);
+        const context = { ...ComponentContextValues.create(root, resources), ...ComponentBlitScreenMaterial.context(root, version) };
         const publicSchema = new LumenComponentPropertySchema(LumenCocosVersion.parse(version), catalog);
         const components = catalog.listComponentTypes().slice().sort().map((componentType) => {
             const declared = catalog.componentFields(componentType);

@@ -1,0 +1,33 @@
+{
+  "creatorVersion": "3.8.7",
+  "effectUuid": "15049ccd-4dd7-451e-a8ae-af66735c929e",
+  "purpose": "Authored material uses exact SDK full-screen post-process pass; generic mesh standard material is incompatible",
+  "sources": [
+    {
+      "path": "editor/assets/effects/pipeline/post-process/blit-screen.effect",
+      "sha256": "2c7105f4bbe79b1bf0f62186642fa44949a60c19023299fbd659c785efb0b68a"
+    },
+    {
+      "path": "editor/assets/effects/pipeline/post-process/blit-screen.effect.meta",
+      "sha256": "07f7aedcb41fcbb41e42cffa999c8f52b7b7f0021ab028a925f0d873bd0474f3"
+    },
+    {
+      "path": "editor/assets/effects/pipeline/post-process/chunks/vs.chunk",
+      "sha256": "6775bfd5e46a15035e3640337c244079ea59bdf93b7d5a8c56f845822ed1c463"
+    },
+    {
+      "path": "cocos/rendering/post-process/passes/blit-screen-pass.ts",
+      "sha256": "0aa4b4e4b961ee074b491f12e2354e11ee089aeebabc60c49c61b7261698e676"
+    }
+  ],
+  "authoredFiles": [
+    {
+      "path": "tests/fixtures/editor-stability/components/3.8.7/blit-screen-material/task51-blit-screen.mtl",
+      "sha256": "31b2f992acf05de88231fba78bc2abd2cb58b333b83b1d9153ccd11978d6d5ae"
+    },
+    {
+      "path": "tests/fixtures/editor-stability/components/3.8.7/blit-screen-material/task51-blit-screen.mtl.meta",
+      "sha256": "7d57fe4dd75a477c24ef44027f470c583aa49b1c0f712d7c74a418c717b58bf8"
+    }
+  ]
+}

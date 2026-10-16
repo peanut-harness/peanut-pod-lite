@@ -22,6 +22,7 @@ import { ComponentTerrainEffect } from './component-terrain-effect.mts';
 import { ComponentProjectUrlFiles } from './component-project-url-files.ts';
 import { ComponentTaskOwnership } from './component-task-ownership.mts';
 import { ComponentCreatorDiagnostics } from './component-creator-diagnostics.mts';
+import { ComponentBlitScreenMaterial } from './component-blit-screen-material.mts';
 
 const root = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
 const args = process.argv.slice(2);
@@ -42,6 +43,7 @@ const engine = join(resources, 'resources/3d/engine');
 if (engineModulesContext === 'post-process' && fixtureProfile !== 'component-matrix') throw new Error('component_native_post_requires_matrix');
 if (JSON.parse(readFileSync(join(engine, 'package.json'), 'utf8')).version !== version) throw new Error('component_native_sdk_version_mismatch');
 ComponentTerrainEffect.assertSdk(root, engine, version);
+if (fixtureProfile === 'component-matrix' && version === '3.8.7') ComponentBlitScreenMaterial.assertSdk(root, engine, version);
 const descriptor = verifyReleaseCandidate(join(root, 'release/peanut.pod-lite-0.2.0'), {
     expectedVersion: '0.2.0', expectedSourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
 });
@@ -80,6 +82,7 @@ const bindings = fixtureProfile === 'sprite-roundtrip' ? Object.fromEntries(Obje
     type === 'cc.SpriteFrame' || type === 'cc.Texture2D')) : fixtureProfile === 'component-matrix' && version === '3.8.3'
     ? Object.fromEntries(Object.entries(allBindings).filter(([type]) => type !== 'cc.TextureCube')) : allBindings;
 const sources = new Map(Object.values(bindings).flatMap((binding) => binding.sources).map((item) => [item.path, item]));
+if (fixtureProfile === 'component-matrix') for (const source of ComponentBlitScreenMaterial.binding(root, version)?.sources ?? []) sources.set(source.path, source);
 const ids = new Map<string, string>();
 const collect = (value: unknown): void => {
     if (!value || typeof value !== 'object') return;

@@ -132,3 +132,5 @@ Sorting2D原始重叠对照在原生字段为蓝色order1/红色order0时仍显�
 后处理相机门禁：同版SDK的Camera.usePostProcess默认false；新展示源显式写入其已审计序列化槽，并在原生快照只读核对公开getter及全局PostProcess，避免只有组件而未启用效果。f158519的完整verify1256项通过，此相机补齐仍需新检查点及实机。
 
 2026-10-16诊断续查：加入3.8.7同版启动器已有的metric输出开关、Node警告堆栈与ComponentManager只读监听器观测；不修改SDK、监听器阈值或日志门禁。SDK源码显示metrics同步末尾reset，缺少起始时间时打印trackTimeEnd失败，但尚未证明根因。111项组件回归通过；下一步为新clean候选的单变量冷启动对照，当前仅为诊断准备，不宣称GPU/监听器/SDK错误已修复，5.1仍未完成。
+
+2026-10-16诊断实证：897920d完整verify1256/1256、111项组件回归、官方pack/候选通过。新的无Host/Core单变量metric冷启动仍有2条SDK asset-db计时器错误；首次早到snapshot另造2条scene_missing（全保留），导入完成后场景观测成功。PID60227正常关闭。带Lite有界诊断PID66461：12次纯场景打开监听器稳定1/1；组件保存重开循环增长并越过10，警告堆栈指向SDK CompManager.registerCompMgrEvents→NodeManager.initWithScene。提前commit或全部写入时机的两种对照均未阻止增长，未修改阈值或移除监听器。8个默认后处理场景没有GL错误；仅将BlitScreen设为当前通用standard材质后即复现2条uniform-buffer错误。完整关闭后114条原始错误、2条警告，全部诊断运行明确拒绝验收。新修复只为Blit的4字段提供同版专用全屏材质和冻结SDK证明，并用公开query-is-ready等待场景就绪；20类资源和99/795分母不变，113项组件回归及定向严格检查通过，尚待clean新候选实机。SDK计时器及监听器仍未修复，5.1不勾选，不过滤、不改SDK、不开all、不发布或推送。

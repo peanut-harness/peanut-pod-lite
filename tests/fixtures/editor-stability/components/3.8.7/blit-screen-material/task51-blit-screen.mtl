@@ -1,0 +1,12 @@
+{
+  "__type__": "cc.Material",
+  "_name": "task51-blit-screen",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "15049ccd-4dd7-451e-a8ae-af66735c929e"
+  },
+  "_techIdx": 0,
+  "_defines": [],
+  "_props": []
+}

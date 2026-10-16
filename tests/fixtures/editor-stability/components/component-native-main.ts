@@ -83,6 +83,7 @@ class ComponentNativeMain {
             const host = await request('peanut-pod-lite-host', 'query-status');
             return { projectPath: this.project, creatorVersion: editor.App.version, pid: process.pid,
                 nodeVersion: process.versions.node, electronVersion: process.versions.electron,
+                sceneReady: await request('scene', 'query-is-ready'),
                 warningStacksEnabled: Reflect.get(process, 'traceProcessWarnings') === true,
                 effectiveEngineProfile: await editor.Profile.getConfig('engine'),
                 engineModulesProfile: await editor.Profile.getProject('engine', 'modules'),
@@ -98,6 +99,7 @@ class ComponentNativeMain {
                     engine: await editor.Profile.getConfig('engine', undefined, 'local'),
                 } };
         }
+        if (body.action === 'scene-readiness') return request('scene', 'query-is-ready');
         if (body.action === 'assets') {
             if (body.scope !== undefined && body.scope !== 'components') throw new Error('component_native_asset_scope_invalid');
             return request('asset-db', 'query-assets', { pattern: body.scope === 'components' ? 'db://assets/components/**' : 'db://assets/fixtures/**' });
