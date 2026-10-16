@@ -174,3 +174,38 @@ test('effective macro profile requires all exact SDK defaults while disk profile
     const missing = { ...active }; delete missing.ENABLE_TILEDMAP_CULLING;
     assert.throws(() => ComponentEngineModules.assertActiveMacros(missing, '3.8.7', 'post-process'), /active_macro_profile_mismatch/);
 });
+
+test('character context selects only PhysX instead of Bullet and keeps unrelated modules and automatic loading intact', () => {
+    const f = create();
+    try {
+        Object.assign(f.config.features, { 'physics-physx': { modules: ['physics-physx', 'physics-framework'] } });
+        Object.assign(f.config.constants, { LOAD_PHYSX_MANUALLY: { value: false } });
+        writeFileSync(join(f.engine, 'cc.config.json'), JSON.stringify(f.config));
+        ComponentEngineModules.stage(f.project, f.engine, '3.8.7', 'character-physx');
+        ComponentEngineModules.assertProject(f.project, '3.8.7', 'character-physx');
+        const modules = JSON.parse(readFileSync(f.path, 'utf8')).modules; const config = modules.configs.defaultConfig;
+        const baseline = JSON.parse(readFileSync(new URL('./3.8.7/engine-modules-sorting2d.json', import.meta.url), 'utf8')).modules.configs.defaultConfig;
+        assert.deepEqual(config.includeModules.filter((name: string) => name !== 'physics-physx'),
+            baseline.includeModules.filter((name: string) => name !== 'physics-ammo'));
+        const expected = structuredClone(baseline); expected.cache.physics._option = 'physics-physx';
+        expected.cache['physics-ammo']._value = false; expected.cache['physics-physx']._value = true;
+        delete expected.flags.LOAD_BULLET_MANUALLY; expected.flags.LOAD_PHYSX_MANUALLY = false; expected.includeModules = config.includeModules;
+        assert.deepEqual(config, expected);
+        const active = { ...modules, graphics: { pipeline: 'custom-pipeline', 'custom-pipeline-post-process': false } };
+        ComponentEngineModules.assertActive(active, '3.8.7', 'character-physx');
+        ComponentEngineModules.assertMacros(undefined, '3.8.7', 'character-physx');
+        assert.throws(() => ComponentEngineModules.assertActive(active, '3.8.7'), /active_profile_mismatch/u);
+        active.configs.defaultConfig.flags.LOAD_PHYSX_MANUALLY = true;
+        assert.throws(() => ComponentEngineModules.assertActive(active, '3.8.7', 'character-physx'), /active_profile_mismatch/u);
+    } finally { rmSync(f.root, { recursive: true, force: true }); }
+});
+
+test('PhysX context rejects unverified versions and missing SDK prerequisites without touching project settings', () => {
+    const f = create();
+    try {
+        const before = readFileSync(f.path);
+        assert.throws(() => ComponentEngineModules.stage(f.project, f.engine, '3.8.3', 'character-physx'), /physx_version_unverified/u);
+        assert.throws(() => ComponentEngineModules.stage(f.project, f.engine, '3.8.7', 'character-physx'), /physx_sdk_contract_invalid/u);
+        assert.deepEqual(readFileSync(f.path), before);
+    } finally { rmSync(f.root, { recursive: true, force: true }); }
+});

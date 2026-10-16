@@ -5,7 +5,7 @@ import { isDeepStrictEqual } from 'node:util';
 /**
  * @description 任务隔离工程的有限模块上下文；不是MCP暴露档位。
  */
-export type ComponentEngineContext = 'sorting' | 'post-process';
+export type ComponentEngineContext = 'sorting' | 'post-process' | 'character-physx';
 
 /**
  * @description 固定任务工程的精确引擎模块前置条件；不把组件存在和字段读回当作预览已启用排序。
@@ -36,6 +36,12 @@ export class ComponentEngineModules {
             if (!Array.isArray(post.modules) || !post.modules.includes('custom-pipeline-post-process')
                 || !Array.isArray(post.dependentModules) || !post.dependentModules.includes('custom-pipeline'))
                 throw new Error('component_engine_modules_post_sdk_contract_invalid');
+        }
+        if (context === 'character-physx') {
+            const physx = this.record(this.record(config.features)['physics-physx']);
+            if (!Array.isArray(physx.modules) || !physx.modules.includes('physics-physx') || !physx.modules.includes('physics-framework')
+                || this.record(this.record(config.constants).LOAD_PHYSX_MANUALLY).value !== false)
+                throw new Error('component_engine_modules_physx_sdk_contract_invalid');
         }
         const path = this.projectSettings(project, true); const present = existsSync(path);
         // 官方空工程模板尚无engine.json；版本来自本任务同版官方UI导出的工程配置。
@@ -86,7 +92,7 @@ export class ComponentEngineModules {
      */
     public static assertMacros(value: unknown, version: string, context: ComponentEngineContext = 'sorting'): void {
         if (!this.needsSorting(version, context)) return;
-        if (context === 'sorting' && value === undefined) return;
+        if (context !== 'post-process' && value === undefined) return;
         const expected = context === 'post-process' ? { CUSTOM_PIPELINE_NAME: 'Forward' } : {};
         if (!isDeepStrictEqual(value, expected)) throw new Error('component_engine_modules_macro_profile_mismatch');
     }
@@ -112,7 +118,7 @@ export class ComponentEngineModules {
      */
     public static context(value: unknown): ComponentEngineContext {
         if (value === undefined || value === 'sorting') return 'sorting';
-        if (value === 'post-process') return value;
+        if (value === 'post-process' || value === 'character-physx') return value;
         throw new Error('component_engine_modules_context_invalid');
     }
 
@@ -126,6 +132,7 @@ export class ComponentEngineModules {
         this.context(context);
         if (!['3.8.3', '3.8.7'].includes(version)) throw new Error('component_engine_modules_version_unsupported');
         if (context === 'post-process' && version !== '3.8.7') throw new Error('component_engine_modules_post_version_unverified');
+        if (context === 'character-physx' && version !== '3.8.7') throw new Error('component_engine_modules_physx_version_unverified');
         return version === '3.8.7';
     }
 
@@ -148,6 +155,21 @@ export class ComponentEngineModules {
             config.includeModules = [...config.includeModules, 'custom-pipeline-post-process'].sort();
             modules.configs = { ...this.record(modules.configs), defaultConfig: config };
             modules.graphics = { pipeline: 'custom-pipeline', 'custom-pipeline-post-process': true };
+        }
+        if (context === 'character-physx') {
+            const cache = this.record(config.cache); const physics = this.record(cache.physics);
+            const bullet = this.record(cache['physics-ammo']); const physx = this.record(cache['physics-physx']);
+            const flags = this.record(config.flags);
+            if (physics._option !== 'physics-ammo' || physics._value !== true || bullet._value !== true || physx._value !== false
+                || this.record(physx._flags).LOAD_PHYSX_MANUALLY !== false || flags.LOAD_BULLET_MANUALLY !== false)
+                throw new Error('component_engine_modules_physx_fixture_invalid');
+            config.cache = { ...cache, physics: { ...physics, _option: 'physics-physx' },
+                'physics-ammo': { ...bullet, _value: false }, 'physics-physx': { ...physx, _value: true } };
+            delete flags.LOAD_BULLET_MANUALLY; config.flags = { ...flags, LOAD_PHYSX_MANUALLY: false };
+            const included = config.includeModules;
+            if (!Array.isArray(included)) throw new Error('component_engine_modules_physx_fixture_invalid');
+            config.includeModules = included.filter((name: unknown) => name !== 'physics-ammo').concat('physics-physx').sort();
+            modules.configs = { ...this.record(modules.configs), defaultConfig: config };
         }
         return modules;
     }

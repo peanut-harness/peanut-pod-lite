@@ -27,6 +27,7 @@ export class ComponentSdkDiagnostics {
             sources: ipc.rawListeners(name).map((listener: Function) => Function.prototype.toString.call(listener)) }));
         const prefixes = ['/app.asar/builtin/asset-db/dist/browser/', '/app.asar/modules/editor-extensions/extensions/hierarchy/dist/',
             '/app.asar/modules/editor-extensions/extensions/scene/dist/',
+            '/app.asar/builtin/scene/dist/script/', '/app.asar/builtin/window/dist/',
             '/app.asar/node_modules/@editor/creator/dist/metrics/', '/app.asar/node_modules/@editor/creator/dist/window/'];
         const methods: unknown[] = [];
         for (const [path, entry] of Object.entries(cache)) {
@@ -136,7 +137,9 @@ export class ComponentSdkDiagnostics {
     public static lifecycle(cce: any): unknown {
         return { component: this.sources(cce?.Component, ['init', 'registerCompMgrEvents', 'unregisterCompMgrEvents', 'clear']),
             node: this.sources(cce?.Node, ['initWithScene', 'onSceneOpened', 'onSceneClosed', 'clear', 'registerNodeMgrEvents', 'unregisterNodeMgrEvents']),
-            facade: this.sources(cce?.SceneFacadeManager, ['openScene', 'closeScene', 'onSceneOpened', 'getCurrentFacade']) };
+            facade: this.sources(cce?.SceneFacadeManager, ['openScene', 'closeScene', 'onSceneOpened', 'getCurrentFacade']),
+            startup: this.sources(cce?.Startup, ['requireEngine', 'configEngine', 'openEngine', 'initManager']),
+            preview: this.sources(cce?.EditorPreview, ['init', 'initialize', 'open', 'onSceneReady', 'onSceneOpened']) };
     }
 
     /**

@@ -30,7 +30,9 @@ const version = args[args.indexOf('--creator-version') + 1];
 const app = args[args.indexOf('--creator-app') + 1];
 const runId = args[args.indexOf('--run-id') + 1];
 const owner = ComponentTaskOwnership.current(root);
-const engineModulesContext = ComponentEngineModules.context(args.includes('--post-process') ? 'post-process' : undefined);
+if (args.includes('--post-process') && args.includes('--character-physx')) throw new Error('component_native_engine_context_conflict');
+const engineModulesContext = ComponentEngineModules.context(args.includes('--post-process') ? 'post-process'
+    : args.includes('--character-physx') ? 'character-physx' : undefined);
 const fixtureProfile = args.includes('--component-matrix') ? 'component-matrix'
     : args.includes('--sprite-roundtrip') ? 'sprite-roundtrip' : 'resource-import';
 if (!['3.8.3', '3.8.7'].includes(version ?? '') || !app || !runId || !/^[a-z0-9][a-z0-9-]{1,63}$/u.test(runId)) throw new Error('component_native_project_arguments_invalid');
@@ -44,9 +46,11 @@ if (sdkTimerTrace && (!sdkListenerCompat || version !== '3.8.7')) throw new Erro
 if (sdkListenerCompat && version !== '3.8.7') throw new Error('component_sdk_listener_version_unverified');
 ComponentCreatorDiagnostics.args(metricsDiagnostics, version);
 if (engineModulesContext === 'post-process' && version !== '3.8.7') throw new Error('component_native_post_version_unverified');
+if (engineModulesContext === 'character-physx' && version !== '3.8.7') throw new Error('component_native_physx_version_unverified');
 const resources = join(realpathSync(app), 'Contents/Resources');
 const engine = join(resources, 'resources/3d/engine');
 if (engineModulesContext === 'post-process' && fixtureProfile !== 'component-matrix') throw new Error('component_native_post_requires_matrix');
+if (engineModulesContext === 'character-physx' && fixtureProfile !== 'component-matrix') throw new Error('component_native_physx_requires_matrix');
 if (JSON.parse(readFileSync(join(engine, 'package.json'), 'utf8')).version !== version) throw new Error('component_native_sdk_version_mismatch');
 ComponentTerrainEffect.assertSdk(root, engine, version);
 if (fixtureProfile === 'component-matrix' && version === '3.8.7') ComponentBlitScreenMaterial.assertSdk(root, engine, version);

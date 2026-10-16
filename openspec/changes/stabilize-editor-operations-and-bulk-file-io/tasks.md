@@ -140,3 +140,5 @@ Sorting2D原始重叠对照在原生字段为蓝色order1/红色order0时仍显�
 2026-10-16 SDK续查：bd8a7c7只读原生观测确认protected reset仅重置队列、不清空起始Map，排除先前猜测；SDK CompManager.init每次重新bind并覆盖旧引用，unregister只能释放最后一对。项目内显式sdk-listener-compat兼容修复已实现，严格核对3.8.7及3个原方法摘要，注册前通过SDK原配对方法只释放自身旧回调，保留其它监听器及阈值；真实SDK原方法离线故障对照和20轮幂等回归通过，117项组件回归及定向类型通过，待新clean候选实机。独立probe不调用SDK修改接口，继续只读提取已缓存计时适配器；SDK安装包、原工程和旧证据不变，计时器错误未修复，5.1不勾选。自有只读诊断实例已正常关闭，整段仍2条SDK原始错误、零警告。
 
 2026-10-16启动计时修复准备：真实SDK工作进程方法证明冷启动_preStartDB遗漏worker-startup start而_startupDB结束它；动态_startDB已有配对。新显式项目内兼容仅在真实_preStartDB入口补齐SDK start，严格核对版本和实机函数摘要，不修改SDK安装、不重放操作、不合成计时、不改变end或日志。真实SDK方法离线对照复现并通过修复配对，待完整verify、候选和实机全段日志复验；监听器已实机10轮稳定1/1，UI重开计时及SDK退出sender仍待排查，5.1不勾选。
+
+2026-10-16 ba91afc实机：完整verify1256、123项组件夹具、官方打包与候选通过。两个数据库真实start/end各1/1，启动缺start错误已消除；10轮保存重开42次监听器注册持续1/1、阈值10。正常关闭自有实例后仍52条原始错误（main-window ready重复end 41、hierarchy重叠计时10、Chromium Widget 1），整轮验收false，无过滤。继续准备3.8.7单PhysX上下文，125项夹具通过，实际后端与2控制器17字段待验；蒙皮和Tiled源拥有层次仍待补，5.1保持未完成。

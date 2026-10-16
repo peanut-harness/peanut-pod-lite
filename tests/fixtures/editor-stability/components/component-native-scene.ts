@@ -86,5 +86,5 @@ class ComponentNativeScene {
 
 export const methods = { loadAsset: ComponentNativeScene.loadAsset, snapshot: ComponentNativeScene.snapshot,
     sdkLifecycleDiagnostics: () => ({ ...ComponentSdkDiagnostics.lifecycle(Reflect.get(globalThis, 'cce')) as object,
-        metricsAdapters: ComponentSdkDiagnostics.adapters(require.cache) }),
+        metricsAdapters: ComponentSdkDiagnostics.adapters(require.cache), timerRoutes: ComponentSdkDiagnostics.timerRoutes(require.cache, null) }),
     fields: (nodeSuffix: string, componentType: string, expectedSceneUuid: string) => ComponentNativeFieldReader.read(nodeSuffix, componentType, expectedSceneUuid) };

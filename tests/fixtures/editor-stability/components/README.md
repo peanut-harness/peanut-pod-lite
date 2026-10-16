@@ -56,7 +56,7 @@ SDK诊断续查仅增加两个固定只读动作：`sdk-metrics-diagnostics`读�
 
 另可显式启用`--sdk-timer-trace`，仅允许上述新登记3.8.7兼容工程。独立扩展透明包裹SDK唯一计时Map实例的set/has/get/delete/clear，原样返回API结果，记录真实输入、结果和调用栈；不补造start、不修改时间值、不捕获原API异常、不过滤日志，卸载恢复自己安装的方法。该观测与SDK方法/IPC只读探针分开，所有原始失败继续阻止整轮通过。
 
-显式`--sdk-startup-timer-compat`要求同版监听器兼容工程，仅在实际SDK资产工作进程修复冷启动`_preStartDB`遗漏的worker-startup计时start；原始SDK`_startupDB`的end、动态`_startDB`路径和日志不变。安装前核验3.8.7、3个数据库方法及Metrics公开start的实机原文摘要；在真实数据库开始工作前调用一次SDK start，不合成时间、不重放启动、不缓存或抑制end。独立worker回执记录真实调用与PID，health必须确认internal/assets实际覆盖。`sdk-startup-timer-source.json`冻结实际SDK原方法；离线原SDK重放复现缺start，修复对照验证真实工作前start与原end配对、未知源码写前拒绝。工作进程只读观测仅取函数文本，renderer的缓存API是抛错桩，禁止调用。新修复尚待clean候选完整验证和实机，5.1未完成。
+显式`--sdk-startup-timer-compat`要求同版监听器兼容工程，仅在实际SDK资产工作进程修复冷启动`_preStartDB`遗漏的worker-startup计时start；原始SDK`_startupDB`的end、动态`_startDB`路径和日志不变。安装前核验3.8.7、3个数据库方法及Metrics公开start的实机原文摘要；在真实数据库开始工作前调用一次SDK start，不合成时间、不重放启动、不缓存或抑制end。独立worker回执记录真实调用与PID，health必须确认internal/assets实际覆盖。`sdk-startup-timer-source.json`冻结实际SDK原方法；离线原SDK重放复现缺start，修复对照验证真实工作前start与原end配对、未知源码写前拒绝。工作进程只读观测仅取函数文本，renderer的缓存API是抛错桩，禁止调用。ba91afc完整verify1256项、123项夹具及新候选通过；真实internal/assets各一次start/end，10轮42次监听器注册稳定1/1。整个会话仍52条原始错误，5.1未完成。
 
 在输出的 `project/` 内运行 `npm --ignore-scripts=false run creator`，保留 precreator/creator/postcreator。macOS统一使用 `open -na` 的应用启动入口，捕获应用stdout/stderr并记录实际Creator PID；同工程已有进程时拒绝重复启动。`open -W` 仅有启动器退出状态，不能据此宣称 Creator 的退出码为 0。本工程已有实例时拒绝重启，交回会话附着流程。所有二进制 stdout/stderr 和 project.log 完整保留。
 
@@ -144,3 +144,5 @@ UI模型原展示截图为黑屏；新增普通方向光对照仍黑屏。实际
 整会话仍拒绝：完整stdout有212条SDK trackTimeEnd错误，stderr有1条SSL及6条uniform-buffer WebGL错误、2条MaxListenersExceededWarning和1条trace提示；project.log没有这些诊断。旧campaign的accepted只覆盖当时project.log增量，不能作全渠道验收，字段观测不升级为后处理呈现通过。新门禁在campaign开始前扫描全部原始来源，逐MCP动作与只读观测同时检查stdout/stderr/启动器及project.log，识别类型化Node警告、异步诊断、缺失/链接/轮换/截断/前缀改写；不忽略SDK消息，也不能重取游标跳过启动错误。已关闭会话的离线回放在0次MCP/0组件前拒绝219错误与3警告，保留99/795完整分母。110项组件回归、严格类型及源码规范通过；新源须clean检查点完整verify/候选，不用关闭的旧实例假装新候选实机。六项已撤销，退回Label后仅正常关闭自有PID50275，启动器退出0不等于Creator退出码0；唯一IAB标签停泊空白。5.1仍未完成，后处理呈现、原始诊断及角色控制器/蒙皮/Tiled专门上下文仍待解决；不勾选、不推送、不发布、不开all。
 
 2026-10-16无Host/Core只读对照：代码检查点4b797c3完整verify1256/1256、110项组件回归及官方pack/候选通过后，在新的登记工程首次启动前移除Host/Core，保留同版SDK、精确后处理配置、原始Bloom场景和只读探针；公开Host查询明确不存在，实际Forward/PostProcessBuilder、Main Camera.usePostProcess及全局PostProcess均确认。未调用MCP写、未开预览或截图，场景SHA不变；正常关闭自有PID59543后，五个原始来源仍有2条SDK asset-db启动计时器错误，零警告。本单场景冷启动未复现循环中的GPU/监听器问题，不能据此判定其归因；不将该对照记作产品候选原生通过。最终进程核对仅余原先两个3.8.3工程，自有50275/59543均消失。当前零诊断门禁阻止继续有效campaign；5.1保持未完成，先解决/定位原始诊断，再补角色控制器、蒙皮和Tiled上下文，禁止忽略SDK错误。此后仅更新文档，源码/配置不变，复用4b797c3完整验证；知识另做scoped同步并交sync。
+
+`--character-physx`仅为3.8.7新矩阵工程准备角色控制器后端；从冻结模块选择精确替换physics-ammo为physics-physx，保持其它模块、宏和自动装载设置，拒绝与`--post-process`并用。SDK声明与Profile配置通过不代表实际PhysXWorld成立；原生矩阵仍须实际构造器读回及全段零诊断，未知版本不进行猜测配置。
