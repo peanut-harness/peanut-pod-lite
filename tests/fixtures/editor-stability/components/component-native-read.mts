@@ -77,7 +77,7 @@ class ComponentNativeRead {
             const context = ComponentEngineModules.context(registration.engineModulesContext);
             ComponentEngineModules.assertProject(project, String(registration.creatorVersion), context);
             ComponentEngineModules.assertActive(health.engineModulesProfile, String(registration.creatorVersion), context);
-            ComponentEngineModules.assertMacros(health.engineMacroProfile, String(registration.creatorVersion), context);
+            ComponentEngineModules.assertActiveMacros(health.engineMacroProfile, String(registration.creatorVersion), context);
         }
         if (registration.offlineServiceProfile === true) ComponentServiceProfile.assertActive(health.serviceConfigProfile, String(registration.creatorVersion));
         const { CpmPackageStore } = createRequire(import.meta.url)('../../../../packages/hosts/modules/creator-38/src/cpm-package-store.js');

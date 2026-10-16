@@ -82,7 +82,7 @@ export class ComponentNativeClient {
                         const context = ComponentEngineModules.context(this.registration.engineModulesContext);
                         ComponentEngineModules.assertProject(this.project, String(this.registration.creatorVersion), context);
                         ComponentEngineModules.assertActive(health.engineModulesProfile, String(this.registration.creatorVersion), context);
-                        ComponentEngineModules.assertMacros(health.engineMacroProfile, String(this.registration.creatorVersion), context);
+                        ComponentEngineModules.assertActiveMacros(health.engineMacroProfile, String(this.registration.creatorVersion), context);
                     }
                     if (this.registration.offlineServiceProfile === true) ComponentServiceProfile.assertActive(health.serviceConfigProfile, String(this.registration.creatorVersion));
                     const { CpmPackageStore } = createRequire(import.meta.url)('../../../../packages/hosts/modules/creator-38/src/cpm-package-store.js');
@@ -190,7 +190,9 @@ export class ComponentNativeClient {
      * @returns 原始result。
      */
     public async mcp(body: Record<string, unknown>): Promise<unknown> {
-        return this.request('cocos-mcp.json', '/mcp', 'x-peanut-mcp-token', { connectionId: this.connectionId, ...body });
+        const execute = (): Promise<unknown> => this.request('cocos-mcp.json', '/mcp', 'x-peanut-mcp-token', { connectionId: this.connectionId, ...body });
+        if (body.action !== 'call') return execute();
+        return ComponentNativeLogGuard.run(this.project, 'mcp:' + String(body.name), execute, event => { this.events.push(event); this.save(); });
     }
 
     /**

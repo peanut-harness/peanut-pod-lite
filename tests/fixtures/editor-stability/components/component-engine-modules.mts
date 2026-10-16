@@ -92,6 +92,20 @@ export class ComponentEngineModules {
     }
 
     /**
+     * @description 有效Profile会补齐同版SDK宏默认值；逐项精确比较，磁盘覆盖项仍单独核验。
+     * @param value 公开Profile读回的完整宏配置。
+     * @param version 实际版本。
+     * @param context 登记上下文。
+     */
+    public static assertActiveMacros(value: unknown, version: string, context: ComponentEngineContext = 'sorting'): void {
+        if (!this.needsSorting(version, context)) return;
+        const fixture = this.record(JSON.parse(readFileSync(new URL('./3.8.7/engine-macro-defaults.json', import.meta.url), 'utf8')));
+        if (fixture.creatorVersion !== version) throw new Error('component_engine_macro_fixture_version_invalid');
+        const expected = { ...this.record(fixture.macroConfig), CUSTOM_PIPELINE_NAME: context === 'post-process' ? 'Forward' : 'Builtin' };
+        if (!isDeepStrictEqual(value, expected)) throw new Error('component_engine_modules_active_macro_profile_mismatch');
+    }
+
+    /**
      * @description 只接受已声明的上下文；旧登记未提供时保持原排序上下文。
      * @param value 登记或CLI中的上下文。
      * @returns 校验后的上下文。

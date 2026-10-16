@@ -6,6 +6,8 @@ import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 import { ComponentNativeAssetLoader } from './component-native-asset-loader.ts';
 import { ComponentNativeMatrixReport } from './component-native-matrix-report.mts';
 import { ComponentNativeResourceSelector } from './component-native-resource-selector.mts';
+import { ComponentPostProcessContext } from './component-post-process-context.mts';
+import { ComponentNativeRawLogs } from './component-native-raw-logs.mts';
 import { ComponentProjectUrlResolver } from './component-project-url-resolver.mts';
 
 /**
@@ -96,6 +98,15 @@ class ComponentNativeMatrix {
      * @returns 分母不变的完整状态报告。
      */
     public async run(selected: readonly string[]): Promise<void> {
+        const history = ComponentNativeRawLogs.readAll(this.client.project);
+        if (history.newErrors.length || history.newWarnings.length) {
+            this.campaignLog = { step: 'matrix-whole-raw-preflight', actionSucceeded: false,
+                reason: 'component_matrix_session_diagnostics_present', result: { logChecked: true, verified: false,
+                    newErrorCount: history.newErrors.length, newWarningCount: history.newWarnings.length,
+                    newErrors: history.newErrors, newWarnings: history.newWarnings, rawSources: history.sources } };
+            this.client.events.push(this.campaignLog); this.client.save(); this.save();
+            throw new Error('component_matrix_session_diagnostics_present');
+        }
         await ComponentNativeLogGuard.run(this.client.project, 'matrix-campaign', () => this.runMatrix(selected), event => {
             this.campaignLog = event; this.client.events.push(event); this.save();
         });
@@ -245,7 +256,12 @@ class ComponentNativeMatrix {
             }
         }
         for (const [root, value] of roots) {
-            await this.client.write('lumen-comp-set', { ...input, componentType: type, props: { [root]: value.input } });
+            const props = ComponentPostProcessContext.patch(join(this.string(this.client.registration.creatorApp), 'Contents/Resources/resources/3d/engine'),
+                this.string(this.client.registration.creatorVersion), type, root, value.input);
+            if (Object.keys(props).length > 1) {
+                this.client.events.push({ step: 'native-field-persistence-context', componentType: type, root, props }); this.client.save();
+            }
+            await this.client.write('lumen-comp-set', { ...input, componentType: type, props });
             await this.commit(scene); persisted = this.hash(scene);
             await this.open(control); await this.open(scene);
             const read = await this.read(suffix, type, true, expectedSceneUuid);

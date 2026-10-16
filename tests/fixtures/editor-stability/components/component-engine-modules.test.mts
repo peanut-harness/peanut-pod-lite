@@ -160,3 +160,17 @@ test('unproven post-process versions, missing SDK dependencies and undeclared co
         assert.deepEqual(readFileSync(f.path), before);
     } finally { rmSync(f.root, { recursive: true, force: true }); }
 });
+
+test('effective macro profile requires all exact SDK defaults while disk profile permits only explicit overrides', () => {
+    const defaults = JSON.parse(readFileSync(new URL('./3.8.7/engine-macro-defaults.json', import.meta.url), 'utf8')).macroConfig;
+    ComponentEngineModules.assertActiveMacros(defaults, '3.8.7');
+    const active = { ...defaults, CUSTOM_PIPELINE_NAME: 'Forward' };
+    ComponentEngineModules.assertActiveMacros(active, '3.8.7', 'post-process');
+    ComponentEngineModules.assertMacros({ CUSTOM_PIPELINE_NAME: 'Forward' }, '3.8.7', 'post-process');
+    assert.throws(() => ComponentEngineModules.assertMacros(active, '3.8.7', 'post-process'), /macro_profile_mismatch/);
+    for (const value of [{}, { ...active, unexpected: true }, { ...active, ENABLE_FLOAT_OUTPUT: true },
+        { ...active, TOUCH_TIMEOUT: 0 }, { ...active, CUSTOM_PIPELINE_NAME: 'Builtin' }])
+        assert.throws(() => ComponentEngineModules.assertActiveMacros(value, '3.8.7', 'post-process'), /active_macro_profile_mismatch/);
+    const missing = { ...active }; delete missing.ENABLE_TILEDMAP_CULLING;
+    assert.throws(() => ComponentEngineModules.assertActiveMacros(missing, '3.8.7', 'post-process'), /active_macro_profile_mismatch/);
+});

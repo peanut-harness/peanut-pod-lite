@@ -2,6 +2,8 @@ import { realpathSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { ProjectLogPostflightMonitor } from '../../../../packages/engine/modules/runtime/src/cocos/foundation/editor-resource/project-log-postflight-monitor.ts';
 import type { IProjectLogCheckpoint, IProjectLogPostflightResult } from '../../../../packages/engine/modules/runtime/src/cocos/foundation/editor-resource/project-log-postflight-monitor.ts';
+import { ComponentNativeRawLogs } from './component-native-raw-logs.mts';
+import type { ComponentRawCheckpoint } from './component-native-raw-logs.mts';
 
 /**
  * @description 原生只读观测和整轮矩阵都必须验收日志增量，不能把有警告的字段读回记作干净通过。
@@ -30,8 +32,8 @@ export class ComponentNativeLogGuard {
      */
     public static async run<T>(project: string, action: string, execute: () => Promise<T>, record: (event: Record<string, unknown>) => void): Promise<T> {
         const monitor = new ProjectLogPostflightMonitor(); const path = join(project, 'temp/logs/project.log');
-        let identity: string;
-        try { identity = this.identity(path); }
+        let identity: string; let raw: ComponentRawCheckpoint[];
+        try { identity = this.identity(path); raw = ComponentNativeRawLogs.checkpoint(project); }
         catch (error) {
             record({ step: 'native-log-preflight', action, actionSucceeded: false, verified: false, reason: 'component_native_log_unavailable' });
             throw error;
@@ -41,7 +43,7 @@ export class ComponentNativeLogGuard {
         try { const value = await execute(); actionSucceeded = true; return value; }
         finally {
             let result: IProjectLogPostflightResult;
-            try { result = await this.settled(monitor, checkpoint, identity); }
+            try { result = await this.settled(monitor, checkpoint, identity, raw); }
             catch (error) {
                 record({ step: 'native-log-postflight', action, actionSucceeded, verified: false, reason: error instanceof Error ? error.message : String(error) });
                 throw error;
@@ -58,16 +60,26 @@ export class ComponentNativeLogGuard {
      * @param monitor 既有日志分类器。
      * @param checkpoint 动作前的字节偏移。
      * @param identity 动作前真实文件身份。
+     * @param raw 动作前原始通道游标。
      * @returns 稳定的日志增量。
      */
-    private static async settled(monitor: ProjectLogPostflightMonitor, checkpoint: IProjectLogCheckpoint, identity: string): Promise<IProjectLogPostflightResult> {
+    private static async settled(monitor: ProjectLogPostflightMonitor, checkpoint: IProjectLogCheckpoint, identity: string,
+        raw: readonly ComponentRawCheckpoint[]): Promise<IProjectLogPostflightResult> {
         const deadline = Date.now() + this._budgetMs; let quietSince = Date.now(); let size = checkpoint.offset;
+        let rawSizes = raw.map(item => item.offset).join(',');
         do {
             if (this.identity(checkpoint.path) !== identity) { throw new Error('component_native_log_replaced'); }
             const next = statSync(checkpoint.path).size;
             if (next < checkpoint.offset || next < size) { throw new Error('component_native_log_truncated'); }
             if (next !== size) { quietSince = Date.now(); size = next; }
-            const result = monitor.readDelta(checkpoint);
+            const projectResult = monitor.readDelta(checkpoint); const delta = ComponentNativeRawLogs.readDelta(raw);
+            const nextRawSizes = delta.sources.map(item => item.end).join(',');
+            if (nextRawSizes !== rawSizes) { quietSince = Date.now(); rawSizes = nextRawSizes; }
+            const result = { ...projectResult, rawSources: delta.sources,
+                newErrorCount: projectResult.newErrorCount + delta.newErrors.length,
+                newWarningCount: projectResult.newWarningCount + delta.newWarnings.length,
+                newErrors: [...projectResult.newErrors, ...delta.newErrors], newWarnings: [...projectResult.newWarnings, ...delta.newWarnings],
+                verified: projectResult.verified && !delta.newErrors.length && !delta.newWarnings.length };
             if (!result.verified || result.newErrorCount || result.newWarningCount) { return result; }
             if (Date.now() - quietSince >= this._quietMs) { return result; }
             if (Date.now() >= deadline) { throw new Error('component_native_log_not_settled'); }
