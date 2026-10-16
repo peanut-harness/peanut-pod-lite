@@ -6,6 +6,15 @@ export class ComponentSdkWindowDiagnostics {
      * @description 精确限定当前SDK安装的唯一主窗口，仅发送本文件固定的只读观测函数。
      */
     public static async read(electron: any, creatorApp: string, version: string): Promise<unknown> {
+        const contents = this.mainContents(electron, creatorApp, version);
+        if (!contents) throw new Error('component_sdk_window_diagnostics_main_window_identity_invalid');
+        return { webContentsId: contents.id, observation: await contents.executeJavaScript(this.rendererSource(), false) };
+    }
+
+    /**
+     * @description 只定位当前SDK的唯一现有主窗口；启动期间尚未创建窗口时返回null，不创建窗口。
+     */
+    public static mainContents(electron: any, creatorApp: string, version: string): any {
         if (version !== '3.8.7') throw new Error('component_sdk_window_diagnostics_version_unverified');
         const expected = creatorApp + '/Contents/Resources/app.asar/node_modules/@editor/creator/static/windows/main.html';
         const windows = electron.BrowserWindow.getAllWindows().filter((window: any) => {
@@ -13,9 +22,8 @@ export class ComponentSdkWindowDiagnostics {
             const url = new URL(address);
             return url.hostname === '' && decodeURIComponent(url.pathname) === expected;
         });
-        if (windows.length !== 1 || windows[0].webContents.isDestroyed()) throw new Error('component_sdk_window_diagnostics_main_window_identity_invalid');
-        const contents = windows[0].webContents;
-        return { webContentsId: contents.id, observation: await contents.executeJavaScript(this.rendererSource(), false) };
+        if (windows.length > 1) throw new Error('component_sdk_window_diagnostics_main_window_identity_invalid');
+        return windows.length === 1 && !windows[0].webContents.isDestroyed() ? windows[0].webContents : null;
     }
 
     /**
@@ -65,6 +73,7 @@ export class ComponentSdkWindowDiagnostics {
         }
         const editor = Reflect.get(globalThis, 'Editor');
         walker.walk(editor?.Message?.__protected__, 'Editor.Message.__protected__', 0);
-        return { complete, inspectedObjects: seen.size, modules, sources };
+        const rendererTrace = Reflect.get(globalThis, Symbol.for('peanut.component.sdk-renderer-timer-trace'));
+        return { complete, inspectedObjects: seen.size, modules, sources, rendererTimerTrace: rendererTrace?.state ?? null };
     }
 }

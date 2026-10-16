@@ -80,6 +80,16 @@ export class ComponentNativeClient {
                         if (compatibility.installed !== true || compatibility.creatorVersion !== this.registration.creatorVersion
                             || compatibility.maximum !== 10) throw new Error('component_sdk_listener_compat_unverified');
                         this.events.push({ step: 'sdk-listener-compat-observed', result: compatibility }); this.save();
+                        if (this.registration.sdkRendererTimerTrace === true && this.record(compatibility.rendererTimerTrace).installed !== true)
+                            throw new Error('component_matrix_probe_not_ready');
+                    }
+                    if (this.registration.sdkRendererTimerTrace === true) {
+                        const path = join(this.output, 'sdk-window-renderer-trace-state.json');
+                        const state = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null;
+                        if (state?.failed === true) throw new Error('component_sdk_renderer_trace_install_failed:' + state.error);
+                        if (state?.installed !== true) throw new Error('component_matrix_probe_not_ready');
+                        if (state.scope !== this.project || state.creatorVersion !== this.registration.creatorVersion)
+                            throw new Error('component_sdk_renderer_trace_identity_mismatch');
                     }
                     if (this.registration.sdkStartupTimerCompat === true) {
                         const compatibility = JSON.parse(readFileSync(join(this.output, 'sdk-startup-timer-compat-state.json'), 'utf8'));

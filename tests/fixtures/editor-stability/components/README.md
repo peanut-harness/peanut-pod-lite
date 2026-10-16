@@ -148,3 +148,5 @@ UI模型原展示截图为黑屏；新增普通方向光对照仍黑屏。实际
 `--character-physx`仅为3.8.7新矩阵工程准备角色控制器后端；从冻结模块选择精确替换physics-ammo为physics-physx，保持其它模块和自动装载设置，显式固化同版SDK有效默认宏CUSTOM_PIPELINE_NAME=Builtin，拒绝与`--post-process`并用。SDK声明与Profile配置通过不代表实际PhysXWorld成立；原生矩阵仍须实际构造器读回及全段零诊断，未知版本不进行猜测配置。
 
 固定`sdk-window-timer-diagnostics`仅供显式sdkTimerTrace的3.8.7诊断工程。只选择当前SDK安装文件URL匹配的唯一现有主窗口，通过Electron在该窗口执行本仓固定只读观测函数，读取已缓存SDK计时及广播回调文本。调用方不能指定脚本、窗口地址或参数；不执行观测到的SDK函数文本，不调用回调、不写节点或配置，不增窗口或截图；版本、窗口不唯一或身份不匹配即拒绝，原始日志门禁保留。
+
+`--sdk-timer-trace`另在scene与已有主窗口安装发送端透明观测，只包装同版已缓存SDK IPC的send，记录main-window:ready/hierarchy:render-tree结束消息的真实调用栈；this、参数、返回的原Sender/Promise和异常全部原样传递，不更改消息、时间或SDK日志。共享导出只包装一次并用自身租约配对恢复；预算只限制额外诊断记录且显式标记不完整，不影响任何SDK调用或原始日志。独立只读probe只读取自身观测状态；实际健康校验须确认两个发送端观测就绪后才开放内容写入。

@@ -73,7 +73,7 @@ mkdirSync(join(project, 'node_modules'), { recursive: true });
 cpSync(join(engine, 'node_modules/tslib'), join(project, 'node_modules/tslib'), { recursive: true });
 const registration = { kind: 'worktree-local-validation-project', task: '5.1',
     owner, change: 'stabilize-editor-operations-and-bulk-file-io',
-    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics, sdkListenerCompat, sdkTimerTrace, sdkStartupTimerCompat,
+    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics, sdkListenerCompat, sdkTimerTrace, sdkRendererTimerTrace: sdkTimerTrace, sdkStartupTimerCompat,
     candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
     registeredAt: new Date().toISOString(), userAuthorization: '推进5.1真实导入、后端确认和原生加载验证；按Hub操作Cocos，只关闭自己实例' };
 writeFileSync(join(output, 'project-ownership.json'), JSON.stringify(registration, null, 2) + '\n');
@@ -96,6 +96,8 @@ if (sdkListenerCompat) {
     buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-listener-scene.ts', import.meta.url))], outfile: join(compat, 'scene.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14', external: ['cc'] });
     if (sdkTimerTrace) buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-timer-trace-main.ts', import.meta.url))], outfile: join(compat, 'main.js'),
+        bundle: true, platform: 'node', format: 'cjs', target: 'node14' });
+    if (sdkTimerTrace) buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-window-timer-trace.ts', import.meta.url))], outfile: join(compat, 'window-trace.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14' });
     if (sdkTimerTrace || sdkStartupTimerCompat) buildSync({ entryPoints: [fileURLToPath(new URL(sdkStartupTimerCompat ? './component-sdk-startup-timer-worker.ts' : './component-sdk-worker-diagnostics.ts', import.meta.url))], outfile: join(compat, 'worker.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14' });
