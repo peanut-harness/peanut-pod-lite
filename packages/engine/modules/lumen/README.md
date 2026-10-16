@@ -267,3 +267,5 @@ Creator 3.8.3 / 3.8.7 的 MeshRenderer `receiveShadow` 保留公开 boolean，�
 Creator 3.8.3 / 3.8.7 的 SpriteRenderer 及其继承声明均没有目录 sortLayer、sortOrder 对应成员；3.8.3 原生读回也确认缺失。两项保留在完整目录，标记 writable:false、writeRefusedReason:native_unsupported；单独及混合补丁在任何改动前拒绝，不猜测为其它排序参数。未知版本保持原行为；新候选的原生拒绝验证仍待执行。
 
 UIMeshRenderer在3.8.3/3.8.7中是需要同节点ModelRenderer的Component，不能按普通互斥渲染器拒绝其必需载体。节点约定允许其与官方说明的MeshRenderer或ParticleSystem精确配对，组合节点采用UI_2D层；单独载体保持原有世界层行为，额外渲染器和其它UI渲染组合仍拒绝。5.1夹具在桥接器加载前准备真实载体，展示使用完整SDK模型；新的候选及原生呈现仍待验证。
+
+Creator 3.8.3/3.8.7 的两类蒙皮渲染器继承 MeshRenderer 的接收阴影枚举：公开 receiveShadow 仍为 boolean，写入 _shadowReceivingMode 的0/1，保留各自五字段目录。向已有骨骼动画层次添加蒙皮渲染器时，仅在祖先链有唯一 SkeletalAnimation 才恢复 skinningRoot；多控制器先拒绝。合批初始单元仅从同一动画根、同源 glTF 资源且相对变换均为单位变换的真实子模型取得，其他相对变换明确拒绝自动合批，不猜测矩阵或生成资产；没有源模型不会伪造单元。该准备逻辑不代表新候选已通过实机或实际呈现。

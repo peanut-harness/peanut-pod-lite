@@ -1443,6 +1443,7 @@ export class LumenPrefabDocument {
             node: { __id__: nodeIndex },
             _enabled: true,
             _id: '',
+            ...LumenNativeComponentBinding.defaults(this, componentType, nodeIndex, this._propertySchema),
         };
         if (componentType === 'cc.UITransform') {
             return {

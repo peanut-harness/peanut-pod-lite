@@ -23,6 +23,7 @@ import { ComponentProjectUrlFiles } from './component-project-url-files.ts';
 import { ComponentTaskOwnership } from './component-task-ownership.mts';
 import { ComponentCreatorDiagnostics } from './component-creator-diagnostics.mts';
 import { ComponentBlitScreenMaterial } from './component-blit-screen-material.mts';
+import { ComponentSkinnedHierarchy } from './component-skinned-hierarchy.mts';
 
 const root = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
 const args = process.argv.slice(2);
@@ -42,6 +43,8 @@ const sdkListenerCompat = args.includes('--sdk-listener-compat');
 const sdkTimerTrace = args.includes('--sdk-timer-trace');
 const sdkStartupTimerCompat = args.includes('--sdk-startup-timer-compat');
 const sdkUiReadyCompat = args.includes('--sdk-ui-ready-compat');
+const skinnedHierarchy = args.includes('--skinned-hierarchy');
+if (skinnedHierarchy && (version !== '3.8.7' || fixtureProfile !== 'component-matrix')) throw new Error('component_skinned_requires_verified_matrix');
 if (sdkUiReadyCompat && (!sdkListenerCompat || !sdkStartupTimerCompat || version !== '3.8.7')) throw new Error('component_sdk_ui_ready_requires_compat_project');
 if (sdkStartupTimerCompat && (!sdkListenerCompat || version !== '3.8.7')) throw new Error('component_sdk_startup_timer_requires_compat_project');
 if (sdkTimerTrace && (!sdkListenerCompat || version !== '3.8.7')) throw new Error('component_sdk_timer_trace_requires_compat_project');
@@ -75,7 +78,7 @@ mkdirSync(join(project, 'node_modules'), { recursive: true });
 cpSync(join(engine, 'node_modules/tslib'), join(project, 'node_modules/tslib'), { recursive: true });
 const registration = { kind: 'worktree-local-validation-project', task: '5.1',
     owner, change: 'stabilize-editor-operations-and-bulk-file-io',
-    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics, sdkListenerCompat, sdkTimerTrace, sdkRendererTimerTrace: sdkTimerTrace, sdkStartupTimerCompat, sdkUiReadyCompat,
+    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics, sdkListenerCompat, sdkTimerTrace, sdkRendererTimerTrace: sdkTimerTrace, sdkStartupTimerCompat, sdkUiReadyCompat, skinnedHierarchy,
     candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
     registeredAt: new Date().toISOString(), userAuthorization: '推进5.1真实导入、后端确认和原生加载验证；按Hub操作Cocos，只关闭自己实例' };
 writeFileSync(join(output, 'project-ownership.json'), JSON.stringify(registration, null, 2) + '\n');
@@ -150,6 +153,7 @@ for (const source of sources.values()) {
     staged.push({ source, relativePath, sha256: createHash('sha256').update(authored).digest('hex'), originalUnchanged: true, derivation });
 }
 const importMetaAuthoring = ComponentSpriteImport.stage(project, engine);
+const skinnedContext = skinnedHierarchy ? ComponentSkinnedHierarchy.stage(root, project, engine, version) : null;
 ComponentProjectUrlFiles.stage(root, project, registration);
 const sceneSource = join(root, `evidence/task-5.1/checkpoint-510400c-${version}/assets/components/cc.Sprite.scene`);
 mkdirSync(join(project, 'assets/components'), { recursive: true }); copyFileSync(sceneSource, join(project, 'assets/components/cc.Sprite.scene'));
@@ -159,13 +163,13 @@ let matrixStaging: unknown = null;
 if (fixtureProfile === 'component-matrix') {
     const audit = ComponentCatalogAudit.create(root, engine, version);
     ComponentCatalogAudit.validate(JSON.parse(readFileSync(join(root, `tests/fixtures/editor-stability/components/${version}/component-assembly-audit.json`), 'utf8')), audit);
-    const fields = ComponentFieldFixtures.create(root, version, audit.nativeDeclarations);
+    const fields = ComponentFieldFixtures.create(root, version, audit.nativeDeclarations, skinnedHierarchy);
     const rows = fields.components.map((row) => {
-        const assembled = ComponentSceneFixture.create(root, version, row, audit.nativeDeclarations, true);
+        const assembled = ComponentSceneFixture.create(root, version, row, audit.nativeDeclarations, true, skinnedContext);
         if (assembled.status === 'blocked') return { componentType: row.componentType, status: 'blocked', blockers: assembled.blockers };
         const lifecycle = ComponentLifecycleFixture.create(assembled.document, version, row.componentType);
         lifecycle.save(project, false, LumenCocosVersion.parse(version));
-        const presentation = ComponentPresentationFixture.create(engine, version, row, engineModulesContext === 'post-process');
+        const presentation = ComponentPresentationFixture.create(engine, version, row, engineModulesContext === 'post-process', skinnedContext);
         if (presentation.status === 'authored-presentation-native-pending') ComponentPresentationFixture.saveForNativeImport(presentation.document, project, version);
         const { document: presentationDocument, ...presentationEvidence } = presentation.status === 'authored-presentation-native-pending'
             ? presentation : { ...presentation, document: null };

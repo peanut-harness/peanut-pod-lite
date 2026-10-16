@@ -8,6 +8,21 @@ import type { IComponentResourceBinding, IComponentValueRecipe } from './compone
  */
 export class ComponentContextValues {
     /**
+     * @description 蒙皮专用配方从相同glTF的实际导入子资源选动画，保持普通Animation的原独立来源。
+     * @param bindings 已核对的真实资源闭包。
+     * @returns 同源动画和SDK合法合批输入；不增加公开字段分母。
+     */
+    public static skinned(bindings: Readonly<Record<string, IComponentResourceBinding>>): Readonly<Record<string, IComponentValueRecipe>> {
+        const mesh = bindings['cc.Mesh'];
+        if (!mesh || mesh.sources.filter(source => source.path.endsWith('.gltf')).length !== 1) throw new Error('component_skinned_gltf_source_not_unique');
+        const clip: IComponentValueRecipe = { form: 'resource', resource: { ...mesh, nativeType: 'cc.AnimationClip',
+            selector: '相同glTF原生导入的唯一AnimationClip；禁止替换为独立default.anim' } };
+        return { 'cc.SkeletalAnimation.defaultClip': clip, 'cc.SkeletalAnimation.clips': { form: 'list', items: [clip] },
+            'cc.SkinnedMeshBatchRenderer.atlasSize': { form: 'literal', value: 1024 },
+            'cc.SkinnedMeshBatchRenderer.batchableTextureNames': { form: 'list', items: [] } };
+    }
+
+    /**
      * @description 固定源数据约束的字段值；URL 在本次原生probe回环socket启动后解析并核验真实字节。
      * @param root 当前产品工作树。
      * @param bindings 已独立核对原始摘要的资源闭包。

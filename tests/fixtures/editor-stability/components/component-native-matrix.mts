@@ -9,6 +9,7 @@ import { ComponentNativeResourceSelector } from './component-native-resource-sel
 import { ComponentPostProcessContext } from './component-post-process-context.mts';
 import { ComponentNativeRawLogs } from './component-native-raw-logs.mts';
 import { ComponentProjectUrlResolver } from './component-project-url-resolver.mts';
+import { ComponentNativeSkinnedContext } from './component-native-skinned-context';
 
 /**
  * @description 保留99组件/795字段分母，逐场景验证实际六项写、原生getter和拒绝后的零文件变化。
@@ -209,12 +210,16 @@ class ComponentNativeMatrix {
             try { roots.set(root, this.resolve(field.rootValue, paths)); }
             catch (error) { fieldRows.push({ id: field.id, status: 'native-input-blocked', reason: error instanceof Error ? error.message : String(error) }); }
         }
-        const resources = [...new Set([`db://${scene}`, ...[...roots.values()].flatMap(value => value.resources),
+        const skinnedResources = this.client.record(component.assemblyRequirements).importedSkinnedHierarchy === true
+            ? ['cc.Mesh', 'cc.Skeleton', 'cc.AnimationClip', 'cc.Material'].flatMap(nativeType =>
+                ComponentNativeResourceSelector.resolve({ ...this.client.record(this.resourceBindings['cc.Mesh']), nativeType }, this.assets).resources) : [];
+        const resources = [...new Set([`db://${scene}`, ...skinnedResources, ...[...roots.values()].flatMap(value => value.resources),
             ...(mesh?.resources ?? []), ...(material?.resources ?? [])])];
         const input = { prefabRelativePath: scene, nodePath: target, resources };
         await this.open(scene);
         const initial = this.client.record(await this.client.probe('component-fields', { nodeSuffix: suffix, componentType: type, expectedSceneUuid }));
         this.requireScene(initial, expectedSceneUuid);
+        if (initial.present === true) this.assertSkinnedContext(initial, type);
         if (initial.present === true) {
             await this.client.write('lumen-comp-rm', { ...input, componentType: type, confirmDestructive: true });
         } else if (initial.present !== false || initial.reason !== 'target-component-missing') {
@@ -381,11 +386,27 @@ class ComponentNativeMatrix {
             const result = this.client.record(await this.client.probe('component-fields', { nodeSuffix: suffix, componentType: type, expectedSceneUuid }));
             this.requireScene(result, expectedSceneUuid);
             if (result.present === present && (!present || result.valid === true)) {
+                if (present) this.assertSkinnedContext(result, type);
                 this.client.events.push({ step: 'native-fields', componentType: type, result }); this.client.save(); return result;
             }
             if (Date.now() >= until) throw new Error('component_matrix_native_component_presence_mismatch:' + type);
             await new Promise(done => setTimeout(done, 500));
         } while (true);
+    }
+
+    /**
+     * @description 用实际AssetDB来源核对每次蒙皮依赖读回，不能用暂存成功释放原生门禁。
+     * @param result 当前真实组件快照。
+     * @param type 当前组件类型。
+     */
+    private assertSkinnedContext(result: Record<string, unknown>, type: string): void {
+        if (!['cc.SkeletalAnimation', 'cc.SkinnedMeshRenderer', 'cc.SkinnedMeshBatchRenderer'].includes(type)) return;
+        if (this.client.registration.skinnedHierarchy !== true) throw new Error('component_skinned_native_project_not_registered');
+        const source = ComponentNativeResourceSelector.resolve(this.client.record(this.resourceBindings['cc.Mesh']), this.assets);
+        const proof = this.client.record(JSON.parse(readFileSync(join(this.client.output, 'skinned-source-staging.json'), 'utf8')));
+        const base = source.input.split('@')[0];
+        if (!base || base !== proof.sourceUuid) throw new Error('component_skinned_native_source_identity_mismatch');
+        ComponentNativeSkinnedContext.assert(result.skinnedContext, type, base, this.recordsOrStrings(proof.jointPaths));
     }
 
     /**

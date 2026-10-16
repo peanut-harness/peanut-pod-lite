@@ -23,12 +23,14 @@ export class ComponentFieldFixtures {
      * @param root 当前工作树。
      * @param version 单一精确版本。
      * @param declarations 当前版本原生源码证明。
+     * @param skinnedHierarchy 为真实glTF导入层次选择同源动画；默认夹具保持原契约。
      * @returns 完整输入配方与未验证的原生后验约束。
      */
-    public static create(root: string, version: '3.8.3' | '3.8.7', declarations: readonly IComponentNativeDeclaration[]) {
+    public static create(root: string, version: '3.8.3' | '3.8.7', declarations: readonly IComponentNativeDeclaration[], skinnedHierarchy = false) {
         const catalog = new LumenCuratedSchemaCatalog(join(root, 'packages/engine/modules/lumen/bundled/schema'));
         const resources = ComponentResourceBindings.create(root, version);
-        const context = { ...ComponentContextValues.create(root, resources), ...ComponentBlitScreenMaterial.context(root, version) };
+        const context = { ...ComponentContextValues.create(root, resources), ...ComponentBlitScreenMaterial.context(root, version),
+            ...(skinnedHierarchy ? ComponentContextValues.skinned(resources) : {}) };
         const publicSchema = new LumenComponentPropertySchema(LumenCocosVersion.parse(version), catalog);
         const components = catalog.listComponentTypes().slice().sort().map((componentType) => {
             const declared = catalog.componentFields(componentType);

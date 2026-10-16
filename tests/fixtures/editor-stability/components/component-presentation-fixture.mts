@@ -6,6 +6,7 @@ import { LumenComponentPropertySchema } from '../../../../packages/engine/module
 import { LumenCocosVersion } from '../../../../packages/engine/modules/lumen/source/schema/cocos-version.ts';
 import { ComponentSceneIntegrity } from './component-scene-integrity.mts';
 import type { ComponentFieldFixtures } from './component-field-fixtures.mts';
+import type { IComponentSkinnedContext } from './component-skinned-hierarchy.mts';
 
 /**
  * @description 已冻结的单组件字段与依赖配方。
@@ -55,9 +56,11 @@ export class ComponentPresentationFixture {
      * @param version 实际Creator版本。
      * @param row 已审计组件及依赖闭包。
      * @param postProcessContext 是否暂存已登记后处理候选；仍须原生管线与呈现验收。
+     * @param skinnedContext 已冻结真实导入层次的同源副本；仍须原生和呈现验收。
      * @returns 完整场景和来源，或明确待补条件；始终没有原生呈现通过状态。
      */
-    public static create(engine: string, version: '3.8.3' | '3.8.7', row: ComponentRow, postProcessContext = false) {
+    public static create(engine: string, version: '3.8.3' | '3.8.7', row: ComponentRow, postProcessContext = false,
+        skinnedContext: IComponentSkinnedContext | null = null) {
         if (postProcessContext && version !== '3.8.7') throw new Error('component_presentation_post_version_unverified');
         const type = row.componentType; const req = row.assemblyRequirements;
         const container = type === 'cc.UIStaticBatch';
@@ -70,8 +73,8 @@ export class ComponentPresentationFixture {
         if (!row.dependencyPlan.attachOrder.includes(type)) reasons.push('presentation-native-component-unavailable');
         if (req.highQualityRenderPipeline && !postProcessContext) reasons.push('presentation-active-pipeline-and-effect-context-required');
         if (req.sourceOwnedTiledComponent) reasons.push('presentation-native-tiled-hierarchy-required');
-        if (req.importedSkinnedHierarchy) reasons.push('presentation-same-source-skinned-animation-required');
-        if (!ui && !cube && type !== 'cc.Canvas') reasons.push('presentation-component-specific-content-required');
+        if (req.importedSkinnedHierarchy && !skinnedContext) reasons.push('presentation-same-source-skinned-animation-required');
+        if (!ui && !cube && type !== 'cc.Canvas' && !(req.importedSkinnedHierarchy && skinnedContext)) reasons.push('presentation-component-specific-content-required');
         if (reasons.length) return { status: 'presentation-context-pending' as const, componentType: type,
             reasons, nativePassed: false as const, rendered: false as const };
         const sources: { path: string; sha256: string }[] = [];
@@ -86,7 +89,13 @@ export class ComponentPresentationFixture {
             source(`default_file_content/scene/${is2d ? 'scene-2d' : 'default'}.scene`), 'Root');
         document.setPropertySchema(new LumenComponentPropertySchema(LumenCocosVersion.parse(version)));
         const parent = is2d ? '/Root/Canvas' : '/Root';
-        const targetPath = type === 'cc.Canvas' ? parent : container ? document.addChildFromSpec(parent, { name: 'Target', components: ['cc.UITransform'] }) : document.addChildFromTemplate(parent,
+        const modelRoot = req.importedSkinnedHierarchy && skinnedContext ? document.addChildFromTemplate(parent, skinnedContext.templatePath, 'Model') : null;
+        if (modelRoot && skinnedContext) sources.push({ path: skinnedContext.templatePath, sha256: createHash('sha256').update(readFileSync(skinnedContext.templatePath)).digest('hex') });
+        let targetPath: string;
+        if (modelRoot) targetPath = type === 'cc.SkinnedMeshRenderer' ? modelRoot + '/Triangle' : modelRoot;
+        else if (type === 'cc.Canvas') targetPath = parent;
+        else if (container) targetPath = document.addChildFromSpec(parent, { name: 'Target', components: ['cc.UITransform'] });
+        else targetPath = document.addChildFromTemplate(parent,
             source(`default_prefab/${is2d && !uiModel ? 'ui/' + (ui ?? 'Sprite') : '3d/Cube'}.prefab`), 'Target');
         if (uiModel) {
             const lightPath = document.addChildFromTemplate('/Root', source('default_prefab/light/Directional Light.prefab'), 'Main Light');
@@ -104,6 +113,14 @@ export class ComponentPresentationFixture {
                 (entry.node as { __id__?: unknown } | undefined)?.__id__ === node)) document.attachBuiltinComponent(targetPath, dependency);
         }
         document.findComponentIndex(document.findNodeIndex(targetPath), type);
+        if (modelRoot) {
+            document.setComponentProperty(modelRoot, 'cc.SkeletalAnimation', { playOnLoad: true, useBakedAnimation: false });
+            if (type === 'cc.SkinnedMeshBatchRenderer') {
+                const sourceRenderer = document.entries[document.findComponentIndex(document.findNodeIndex(modelRoot + '/Triangle'), 'cc.SkinnedMeshRenderer')];
+                if (!sourceRenderer) throw new Error('component_presentation_skinned_source_missing');
+                sourceRenderer._enabled = false;
+            }
+        }
         if (postProcessContext && req.highQualityRenderPipeline) {
             document.setComponentProperty(targetPath, 'cc.PostProcess', { global: true });
             const cameras = document.entries.filter(entry => entry.__type__ === 'cc.Camera');

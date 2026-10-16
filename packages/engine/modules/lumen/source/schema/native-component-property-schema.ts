@@ -30,6 +30,9 @@ export class LumenNativeComponentPropertySchema {
         if (!['3.8.3', '3.8.7'].includes(version.toString())) { return mesh; }
         const names = this._serializedNames[componentType];
         return mesh.map(field => {
+            if (['cc.SkinnedMeshRenderer', 'cc.SkinnedMeshBatchRenderer'].includes(componentType) && field.apiName === 'receiveShadow') {
+                return { ...field, serializedName: '_shadowReceivingMode', nativeBooleanEnum: true };
+            }
             if (field.embeddedType != null && field.nestedFields != null) {
                 field = { ...field, nestedFields: this.forVersion(version, field.embeddedType, field.nestedFields) };
             }

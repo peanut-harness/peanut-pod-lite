@@ -10,6 +10,7 @@ import type { IComponentValueRecipe } from './component-value-recipe.mts';
 import { ComponentDependencyPlanner } from './component-dependency-plan.mts';
 import { ComponentSceneIntegrity } from './component-scene-integrity.mts';
 import { ComponentAssemblyRequirements } from './component-assembly-requirements.mts';
+import type { IComponentSkinnedContext } from './component-skinned-hierarchy.mts';
 
 /**
  * @description 与已生成字段矩阵相同的单组件输入。
@@ -27,17 +28,18 @@ export class ComponentSceneFixture {
      * @param row 当前组件字段配方。
      * @param declarations 同版本声明和 requireComponent 证明。
      * @param stageBackendCandidates 仅暂存后端待验候选；不解除原生验收要求。
+     * @param skinnedContext 已核对SDK来源的层次副本；原生资源和关节仍待验。
      * @returns 实际场景或完整阻塞原因；没有原生通过状态。
      */
     public static create(root: string, version: '3.8.3' | '3.8.7', row: ComponentFixtureRow,
-        declarations: readonly IComponentNativeDeclaration[], stageBackendCandidates = false) {
+        declarations: readonly IComponentNativeDeclaration[], stageBackendCandidates = false, skinnedContext: IComponentSkinnedContext | null = null) {
         const plan = ComponentDependencyPlanner.create(row.componentType, declarations, row.dependencyProviders);
         if (JSON.stringify(plan) !== JSON.stringify(row.dependencyPlan)) throw new Error('component_scene_dependency_plan_stale');
         const requirements = ComponentAssemblyRequirements.create(row.componentType, declarations.find((item) => item.type === row.componentType));
         if (JSON.stringify(requirements) !== JSON.stringify(row.assemblyRequirements)) throw new Error('component_scene_requirements_stale');
         const blockers = [...plan.blockers];
         if (requirements.sourceOwnedTiledComponent) blockers.push('source-owned-tiled-not-initialized');
-        if (requirements.importedSkinnedHierarchy) blockers.push('same-source-skinned-hierarchy-not-imported');
+        if (requirements.importedSkinnedHierarchy && !skinnedContext) blockers.push('same-source-skinned-hierarchy-not-imported');
         const pendingRequirements: string[] = [];
         if (requirements.physicsBackend) pendingRequirements.push(`active-physics-backend-unverified:${requirements.physicsBackend}`);
         if (requirements.highQualityRenderPipeline) pendingRequirements.push('active-high-quality-render-pipeline-unverified');
@@ -47,6 +49,9 @@ export class ComponentSceneFixture {
         if (!/^[a-zA-Z0-9_.]+$/u.test(row.componentType)) throw new Error('component_scene_type_invalid');
         const document = LumenPrefabDocument.cloneFromTemplate(`assets/components/${row.componentType}.scene`, template.path, 'Root');
         document.setPropertySchema(new LumenComponentPropertySchema(LumenCocosVersion.parse(version)));
+        const imported = requirements.importedSkinnedHierarchy && skinnedContext
+            ? document.addChildFromTemplate('/Root', skinnedContext.templatePath, 'Model') : null;
+        const skinnedTarget = imported && row.componentType === 'cc.SkinnedMeshRenderer' ? imported + '/Triangle' : imported;
         const paths = new Map<string, string>();
         const ensure = (path: string): void => {
             if (!/^\/Root(?:\/[a-zA-Z0-9_]+)*$/u.test(path)) throw new Error('component_scene_node_path_invalid');
@@ -62,7 +67,8 @@ export class ComponentSceneFixture {
             const dependency = ComponentDependencyPlanner.create(type, declarations, row.dependencyProviders);
             if (dependency.blockers.length) throw new Error(`component_scene_reference_dependency_blocked:${type}`);
             const ui = dependency.attachOrder.includes('cc.UITransform') || (logicalPath === row.nodePath && requirements.uiScene);
-            const actualPath = ui ? logicalPath.replace('/Root/', '/Root/Canvas/') : logicalPath;
+            const actualPath = logicalPath === row.nodePath && skinnedTarget ? skinnedTarget
+                : ui ? logicalPath.replace('/Root/', '/Root/Canvas/') : logicalPath;
             const prior = paths.get(logicalPath);
             if (prior && prior !== actualPath) throw new Error('component_scene_reference_path_conflict');
             paths.set(logicalPath, actualPath); ensure(actualPath);

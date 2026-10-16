@@ -1,4 +1,5 @@
 import { ComponentNativeRangeReader } from './component-native-range-reader';
+import { ComponentNativeSkinnedContext } from './component-native-skinned-context';
 
 /**
  * @description 在真实场景进程读取版本固定白名单中的公开字段，不提供写入或代码执行。
@@ -39,6 +40,7 @@ export class ComponentNativeFieldReader {
         const component: unknown = components[0];
         if (components.length !== 1 || !this.isRecord(component)) return { present: false, reason: 'target-component-missing', nodeSuffix, componentType, sceneUuid };
         return { present: true, type: cc.js.getClassName(component), uuid: component.uuid, valid: cc.isValid(component), nodeSuffix, sceneUuid,
+            skinnedContext: ComponentNativeSkinnedContext.read(component),
             fields: row.cases.map((field: unknown) => {
                 if (!this.isRecord(field) || typeof field.id !== 'string' || !Array.isArray(field.selector))
                     throw new Error('component_native_field_shape');
