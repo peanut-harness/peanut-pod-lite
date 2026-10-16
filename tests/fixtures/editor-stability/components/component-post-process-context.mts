@@ -17,8 +17,8 @@ export class ComponentPostProcessContext {
      */
     public static patch(engine: string, version: string, type: string, root: string, value: unknown): Record<string, unknown> {
         if (type !== 'cc.BlitScreen' || root !== 'activeMaterials') return { [root]: value };
-        if (version !== '3.8.7') throw new Error('component_post_material_context_version_unverified');
-        const proof = JSON.parse(readFileSync(new URL('./3.8.7/blit-screen-material-context.json', import.meta.url), 'utf8'));
+        if (!['3.8.3', '3.8.7'].includes(version)) throw new Error('component_post_material_context_version_unverified');
+        const proof = JSON.parse(readFileSync(new URL(`./${version}/blit-screen-material-context.json`, import.meta.url), 'utf8'));
         const sdk = realpathSync(engine); const path = join(sdk, proof.reference);
         if (proof.creatorVersion !== version || JSON.parse(readFileSync(join(sdk, 'package.json'), 'utf8')).version !== version
             || realpathSync(path) !== path || createHash('sha256').update(readFileSync(path)).digest('hex') !== proof.sha256)

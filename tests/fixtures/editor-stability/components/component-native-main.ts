@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as crypto from 'node:crypto';
 import { createRequire } from 'node:module';
+import { ComponentOwnedCreatorQuit } from './component-owned-creator-quit';
 import { EditorMcpPreviewWindowInspector } from '../../../../packages/engine/modules/mcp/src/editor-mcp-preview-window-inspector';
 import { ComponentNativeAssetLoader } from './component-native-asset-loader';
 import { ComponentProjectUrlFiles } from './component-project-url-files';
@@ -11,7 +12,7 @@ import { ComponentSdkWindowDiagnostics } from './component-sdk-window-diagnostic
 import { ComponentSdkSceneCacheSources } from './component-sdk-scene-cache-sources';
 
 /**
- * @description 隔离工程内的有界原生观测入口；不提供任意消息或代码执行接口。
+ * @description 隔离工程内的有界原生观测及所属进程退出入口；不提供任意消息或代码执行接口。
  */
 class ComponentNativeMain {
     private static server: http.Server | null = null;
@@ -21,6 +22,8 @@ class ComponentNativeMain {
     /**
      * @description 与认证probe共享回环socket的两份固定静态夹具。
      */
+    private static quitRequested = false;
+
     private static fixtures: ComponentProjectUrlFiles | null = null;
 
     /**
@@ -44,9 +47,18 @@ class ComponentNativeMain {
             request.on('end', async () => {
                 response.setHeader('content-type', 'application/json');
                 try {
-                    if (request.method !== 'POST' || request.url !== '/probe' || request.headers['x-component-token'] !== this.token)
+                    if (request.method !== 'POST' || !['/probe', '/owned-quit'].includes(request.url ?? '') || request.headers['x-component-token'] !== this.token)
                         throw new Error('component_native_request_denied');
                     const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+                    if (request.url === '/owned-quit') {
+                        if (this.quitRequested) throw new Error('component_owned_quit_already_requested');
+                        const lease = JSON.parse(fs.readFileSync(path.join(this.project, '..', 'creator-owned-start.json'), 'utf8'));
+                        const editor = Reflect.get(globalThis, 'Editor');
+                        const prepared = ComponentOwnedCreatorQuit.prepare(editor, this.registration, lease, body);
+                        this.quitRequested = true;
+                        response.once('finish', () => setImmediate(prepared.run));
+                        response.end(JSON.stringify({ ok: true, result: prepared.receipt })); return;
+                    }
                     const result = await this.call(body);
                     response.end(JSON.stringify({ ok: true, result }));
                 } catch (error) {
@@ -136,6 +148,7 @@ class ComponentNativeMain {
                 sceneReady: await request('scene', 'query-is-ready'),
                 warningStacksEnabled: Reflect.get(process, 'traceProcessWarnings') === true,
                 effectiveEngineProfile: await editor.Profile.getConfig('engine'),
+                ownedQuitSdkSource: this.registration.sdkOwnedQuit === true ? ComponentOwnedCreatorQuit.inspect(editor) : null,
                 engineModulesProfile: await editor.Profile.getProject('engine', 'modules'),
                 engineMacroProfile: await editor.Profile.getProject('engine', 'macroConfig'),
                 serviceConfigProfile: {

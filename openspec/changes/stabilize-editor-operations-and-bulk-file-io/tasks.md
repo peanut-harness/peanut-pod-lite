@@ -176,3 +176,5 @@ Sorting2D原始重叠对照在原生字段为蓝色order1/红色order0时仍显�
 - 2026-10-16 内嵌TMX续验：`tiled-inline-383-20261016`、`tiled-inline-387-20261016`在候选`1a06c39`分别完成Tiled 4组件/5字段和生命周期；正常退出后5类原始日志各0错0警，监听器1/1、max10，唯一Verbose预览0诊断。保留99/795分母、renderedAcceptance=false及5.1未完成；随后补3.8.3蒙皮，来源冻结不代表原生通过。
 
 - 2026-10-16 后续5.1：`skinned-source-383-20261016`在fd64cd3完成3组件/14字段、展示依赖及正常退出原始5源零诊断。`remaining-default-383-20261016`完成51/365（358读回、7拒绝），UI ready1264次max1，监听器1/1；正常退出Guest-view错误2条导致整轮拒绝，原报告不覆盖。修复3.8.3缺失Sorting2D/UISkew仍可挂载的缺口，并独立实现该版Custom后处理/PhysX Profile与专用Blit；新后端、版本拒绝、退出错误仍待后续实机复验，5.1不勾选。
+
+- 2026-10-16 `0804dc0`完整verify1268通过；3.8.3 Custom/WebPipeline/PostProcessBuilder及缺失类原子拒绝实机已证，后处理字段被夹具旧版本前置条件拦住、整轮拒绝且退出5源零诊断。补3.8.3 Blit双字段持久化前置，并依据原始SDK App.quit窗口退出顺序新增严格所属进程生命周期入口；拒绝其它PID/owner/run/project、脚本/API和SDK漂移，MCP六能力不变。新退出和后处理仍待下一候选实机，不撤回365字段会话退出错误，5.1仍不勾选。

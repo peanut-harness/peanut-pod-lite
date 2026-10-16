@@ -180,6 +180,17 @@ export class ComponentNativeClient {
     }
 
     /**
+     * @description 独立的所属进程生命周期入口；不扩展六项业务能力，不接受脚本或其它应用目标。
+     */
+    public async ownedQuit(): Promise<unknown> {
+        if (this.registration.sdkOwnedQuit !== true || this.registration.creatorVersion !== '3.8.3')
+            throw new Error('component_owned_quit_not_registered');
+        return this.request('component-probe.json', '/owned-quit', 'x-component-token', {
+            pid: this.lease.pid, owner: this.registration.owner, runId: this.registration.runId, projectPath: this.project,
+        });
+    }
+
+    /**
      * @description 只读真实原生观测入口，每次重新读取描述符。
      * @param action 固定窄观测动作。
      * @param input 有界只读参数。

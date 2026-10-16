@@ -2,16 +2,17 @@ import { closeSync, fstatSync, openSync, readSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
- * @description 仅读SDK归档中三个固定配置契约文件，不载入、求值或执行SDK模块。
+ * @description 仅读SDK归档中四个固定生命周期/配置契约文件，不载入、求值或执行SDK模块。
  */
 export class ComponentSdkArchive {
     /**
      * @description 有界解析ASAR头及固定叶文件，拒绝链接、解包重定向和截断。
      */
-    public static read(resources: string, kind: 'scene-profile' | 'service-config' | 'engine-profile'): Buffer {
+    public static read(resources: string, kind: 'scene-profile' | 'service-config' | 'engine-profile' | 'app-lifecycle'): Buffer {
         const target = kind === 'scene-profile' ? ['builtin', 'scene', 'package.json']
             : kind === 'service-config' ? ['extension', 'cocos-service', 'utils', 'config.js']
-            : kind === 'engine-profile' ? ['builtin', 'engine', 'package.json'] : null;
+            : kind === 'engine-profile' ? ['builtin', 'engine', 'package.json']
+            : kind === 'app-lifecycle' ? ['node_modules', '@editor', 'creator', 'dist', 'app', 'index.ccc'] : null;
         if (!target) throw new Error('component_sdk_archive_kind_invalid');
         const fd = openSync(join(resources, 'app.asar'), 'r');
         try {

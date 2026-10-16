@@ -3,6 +3,7 @@ import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
+import { ComponentNativeClient } from './component-native-client.mts';
 import { ComponentTaskOwnership } from './component-task-ownership.mts';
 
 /**
@@ -31,10 +32,14 @@ class ComponentCreatorClose {
         if (!identity()) throw new Error('component_creator_close_original_process_missing');
         const receipt = await ComponentNativeLogGuard.run(project, 'creator-normal-close', async () => {
             const requestedAt = new Date().toISOString();
-            const result = execFileSync('/usr/bin/osascript', ['-l', 'JavaScript', '-e',
-                `ObjC.import('AppKit'); var app=$.NSRunningApplication.runningApplicationWithProcessIdentifier(${lease.pid}); if(!app) throw Error('owned instance missing'); app.terminate;`], { encoding: 'utf8' }).trim();
+            const sdk = registration.sdkOwnedQuit === true;
+            const sdkResult = sdk ? await new ComponentNativeClient(project).ownedQuit() : null;
+            const result = sdk ? sdkResult && typeof sdkResult === 'object' && Reflect.get(sdkResult, 'accepted') === true
+                && Reflect.get(sdkResult, 'pid') === lease.pid ? 'true' : 'false'
+                : execFileSync('/usr/bin/osascript', ['-l', 'JavaScript', '-e',
+                    `ObjC.import('AppKit'); var app=$.NSRunningApplication.runningApplicationWithProcessIdentifier(${lease.pid}); if(!app) throw Error('owned instance missing'); app.terminate;`], { encoding: 'utf8' }).trim();
             writeFileSync(join(output, 'owned-normal-close-request.json'), JSON.stringify({
-                pid: lease.pid, method: 'pid-scoped-NSRunningApplication-normal-terminate', requestedAt, result,
+                pid: lease.pid, method: sdk ? 'pid-scoped-original-sdk-public-App.quit' : 'pid-scoped-NSRunningApplication-normal-terminate', requestedAt, result, sdkResult,
             }, null, 2) + '\n', { flag: 'wx' });
             if (result !== 'true') throw new Error('component_creator_normal_close_not_accepted');
             const until = Date.now() + 30000;
@@ -47,7 +52,7 @@ class ComponentCreatorClose {
                 observedExitedAt: new Date().toISOString(), originalProcessGone: true, forced: false };
             writeFileSync(join(output, 'owned-normal-close-receipt.json'), JSON.stringify(closed, null, 2) + '\n', { flag: 'wx' });
             return closed;
-        }, event => writeFileSync(join(output, 'owned-normal-close-postflight.json'), JSON.stringify(event, null, 2) + '\n', { flag: 'wx' }));
+        }, event => writeFileSync(join(output, registration.sdkOwnedQuit === true ? 'owned-sdk-normal-close-postflight.json' : 'owned-normal-close-postflight.json'), JSON.stringify(event, null, 2) + '\n', { flag: 'wx' }));
         process.stdout.write(JSON.stringify({ ...receipt, closeDiagnosticsVerified: true }) + '\n');
     }
 }

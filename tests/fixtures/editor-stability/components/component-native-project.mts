@@ -47,6 +47,8 @@ const sdkStartupTimerCompat = args.includes('--sdk-startup-timer-compat');
 const sdkUiReadyCompat = args.includes('--sdk-ui-ready-compat');
 const skinnedHierarchy = args.includes('--skinned-hierarchy');
 const tiledHierarchy = args.includes('--tiled-hierarchy');
+const sdkOwnedQuit = args.includes('--sdk-owned-quit');
+if (sdkOwnedQuit && (version !== '3.8.3' || fixtureProfile !== 'component-matrix')) throw new Error('component_owned_quit_requires_383_matrix');
 const sdkSceneCacheCompat = args.includes('--sdk-scene-cache-compat');
 if (sdkSceneCacheCompat && (version !== '3.8.3' || fixtureProfile !== 'component-matrix')) throw new Error('component_sdk_cache_requires_383_matrix');
 if (tiledHierarchy && fixtureProfile !== 'component-matrix') throw new Error('component_tiled_requires_verified_matrix');
@@ -84,7 +86,7 @@ cpSync(join(engine, 'node_modules/tslib'), join(project, 'node_modules/tslib'), 
 const registration = { kind: 'worktree-local-validation-project', task: '5.1',
     owner, change: 'stabilize-editor-operations-and-bulk-file-io',
     projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: true, metricsDiagnostics, sdkListenerCompat, sdkTimerTrace, sdkRendererTimerTrace: sdkTimerTrace, sdkStartupTimerCompat, sdkUiReadyCompat, skinnedHierarchy,
-    tiledHierarchy, sdkSceneCacheCompat, startupSceneProfile: version === '3.8.3' && fixtureProfile === 'component-matrix', candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
+    tiledHierarchy, sdkOwnedQuit, sdkSceneCacheCompat, startupSceneProfile: version === '3.8.3' && fixtureProfile === 'component-matrix', candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
     registeredAt: new Date().toISOString(), userAuthorization: '推进5.1真实导入、后端确认和原生加载验证；按Hub操作Cocos，只关闭自己实例' };
 writeFileSync(join(output, 'project-ownership.json'), JSON.stringify(registration, null, 2) + '\n');
 cpSync(join(root, 'packages/hosts/modules/creator-38/release/peanut-pod-lite-host-0.2.0'), join(project, 'extensions/peanut-pod-lite-host'), { recursive: true });
