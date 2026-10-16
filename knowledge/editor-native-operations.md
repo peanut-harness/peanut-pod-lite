@@ -72,3 +72,5 @@ Sorting2D原始重叠对照在原生字段为蓝色order1/红色order0时仍显�
 2026-10-16 SDK计时调用链续查：真实IPC排除显式耗时路径；9次显式打开与首次启动共10次SDK打开，未发现重复投递。资产库worker-startup标签只有end；hierarchy同名计时有重叠start，main-window:ready首次start后反复end。新增显式计时诊断工程的asset-db全局只读钩子，按SDK现有afterInit/beforePreStart/beforeReady读取工作进程真实启动方法及计时缓存，不执行数据库方法、不补造start。仍非修复交付，5.1未完成；上一自有79967已正常物理退出，无强杀。
 
 工作进程钩子登记修正：3.8.7官方programming扩展证明asset-db.script指定脚本，global-hook数组指定导出函数名。首次诊断误传脚本路径，钩子未运行，未据此推断SDK行为；f529c1f自有68906正常退出，完整5来源3条原始错误（含Chromium Widget拒绝），验收false。新登记按实际SDK协议修正，并显式报告worker计时缓存API是否可用；NodeManager真实方法已确认注册前自行unregister，无需兼容修改。
+
+SDK私有plugin声明进一步确认资产脚本遵循EditorMethodModule（load/unload/methods），不是顶层钩子函数。第二轮未观察到钩子，不作为SDK根因证明；正常退出后保留完整日志。新诊断入口按该接口导出，并在真实load记录只读快照，以区分未装载与未触发钩子；未增加通用执行、未改变SDK统计或安装文件。

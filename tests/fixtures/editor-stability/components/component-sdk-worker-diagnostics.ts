@@ -22,6 +22,10 @@ class ComponentSdkWorkerDiagnostics {
     }
 }
 
-export const afterInit = (): void => ComponentSdkWorkerDiagnostics.observe('afterInit');
-export const beforePreStart = (): void => ComponentSdkWorkerDiagnostics.observe('beforePreStart');
-export const beforeReady = (): void => ComponentSdkWorkerDiagnostics.observe('beforeReady');
+export const load = (): void => ComponentSdkWorkerDiagnostics.observe('load');
+export const unload = (): void => { /* 只读脚本没有需要恢复的SDK修改。 */ };
+export const methods = {
+    afterInit: (): void => ComponentSdkWorkerDiagnostics.observe('afterInit'),
+    beforePreStart: (): void => ComponentSdkWorkerDiagnostics.observe('beforePreStart'),
+    beforeReady: (): void => ComponentSdkWorkerDiagnostics.observe('beforeReady'),
+};
