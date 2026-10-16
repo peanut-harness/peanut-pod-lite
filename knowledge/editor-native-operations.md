@@ -70,3 +70,5 @@ Sorting2D原始重叠对照在原生字段为蓝色order1/红色order0时仍显�
 2026-10-16 SDK续查：bd8a7c7只读原生观测确认protected reset仅重置队列、不清空起始Map，排除先前猜测；SDK CompManager.init每次重新bind并覆盖旧引用，unregister只能释放最后一对。项目内显式sdk-listener-compat兼容修复已实现，严格核对3.8.7及3个原方法摘要，注册前通过SDK原配对方法只释放自身旧回调，保留其它监听器及阈值；真实SDK原方法离线故障对照和20轮幂等回归通过，117项组件回归及定向类型通过，待新clean候选实机。独立probe不调用SDK修改接口，继续只读提取已缓存计时适配器；SDK安装包、原工程和旧证据不变，计时器错误未修复，5.1不勾选。自有只读诊断实例已正常关闭，整段仍2条SDK原始错误、零警告。
 
 2026-10-16 SDK计时调用链续查：真实IPC排除显式耗时路径；9次显式打开与首次启动共10次SDK打开，未发现重复投递。资产库worker-startup标签只有end；hierarchy同名计时有重叠start，main-window:ready首次start后反复end。新增显式计时诊断工程的asset-db全局只读钩子，按SDK现有afterInit/beforePreStart/beforeReady读取工作进程真实启动方法及计时缓存，不执行数据库方法、不补造start。仍非修复交付，5.1未完成；上一自有79967已正常物理退出，无强杀。
+
+工作进程钩子登记修正：3.8.7官方programming扩展证明asset-db.script指定脚本，global-hook数组指定导出函数名。首次诊断误传脚本路径，钩子未运行，未据此推断SDK行为；f529c1f自有68906正常退出，完整5来源3条原始错误（含Chromium Widget拒绝），验收false。新登记按实际SDK协议修正，并显式报告worker计时缓存API是否可用；NodeManager真实方法已确认注册前自行unregister，无需兼容修改。

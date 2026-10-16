@@ -77,7 +77,11 @@ export class ComponentSdkDiagnostics {
                 }
             }
         }
-        return { methods, metrics: this.metrics(metrics), adapters: this.adapters(cache) };
+        const api = metrics?.__protected__;
+        const timerCacheAvailable = typeof api?.getTrackTimeStartMap === 'function' && typeof api?.getTrackInfoList === 'function';
+        return { methods, timerCacheAvailable, metrics: timerCacheAvailable ? this.metrics(metrics) : {
+            sources: { public: this.sources(metrics, ['trackTimeStart', 'trackTimeEnd']),
+                protected: this.sources(api, ['trackTimeStart', 'trackTimeEnd']) } }, adapters: this.adapters(cache) };
     }
 
     /**
