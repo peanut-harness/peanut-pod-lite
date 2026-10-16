@@ -12,5 +12,17 @@
   ],
   "mcpExposureChanged": false,
   "allEnabled": false,
-  "freshStageNativeValidationPending": true
+  "freshStageNativeValidationPending": true,
+  "effectiveProjectProfile": {
+    "evidence": "evidence/task-5.1/native-sorting-387-20261016-dde82cd/native-health-initial-profile-mismatch.json",
+    "diskProfileUnchanged": true,
+    "additionalGraphics": {
+      "pipeline": "custom-pipeline",
+      "custom-pipeline-post-process": false
+    },
+    "derivation": "由同一冻结配置的cache.render-pipeline._option与cache.custom-pipeline-post-process._value逐项推导；除此以外不接受任何新增、缺失或改变字段",
+    "nativeResourceTypesLoaded": 20,
+    "sortingLifecyclePassed": true,
+    "renderEvidencePending": true
+  }
 }

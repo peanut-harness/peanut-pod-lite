@@ -40,3 +40,5 @@ Cocos Creator 编辑器产品。当前源码契约为 84 项免费操作（39 �
 根目录执行 `npm run verify` 和 `npm run pack`。旧 checkout 的 ignored 顶层生成物确认无源码后移出仓库，不放宽结构门禁。结构说明见 `docs/ARCHITECTURE.md`，产品契约见 Hub `contracts/pod-product.md`。
 
 2026-10-16：空模板修复0f8e3fd完整verify1256项及本地候选通过；原生验证工具正在迁移为设备登记与当前会话身份核对，拒绝旧owner工程和租约。Sorting2D新工程实机及其余5.1仍待完成。
+
+2026-10-16原生续验：dde82cd的3.8.7新工程初次有效Profile比对因额外物化graphics拒绝；磁盘和其余选择未变。独立校验修复严格接纳仅由冻结选择推导的graphics两项，拒绝缺失、额外字段和其它管线/模块变化；工具SHA与初始失败保留。同一自有PID完成20/20资源加载及Sorting2D生命周期和2字段保存/移除重开，新增warn/error为0。唯一IAB页一次MCP刷新复用连接、无新增标签或浏览器诊断；实际遮挡仍受Hub禁止截图约束，未声明呈现通过；剩余5.1未完成。

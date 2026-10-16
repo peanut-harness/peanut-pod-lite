@@ -41,7 +41,7 @@ export class ComponentEngineModules {
     public static assertProject(project: string, version: string): void {
         if (!this.needsSorting(version)) return;
         const settings = this.record(JSON.parse(readFileSync(this.projectSettings(project), 'utf8')));
-        this.assertActive(settings.modules, version);
+        if (!isDeepStrictEqual(settings.modules, this.expected())) throw new Error('component_engine_modules_project_profile_mismatch');
     }
 
     /**
@@ -51,7 +51,12 @@ export class ComponentEngineModules {
      */
     public static assertActive(value: unknown, version: string): void {
         if (!this.needsSorting(version)) return;
-        if (!isDeepStrictEqual(value, this.expected())) throw new Error('component_engine_modules_active_profile_mismatch');
+        const modules = this.expected();
+        const cache = this.record(this.record(this.record(modules.configs).defaultConfig).cache);
+        // 同版实际getProject额外物化graphics；只接受从冻结选择推导的精确两项，不能忽略任意字段。
+        const graphics = { pipeline: this.record(cache['render-pipeline'])._option,
+            'custom-pipeline-post-process': this.record(cache['custom-pipeline-post-process'])._value };
+        if (!isDeepStrictEqual(value, { ...modules, graphics })) throw new Error('component_engine_modules_active_profile_mismatch');
     }
 
     /**

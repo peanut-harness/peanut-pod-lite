@@ -28,8 +28,9 @@ test('3.8.7 matrix stages the official single-feature profile without changing e
         assert.equal(config.cache['sorting-2d']._value, true);
         for (const key of ['physics-physx', 'xr', 'procedural-animation', 'custom-pipeline-post-process']) assert.equal(config.cache[key]._value, false);
         assert.deepEqual(config.flags, { LOAD_SPINE_MANUALLY: false, LOAD_BULLET_MANUALLY: false });
-        ComponentEngineModules.assertActive(modules, '3.8.7');
-        const reordered = Object.fromEntries(Object.entries(modules).reverse()); ComponentEngineModules.assertActive(reordered, '3.8.7');
+        const effective = { ...modules, graphics: { pipeline: 'custom-pipeline', 'custom-pipeline-post-process': false } };
+        ComponentEngineModules.assertActive(effective, '3.8.7');
+        const reordered = Object.fromEntries(Object.entries(effective).reverse()); ComponentEngineModules.assertActive(reordered, '3.8.7');
     } finally { rmSync(f.root, { recursive: true, force: true }); }
 });
 
@@ -37,18 +38,27 @@ test('module preflight refuses missing sorting, wrong active config and broader 
     const f = create();
     try {
         ComponentEngineModules.stage(f.project, f.engine, '3.8.7'); const before = readFileSync(f.path);
-        const original = JSON.parse(before.toString()).modules;
+        const original = { ...JSON.parse(before.toString()).modules,
+            graphics: { pipeline: 'custom-pipeline', 'custom-pipeline-post-process': false } };
         for (const change of [
             (m: ReturnType<typeof JSON.parse>) => { m.configs.defaultConfig.includeModules = m.configs.defaultConfig.includeModules.filter((key: string) => key !== 'sorting-2d'); },
             (m: ReturnType<typeof JSON.parse>) => { m.configs.defaultConfig.cache['sorting-2d']._value = false; },
             (m: ReturnType<typeof JSON.parse>) => { m.configs.defaultConfig.includeModules.push('physics-physx'); },
             (m: ReturnType<typeof JSON.parse>) => { m.configs.defaultConfig.flags.LOAD_BULLET_MANUALLY = true; },
             (m: ReturnType<typeof JSON.parse>) => { m.globalConfigKey = 'other'; },
+            (m: ReturnType<typeof JSON.parse>) => { delete m.graphics; },
+            (m: ReturnType<typeof JSON.parse>) => { m.graphics.pipeline = 'legacy-pipeline'; },
+            (m: ReturnType<typeof JSON.parse>) => { m.graphics['custom-pipeline-post-process'] = true; },
+            (m: ReturnType<typeof JSON.parse>) => { m.graphics.unexpected = true; },
+            (m: ReturnType<typeof JSON.parse>) => { m.unexpected = true; },
         ]) {
             const value = structuredClone(original); change(value);
             assert.throws(() => ComponentEngineModules.assertActive(value, '3.8.7'), /active_profile_mismatch/);
         }
         assert.throws(() => ComponentEngineModules.assertActive(undefined, '3.8.7'), /active_profile_mismatch/);
+        writeFileSync(f.path, JSON.stringify({ ...JSON.parse(before.toString()), modules: original }));
+        assert.throws(() => ComponentEngineModules.assertProject(f.project, '3.8.7'), /project_profile_mismatch/);
+        writeFileSync(f.path, before);
         assert.deepEqual(readFileSync(f.path), before);
     } finally { rmSync(f.root, { recursive: true, force: true }); }
 });
