@@ -126,6 +126,7 @@ class ComponentNativeMain {
                     appConfigMaps: await editor.Profile.getProject('cocos-service', 'appConfigMaps'),
                     cscv: await editor.Profile.getProject('cocos-service', 'cscv'),
                 },
+                sceneStartupProfile: editor.App.version === '3.8.3' ? { currentScene: await editor.Profile.getProject('scene', 'current-scene') } : null,
                 host, localProfiles: {
                     project: await editor.Profile.getConfig('project', undefined, 'local'),
                     engine: await editor.Profile.getConfig('engine', undefined, 'local'),

@@ -25,6 +25,7 @@ import { ComponentCreatorDiagnostics } from './component-creator-diagnostics.mts
 import { ComponentBlitScreenMaterial } from './component-blit-screen-material.mts';
 import { ComponentSkinnedHierarchy } from './component-skinned-hierarchy.mts';
 import { ComponentTiledHierarchy } from './component-tiled-hierarchy.mts';
+import { ComponentStartupScene } from './component-startup-scene.mts';
 
 const root = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
 const args = process.argv.slice(2);
@@ -82,7 +83,7 @@ cpSync(join(engine, 'node_modules/tslib'), join(project, 'node_modules/tslib'), 
 const registration = { kind: 'worktree-local-validation-project', task: '5.1',
     owner, change: 'stabilize-editor-operations-and-bulk-file-io',
     projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics, sdkListenerCompat, sdkTimerTrace, sdkRendererTimerTrace: sdkTimerTrace, sdkStartupTimerCompat, sdkUiReadyCompat, skinnedHierarchy,
-    tiledHierarchy, candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
+    tiledHierarchy, startupSceneProfile: version === '3.8.3' && fixtureProfile === 'component-matrix', candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
     registeredAt: new Date().toISOString(), userAuthorization: '推进5.1真实导入、后端确认和原生加载验证；按Hub操作Cocos，只关闭自己实例' };
 writeFileSync(join(output, 'project-ownership.json'), JSON.stringify(registration, null, 2) + '\n');
 cpSync(join(root, 'packages/hosts/modules/creator-38/release/peanut-pod-lite-host-0.2.0'), join(project, 'extensions/peanut-pod-lite-host'), { recursive: true });
@@ -192,6 +193,7 @@ if (fixtureProfile === 'component-matrix') {
     writeFileSync(join(output, 'component-matrix-staging.json'), JSON.stringify(matrixStaging, null, 2) + '\n', { flag: 'wx' });
     const contract = ComponentNativeFieldContract.create(root, engine, fields, audit.nativeDeclarations);
     writeFileSync(join(probe, 'public-field-contract.json'), JSON.stringify(contract) + '\n', { flag: 'wx' });
+    if (version === '3.8.3') ComponentStartupScene.stage(root, project, resources, version);
 }
 writeFileSync(join(output, 'staging-receipt.json'), JSON.stringify({ creatorVersion: version, candidateSourceCommit: descriptor.sourceCommit,
     fixtureProfile, matrixStaging, fullResourceTypeCount: Object.keys(allBindings).length,

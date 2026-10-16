@@ -111,6 +111,11 @@ export class ComponentNativeClient {
                         this.events.push({ step: 'sdk-ui-ready-compat-observed', result: compatibility }); this.save();
                     }
                     ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(this.registration.creatorVersion));
+                    if (this.registration.startupSceneProfile === true) {
+                        const startup = this.record(JSON.parse(readFileSync(join(this.output, 'startup-scene-staging.json'), 'utf8')));
+                        if (startup.creatorVersion !== '3.8.3' || typeof startup.uuid !== 'string'
+                            || this.record(health.sceneStartupProfile).currentScene !== startup.uuid) throw new Error('component_native_startup_scene_profile_mismatch');
+                    }
                     if (existsSync(join(this.output, 'component-matrix-staging.json'))) {
                         this.events.push({ step: 'health-engine-modules-observed', creatorVersion: health.creatorVersion,
                             engineModulesProfile: health.engineModulesProfile ?? null }); this.save();
