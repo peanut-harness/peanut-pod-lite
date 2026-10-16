@@ -32051,8 +32051,8 @@
           "invalidValue": {
             "invalidType": true
           },
-          "expectedWrite": "set-and-readback",
-          "refusalReason": null,
+          "expectedWrite": "reject-native-persistence",
+          "refusalReason": "native_unsupported",
           "sourceOrigin": "static-recipe",
           "nativeAcceptance": false
         },
@@ -32305,8 +32305,8 @@
           "invalidValue": {
             "invalidType": true
           },
-          "expectedWrite": "set-and-readback",
-          "refusalReason": null,
+          "expectedWrite": "reject-native-persistence",
+          "refusalReason": "native_unsupported",
           "sourceOrigin": "static-recipe",
           "nativeAcceptance": false
         }

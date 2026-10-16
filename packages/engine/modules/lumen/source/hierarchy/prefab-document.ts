@@ -612,6 +612,7 @@ export class LumenPrefabDocument {
      * @returns 组件下标
      */
     public attachBuiltinComponent(nodePath: string, componentType: string): number {
+        LumenNativeComponentBinding.assertLifecycle(this, nodePath, componentType, this._propertySchema, 'attach');
         this._propertySchema.assertBuiltinAttachAllowed(componentType);
         const nodeIndex = this.findNodeIndex(nodePath);
         const host = this._entries[nodeIndex];
@@ -684,6 +685,7 @@ export class LumenPrefabDocument {
      * @param typeOrCompressedId 组件类型或脚本 compressedUuid
      */
     public removeComponent(nodePath: string, typeOrCompressedId: string): void {
+        LumenNativeComponentBinding.assertLifecycle(this, nodePath, typeOrCompressedId, this._propertySchema, 'remove');
         const nodeIndex = this.findNodeIndex(nodePath);
         const componentIndex = this.findComponentIndex(nodeIndex, typeOrCompressedId);
         const node = this._entries[nodeIndex];

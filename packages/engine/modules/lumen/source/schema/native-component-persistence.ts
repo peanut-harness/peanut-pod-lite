@@ -19,6 +19,9 @@ export class LumenNativeComponentPersistence {
         if (version.toString() === '3.8.7' && field === 'cc.PolygonCollider2D.threshold') {
             return true;
         }
+        if (version.toString() === '3.8.7' && ['cc.TiledLayer.enableCulling', 'cc.TiledObjectGroup.premultiplyAlpha'].includes(field)) {
+            return true;
+        }
         if (!['3.8.3', '3.8.7'].includes(version.toString())) { return false; }
         return [
             'cc.UITransform.priority',

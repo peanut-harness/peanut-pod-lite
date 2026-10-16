@@ -20,6 +20,10 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
         assert.equal(saved.componentCount, 99);
         assert.equal(saved.fieldCount, 795);
         assert.equal(saved.nativePassedRows, 0);
+        for (const [type, field] of [['cc.TiledLayer', 'enableCulling'], ['cc.TiledObjectGroup', 'premultiplyAlpha']] as const) {
+            const row = saved.components.find(row => row.componentType === type)?.cases.find(row => row.selector[0] === field);
+            assert.equal(row?.expectedWrite, version === '3.8.7' ? 'reject-native-persistence' : 'set-and-readback');
+        }
         const particle = saved.components.find(row => row.componentType === 'cc.ParticleSystem2D');
         assert.deepEqual(particle?.cases.find(row => row.selector.join('.') === 'custom')?.validValue, { form: 'literal', value: true });
         const sorting = saved.components.find(row => row.componentType === 'cc.Sorting');

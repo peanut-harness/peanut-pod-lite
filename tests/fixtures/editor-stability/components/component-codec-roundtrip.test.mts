@@ -56,8 +56,8 @@ for(const version of ['3.8.3','3.8.7']) test(`${version} all prepared component 
   }catch(e){failures.push({component:comp.componentType,field:row.selector[0],message:e instanceof Error?e.message:String(e)})}
  }
  assert.deepEqual(failures,[]);
- assert.equal(passed,version==='3.8.3'?778:782);assert.equal(invalidRejected,passed);
- assert.equal(rejected,version==='3.8.3'?17:13);
+ assert.equal(passed,version==='3.8.3'?778:780);assert.equal(invalidRejected,passed);
+ assert.equal(rejected,version==='3.8.3'?17:15);
  assert.equal(passed+rejected,795);
 });
 

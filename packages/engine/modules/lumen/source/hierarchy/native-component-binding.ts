@@ -9,6 +9,30 @@ import { LumenDeepClone } from './deep-clone';
  */
 export class LumenNativeComponentBinding {
     /**
+     * @description 拒绝3.8.7实机已证明由TMX重建的移除，以及SDK内部用户登记组件的手工生命周期。
+     * @param document 当前内存文档。
+     * @param nodePath 实际目标节点。
+     * @param componentType 公开内置类型。
+     * @param schema 会话绑定的精确版本。
+     * @param operation 挂载或移除。
+     */
+    public static assertLifecycle(document: LumenPrefabDocument, nodePath: string, componentType: string,
+        schema: LumenComponentPropertySchema, operation: 'attach' | 'remove'): void {
+        if (schema.version.toString() !== '3.8.7') return;
+        if (componentType === 'cc.TiledUserNodeData') throw new Error(`lumen_component_source_owned:${componentType}:TiledLayer.addUserNode`);
+        if (operation !== 'remove' || !['cc.TiledLayer', 'cc.TiledObjectGroup'].includes(componentType)) return;
+        const node = document.entries[document.findNodeIndex(nodePath)];
+        const parentIndex = this.id(node?._parent); const parent = parentIndex === null ? null : document.entries[parentIndex];
+        const components = Array.isArray(parent?._components) ? parent._components : [];
+        if (components.some(ref => {
+            const index = this.id(ref); const component = index === null ? null : document.entries[index];
+            const source: unknown = component?._tmxFile;
+            return component?.__type__ === 'cc.TiledMap' && source !== null && typeof source === 'object'
+                && typeof Reflect.get(source, '__uuid__') === 'string' && Reflect.get(source, '__uuid__').length > 0;
+        })) throw new Error(`lumen_component_source_owned:${componentType}:TiledMap.tmxAsset`);
+    }
+
+    /**
      * @description 为已有动画层次中的新蒙皮组件恢复唯一动画根；合批只从同源、无相对变换的真实子模型取得单元。
      * @param document 当前内存文档。
      * @param componentType 待添加的组件。

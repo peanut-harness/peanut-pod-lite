@@ -47,6 +47,9 @@ export class ComponentTiledHierarchy {
         document.addChildFromSpec(`${target}/Ground`, { name: 'OwnedTile' });
         document.attachBuiltinComponent(`${target}/Ground/OwnedTile`, 'cc.UITransform');
         document.attachBuiltinComponent(`${target}/Ground/OwnedTile`, 'cc.TiledTile');
+        document.addChildFromSpec(`${target}/Ground`, { name: 'OwnedUser' });
+        document.attachBuiltinComponent(`${target}/Ground/OwnedUser`, 'cc.UITransform');
+        document.setComponentProperty(`${target}/Ground/OwnedUser`, 'cc.UITransform', { contentSize: { width: 8, height: 8 } });
         writeFileSync(join(project, tmx), input, { flag: 'wx' });
         writeFileSync(join(project, tmx + '.meta'), JSON.stringify(meta, null, 2) + '\n', { flag: 'wx' });
         const script = 'assets/components/TiledUserDependency.ts';
