@@ -75,6 +75,12 @@ export class ComponentNativeClient {
             try {
                 const health = this.record(await this.probe('health')); const host = this.record(health.host);
                 if (host.ready === true && health.sceneReady === true) {
+                    if (this.registration.sdkListenerCompat === true) {
+                        const compatibility = this.record(await this.probe('sdk-listener-compat-status'));
+                        if (compatibility.installed !== true || compatibility.creatorVersion !== this.registration.creatorVersion
+                            || compatibility.maximum !== 10) throw new Error('component_sdk_listener_compat_unverified');
+                        this.events.push({ step: 'sdk-listener-compat-observed', result: compatibility }); this.save();
+                    }
                     ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(this.registration.creatorVersion));
                     if (existsSync(join(this.output, 'component-matrix-staging.json'))) {
                         this.events.push({ step: 'health-engine-modules-observed', creatorVersion: health.creatorVersion,
@@ -141,7 +147,7 @@ export class ComponentNativeClient {
      */
     public async probe(action: string, input: Record<string, unknown> = {}): Promise<unknown> {
         const execute = (): Promise<unknown> => this.request('component-probe.json', '/probe', 'x-component-token', { action, ...input });
-        if (!['component-fields', 'scene-snapshot', 'scene-readiness', 'sdk-metrics-diagnostics', 'sdk-lifecycle-diagnostics', 'load-asset', 'assets'].includes(action)) { return execute(); }
+        if (!['component-fields', 'scene-snapshot', 'scene-readiness', 'sdk-metrics-diagnostics', 'sdk-lifecycle-diagnostics', 'sdk-listener-compat-status', 'load-asset', 'assets'].includes(action)) { return execute(); }
         return ComponentNativeLogGuard.run(this.project, action, execute, event => { this.events.push(event); this.save(); });
     }
 

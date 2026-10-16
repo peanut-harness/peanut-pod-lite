@@ -52,6 +52,8 @@ node --import tsx tests/fixtures/editor-stability/components/component-catalog-c
 
 SDK诊断续查仅增加两个固定只读动作：`sdk-metrics-diagnostics`读取计时器起始Map、计时事件及固定SDK派发函数文本；`sdk-lifecycle-diagnostics`读取Component/Node/Facade固定生命周期方法文本。扩展每次加载追加一条计时缓存观测，不覆盖旧证据；不执行函数文本，不调用reset/register/释放方法，不导出其它统计事件或账号数据。所有观测仍经过原始日志门禁，不能据此将既有错误记作通过。
 
+显式`--sdk-listener-compat`只为新登记3.8.7工程暂存独立SDK兼容扩展，原只读probe继续只读。SDK原方法每次init都bind新回调并覆盖旧引用；兼容层在再次注册前调用SDK配对unregister，仅释放该管理器自己保有的回调，保留其它监听器和原阈值。版本及3个原函数文本摘要必须精确匹配，已泄漏进程拒绝安装；卸载仅恢复自己的方法。原SDK方法回归已复现增长，修复后20次初始化保持一对并保留无关监听器，实机仍待验证。这是明确登记的项目内运行时兼容，不能冒称未适配的SDK通过；不改安装包，也不修复或忽略计时器错误。健康回执须确认兼容扩展已实际装载。计时器观测还读取已缓存的固定SDK模块适配器源码，不加载新模块或导出统计数据。
+
 在输出的 `project/` 内运行 `npm --ignore-scripts=false run creator`，保留 precreator/creator/postcreator。macOS统一使用 `open -na` 的应用启动入口，捕获应用stdout/stderr并记录实际Creator PID；同工程已有进程时拒绝重复启动。`open -W` 仅有启动器退出状态，不能据此宣称 Creator 的退出码为 0。本工程已有实例时拒绝重启，交回会话附着流程。所有二进制 stdout/stderr 和 project.log 完整保留。
 
 `component-native-read.mts --project <隔离工程>` 每次重读私有描述符并核对 PID、启动时间、工程路径和 owner，分别等待 Host 注册和 AssetDB 导入，再按声明源核对资源的实际 UUID、类型和有效性。运行于场景进程的探针只提供资源加载、场景快照和后端观测，没有场景打开或任意消息执行入口。资源加载成功仍不等于组件字段写入、引用绑定、保存重开或零日志通过，`nativePassedRows` 保持 0。

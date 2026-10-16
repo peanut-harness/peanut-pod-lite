@@ -2,6 +2,7 @@ import * as http from 'node:http';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as crypto from 'node:crypto';
+import { createRequire } from 'node:module';
 import { EditorMcpPreviewWindowInspector } from '../../../../packages/engine/modules/mcp/src/editor-mcp-preview-window-inspector';
 import { ComponentNativeAssetLoader } from './component-native-asset-loader';
 import { ComponentProjectUrlFiles } from './component-project-url-files';
@@ -30,7 +31,8 @@ class ComponentNativeMain {
         this.registration = JSON.parse(fs.readFileSync(path.join(this.project, '..', 'project-ownership.json'), 'utf8'));
         if (this.registration.projectPath !== this.project || this.registration.task !== '5.1') throw new Error('component_native_project_unregistered');
         fs.appendFileSync(path.join(this.project, '..', 'sdk-metrics-at-probe-load.ndjson'),
-            JSON.stringify(ComponentSdkDiagnostics.metrics(editor.Metrics)) + '\n');
+            JSON.stringify({ ...ComponentSdkDiagnostics.metrics(editor.Metrics) as object,
+                adapters: ComponentSdkDiagnostics.adapters(createRequire(path.join(this.project, 'package.json')).cache) }) + '\n');
         this.fixtures = new ComponentProjectUrlFiles(this.project, this.registration);
         this.token = crypto.randomBytes(32).toString('hex');
         this.server = http.createServer((request, response) => {
@@ -76,10 +78,15 @@ class ComponentNativeMain {
         const editor = Reflect.get(globalThis, 'Editor');
         if (typeof editor?.Message?.request !== 'function') throw new Error('component_native_message_api_missing');
         const request = editor.Message.request.bind(editor.Message);
-        if (body.action === 'sdk-metrics-diagnostics') return ComponentSdkDiagnostics.metrics(editor.Metrics);
+        if (body.action === 'sdk-metrics-diagnostics') return { ...ComponentSdkDiagnostics.metrics(editor.Metrics) as object,
+            adapters: ComponentSdkDiagnostics.adapters(createRequire(path.join(this.project, 'package.json')).cache) };
         if (body.action === 'sdk-lifecycle-diagnostics') return request('scene', 'execute-scene-script', {
             name: 'peanut-component-probe', method: 'sdkLifecycleDiagnostics', args: [],
         });
+        if (body.action === 'sdk-listener-compat-status') {
+            if (this.registration.sdkListenerCompat !== true) throw new Error('component_sdk_listener_not_registered');
+            return request('scene', 'execute-scene-script', { name: 'peanut-component-sdk-compat', method: 'status', args: [] });
+        }
         if (body.action === 'fixture-urls') {
             const address = this.server?.address();
             if (!address || typeof address === 'string' || !this.fixtures) throw new Error('component_native_endpoint_missing');

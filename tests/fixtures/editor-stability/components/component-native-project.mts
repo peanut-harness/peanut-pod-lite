@@ -36,6 +36,8 @@ const fixtureProfile = args.includes('--component-matrix') ? 'component-matrix'
 if (!['3.8.3', '3.8.7'].includes(version ?? '') || !app || !runId || !/^[a-z0-9][a-z0-9-]{1,63}$/u.test(runId)) throw new Error('component_native_project_arguments_invalid');
 if (version !== '3.8.3' && version !== '3.8.7') throw new Error('component_native_version_unsupported');
 const metricsDiagnostics = args.includes('--metrics-diagnostics');
+const sdkListenerCompat = args.includes('--sdk-listener-compat');
+if (sdkListenerCompat && version !== '3.8.7') throw new Error('component_sdk_listener_version_unverified');
 ComponentCreatorDiagnostics.args(metricsDiagnostics, version);
 if (engineModulesContext === 'post-process' && version !== '3.8.7') throw new Error('component_native_post_version_unverified');
 const resources = join(realpathSync(app), 'Contents/Resources');
@@ -63,7 +65,7 @@ mkdirSync(join(project, 'node_modules'), { recursive: true });
 cpSync(join(engine, 'node_modules/tslib'), join(project, 'node_modules/tslib'), { recursive: true });
 const registration = { kind: 'worktree-local-validation-project', task: '5.1',
     owner, change: 'stabilize-editor-operations-and-bulk-file-io',
-    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics,
+    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics, sdkListenerCompat,
     candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
     registeredAt: new Date().toISOString(), userAuthorization: '推进5.1真实导入、后端确认和原生加载验证；按Hub操作Cocos，只关闭自己实例' };
 writeFileSync(join(output, 'project-ownership.json'), JSON.stringify(registration, null, 2) + '\n');
@@ -75,6 +77,14 @@ writeFileSync(join(probe, 'package.json'), JSON.stringify({ package_version: 2, 
     main: './main.js', contributions: { scene: { script: './scene.js' } } }, null, 2) + '\n');
 for (const [input, destination] of [['component-native-main.ts', 'main.js'], ['component-native-scene.ts', 'scene.js']] as const) {
     buildSync({ entryPoints: [fileURLToPath(new URL(input, import.meta.url))], outfile: join(probe, destination),
+        bundle: true, platform: 'node', format: 'cjs', target: 'node14', external: ['cc'] });
+}
+if (sdkListenerCompat) {
+    const compat = join(project, 'extensions/peanut-component-sdk-compat'); mkdirSync(compat);
+    writeFileSync(join(compat, 'package.json'), JSON.stringify({ package_version: 2, name: 'peanut-component-sdk-compat', version: '0.1.0',
+        main: './main.js', contributions: { scene: { script: './scene.js' } } }, null, 2) + '\n', { flag: 'wx' });
+    writeFileSync(join(compat, 'main.js'), 'exports.load = function () {}; exports.unload = function () {};\n', { flag: 'wx' });
+    buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-listener-scene.ts', import.meta.url))], outfile: join(compat, 'scene.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14', external: ['cc'] });
 }
 const allBindings = ComponentResourceBindings.create(root, version);

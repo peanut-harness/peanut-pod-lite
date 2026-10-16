@@ -3,6 +3,21 @@
  */
 export class ComponentSdkDiagnostics {
     /**
+     * @description 只观察已经装载的固定SDK模块，不require新模块，也不读取统计事件数据。
+     */
+    public static adapters(cache: Record<string, any>): unknown {
+        const prefix = '/app.asar/node_modules/@editor/creator/dist/metrics/';
+        return Object.entries(cache).filter(([path]) => path.includes(prefix)).map(([path, entry]) => {
+            const value = entry?.exports;
+            return { module: path.slice(path.indexOf(prefix) + prefix.length), exportNames: Object.keys(value ?? {}).sort(),
+                sources: this.sources(value, ['trackTimeStart', 'trackTimeEnd', 'reset']),
+                adapter: this.sources(value?.adapter, ['trackTimeStart', 'trackTimeEnd']),
+                default: this.sources(value?.default, ['trackTimeStart', 'trackTimeEnd']),
+                defaultPrototype: this.sources(typeof value?.default === 'function' ? value.default.prototype : null,
+                    ['trackTimeStart', 'trackTimeEnd']) };
+        });
+    }
+    /**
      * @description 只返回真实计时事件与起始缓存，不读取账号或其它统计事件内容。
      */
     public static metrics(metrics: any): unknown {

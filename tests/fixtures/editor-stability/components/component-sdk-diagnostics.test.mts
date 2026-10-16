@@ -21,3 +21,16 @@ test('SDK diagnostics read exact timer data and method source without calling li
     assert.equal(lifecycle.component.init, init.toString()); assert.equal(lifecycle.component.clear, null);
     assert.equal(mutations, 0); assert.deepEqual([...starts.entries()], [['actual-start', 123]]);
 });
+
+test('adapter observation reads only already cached SDK metric modules and never calls timer methods', () => {
+    let calls = 0;
+    const adapter = { trackTimeStart: (): void => { calls++; }, trackTimeEnd: (): void => { calls++; } };
+    const outside = { get exports(): never { throw Error('unrelated cache read'); } };
+    const result: any = ComponentSdkDiagnostics.adapters({
+        '/Applications/Cocos/Creator/3.8.7/CocosCreator.app/Contents/Resources/app.asar/node_modules/@editor/creator/dist/metrics/public/index.ccc': { exports: { adapter } },
+        '/unrelated/user-module.js': outside,
+    });
+    assert.equal(result.length, 1); assert.equal(result[0].module, 'public/index.ccc');
+    assert.equal(result[0].adapter.trackTimeStart, adapter.trackTimeStart.toString());
+    assert.equal(calls, 0);
+});
