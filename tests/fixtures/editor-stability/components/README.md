@@ -192,3 +192,5 @@ ef97989实际首次两项SDK end成功后UI安装，runtimeMethods2；3.8.3真�
 `post-owned-quit-383-20261016`完成后处理8组件及TiledMap，ReflectionProbe保留1个未暂存的Cube输入缺口；34字段读回、1公开拒绝、1输入阻塞完整保留。SDK退出实际请求被Electron ASAR虚拟FS读取拒绝，未关闭应用；原始PID24993正常OS恢复退出后原始5源零诊断。SDK内归档守卫改用`original-fs`只读端口，绝不改全局`noAsar`；SDK退出修复仍待下一工程验证。新增固定只读导入器/创建模板契约查询，避免重跑已知3.8.3 HDR/cmft失败。
 
 `142378c`在原始租约PID63062验证SDK App.quit成功，退出增量0诊断；导入器查询的SDK警告使整个来源诊断轮次0错6警、仍拒绝，未运行PhysX字段。危险元数据查询已移除。`--sdk-default-cube`仅用于3.8.3新矩阵工程：使用该版SDK实际返回的空模板`cubemap.cubemap`与15项精确SDK来源，实际导入器必须提供六个不同的有效ImageAsset及六层GPU纹理，UUID还须对应同版默认图像；原生校验失败不能用空资产、类名或有效UUID替代。该输入须单独实机验证；默认3.8.3工程仍不导入已知HDR/cmft失败输入。
+
+2026-10-17检查点：`native-verification-summary-20261017.json`记录可审查的本地来源和SHA。`be32104`的PhysX 3.8.3 2/17、ReflectionProbe/Cube 3.8.3 1/9、后处理+TiledMap 3.8.7 9/27均完成原生字段/生命周期与正常退出，退出后5类原始日志各0错0警，监听器1/1/max10，单一Verbose预览0诊断。3.8.3实际20类型加载；SDK正式Cube模板自动使用六个不同的120×120默认ImageAsset及GPU6层，并已逐面核对同版SDK UUID。两版795字段事实均有来源，3.8.3含4个明确原生不可用字段；历史失败/阻塞和拒绝轮次均保留，账本不作全会话/画面/5.1完成声明。移除新Cube来源的覆盖故障校验以exit1并缺1字段失败，不修改原报告。
