@@ -145,4 +145,6 @@ UI模型原展示截图为黑屏；新增普通方向光对照仍黑屏。实际
 
 2026-10-16无Host/Core只读对照：代码检查点4b797c3完整verify1256/1256、110项组件回归及官方pack/候选通过后，在新的登记工程首次启动前移除Host/Core，保留同版SDK、精确后处理配置、原始Bloom场景和只读探针；公开Host查询明确不存在，实际Forward/PostProcessBuilder、Main Camera.usePostProcess及全局PostProcess均确认。未调用MCP写、未开预览或截图，场景SHA不变；正常关闭自有PID59543后，五个原始来源仍有2条SDK asset-db启动计时器错误，零警告。本单场景冷启动未复现循环中的GPU/监听器问题，不能据此判定其归因；不将该对照记作产品候选原生通过。最终进程核对仅余原先两个3.8.3工程，自有50275/59543均消失。当前零诊断门禁阻止继续有效campaign；5.1保持未完成，先解决/定位原始诊断，再补角色控制器、蒙皮和Tiled上下文，禁止忽略SDK错误。此后仅更新文档，源码/配置不变，复用4b797c3完整验证；知识另做scoped同步并交sync。
 
-`--character-physx`仅为3.8.7新矩阵工程准备角色控制器后端；从冻结模块选择精确替换physics-ammo为physics-physx，保持其它模块、宏和自动装载设置，拒绝与`--post-process`并用。SDK声明与Profile配置通过不代表实际PhysXWorld成立；原生矩阵仍须实际构造器读回及全段零诊断，未知版本不进行猜测配置。
+`--character-physx`仅为3.8.7新矩阵工程准备角色控制器后端；从冻结模块选择精确替换physics-ammo为physics-physx，保持其它模块和自动装载设置，显式固化同版SDK有效默认宏CUSTOM_PIPELINE_NAME=Builtin，拒绝与`--post-process`并用。SDK声明与Profile配置通过不代表实际PhysXWorld成立；原生矩阵仍须实际构造器读回及全段零诊断，未知版本不进行猜测配置。
+
+固定`sdk-window-timer-diagnostics`仅供显式sdkTimerTrace的3.8.7诊断工程。只选择当前SDK安装文件URL匹配的唯一现有主窗口，通过Electron在该窗口执行本仓固定只读观测函数，读取已缓存SDK计时及广播回调文本。调用方不能指定脚本、窗口地址或参数；不执行观测到的SDK函数文本，不调用回调、不写节点或配置，不增窗口或截图；版本、窗口不唯一或身份不匹配即拒绝，原始日志门禁保留。

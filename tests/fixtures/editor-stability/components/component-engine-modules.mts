@@ -47,10 +47,10 @@ export class ComponentEngineModules {
         // 官方空工程模板尚无engine.json；版本来自本任务同版官方UI导出的工程配置。
         const settings = present ? this.record(JSON.parse(readFileSync(path, 'utf8'))) : { __version__: '1.0.12' };
         if (Object.hasOwn(settings, 'modules')) throw new Error('component_engine_modules_existing_config_refused');
-        if (context === 'post-process' && 'macroConfig' in settings && !isDeepStrictEqual(settings.macroConfig, {}))
+        if (context !== 'sorting' && 'macroConfig' in settings && !isDeepStrictEqual(settings.macroConfig, {}))
             throw new Error('component_engine_modules_existing_macros_refused');
         writeFileSync(path, JSON.stringify({ ...settings,
-            ...(context === 'post-process' ? { macroConfig: { CUSTOM_PIPELINE_NAME: 'Forward' } } : {}),
+            ...(context !== 'sorting' ? { macroConfig: { CUSTOM_PIPELINE_NAME: context === 'post-process' ? 'Forward' : 'Builtin' } } : {}),
             modules: this.expected(context) }, null, 2) + '\n', { flag: present ? 'w' : 'wx' });
         this.assertProject(project, version, context);
     }
@@ -92,8 +92,8 @@ export class ComponentEngineModules {
      */
     public static assertMacros(value: unknown, version: string, context: ComponentEngineContext = 'sorting'): void {
         if (!this.needsSorting(version, context)) return;
-        if (context !== 'post-process' && value === undefined) return;
-        const expected = context === 'post-process' ? { CUSTOM_PIPELINE_NAME: 'Forward' } : {};
+        if (context === 'sorting' && value === undefined) return;
+        const expected = context === 'sorting' ? {} : { CUSTOM_PIPELINE_NAME: context === 'post-process' ? 'Forward' : 'Builtin' };
         if (!isDeepStrictEqual(value, expected)) throw new Error('component_engine_modules_macro_profile_mismatch');
     }
 

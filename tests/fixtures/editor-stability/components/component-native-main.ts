@@ -7,6 +7,7 @@ import { EditorMcpPreviewWindowInspector } from '../../../../packages/engine/mod
 import { ComponentNativeAssetLoader } from './component-native-asset-loader';
 import { ComponentProjectUrlFiles } from './component-project-url-files';
 import { ComponentSdkDiagnostics } from './component-sdk-diagnostics';
+import { ComponentSdkWindowDiagnostics } from './component-sdk-window-diagnostics';
 
 /**
  * @description 隔离工程内的有界原生观测入口；不提供任意消息或代码执行接口。
@@ -83,6 +84,11 @@ class ComponentNativeMain {
             return { ...ComponentSdkDiagnostics.metrics(editor.Metrics) as object,
                 adapters: ComponentSdkDiagnostics.adapters(runtime.cache),
                 timerRoutes: ComponentSdkDiagnostics.timerRoutes(runtime.cache, process.versions.electron ? runtime('electron').ipcMain : null) };
+        }
+        if (body.action === 'sdk-window-timer-diagnostics') {
+            if (this.registration.sdkTimerTrace !== true || !process.versions.electron) throw new Error('component_sdk_window_diagnostics_not_registered');
+            const runtime = createRequire(path.join(this.project, 'package.json'));
+            return ComponentSdkWindowDiagnostics.read(runtime('electron'), String(this.registration.creatorApp), editor.App.version);
         }
         if (body.action === 'sdk-lifecycle-diagnostics') return request('scene', 'execute-scene-script', {
             name: 'peanut-component-probe', method: 'sdkLifecycleDiagnostics', args: [],

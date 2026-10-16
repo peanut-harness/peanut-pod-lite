@@ -193,7 +193,8 @@ test('character context selects only PhysX instead of Bullet and keeps unrelated
         assert.deepEqual(config, expected);
         const active = { ...modules, graphics: { pipeline: 'custom-pipeline', 'custom-pipeline-post-process': false } };
         ComponentEngineModules.assertActive(active, '3.8.7', 'character-physx');
-        ComponentEngineModules.assertMacros(undefined, '3.8.7', 'character-physx');
+        ComponentEngineModules.assertMacros({ CUSTOM_PIPELINE_NAME: 'Builtin' }, '3.8.7', 'character-physx');
+        assert.throws(() => ComponentEngineModules.assertMacros(undefined, '3.8.7', 'character-physx'), /macro_profile_mismatch/u);
         assert.throws(() => ComponentEngineModules.assertActive(active, '3.8.7'), /active_profile_mismatch/u);
         active.configs.defaultConfig.flags.LOAD_PHYSX_MANUALLY = true;
         assert.throws(() => ComponentEngineModules.assertActive(active, '3.8.7', 'character-physx'), /active_profile_mismatch/u);

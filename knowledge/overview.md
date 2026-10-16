@@ -1,6 +1,6 @@
 # peanut-pod-lite
 
-SDK续查：d7560ca完整verify1256/1256、117项组件回归及候选通过；项目内精确3.8.7监听器幂等兼容已实机通过10轮增删改保存重开、42次注册始终1/1，阈值10、零MaxListeners警告。ba91afc完整verify1256/1256、123项夹具及候选通过；冷启动遗漏start已在真实入口修复，两个数据库实机各1/1配对。场景重开仍有main-window:ready及hierarchy计时错误，继续追踪。3.8.7 PhysXWorld只读实机确认，单项上下文默认false标志正按SDK读回修正，2控制器17字段未验。正常退出另外出现SDK WindowSender向已销毁WebContents发送的原始错误及project警告，保留失败并追踪，5.1仍未完成。
+SDK续查：d7560ca完整verify1256/1256、117项组件回归及候选通过；项目内精确3.8.7监听器幂等兼容已实机通过10轮增删改保存重开、42次注册始终1/1，阈值10、零MaxListeners警告。ba91afc完整verify1256/1256、123项夹具及候选通过；冷启动遗漏start已在真实入口修复，两个数据库实机各1/1配对。场景重开仍有main-window:ready及hierarchy计时错误，继续追踪。3.8.7 PhysXWorld只读实机确认，单项上下文已保留SDK默认false标志并显式固化有效Builtin默认宏，精确配置待新候选核验，2控制器17字段未验。正常退出另外出现SDK WindowSender向已销毁WebContents发送的原始错误及project警告，保留失败并追踪，5.1仍未完成。
 
 计时定位增加显式登记的透明Map事件和IPC参数观测，原样转发实际Map操作，旁观真实显式耗时、时间值和调用栈，不补造start、不更改结果或日志；工作进程实证冷启动_preStartDB遗漏worker-startup的start、_startupDB却end；新显式项目内启动兼容在真实入口补齐SDK start，严格绑定3.8.7及实机方法摘要，实机配对已通过，整段仍有52条原始错误，不能据此宣布零诊断。IPC观察者按原引用成对移除，不替换原处理器。
 
