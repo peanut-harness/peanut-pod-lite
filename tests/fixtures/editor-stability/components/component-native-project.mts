@@ -84,11 +84,14 @@ for (const [input, destination] of [['component-native-main.ts', 'main.js'], ['c
 if (sdkListenerCompat) {
     const compat = join(project, 'extensions/peanut-component-sdk-compat'); mkdirSync(compat);
     writeFileSync(join(compat, 'package.json'), JSON.stringify({ package_version: 2, name: 'peanut-component-sdk-compat', version: '0.1.0',
-        main: './main.js', contributions: { scene: { script: './scene.js' } } }, null, 2) + '\n', { flag: 'wx' });
+        main: './main.js', contributions: { scene: { script: './scene.js' },
+            ...(sdkTimerTrace ? { 'asset-db': { 'global-hook': ['./worker.js'] } } : {}) } }, null, 2) + '\n', { flag: 'wx' });
     writeFileSync(join(compat, 'main.js'), 'exports.load = function () {}; exports.unload = function () {};\n', { flag: 'wx' });
     buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-listener-scene.ts', import.meta.url))], outfile: join(compat, 'scene.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14', external: ['cc'] });
     if (sdkTimerTrace) buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-timer-trace-main.ts', import.meta.url))], outfile: join(compat, 'main.js'),
+        bundle: true, platform: 'node', format: 'cjs', target: 'node14' });
+    if (sdkTimerTrace) buildSync({ entryPoints: [fileURLToPath(new URL('./component-sdk-worker-diagnostics.ts', import.meta.url))], outfile: join(compat, 'worker.js'),
         bundle: true, platform: 'node', format: 'cjs', target: 'node14' });
 }
 const allBindings = ComponentResourceBindings.create(root, version);

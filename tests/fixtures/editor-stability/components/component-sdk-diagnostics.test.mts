@@ -53,3 +53,15 @@ test('adapter observation reads only already cached SDK metric modules and never
     assert.equal(result[0].adapter.trackTimeStart, adapter.trackTimeStart.toString());
     assert.equal(calls, 0);
 });
+
+test('worker observation captures actual startup methods without calling them or reading database getters', () => {
+    let calls = 0;
+    const db = Object.create({ async start(): Promise<void> { calls++; } });
+    Object.defineProperty(db, 'secret', { get: () => { throw Error('database getter read'); } });
+    const map = new Map([['actual', 123]]);
+    const metrics = { __protected__: { getTrackTimeStartMap: () => map, getTrackInfoList: () => [] } };
+    const result: any = ComponentSdkDiagnostics.worker({ assetDBManager: { assetDBMap: { internal: db } } }, metrics, {});
+    assert.equal(result.methods.length, 1); assert.equal(result.methods[0].name, 'start');
+    assert.equal(result.methods[0].source, Object.getPrototypeOf(db).start.toString());
+    assert.deepEqual(result.metrics.starts, [['actual', 123]]); assert.equal(calls, 0);
+});

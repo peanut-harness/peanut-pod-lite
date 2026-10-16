@@ -25,13 +25,15 @@ export class ComponentSdkDiagnostics {
         const names = typeof ipc?.eventNames === 'function' ? ipc.eventNames().filter((name: unknown) => typeof name === 'string') : [];
         const ipcRoutes = names.filter((name: string) => name.startsWith('metrics:')).map((name: string) => ({ name,
             sources: ipc.rawListeners(name).map((listener: Function) => Function.prototype.toString.call(listener)) }));
-        const prefixes = ['/app.asar/builtin/asset-db/dist/browser/', '/app.asar/builtin/hierarchy/dist/',
+        const prefixes = ['/app.asar/builtin/asset-db/dist/browser/', '/app.asar/modules/editor-extensions/extensions/hierarchy/dist/',
+            '/app.asar/modules/editor-extensions/extensions/scene/dist/',
             '/app.asar/node_modules/@editor/creator/dist/metrics/', '/app.asar/node_modules/@editor/creator/dist/window/'];
         const methods: unknown[] = [];
         for (const [path, entry] of Object.entries(cache)) {
             if (!prefixes.some(prefix => path.includes(prefix))) continue;
             const value = entry?.exports;
-            const owners: [string, any][] = [['exports', value], ['default', value?.default], ['defaultPrototype', value?.default?.prototype]];
+            const owners: [string, any][] = [['exports', value], ['methods', value?.methods], ['default', value?.default],
+                ['default.methods', value?.default?.methods], ['defaultPrototype', value?.default?.prototype]];
             if (value?.default && typeof value.default === 'object') owners.push(['defaultObjectPrototype', Object.getPrototypeOf(value.default)]);
             for (const [name, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(value ?? {}))) {
                 if (typeof descriptor.value === 'function' && descriptor.value.prototype) owners.push([name + '.prototype', descriptor.value.prototype]);
@@ -54,6 +56,28 @@ export class ComponentSdkDiagnostics {
             .map(([path, entry]) => ({ module: path.slice(path.indexOf('/app.asar/') + '/app.asar/'.length),
                 exportNames: Object.keys(entry?.exports ?? {}), sources: this.sources(entry?.exports, ['WindowSender', 'Sender']) }));
         return { ipcEventNames: names, ipcRoutes, methods, senders, receivers: this.ipcReceivers(cache) };
+    }
+
+    /**
+     * @description 通过已登记的asset-db只读钩子读取真实工作进程启动方法，不执行数据库或计时操作。
+     */
+    public static worker(manager: any, metrics: any, cache: Record<string, any>): unknown {
+        const methods: unknown[] = [];
+        const owners: [string, any][] = [['assetDBManager', manager?.assetDBManager]];
+        for (const [name, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(manager?.assetDBManager?.assetDBMap ?? {})))
+            if ('value' in descriptor) owners.push(['assetDBMap.' + name, descriptor.value]);
+        for (const [label, owner] of owners) {
+            for (let current = owner, depth = 0; current && depth < 3; current = Object.getPrototypeOf(current), depth++) {
+                for (const [name, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(current))) {
+                    if (name === 'constructor' || typeof descriptor.value !== 'function') continue;
+                    const source = Function.prototype.toString.call(descriptor.value);
+                    if (!/start|init|ready/iu.test(name) && !/trackTime(?:Start|End)/u.test(source)) continue;
+                    if (source.length > 131072 || methods.length >= 128) throw new Error('component_sdk_worker_sources_over_budget');
+                    methods.push({ owner: label, depth, name, source });
+                }
+            }
+        }
+        return { methods, metrics: this.metrics(metrics), adapters: this.adapters(cache) };
     }
 
     /**
@@ -108,7 +132,7 @@ export class ComponentSdkDiagnostics {
      */
     public static lifecycle(cce: any): unknown {
         return { component: this.sources(cce?.Component, ['init', 'registerCompMgrEvents', 'unregisterCompMgrEvents', 'clear']),
-            node: this.sources(cce?.Node, ['initWithScene', 'onSceneOpened', 'onSceneClosed', 'clear']),
+            node: this.sources(cce?.Node, ['initWithScene', 'onSceneOpened', 'onSceneClosed', 'clear', 'registerNodeMgrEvents', 'unregisterNodeMgrEvents']),
             facade: this.sources(cce?.SceneFacadeManager, ['openScene', 'closeScene', 'onSceneOpened', 'getCurrentFacade']) };
     }
 
