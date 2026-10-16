@@ -59,9 +59,11 @@ test('worker observation captures actual startup methods without calling them or
     const db = Object.create({ async start(): Promise<void> { calls++; } });
     Object.defineProperty(db, 'secret', { get: () => { throw Error('database getter read'); } });
     const map = new Map([['actual', 123]]);
-    const metrics = { __protected__: { getTrackTimeStartMap: () => map, getTrackInfoList: () => [] } };
+    const metrics = { __protected__: { getTrackTimeStartMap: (): never => { throw Error('Renderer is not supported'); },
+        getTrackInfoList: (): never => { throw Error('Renderer is not supported'); } } };
     const result: any = ComponentSdkDiagnostics.worker({ assetDBManager: { assetDBMap: { internal: db } } }, metrics, {});
     assert.equal(result.methods.length, 1); assert.equal(result.methods[0].name, 'start');
     assert.equal(result.methods[0].source, Object.getPrototypeOf(db).start.toString());
-    assert.deepEqual(result.metrics.starts, [['actual', 123]]); assert.equal(calls, 0);
+    assert.equal(result.timerCacheAvailable, false); assert.equal(calls, 0); assert.deepEqual([...map], [['actual', 123]]);
+    assert.equal(result.metrics.sources.protected.getTrackTimeStartMap, metrics.__protected__.getTrackTimeStartMap.toString());
 });

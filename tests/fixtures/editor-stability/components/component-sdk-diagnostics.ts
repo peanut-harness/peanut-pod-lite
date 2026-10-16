@@ -77,11 +77,10 @@ export class ComponentSdkDiagnostics {
                 }
             }
         }
-        const api = metrics?.__protected__;
-        const timerCacheAvailable = typeof api?.getTrackTimeStartMap === 'function' && typeof api?.getTrackInfoList === 'function';
-        return { methods, timerCacheAvailable, metrics: timerCacheAvailable ? this.metrics(metrics) : {
+        return { methods, timerCacheAvailable: false, timerCacheScope: 'SDK renderer forbids main-process timer cache access', metrics: {
             sources: { public: this.sources(metrics, ['trackTimeStart', 'trackTimeEnd']),
-                protected: this.sources(api, ['trackTimeStart', 'trackTimeEnd']) } }, adapters: this.adapters(cache) };
+                protected: this.sources(metrics?.__protected__, ['trackTimeStart', 'trackTimeEnd', 'getTrackTimeStartMap', 'getTrackInfoList']) } },
+            adapters: this.adapters(cache) };
     }
 
     /**
