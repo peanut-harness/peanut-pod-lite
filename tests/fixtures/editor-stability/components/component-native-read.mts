@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { ComponentEngineProfile } from './component-engine-profile.mts';
 import { ComponentEngineModules } from './component-engine-modules.mts';
+import { ComponentServiceProfile } from './component-service-profile.mts';
 import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 import { ComponentNativeAssetLoader } from './component-native-asset-loader.ts';
 import { ComponentTaskOwnership } from './component-task-ownership.mts';
@@ -52,7 +53,7 @@ class ComponentNativeRead {
             await new Promise((done) => setTimeout(done, 1000));
         }
         type Health = { host: { ready: boolean; artifacts: unknown }; creatorVersion: string; pid: number;
-            localProfiles: unknown; effectiveEngineProfile: unknown; engineModulesProfile: unknown };
+            localProfiles: unknown; effectiveEngineProfile: unknown; engineModulesProfile: unknown; engineMacroProfile: unknown; serviceConfigProfile: unknown };
         let health: Health | null = null;
         const hostUntil = Date.now() + 120000;
         const startupObservations: unknown[] = [];
@@ -73,9 +74,12 @@ class ComponentNativeRead {
         writeFileSync(join(output, 'native-health.json'), JSON.stringify(health, null, 2) + '\n', { mode: 0o600 });
         ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(registration.creatorVersion));
         if (existsSync(join(output, 'component-matrix-staging.json'))) {
-            ComponentEngineModules.assertProject(project, String(registration.creatorVersion));
-            ComponentEngineModules.assertActive(health.engineModulesProfile, String(registration.creatorVersion));
+            const context = ComponentEngineModules.context(registration.engineModulesContext);
+            ComponentEngineModules.assertProject(project, String(registration.creatorVersion), context);
+            ComponentEngineModules.assertActive(health.engineModulesProfile, String(registration.creatorVersion), context);
+            ComponentEngineModules.assertMacros(health.engineMacroProfile, String(registration.creatorVersion), context);
         }
+        if (registration.offlineServiceProfile === true) ComponentServiceProfile.assertActive(health.serviceConfigProfile, String(registration.creatorVersion));
         const { CpmPackageStore } = createRequire(import.meta.url)('../../../../packages/hosts/modules/creator-38/src/cpm-package-store.js');
         const descriptor = JSON.parse(readFileSync(join(root, 'release/peanut.pod-lite-0.2.0/lite-release-descriptor.json'), 'utf8'));
         const identityErrors = CpmPackageStore.compareReleaseIdentity(health.host.artifacts, descriptor);

@@ -50,3 +50,5 @@ Sorting2D原始重叠对照在原生字段为蓝色order1/红色order0时仍显�
 2026-10-16：空模板5文件获准提交0f8e3fd，完整verify1256项及官方pack/候选校验通过。接管后原生工具改从设备登记读取当前独占owner并核对CODEX_THREAD_ID、原工作树与分支及三项self-delivery归属；旧工程/租约仍拒绝，不能据接管关闭旧实例。该工具迁移尚待新检查点与实机复验，5.1保持未完成，不开all、不推送或发布。
 
 2026-10-16原生续验：dde82cd的3.8.7新工程初次有效Profile比对因额外物化graphics拒绝；磁盘和其余选择未变。独立校验修复严格接纳仅由冻结选择推导的graphics两项，拒绝缺失、额外字段和其它管线/模块变化；工具SHA与初始失败保留。同一自有PID完成20/20资源加载及Sorting2D生命周期和2字段保存/移除重开，新增warn/error为0。唯一IAB页一次MCP刷新复用连接、无新增标签或浏览器诊断；实际遮挡仍受Hub禁止截图约束，未声明呈现通过；剩余5.1未完成。
+
+2026-10-16续验准备：867811c完整verify1256项及官方pack/候选通过。dde82cd实机Sorting2D campaign的2字段、增删及保存/移除重开通过，但正常关闭自有PID6537后，整段原始stdout严格扫描发现3项Config file error与24项trackTimeEnd失败，整会话仍拒绝；stderr和project.log无此诊断，不用局部增量代替全渠道验收。用户单次Sorting2D截图授权尚未使用，唯一IAB标签已停泊空白。新增3.8.7精确后处理上下文，只开启custom-pipeline-post-process及Forward宏；8份实际SDK离线场景已装配，需原生Forward/PostProcessBuilder证据后才解除阻塞，99/795分母不变。新隔离工程通过SDK支持的旧版空服务配置迁移避免缺配置，公开Profile只读核验；受限VM执行原方法重现失败和空services迁移，不算实机通过。macOS改用应用启动入口保留双原始日志验证计时器问题。新源已过101项夹具与定向严格检查，仍待clean检查点完整verify/候选及冷启动、单次截图和后处理实机；5.1不勾选，不开all、不推送或发布。

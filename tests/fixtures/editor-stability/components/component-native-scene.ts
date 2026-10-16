@@ -35,12 +35,15 @@ class ComponentNativeScene {
         walk(scene, '');
         const world3d = cc.PhysicsSystem?.instance?.physicsWorld;
         const world2d = cc.PhysicsSystem2D?.instance?.physicsWorld;
+        const builder = typeof cc.rendering?.getCustomPipeline === 'function'
+            ? cc.rendering.getCustomPipeline(cc.macro.CUSTOM_PIPELINE_NAME) : null;
         return { sceneName: scene.name, sceneUuid: scene.uuid, nodes,
             physics3d: world3d ? { constructor: world3d.constructor.name } : null,
             physics2d: world2d ? { constructor: world2d.constructor.name } : null,
             pipelineConstructor: cc.director.root?.pipeline?.constructor?.name ?? null,
             usesCustomPipeline: cc.director.root?.usesCustomPipeline ?? null,
             customPipelineConstructor: cc.director.root?.customPipeline?.constructor?.name ?? null,
+            postProcessBuilderConstructor: builder?.constructor?.name ?? null,
             customPipelineName: cc.macro.CUSTOM_PIPELINE_NAME };
     }
 

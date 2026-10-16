@@ -165,7 +165,10 @@ class ComponentNativeMatrix {
         if (req.physicsBackend === 'bullet' && p3 !== 'BulletWorld') errors.push('actual-bullet-backend-missing');
         if (req.physicsBackend === 'box2d' && p2 !== 'b2PhysicsWorld') errors.push('actual-box2d-backend-missing');
         if (req.physicsBackend === 'physx' && p3 !== 'PhysXWorld') errors.push('actual-physx-backend-missing');
-        if (req.highQualityRenderPipeline === true) errors.push('high-quality-render-pipeline-not-yet-proven');
+        if (req.highQualityRenderPipeline === true && (this.client.registration.engineModulesContext !== 'post-process'
+            || this.backend.usesCustomPipeline !== true || this.backend.postProcessBuilderConstructor !== 'PostProcessBuilder'
+            || this.backend.customPipelineName !== 'Forward'))
+            errors.push('high-quality-render-pipeline-not-yet-proven');
         return errors;
     }
 
@@ -493,7 +496,11 @@ class ComponentNativeMatrix {
             componentCount: 99, fieldCount: 795, processedComponents: this.rows.length,
             nativeVerifiedComponents: campaignAccepted ? fieldVerifiedComponents : 0,
             nativeFieldVerifiedComponents: fieldVerifiedComponents, fieldStatusCounts: counts,
-            backend: { physics3d: this.backend.physics3d, physics2d: this.backend.physics2d, pipeline: this.backend.pipelineConstructor },
+            backend: { physics3d: this.backend.physics3d, physics2d: this.backend.physics2d, pipeline: this.backend.pipelineConstructor,
+                engineModulesContext: this.client.registration.engineModulesContext ?? 'sorting',
+                usesCustomPipeline: this.backend.usesCustomPipeline,
+                customPipelineName: this.backend.customPipelineName,
+                postProcessBuilderConstructor: this.backend.postProcessBuilderConstructor },
             campaignLogPostflight: this.campaignLog,
             campaignAcceptance: this.campaignLog === null ? 'pending' : campaignAccepted ? 'accepted' : 'rejected',
             presentationFilesUnchanged: this.presentationsUnchanged, presentationRenderedComponents: 0,

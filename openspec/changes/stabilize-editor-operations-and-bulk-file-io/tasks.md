@@ -44,6 +44,8 @@
 
 ## 8. Execution Notes
 
+2026-10-16续验准备：867811c完整verify1256项及官方pack/候选通过。dde82cd实机Sorting2D campaign的2字段、增删及保存/移除重开通过，但正常关闭自有PID6537后，整段原始stdout严格扫描发现3项Config file error与24项trackTimeEnd失败，整会话仍拒绝；stderr和project.log无此诊断，不用局部增量代替全渠道验收。用户单次Sorting2D截图授权尚未使用，唯一IAB标签已停泊空白。新增3.8.7精确后处理上下文，只开启custom-pipeline-post-process及Forward宏；8份实际SDK离线场景已装配，需原生Forward/PostProcessBuilder证据后才解除阻塞，99/795分母不变。新隔离工程通过SDK支持的旧版空服务配置迁移避免缺配置，公开Profile只读核验；受限VM执行原方法重现失败和空services迁移，不算实机通过。macOS改用应用启动入口保留双原始日志验证计时器问题。新源已过101项夹具与定向严格检查，仍待clean检查点完整verify/候选及冷启动、单次截图和后处理实机；5.1不勾选，不开all、不推送或发布。
+
 2026-10-16原生续验：dde82cd完整verify1256项、96项组件回归与官方候选通过。新3.8.7工程初次health在组件写前因额外物化的graphics字段拒绝，磁盘及其余有效配置无变化；独立校验修复将磁盘原配置与有效Profile分别精确比较，只接受从冻结选择推导的graphics两项，初始失败及工具SHA保留。同一自有PID6537完成20/20资源加载、Sorting2D定向完整生命周期及2字段读回，campaign新增warn/error为0。唯一IAB标签一次MCP刷新仍为existing-preview+reload-terminal，原生UUID就绪门禁后同标签加载展示场景；实际排序遮挡尚待用户对Hub禁止截图规则的单次例外，不能宣称呈现或完整5.1通过。继续只操作所属实例，不开all、不推送或发布。
 
 2026-10-16：总管完成原工作树会话交接，self-delivery的owner/checkpointOwner/integrationOwner均转给当前会话，resume preflight通过。用户批准的空模板5文件已提交0f8e3fd，完整verify1256项、官方pack和候选校验通过。继续发现原生工具将旧owner写死；新增设备登记与当前CODEX_THREAD_ID一致性校验，要求唯一active记录、原工作树与分支及三项owner一致，拒绝旧工程租约；独立离线测试注入隔离归属读取器，不依赖设备状态。该工具迁移的新检查点和实机仍待完成；不开all、不推送、不发布，仅关闭当前任务自有实例。

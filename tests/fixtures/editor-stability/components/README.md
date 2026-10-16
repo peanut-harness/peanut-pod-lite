@@ -44,7 +44,7 @@ node --import tsx tests/fixtures/editor-stability/components/component-catalog-c
 
 原生观测使用 `component-native-project.mts` 创建全新的任务工程，核对官方候选的双画像、载荷摘要和源码检查点，通过实际安装事务安装 Core。参数为 `--creator-version`、`--creator-app`、`--run-id`。源文件逐项校验 SHA；cube meta 必须配对在 HDR 副本旁，checker 的 SpriteFrame 导入选项来自精确 SDK，子资源由实际 importer 生成。源及旧报告保持原样。
 
-在输出的 `project/` 内运行 `npm --ignore-scripts=false run creator`，保留 precreator/creator/postcreator。同版本已有其它工程时使用 macOS `open -na` 新实例，并记录实际 Creator PID；`open -W` 仅有启动器退出状态，不能据此宣称 Creator 的退出码为 0。本工程已有实例时拒绝重启，交回会话附着流程。所有二进制 stdout/stderr 和 project.log 完整保留。
+在输出的 `project/` 内运行 `npm --ignore-scripts=false run creator`，保留 precreator/creator/postcreator。macOS统一使用 `open -na` 的应用启动入口，捕获应用stdout/stderr并记录实际Creator PID；同工程已有进程时拒绝重复启动。`open -W` 仅有启动器退出状态，不能据此宣称 Creator 的退出码为 0。本工程已有实例时拒绝重启，交回会话附着流程。所有二进制 stdout/stderr 和 project.log 完整保留。
 
 `component-native-read.mts --project <隔离工程>` 每次重读私有描述符并核对 PID、启动时间、工程路径和 owner，分别等待 Host 注册和 AssetDB 导入，再按声明源核对资源的实际 UUID、类型和有效性。运行于场景进程的探针只提供资源加载、场景快照和后端观测，没有场景打开或任意消息执行入口。资源加载成功仍不等于组件字段写入、引用绑定、保存重开或零日志通过，`nativePassedRows` 保持 0。
 
@@ -116,3 +116,9 @@ UI模型原展示截图为黑屏；新增普通方向光对照仍黑屏。实际
 随后20项tail分片在Widget.target指向兄弟节点时触发SDK祖先约束错误，整个campaign拒绝；9组件仅保留字段证据，不升级为通过。VideoPlayer.remoteURL与WebView.url仍缺项目内已验证静态URL，保留原生输入缺口，不填猜测地址；其余未执行行仍保留99/795分母。六项撤销，自有PID89079正常关闭，原预览标签停泊。新Widget配方使用实际祖先Canvas，独立结构校验在原生打开前拒绝兄弟/自身target，覆盖两版回归；此项实际复验、新完整verify/候选、剩余上下文和3.8.7仍待完成。
 
 2026-10-16：接管工具检查点dde82cd完整verify1256项、96项组件回归及官方候选通过。新3.8.7工程初次health因有效Profile额外物化graphics而在写前拒绝；磁盘档案与其它有效选择完全一致。校验器分别严格核对磁盘原档案与有效快照；有效graphics两项必须逐项等于冻结cache选择，缺失、未知字段、管线和后处理变化均拒绝，不忽略该对象。同一自有实例20/20资源加载与Sorting2D定向增删、字段保存及移除重开通过，campaign新增warn/error为0；独立工具源码SHA与初始失败另存，不把新工具当作dde82cd已提交内容。唯一IAB页一次真实MCP刷新返回existing-preview+reload-terminal，新增标签0、浏览器诊断0；实际排序遮挡仍待用户对截图限制给出例外，5.1保持未完成。
+
+2026-10-16续验配置：3.8.7矩阵可显式追加 `--post-process`，在冻结Sorting2D档案上只启用custom-pipeline-post-process，并选择SDK实际注册的Forward宏；不启用PhysX、XR或其它功能。只读原生快照必须同时证明usesCustomPipeline、Forward与PostProcessBuilder，才能释放8项后处理上下文阻塞。相应8份展示包含同版完整3D场景、模型及全局PostProcess；离线装配不算原生或呈现通过，99/795分母保持不变。3.8.3拒绝此未证明配置。
+
+新3.8.7隔离项目额外暂存SDK `cocos-service.updateConfigFile`支持的 `settings/service.json`：未绑定游戏、固定本地配置和空services，由Creator自身迁移；运行时仅通过公开Profile读取game/configs/appConfigMaps/cscv，并精确核对迁移结果。拒绝已有配置、链接与已启动工程，不修改安装包或全局配置。受限VM直接执行同版SDK原始迁移/读取方法，证实缺配置时重现Config file error，迁移后enabledServices为空；此证据不是实机通过。
+
+上一轮dde82cd的Sorting2D生命周期和2字段读回通过，但关闭后完整原始stdout严格扫描发现27项诊断：3项缺失服务配置及24项SDK trackTimeEnd失败。campaign的project.log增量为零不能替代整会话原始日志验收；该整会话仍拒绝。自有PID6537已正常关闭，六项已撤销；唯一IAB标签停泊空白，用户允许的单次Sorting2D截图尚未使用。新冷启动通过macOS应用入口验证计时器诊断来源，原始失败不覆盖、不筛除。

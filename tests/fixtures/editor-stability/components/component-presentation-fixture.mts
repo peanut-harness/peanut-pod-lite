@@ -54,18 +54,21 @@ export class ComponentPresentationFixture {
      * @param engine 实际精确版本SDK根。
      * @param version 实际Creator版本。
      * @param row 已审计组件及依赖闭包。
+     * @param postProcessContext 是否暂存已登记后处理候选；仍须原生管线与呈现验收。
      * @returns 完整场景和来源，或明确待补条件；始终没有原生呈现通过状态。
      */
-    public static create(engine: string, version: '3.8.3' | '3.8.7', row: ComponentRow) {
+    public static create(engine: string, version: '3.8.3' | '3.8.7', row: ComponentRow, postProcessContext = false) {
+        if (postProcessContext && version !== '3.8.7') throw new Error('component_presentation_post_version_unverified');
         const type = row.componentType; const req = row.assemblyRequirements;
         const container = type === 'cc.UIStaticBatch';
         const uiModel = type === 'cc.UIMeshRenderer';
         const ui = this._ui[type] ?? (type === 'cc.Sorting2D' ? 'Sprite' : this._uiCarriers.has(type) ? 'Label' : null);
         const physics = req.physicsBackend != null;
-        const cube = ['cc.MeshRenderer', 'cc.Sorting', 'cc.LODGroup'].includes(type) || physics || uiModel;
+        const cube = ['cc.MeshRenderer', 'cc.Sorting', 'cc.LODGroup'].includes(type) || physics || uiModel
+            || postProcessContext && req.highQualityRenderPipeline;
         const reasons = [...row.dependencyPlan.blockers];
         if (!row.dependencyPlan.attachOrder.includes(type)) reasons.push('presentation-native-component-unavailable');
-        if (req.highQualityRenderPipeline) reasons.push('presentation-active-pipeline-and-effect-context-required');
+        if (req.highQualityRenderPipeline && !postProcessContext) reasons.push('presentation-active-pipeline-and-effect-context-required');
         if (req.sourceOwnedTiledComponent) reasons.push('presentation-native-tiled-hierarchy-required');
         if (req.importedSkinnedHierarchy) reasons.push('presentation-same-source-skinned-animation-required');
         if (!ui && !cube && type !== 'cc.Canvas') reasons.push('presentation-component-specific-content-required');
@@ -101,6 +104,7 @@ export class ComponentPresentationFixture {
                 (entry.node as { __id__?: unknown } | undefined)?.__id__ === node)) document.attachBuiltinComponent(targetPath, dependency);
         }
         document.findComponentIndex(document.findNodeIndex(targetPath), type);
+        if (postProcessContext && req.highQualityRenderPipeline) document.setComponentProperty(targetPath, 'cc.PostProcess', { global: true });
         if (type === 'cc.Sprite' || type === 'cc.Sorting2D') {
             const backdrop = type === 'cc.Sorting2D'
                 ? document.addChildFromTemplate(parent, source('default_prefab/ui/Sprite.prefab'), 'SortingBackdrop') : null;

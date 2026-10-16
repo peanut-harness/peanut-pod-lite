@@ -12,7 +12,8 @@ const create = () => {
     // 合成SDK仅测试版本与功能契约拒绝，实际SDK和画面证据另存，不冒充原生验证。
     writeFileSync(join(engine, 'package.json'), JSON.stringify({ version: '3.8.7' }));
     const config = { features: { 'sorting-2d': { modules: ['sorting-2d'], dependentModules: ['2d'],
-        overrideConstants: { USE_SORTING_2D: true } } }, constants: { USE_SORTING_2D: { value: false } } };
+        overrideConstants: { USE_SORTING_2D: true } }, 'custom-pipeline-post-process': {
+        modules: ['custom-pipeline-post-process'], dependentModules: ['custom-pipeline'] } }, constants: { USE_SORTING_2D: { value: false } } };
     writeFileSync(join(engine, 'cc.config.json'), JSON.stringify(config));
     return { root, project, engine, path, config };
 };
@@ -115,5 +116,47 @@ test('3.8.3 retains its original settings and unknown versions do not acquire gu
         assert.deepEqual(readFileSync(f.path), before);
         assert.throws(() => ComponentEngineModules.stage(f.project, f.engine, '3.8.4'), /version_unsupported/);
         assert.throws(() => ComponentEngineModules.assertActive(undefined, '3.8.4'), /version_unsupported/);
+    } finally { rmSync(f.root, { recursive: true, force: true }); }
+});
+
+test('post-process context adds only its declared SDK feature and requires the matching effective graphics profile', () => {
+    const f = create();
+    try {
+        ComponentEngineModules.stage(f.project, f.engine, '3.8.7', 'post-process');
+        ComponentEngineModules.assertProject(f.project, '3.8.7', 'post-process');
+        const modules = JSON.parse(readFileSync(f.path, 'utf8')).modules;
+        const macros = JSON.parse(readFileSync(f.path, 'utf8')).macroConfig;
+        assert.deepEqual(macros, { CUSTOM_PIPELINE_NAME: 'Forward' });
+        ComponentEngineModules.assertMacros(macros, '3.8.7', 'post-process');
+        assert.throws(() => ComponentEngineModules.assertMacros({}, '3.8.7', 'post-process'), /macro_profile_mismatch/);
+        assert.throws(() => ComponentEngineModules.assertMacros({ ...macros, other: true }, '3.8.7', 'post-process'), /macro_profile_mismatch/);
+        assert.throws(() => ComponentEngineModules.assertMacros(macros, '3.8.7'), /macro_profile_mismatch/);
+        const baseline = JSON.parse(readFileSync(new URL('./3.8.7/engine-modules-sorting2d.json', import.meta.url), 'utf8')).modules;
+        assert.deepEqual(modules.configs.defaultConfig.includeModules.filter((key: string) => key !== 'custom-pipeline-post-process'),
+            baseline.configs.defaultConfig.includeModules);
+        const cache = modules.configs.defaultConfig.cache;
+        assert.deepEqual(modules.graphics, { pipeline: 'custom-pipeline', 'custom-pipeline-post-process': true });
+        assert.equal(cache['custom-pipeline-post-process']._value, true);
+        assert.equal(cache['physics-physx']._value, false); assert.equal(cache.xr._value, false);
+        const effective = { ...modules, graphics: { pipeline: 'custom-pipeline', 'custom-pipeline-post-process': true } };
+        ComponentEngineModules.assertActive(effective, '3.8.7', 'post-process');
+        assert.throws(() => ComponentEngineModules.assertActive(effective, '3.8.7'), /active_profile_mismatch/);
+        assert.throws(() => ComponentEngineModules.assertProject(f.project, '3.8.7'), /project_profile_mismatch/);
+        effective.graphics['custom-pipeline-post-process'] = false;
+        assert.throws(() => ComponentEngineModules.assertActive(effective, '3.8.7', 'post-process'), /active_profile_mismatch/);
+    } finally { rmSync(f.root, { recursive: true, force: true }); }
+});
+
+test('unproven post-process versions, missing SDK dependencies and undeclared contexts fail before writing', () => {
+    const f = create();
+    try {
+        const before = readFileSync(f.path);
+        assert.throws(() => ComponentEngineModules.stage(f.project, f.engine, '3.8.3', 'post-process'), /post_version_unverified/);
+        f.config.features['custom-pipeline-post-process'].dependentModules = [];
+        writeFileSync(join(f.engine, 'cc.config.json'), JSON.stringify(f.config));
+        assert.throws(() => ComponentEngineModules.stage(f.project, f.engine, '3.8.7', 'post-process'), /post_sdk_contract_invalid/);
+        assert.throws(() => ComponentEngineModules.context('all'), /context_invalid/);
+        assert.throws(() => ComponentEngineModules.context({}), /context_invalid/);
+        assert.deepEqual(readFileSync(f.path), before);
     } finally { rmSync(f.root, { recursive: true, force: true }); }
 });

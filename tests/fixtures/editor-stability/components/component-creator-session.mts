@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { verifyReleaseCandidate } from '../../../../tools/release-candidate.mts';
 import { ComponentEngineProfile } from './component-engine-profile.mts';
 import { ComponentEngineModules } from './component-engine-modules.mts';
+import { ComponentServiceProfile } from './component-service-profile.mts';
 import { ComponentTaskOwnership } from './component-task-ownership.mts';
 
 /**
@@ -15,12 +16,12 @@ class ComponentCreatorSession {
     /**
      * @description 启动前核对工作树内登记、候选、精确版本及同工程进程互斥。
      */
-    public static preflight(): { registration: Record<string, string>; project: string; output: string; binary: string; sameVersion: boolean } {
+    public static preflight(): { registration: Record<string, string> & { offlineServiceProfile?: boolean }; project: string; output: string; binary: string; sameVersion: boolean } {
         const repository = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
         const project = realpathSync(process.cwd()); const output = dirname(project);
         if (!project.startsWith(`${repository}${sep}evidence${sep}task-5.1${sep}`) || project !== join(output, 'project'))
             throw new Error('component_creator_project_out_of_scope');
-        const registration = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8')) as Record<string, string>;
+        const registration = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8')) as Record<string, string> & { offlineServiceProfile?: boolean };
         if (registration.task !== '5.1' || registration.kind !== 'worktree-local-validation-project'
             || registration.projectPath !== project || registration.owner !== ComponentTaskOwnership.current(repository))
             throw new Error('component_creator_project_unregistered');
@@ -30,7 +31,9 @@ class ComponentCreatorSession {
         if (JSON.parse(readFileSync(sdk, 'utf8')).version !== manifest.creator?.version
             || manifest.creator.version !== registration.creatorVersion) throw new Error('component_creator_exact_version_mismatch');
         ComponentEngineProfile.assertProject(project, registration.creatorVersion);
-        if (existsSync(join(output, 'component-matrix-staging.json'))) ComponentEngineModules.assertProject(project, registration.creatorVersion);
+        if (registration.offlineServiceProfile === true) ComponentServiceProfile.assertProject(project, registration.creatorVersion);
+        if (existsSync(join(output, 'component-matrix-staging.json'))) ComponentEngineModules.assertProject(project,
+            registration.creatorVersion, ComponentEngineModules.context(registration.engineModulesContext));
         const descriptor = verifyReleaseCandidate(join(repository, 'release/peanut.pod-lite-0.2.0'), {
             expectedVersion: '0.2.0', expectedSourceCommit: registration.candidateSourceCommit,
         });
@@ -51,11 +54,14 @@ class ComponentCreatorSession {
         const context = this.preflight();
         const out = openSync(join(context.output, 'stdout.log'), 'wx', 0o600);
         const err = openSync(join(context.output, 'stderr.log'), 'wx', 0o600);
-        const args = context.sameVersion ? ['-n', '-a', context.registration.creatorApp ?? '', '-W',
+        const useOpen = process.platform === 'darwin' || context.sameVersion;
+        const launcherOut = useOpen ? openSync(join(context.output, 'launcher-stdout.log'), 'wx', 0o600) : out;
+        const launcherErr = useOpen ? openSync(join(context.output, 'launcher-stderr.log'), 'wx', 0o600) : err;
+        const args = useOpen ? ['-n', '-a', context.registration.creatorApp ?? '', '-W',
             '--stdout', join(context.output, 'stdout.log'), '--stderr', join(context.output, 'stderr.log'),
             '--args', '--project', context.project, '--nologin'] : ['--project', context.project, '--nologin'];
-        const child = spawn(context.sameVersion ? '/usr/bin/open' : context.binary, args, {
-            cwd: context.project, stdio: context.sameVersion ? ['ignore', 'ignore', 'ignore'] : ['ignore', out, err], detached: true,
+        const child = spawn(useOpen ? '/usr/bin/open' : context.binary, args, {
+            cwd: context.project, stdio: ['ignore', launcherOut, launcherErr], detached: true,
         });
         let creatorPid: number | null = null;
         await new Promise<void>((complete, reject) => {
@@ -65,7 +71,7 @@ class ComponentCreatorSession {
                 let identity: string | undefined;
                 const until = Date.now() + 30000;
                 do {
-                    const matches = this.processes().filter((line) => context.sameVersion
+                    const matches = this.processes().filter((line) => useOpen
                         ? line.includes(` ${context.binary} --project ${context.project} --nologin`)
                         : new RegExp(`^\\s*${child.pid}\\s`, 'u').test(line));
                     if (matches.length > 1) throw new Error('component_creator_start_identity_ambiguous');
@@ -79,7 +85,8 @@ class ComponentCreatorSession {
                 if (!Number.isInteger(creatorPid) || creatorPid <= 0) throw new Error('component_creator_pid_missing');
                 writeFileSync(join(context.output, 'creator-owned-start.json'), JSON.stringify({
                     owner: context.registration.owner, runId: context.registration.runId, pid: creatorPid,
-                    launcherPid: child.pid, launchMethod: context.sameVersion ? 'open-new-instance-wait' : 'direct-binary',
+                    launcherPid: child.pid, launchMethod: useOpen ? 'open-new-instance-wait' : 'direct-binary',
+                    otherSameVersionProjectsPresent: context.sameVersion,
                     project: context.project, creatorVersion: context.registration.creatorVersion, identity,
                     executableSha256: createHash('sha256').update(readFileSync(context.binary)).digest('hex'),
                     startedAt: new Date().toISOString(), candidateSourceCommit: context.registration.candidateSourceCommit,
@@ -88,10 +95,11 @@ class ComponentCreatorSession {
             })().catch(reject); });
             child.once('close', (code, signal) => {
                 closeSync(out); closeSync(err);
+                if (useOpen) { closeSync(launcherOut); closeSync(launcherErr); }
                 writeFileSync(join(context.output, 'creator-owned-exit.json'), JSON.stringify({
                     pid: creatorPid, launcherPid: child.pid, code, signal,
-                    creatorExitCode: context.sameVersion ? null : code,
-                    exitCodeScope: context.sameVersion ? 'open-wait-launcher-only' : 'creator-process',
+                    creatorExitCode: useOpen ? null : code,
+                    exitCodeScope: useOpen ? 'open-wait-launcher-only' : 'creator-process',
                     endedAt: new Date().toISOString(), nativeAcceptance: false,
                 }, null, 2) + '\n', { flag: 'wx' });
                 if (code !== 0 || signal !== null) process.exitCode = 1;

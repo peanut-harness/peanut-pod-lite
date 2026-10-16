@@ -18,7 +18,9 @@ test('authenticated health reads actual project engine modules through getProjec
         Message: { request: async (target: string, message: string) => {
             assert.equal(target, 'peanut-pod-lite-host'); assert.equal(message, 'query-status'); return { ready: true };
         } }, Profile: {
-            getProject: async (name: string, key: string) => { calls.push('project:' + name + ':' + key); return expected; },
+            getProject: async (name: string, key: string) => { calls.push('project:' + name + ':' + key);
+                if (name === 'cocos-service') return key === 'cscv' ? '2.0.0' : null;
+                return key === 'macroConfig' ? { CUSTOM_PIPELINE_NAME: 'Forward' } : expected; },
             getConfig: async (name: string, key?: string) => { calls.push('editor:' + name + ':' + key); return {}; },
         } });
     try {
@@ -29,6 +31,10 @@ test('authenticated health reads actual project engine modules through getProjec
             headers: { 'content-type': 'application/json', 'x-component-token': descriptor.token }, body: JSON.stringify({ action: 'health' }) });
         const payload = await response.json(); assert.equal(payload.ok, true);
         assert.deepEqual(payload.result.engineModulesProfile, expected);
+        assert.deepEqual(payload.result.serviceConfigProfile, { game: null, configs: null, appConfigMaps: null, cscv: '2.0.0' });
+        assert.equal(calls.filter(call => call.startsWith('project:cocos-service:')).length, 4);
+        assert.deepEqual(payload.result.engineMacroProfile, { CUSTOM_PIPELINE_NAME: 'Forward' });
+        assert.equal(calls.filter(call => call === 'project:engine:macroConfig').length, 1);
         assert.equal(calls.filter(call => call === 'project:engine:modules').length, 1);
         assert.equal(calls.includes('editor:engine:modules'), false); assert(calls.every(call => !call.includes('set')));
     } finally { unload(); if (prior === undefined) Reflect.deleteProperty(globalThis, 'Editor'); else Reflect.set(globalThis, 'Editor', prior); rmSync(output, { recursive: true, force: true }); }

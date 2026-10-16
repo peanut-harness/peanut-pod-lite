@@ -84,6 +84,13 @@ class ComponentNativeMain {
                 nodeVersion: process.versions.node, electronVersion: process.versions.electron,
                 effectiveEngineProfile: await editor.Profile.getConfig('engine'),
                 engineModulesProfile: await editor.Profile.getProject('engine', 'modules'),
+                engineMacroProfile: await editor.Profile.getProject('engine', 'macroConfig'),
+                serviceConfigProfile: {
+                    game: await editor.Profile.getProject('cocos-service', 'game'),
+                    configs: await editor.Profile.getProject('cocos-service', 'configs'),
+                    appConfigMaps: await editor.Profile.getProject('cocos-service', 'appConfigMaps'),
+                    cscv: await editor.Profile.getProject('cocos-service', 'cscv'),
+                },
                 host, localProfiles: {
                     project: await editor.Profile.getConfig('project', undefined, 'local'),
                     engine: await editor.Profile.getConfig('engine', undefined, 'local'),

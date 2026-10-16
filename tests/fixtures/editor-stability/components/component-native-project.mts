@@ -16,6 +16,7 @@ import { ComponentLifecycleFixture } from './component-lifecycle-fixture.mts';
 import { ComponentPresentationFixture } from './component-presentation-fixture.mts';
 import { ComponentEngineProfile } from './component-engine-profile.mts';
 import { ComponentEngineModules } from './component-engine-modules.mts';
+import { ComponentServiceProfile } from './component-service-profile.mts';
 import { ComponentSpriteImport } from './component-sprite-import.mts';
 import { ComponentTerrainEffect } from './component-terrain-effect.mts';
 import { ComponentProjectUrlFiles } from './component-project-url-files.ts';
@@ -27,12 +28,15 @@ const version = args[args.indexOf('--creator-version') + 1];
 const app = args[args.indexOf('--creator-app') + 1];
 const runId = args[args.indexOf('--run-id') + 1];
 const owner = ComponentTaskOwnership.current(root);
+const engineModulesContext = ComponentEngineModules.context(args.includes('--post-process') ? 'post-process' : undefined);
 const fixtureProfile = args.includes('--component-matrix') ? 'component-matrix'
     : args.includes('--sprite-roundtrip') ? 'sprite-roundtrip' : 'resource-import';
 if (!['3.8.3', '3.8.7'].includes(version ?? '') || !app || !runId || !/^[a-z0-9][a-z0-9-]{1,63}$/u.test(runId)) throw new Error('component_native_project_arguments_invalid');
 if (version !== '3.8.3' && version !== '3.8.7') throw new Error('component_native_version_unsupported');
+if (engineModulesContext === 'post-process' && version !== '3.8.7') throw new Error('component_native_post_version_unverified');
 const resources = join(realpathSync(app), 'Contents/Resources');
 const engine = join(resources, 'resources/3d/engine');
+if (engineModulesContext === 'post-process' && fixtureProfile !== 'component-matrix') throw new Error('component_native_post_requires_matrix');
 if (JSON.parse(readFileSync(join(engine, 'package.json'), 'utf8')).version !== version) throw new Error('component_native_sdk_version_mismatch');
 ComponentTerrainEffect.assertSdk(root, engine, version);
 const descriptor = verifyReleaseCandidate(join(root, 'release/peanut.pod-lite-0.2.0'), {
@@ -48,12 +52,13 @@ writeFileSync(join(project, 'package.json'), JSON.stringify({ name: `peanut-comp
 cpSync(join(resources, 'templates/empty-quality/settings'), join(project, 'settings'), { recursive: true });
 copyFileSync(join(resources, 'templates/empty-quality/tsconfig.json'), join(project, 'tsconfig.json'));
 ComponentEngineProfile.configure(project, version);
-if (fixtureProfile === 'component-matrix') ComponentEngineModules.stage(project, engine, version);
+if (version === '3.8.7') ComponentServiceProfile.stage(project, version);
+if (fixtureProfile === 'component-matrix') ComponentEngineModules.stage(project, engine, version, engineModulesContext);
 mkdirSync(join(project, 'node_modules'), { recursive: true });
 cpSync(join(engine, 'node_modules/tslib'), join(project, 'node_modules/tslib'), { recursive: true });
 const registration = { kind: 'worktree-local-validation-project', task: '5.1',
     owner, change: 'stabilize-editor-operations-and-bulk-file-io',
-    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId,
+    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7',
     candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
     registeredAt: new Date().toISOString(), userAuthorization: '推进5.1真实导入、后端确认和原生加载验证；按Hub操作Cocos，只关闭自己实例' };
 writeFileSync(join(output, 'project-ownership.json'), JSON.stringify(registration, null, 2) + '\n');
@@ -125,7 +130,7 @@ if (fixtureProfile === 'component-matrix') {
         if (assembled.status === 'blocked') return { componentType: row.componentType, status: 'blocked', blockers: assembled.blockers };
         const lifecycle = ComponentLifecycleFixture.create(assembled.document, version, row.componentType);
         lifecycle.save(project, false, LumenCocosVersion.parse(version));
-        const presentation = ComponentPresentationFixture.create(engine, version, row);
+        const presentation = ComponentPresentationFixture.create(engine, version, row, engineModulesContext === 'post-process');
         if (presentation.status === 'authored-presentation-native-pending') ComponentPresentationFixture.saveForNativeImport(presentation.document, project, version);
         const { document: presentationDocument, ...presentationEvidence } = presentation.status === 'authored-presentation-native-pending'
             ? presentation : { ...presentation, document: null };
