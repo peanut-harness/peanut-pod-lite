@@ -78,8 +78,12 @@ class ComponentNativeMain {
         const editor = Reflect.get(globalThis, 'Editor');
         if (typeof editor?.Message?.request !== 'function') throw new Error('component_native_message_api_missing');
         const request = editor.Message.request.bind(editor.Message);
-        if (body.action === 'sdk-metrics-diagnostics') return { ...ComponentSdkDiagnostics.metrics(editor.Metrics) as object,
-            adapters: ComponentSdkDiagnostics.adapters(createRequire(path.join(this.project, 'package.json')).cache) };
+        if (body.action === 'sdk-metrics-diagnostics') {
+            const runtime = createRequire(path.join(this.project, 'package.json'));
+            return { ...ComponentSdkDiagnostics.metrics(editor.Metrics) as object,
+                adapters: ComponentSdkDiagnostics.adapters(runtime.cache),
+                timerRoutes: ComponentSdkDiagnostics.timerRoutes(runtime.cache, process.versions.electron ? runtime('electron').ipcMain : null) };
+        }
         if (body.action === 'sdk-lifecycle-diagnostics') return request('scene', 'execute-scene-script', {
             name: 'peanut-component-probe', method: 'sdkLifecycleDiagnostics', args: [],
         });

@@ -17,6 +17,76 @@ export class ComponentSdkDiagnostics {
                     ['trackTimeStart', 'trackTimeEnd']) };
         });
     }
+
+    /**
+     * @description 只读SDK计时IPC监听器与固定SDK模块中涉及计时的已加载方法，不加载或执行模块。
+     */
+    public static timerRoutes(cache: Record<string, any>, ipc: any): unknown {
+        const names = typeof ipc?.eventNames === 'function' ? ipc.eventNames().filter((name: unknown) => typeof name === 'string') : [];
+        const ipcRoutes = names.filter((name: string) => name.startsWith('metrics:')).map((name: string) => ({ name,
+            sources: ipc.rawListeners(name).map((listener: Function) => Function.prototype.toString.call(listener)) }));
+        const prefixes = ['/app.asar/builtin/asset-db/dist/browser/', '/app.asar/builtin/hierarchy/dist/',
+            '/app.asar/node_modules/@editor/creator/dist/metrics/', '/app.asar/node_modules/@editor/creator/dist/window/'];
+        const methods: unknown[] = [];
+        for (const [path, entry] of Object.entries(cache)) {
+            if (!prefixes.some(prefix => path.includes(prefix))) continue;
+            const value = entry?.exports;
+            const owners: [string, any][] = [['exports', value], ['default', value?.default], ['defaultPrototype', value?.default?.prototype]];
+            if (value?.default && typeof value.default === 'object') owners.push(['defaultObjectPrototype', Object.getPrototypeOf(value.default)]);
+            for (const [name, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(value ?? {}))) {
+                if (typeof descriptor.value === 'function' && descriptor.value.prototype) owners.push([name + '.prototype', descriptor.value.prototype]);
+            }
+            for (const [label, owner] of owners) {
+                if (!owner || !['object', 'function'].includes(typeof owner)) continue;
+                for (const name of Object.getOwnPropertyNames(owner)) {
+                    if (name === 'constructor') continue;
+                    const method = Object.getOwnPropertyDescriptor(owner, name)?.value;
+                    if (typeof method !== 'function') continue;
+                    const source = Function.prototype.toString.call(method);
+                    if (source.startsWith('class ')) continue;
+                    if (!/trackTime(?:Start|End)|metrics:track-time-/u.test(source)) continue;
+                    if (source.length > 131072 || methods.length >= 128) throw new Error('component_sdk_timer_routes_over_budget');
+                    methods.push({ module: path.slice(path.indexOf('/app.asar/') + '/app.asar/'.length), owner: label, name, source });
+                }
+            }
+        }
+        const senders = Object.entries(cache).filter(([path]) => path.endsWith('/app.asar/node_modules/@base/electron-base-ipc/dist/sender.ccc'))
+            .map(([path, entry]) => ({ module: path.slice(path.indexOf('/app.asar/') + '/app.asar/'.length),
+                exportNames: Object.keys(entry?.exports ?? {}), sources: this.sources(entry?.exports, ['WindowSender', 'Sender']) }));
+        return { ipcEventNames: names, ipcRoutes, methods, senders, receivers: this.ipcReceivers(cache) };
+    }
+
+    /**
+     * @description 有界读取SDK IPC实例的计时回调及结构名；不调用路由、遍历其它事件内容或读取getter。
+     */
+    private static ipcReceivers(cache: Record<string, any>): unknown {
+        const roots: unknown[] = []; const handlers: unknown[] = []; const seen = new Set<object>(); let complete = true;
+        const walk = (value: any, path: string, depth: number): void => {
+            if (typeof value === 'function') {
+                if (path.includes('metrics:track-time-')) handlers.push({ path, source: Function.prototype.toString.call(value) });
+                return;
+            }
+            if (!value || typeof value !== 'object' || seen.has(value) || depth > 4) return;
+            if (seen.size >= 256) { complete = false; return; }
+            seen.add(value);
+            if (Object.prototype.toString.call(value) === '[object Map]') {
+                for (const [name, item] of value.entries()) if (typeof name === 'string' && (name.includes('metrics') || path.includes('metrics')))
+                    walk(item, path + '/' + name, depth + 1);
+                return;
+            }
+            for (const [name, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(value))) {
+                if (['constructor', 'prototype', '__proto__'].includes(name) || !('value' in descriptor)) continue;
+                walk(descriptor.value, path + '/' + name, depth + 1);
+            }
+        };
+        for (const [path, entry] of Object.entries(cache)) {
+            if (!path.includes('/app.asar/node_modules/@editor/creator/dist/ipc/') && !path.includes('/app.asar/node_modules/@base/electron-base-ipc/')) continue;
+            const module = path.slice(path.indexOf('/app.asar/') + '/app.asar/'.length); const value = entry?.exports;
+            roots.push({ module, exportNames: Object.keys(value ?? {}), adapterKeys: Object.keys(value?.adapter ?? {}), defaultKeys: Object.keys(value?.default ?? {}) });
+            walk(value, module, 0); walk(value?.adapter, module + '/adapter', 0); walk(value?.default, module + '/default', 0);
+        }
+        return { complete, inspectedObjects: seen.size, roots, handlers };
+    }
     /**
      * @description 只返回真实计时事件与起始缓存，不读取账号或其它统计事件内容。
      */

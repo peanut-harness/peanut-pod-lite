@@ -22,6 +22,25 @@ test('SDK diagnostics read exact timer data and method source without calling li
     assert.equal(mutations, 0); assert.deepEqual([...starts.entries()], [['actual-start', 123]]);
 });
 
+test('timer route diagnostics inspect fixed SDK timer methods and IPC callbacks without executing either', () => {
+    let calls = 0;
+    function timingMethod(): void { calls++; const trackTimeStart = 'real SDK timer method marker'; void trackTimeStart; }
+    const ipc = { eventNames: () => ['metrics:track-time-start', 'unrelated'], rawListeners: (name: string) => {
+        assert.equal(name, 'metrics:track-time-start'); return [timingMethod];
+    } };
+    const result: any = ComponentSdkDiagnostics.timerRoutes({
+        '/Applications/Cocos/Creator/3.8.7/CocosCreator.app/Contents/Resources/app.asar/builtin/asset-db/dist/browser/index.ccc': { exports: { timingMethod } },
+        '/Applications/Cocos/Creator/3.8.7/CocosCreator.app/Contents/Resources/app.asar/node_modules/@editor/creator/dist/ipc/index.ccc': {
+            exports: { default: { _events: { 'metrics:track-time-start': [timingMethod] }, privateValue: 'must-not-export' } },
+        },
+    }, ipc);
+    assert.equal(result.methods.length, 1); assert.equal(result.methods[0].source, timingMethod.toString());
+    assert.equal(result.ipcRoutes.length, 1); assert.equal(calls, 0);
+    assert.equal(result.receivers.complete, true); assert.equal(result.receivers.handlers.length, 1);
+    assert.equal(result.receivers.handlers[0].source, timingMethod.toString());
+    assert.equal(JSON.stringify(result).includes('must-not-export'), false);
+});
+
 test('adapter observation reads only already cached SDK metric modules and never calls timer methods', () => {
     let calls = 0;
     const adapter = { trackTimeStart: (): void => { calls++; }, trackTimeEnd: (): void => { calls++; } };
