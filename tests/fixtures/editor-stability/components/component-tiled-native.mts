@@ -35,6 +35,10 @@ class ComponentTiledNative {
      * @description 全部步骤与原始日志均通过后才置真，实际画面验收单独保留false。
      */
     private accepted = false;
+    /**
+     * @description 独立实机工具摘要，与被测Host/Core候选身份分别记录，运行中禁止变更。
+     */
+    private readonly runnerSha256 = createHash('sha256').update(readFileSync(new URL(import.meta.url))).digest('hex');
 
     /**
      * @description 仅允许显式Tiled上下文的3.8.7新登记工程。
@@ -96,16 +100,16 @@ class ComponentTiledNative {
                 { type: 'cc.TiledLayer', path: '/Root/Canvas/Target/Ground', key: 'enableCulling' },
                 { type: 'cc.TiledObjectGroup', path: '/Root/Canvas/Target/Objects', key: 'premultiplyAlpha' },
             ]) await this.refuse('lumen-comp-set', { ...this.input(field.path), componentType: field.type,
-                props: field.type === 'cc.TiledLayer' ? { color: { r: 0, g: 0, b: 0, a: 255 }, enableCulling: true } : { premultiplyAlpha: true } }, /^lumen_property_not_persistent:/u);
+                props: field.type === 'cc.TiledLayer' ? { color: { r: 0, g: 0, b: 0, a: 255 }, enableCulling: true } : { premultiplyAlpha: true } }, /^lumen_property_not_persistent(?::|$)/u);
             for (const [type, path] of [['cc.TiledLayer', '/Root/Canvas/Target/Ground'], ['cc.TiledObjectGroup', '/Root/Canvas/Target/Objects']] as const) {
                 const before = this.hash(); await this.client.write('lumen-comp-add', { ...this.input(path), builtinType: type });
                 if (this.hash() !== before) throw new Error('component_tiled_campaign_idempotent_attach_changed_source');
-                await this.refuse('lumen-comp-rm', { ...this.input(path), componentType: type, confirmDestructive: true }, /^lumen_component_source_owned:/u);
+                await this.refuse('lumen-comp-rm', { ...this.input(path), componentType: type, confirmDestructive: true }, /^lumen_component_source_owned(?::|$)/u);
                 await this.reopen(); await this.fields(type, path, true); await this.context('source-owner-reopen', true, true);
             }
             const user = this.input('/Root/Canvas/Target/Ground/OwnedUser');
-            await this.refuse('lumen-comp-add', { ...user, builtinType: 'cc.TiledUserNodeData' }, /^lumen_component_source_owned:/u);
-            await this.refuse('lumen-comp-rm', { ...user, componentType: 'cc.TiledUserNodeData', confirmDestructive: true }, /^lumen_component_source_owned:/u);
+            await this.refuse('lumen-comp-add', { ...user, builtinType: 'cc.TiledUserNodeData' }, /^lumen_component_source_owned(?::|$)/u);
+            await this.refuse('lumen-comp-rm', { ...user, componentType: 'cc.TiledUserNodeData', confirmDestructive: true }, /^lumen_component_source_owned(?::|$)/u);
             await this.fields('cc.TiledUserNodeData', '/Root/Canvas/Target/Ground/OwnedUser', true);
             const tile = this.input('/Root/Canvas/Target/Ground/OwnedTile');
             for (const action of ['remove', 'add', 'remove'] as const) {
@@ -208,12 +212,14 @@ class ComponentTiledNative {
      * @description 按完整字段契约补齐pending，拒绝缩小分母或将画面未验提升为通过。
      */
     private save(): void {
+        if (createHash('sha256').update(readFileSync(new URL(import.meta.url))).digest('hex') !== this.runnerSha256)
+            throw new Error('component_tiled_campaign_runner_changed');
         const contract = this.client.record(JSON.parse(readFileSync(join(this.client.project, 'extensions/peanut-component-probe/public-field-contract.json'), 'utf8')));
         const components = this.records(contract.components).map(row => ({ componentType: this.string(row.componentType),
             cases: this.records(row.cases).map(field => ({ id: this.string(field.id) })) }));
         if (components.length !== 99 || components.reduce((sum, row) => sum + row.cases.length, 0) !== 795)
             throw new Error('component_tiled_campaign_denominator_invalid');
-        writeFileSync(join(this.client.output, 'tiled-native-campaign.json'), JSON.stringify({ candidateSourceCommit: this.client.registration.candidateSourceCommit,
+        writeFileSync(join(this.client.output, 'tiled-native-campaign.json'), JSON.stringify({ candidateSourceCommit: this.client.registration.candidateSourceCommit, runnerSha256: this.runnerSha256,
             accepted: this.accepted, renderedAcceptance: false, task51Complete: false, componentCount: 99, fieldCount: 795,
             nativeVerifiedComponents: this.rows.length, rows: ComponentNativeMatrixReport.complete(components, this.rows), events: this.events }, null, 2) + '\n');
     }
