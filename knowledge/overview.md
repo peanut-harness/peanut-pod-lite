@@ -20,7 +20,7 @@ Cocos Creator 编辑器产品。当前源码契约为 84 项免费操作（39 �
 - 3.8.3 与 3.8.7：host/project 版本都存在且一致时 full，可写；其它 3.8 补丁版本保持只读，直到逐版本完成实机证据。
 - 最低宿主兼容、实机证据与任务调度事实见 [creator-profiles.md](creator-profiles.md)。
 - 未知、缺失或不一致版本全部 fail-closed。
-- 原生资源、调度与组件矩阵边界见 [editor-native-operations.md](editor-native-operations.md)；e90fb77完整verify1256项，两版WebView/Sprite实际可见及有界关闭整会话零诊断；Sorting2D须精确sorting-2d模块，官方UI单项对照成功，新工程档案与原生配置门禁待检查点实机。99/795分母与5.1未完成状态保留。
+- 原生资源、调度与组件矩阵边界见 [editor-native-operations.md](editor-native-operations.md)；8045b84完整verify1256项与候选通过；e90fb77两版WebView/Sprite实际可见及有界关闭整会话零诊断。Sorting2D单项模块UI对照成功，新空模板缺engine.json的首次创建修复已过92项及真实SDK离线暂存，仍待新检查点实机。99/795分母与5.1未完成状态保留。
 
 ## Hard Rules
 

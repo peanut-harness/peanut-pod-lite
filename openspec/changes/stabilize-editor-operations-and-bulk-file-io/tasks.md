@@ -114,3 +114,6 @@ A1 本地检查点 72899da 的 parent、tree、精确 27 文件及 1023 当前�
 Sorting2D原始重叠对照在原生字段为蓝色order1/红色order0时仍显示红色，呈现拒绝；SDK源码确认USE_SORTING_2D默认false，sorting-2d模块覆盖为true，官方说明也要求在功能裁剪启用2D渲染排序（https://docs.cocos.com/creator/3.8/manual/zh/engine/rendering/sorting-2d.html）。仅对本任务3.8.7工程通过官方UI切换该项，取消额外动画实验功能提示，保留模块配置物化前后文件；相同未修改场景的原标签截图随后确认蓝色order1覆盖后创建红色order0，零新诊断。这是条件配置对照，不将原失败报告改为通过。
 
 新夹具工具将官方UI导出配置冻结为3.8.7精确模块档案，并显式使用官方默认配置键；保持PhysX、XR、实验动画和其他原本关闭的选项关闭，不改变MCP暴露档位。仅在新矩阵工程暂存，拒绝已启动工程、已有配置、链接、错误SDK功能契约及额外模块/后端/加载标志变化；3.8.3不加未知模块。外层npm preflight及原生读客户端均校验落盘配置；health改用公开Editor.Profile.getProject读回项目模块（https://docs.cocos.com/creator/3.8/manual/zh/editor/extension/profile），不使用全局编辑器配置替代。90项夹具、严格类型及源码规范通过，实际SDK离线装配检查通过；新档案和Profile有效配置门禁仍待新的clean检查点、完整verify/候选及原生呈现复验，其余原生拥有层次、后端及完整5.1未完成，不开all、不推送、不发布。
+
+
+2026-10-15后续：13文件批准已用于8045b84，完整verify1256项、官方打包和候选校验通过。首次真实空模板暂存于启动前失败：3.8.7官方empty-quality只有project.json，没有settings/v2/packages/engine.json，原工具误要求文件预先存在；未启动Creator，失败日志保留。新修复仅允许在真实原始父目录内首次排他创建同版官方UI配置，继续拒绝已有modules、已启动工程、目录/文件/悬空链接；不添加未知模块或放宽六项权限。92项组件夹具、严格类型与源码规范通过，使用实际SDK/完整空模板的第二个全新离线暂存成功，包安装出现未签名本地候选既有package_signature_missing提示，不作原生日志零警告证明。当前新增工具尚未提交，须新clean检查点、完整verify/候选及新工程原生Profile读回和Sorting2D实际排序复验；旧失败目录保留且不重用，5.1仍未完成，不开all、不推送或发布。

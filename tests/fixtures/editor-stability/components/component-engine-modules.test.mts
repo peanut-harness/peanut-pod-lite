@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import { ComponentEngineModules } from './component-engine-modules.mts';
@@ -50,6 +50,32 @@ test('module preflight refuses missing sorting, wrong active config and broader 
         }
         assert.throws(() => ComponentEngineModules.assertActive(undefined, '3.8.7'), /active_profile_mismatch/);
         assert.deepEqual(readFileSync(f.path), before);
+    } finally { rmSync(f.root, { recursive: true, force: true }); }
+});
+
+test('official empty-template settings without engine.json acquire an exclusive project module file', () => {
+    const f = create();
+    try {
+        rmSync(f.path); assert.throws(() => ComponentEngineModules.assertProject(f.project, '3.8.7'), /settings_missing/);
+        ComponentEngineModules.stage(f.project, f.engine, '3.8.7'); ComponentEngineModules.assertProject(f.project, '3.8.7');
+        const settings = JSON.parse(readFileSync(f.path, 'utf8'));
+        assert.equal(settings.__version__, '1.0.12'); assert.equal(settings.modules.configs.defaultConfig.cache['sorting-2d']._value, true);
+        const before = readFileSync(f.path);
+        assert.throws(() => ComponentEngineModules.stage(f.project, f.engine, '3.8.7'), /existing_config_refused/);
+        assert.deepEqual(readFileSync(f.path), before);
+    } finally { rmSync(f.root, { recursive: true, force: true }); }
+});
+
+test('missing-file creation refuses linked parent directories and dangling file links without writing targets', () => {
+    const f = create();
+    try {
+        rmSync(f.path); const target = join(f.root, 'absent.json'); symlinkSync(target, f.path);
+        assert.throws(() => ComponentEngineModules.stage(f.project, f.engine, '3.8.7'), /settings_link/);
+        assert.equal(existsSync(target), false); rmSync(f.path);
+        const parent = join(f.project, 'settings/v2/packages'); rmSync(parent, { recursive: true });
+        const linked = join(f.root, 'linked-packages'); mkdirSync(linked); symlinkSync(linked, parent);
+        assert.throws(() => ComponentEngineModules.stage(f.project, f.engine, '3.8.7'), /settings_link/);
+        assert.equal(existsSync(join(linked, 'engine.json')), false);
     } finally { rmSync(f.root, { recursive: true, force: true }); }
 });
 

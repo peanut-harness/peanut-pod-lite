@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 
@@ -25,9 +25,11 @@ export class ComponentEngineModules {
             this.record(feature.overrideConstants).USE_SORTING_2D !== true ||
             this.record(this.record(config.constants).USE_SORTING_2D).value !== false)
             throw new Error('component_engine_modules_sorting_sdk_contract_invalid');
-        const path = this.projectSettings(project); const settings = this.record(JSON.parse(readFileSync(path, 'utf8')));
+        const path = this.projectSettings(project, true); const present = existsSync(path);
+        // 官方空工程模板尚无engine.json；版本来自本任务同版官方UI导出的工程配置。
+        const settings = present ? this.record(JSON.parse(readFileSync(path, 'utf8'))) : { __version__: '1.0.12' };
         if (Object.hasOwn(settings, 'modules')) throw new Error('component_engine_modules_existing_config_refused');
-        writeFileSync(path, JSON.stringify({ ...settings, modules: this.expected() }, null, 2) + '\n');
+        writeFileSync(path, JSON.stringify({ ...settings, modules: this.expected() }, null, 2) + '\n', { flag: present ? 'w' : 'wx' });
         this.assertProject(project, version);
     }
 
@@ -77,13 +79,17 @@ export class ComponentEngineModules {
     }
 
     /**
-     * @description 只读写工程内原始配置文件，拒绝目录和文件的符号链接。
+     * @description 只读写工程内原始配置文件；首次创建仍核对父目录，拒绝目录、文件及悬空符号链接。
      * @param project 实际工程。
+     * @param allowMissing 是否允许官方空模板尚未创建的文件。
      * @returns 经真实路径核对的设置文件。
      */
-    private static projectSettings(project: string): string {
+    private static projectSettings(project: string, allowMissing = false): string {
         const path = join(realpathSync(project), 'settings/v2/packages/engine.json');
-        if (realpathSync(path) !== path) throw new Error('component_engine_modules_settings_link');
+        if (realpathSync(dirname(path)) !== dirname(path)) throw new Error('component_engine_modules_settings_link');
+        const stat = lstatSync(path, { throwIfNoEntry: false });
+        if (stat && (!stat.isFile() || realpathSync(path) !== path)) throw new Error('component_engine_modules_settings_link');
+        if (!stat && !allowMissing) throw new Error('component_engine_modules_settings_missing');
         return path;
     }
 
