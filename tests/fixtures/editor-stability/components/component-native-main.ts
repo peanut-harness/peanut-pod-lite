@@ -80,6 +80,12 @@ class ComponentNativeMain {
         const editor = Reflect.get(globalThis, 'Editor');
         if (typeof editor?.Message?.request !== 'function') throw new Error('component_native_message_api_missing');
         const request = editor.Message.request.bind(editor.Message);
+        if (body.action === 'sdk-window-ready-sources') {
+            if (this.registration.sdkSceneCacheCompat !== true || editor.App.version !== '3.8.3' || !process.versions.electron)
+                throw new Error('component_sdk_window_ready_sources_not_registered');
+            return ComponentSdkWindowDiagnostics.read(createRequire(path.join(this.project, 'package.json'))('electron'),
+                String(this.registration.creatorApp), editor.App.version);
+        }
         if (body.action === 'sdk-scene-cache-compat-status') {
             if (this.registration.sdkSceneCacheCompat !== true || editor.App.version !== '3.8.3') throw new Error('component_sdk_cache_compat_not_registered');
             const marker: unknown = Reflect.get(globalThis, Symbol.for('peanut.component.sdk-scene-cache-compat'));

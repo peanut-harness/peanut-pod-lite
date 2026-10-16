@@ -164,3 +164,5 @@ Sorting2D原始重叠对照在原生字段为蓝色order1/红色order0时仍显�
 2026-10-16 3.8.3保存场景对照：0e92c4c对照确认公开Profile正确读回Label UUID，但缓存清理仍对该真实UUID的缺失目录记录错误，故指定保存场景不等于缓存问题修复；探针在engine reload中getScene=null时抛错又新增1条诊断。仅正常关闭自有7200，物理退出全5来源2错误0警告，零字段写。新探针将明确返回scenePresent=false/null UUID，等待实际场景且不认作通过；新增仅3.8.3固定已加载scene-cache.ccc方法原文只读入口，既不执行方法/getter也不提供任意SDK执行，准备定位真正幂等清理修复点。
 
 2026-10-16 3.8.3缓存根因与修复准备：486ad4c只读捕获已加载SceneCacheManager原文，clearSceneCache在每次onSceneReady中无条件safeRemove目录，缺目录也报错，随后才delete cacheTimerList/cacheJsonList并清空_currentSceneUUID。仅正常关闭自有23972，全5来源1错误0警告，未做字段写。新显式sdk-scene-cache-compat仅3.8.3新矩阵工程，精确核验5个SDK方法摘要和SDK getCachePath实际工程根；缺目录只执行原内存清理，不创建/删除缓存文件，目录存在仍完整调用SDK原删除，非ENOENT/原删除错误保留；只恢复自身单例方法。真实SDK源码离线对照、未知实现/跨项目拒绝、权限错误和恢复行为通过；冷启动及保存重开零诊断仍待新工程验证。
+
+2026-10-16 3.8.3缓存修复首次实机：9d46215缓存修复实机：公开Profile及实际Label UUID一致，缓存真回调完成缺目录清理1次，19/19资源加载且冷启动全5来源零诊断；首次Tiled scene-open实际成功、缺目录清理增至2次，但SDK又对main-window:ready重复end，严格门禁当场拒绝。仅正常关闭自有49042，终扫1计时错误0警告，无缓存/探针错误，未新增字段验收。固定窗口只读来源扩展到已核对main.html路径的3.8.3，不开启通用SDK执行，不把3.8.7修复别名当作本版通过。

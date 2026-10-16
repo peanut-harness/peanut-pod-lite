@@ -23,8 +23,9 @@ test('window inspection selects exactly the current SDK main window and refuses 
         } };
     const electron = { BrowserWindow: { getAllWindows: () => [{ webContents: contents }] } };
     assert.deepEqual(await ComponentSdkWindowDiagnostics.read(electron, app, '3.8.7'), { webContentsId: 3, observation: { complete: true } });
-    await assert.rejects(ComponentSdkWindowDiagnostics.read(electron, app, '3.8.3'), /version_unverified/u);
+    await ComponentSdkWindowDiagnostics.read(electron, app, '3.8.3');
+    await assert.rejects(ComponentSdkWindowDiagnostics.read(electron, app, '3.9.0'), /version_unverified/u);
     await assert.rejects(ComponentSdkWindowDiagnostics.read(electron, app + '-other', '3.8.7'), /identity_invalid/u);
     electron.BrowserWindow.getAllWindows = () => [{ webContents: contents }, { webContents: contents }];
-    await assert.rejects(ComponentSdkWindowDiagnostics.read(electron, app, '3.8.7'), /identity_invalid/u); assert.equal(calls, 1);
+    await assert.rejects(ComponentSdkWindowDiagnostics.read(electron, app, '3.8.7'), /identity_invalid/u); assert.equal(calls, 2);
 });

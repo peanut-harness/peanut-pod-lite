@@ -15,7 +15,7 @@ export class ComponentSdkWindowDiagnostics {
      * @description 只定位当前SDK的唯一现有主窗口；启动期间尚未创建窗口时返回null，不创建窗口。
      */
     public static mainContents(electron: any, creatorApp: string, version: string): any {
-        if (version !== '3.8.7') throw new Error('component_sdk_window_diagnostics_version_unverified');
+        if (!['3.8.3', '3.8.7'].includes(version)) throw new Error('component_sdk_window_diagnostics_version_unverified');
         const expected = creatorApp + '/Contents/Resources/app.asar/node_modules/@editor/creator/static/windows/main.html';
         const windows = electron.BrowserWindow.getAllWindows().filter((window: any) => {
             const address = window.webContents.getURL(); if (!address.startsWith('file:')) return false;
