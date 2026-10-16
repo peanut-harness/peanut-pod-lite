@@ -41,6 +41,7 @@ export class ComponentSdkWindowDiagnostics {
             '/app.asar/node_modules/@editor/creator/dist/layout/', '/app.asar/node_modules/@editor/creator/dist/startup/',
             '/app.asar/node_modules/@editor/creator/dist/windows/', '/app.asar/node_modules/@editor/creator/dist/panel/',
             '/app.asar/node_modules/@editor/dock/lib/renderer/',
+            '/app.asar/node_modules/@editor/panel/lib/',
             '/app.asar/modules/editor-extensions/extensions/hierarchy/dist/'];
         const modules: unknown[] = []; const sources: unknown[] = []; const seen = new Set<object>(); let complete = true;
         const walker = { walk(value: any, path: string, depth: number): void {
@@ -48,7 +49,8 @@ export class ComponentSdkWindowDiagnostics {
             if (seen.size >= 2048) { complete = false; return; } seen.add(value);
             if (typeof value === 'function') {
                 const source = Function.prototype.toString.call(value);
-                if (/main-window:ready|hierarchy:render-tree/u.test(source) || /\/(?:__eb__|addBroadcastListener|removeBroadcastListener)$/u.test(path)
+                if (/main-window:ready|hierarchy:render-tree/u.test(source) || path.startsWith('node_modules/@editor/panel/lib/')
+                    || /\/(?:__eb__|addBroadcastListener|removeBroadcastListener)$/u.test(path)
                     || /hierarchy\/dist\/panel\.ccc\/(?:ready|close|beforeClose)$/u.test(path)
                     || (/hierarchy\/dist\/panel\.ccc\/listeners\//u.test(path) && /methods\.ready|scene:ready|query-is-ready/u.test(source))) {
                     if (source.length > 131072 || sources.length >= 128) { complete = false; return; }
@@ -74,6 +76,7 @@ export class ComponentSdkWindowDiagnostics {
         }
         const editor = Reflect.get(globalThis, 'Editor');
         walker.walk(editor?.Message?.__protected__, 'Editor.Message.__protected__', 0);
+        walker.walk(editor?.Panel?.__protected__, 'Editor.Panel.__protected__', 0);
         const rendererTrace = Reflect.get(globalThis, Symbol.for('peanut.component.sdk-renderer-timer-trace'));
         return { complete, inspectedObjects: seen.size, modules, sources, rendererTimerTrace: rendererTrace?.state ?? null };
     }
