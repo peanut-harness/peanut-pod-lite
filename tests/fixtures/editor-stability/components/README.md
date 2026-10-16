@@ -44,6 +44,8 @@ node --import tsx tests/fixtures/editor-stability/components/component-catalog-c
 
 原生观测使用 `component-native-project.mts` 创建全新的任务工程，核对官方候选的双画像、载荷摘要和源码检查点，通过实际安装事务安装 Core。参数为 `--creator-version`、`--creator-app`、`--run-id`。源文件逐项校验 SHA；cube meta 必须配对在 HDR 副本旁，checker 的 SpriteFrame 导入选项来自精确 SDK，子资源由实际 importer 生成。源及旧报告保持原样。
 
+3.8.7 可显式增加 `--metrics-diagnostics`，登记为有限布尔值并传入同版启动器已有的 `--metric`。SDK `source/launch.ts` 将该值传入 `Editor.Startup.__protected__.manager` 的 `outputMetricLog` 参数；只增加诊断输出，未证明能修复计时器错误。只读探针开启 `process.traceProcessWarnings` 并读取 `EditorExtends.Component` 的公开 EventEmitter 计数、阈值和回调名称，不修改监听器、阈值或 SDK。MCP 回执先记录产品返回状态，再执行原始日志门禁；后者失败仍使操作和 campaign 拒绝，不能以产品返回成功代替零诊断。
+
 在输出的 `project/` 内运行 `npm --ignore-scripts=false run creator`，保留 precreator/creator/postcreator。macOS统一使用 `open -na` 的应用启动入口，捕获应用stdout/stderr并记录实际Creator PID；同工程已有进程时拒绝重复启动。`open -W` 仅有启动器退出状态，不能据此宣称 Creator 的退出码为 0。本工程已有实例时拒绝重启，交回会话附着流程。所有二进制 stdout/stderr 和 project.log 完整保留。
 
 `component-native-read.mts --project <隔离工程>` 每次重读私有描述符并核对 PID、启动时间、工程路径和 owner，分别等待 Host 注册和 AssetDB 导入，再按声明源核对资源的实际 UUID、类型和有效性。运行于场景进程的探针只提供资源加载、场景快照和后端观测，没有场景打开或任意消息执行入口。资源加载成功仍不等于组件字段写入、引用绑定、保存重开或零日志通过，`nativePassedRows` 保持 0。

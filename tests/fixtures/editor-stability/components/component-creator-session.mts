@@ -8,6 +8,7 @@ import { ComponentEngineProfile } from './component-engine-profile.mts';
 import { ComponentEngineModules } from './component-engine-modules.mts';
 import { ComponentServiceProfile } from './component-service-profile.mts';
 import { ComponentTaskOwnership } from './component-task-ownership.mts';
+import { ComponentCreatorDiagnostics } from './component-creator-diagnostics.mts';
 
 /**
  * @description 5.1 独占隔离工程的外层 npm 启动入口；记录 PID、启动时间与完整二进制日志。
@@ -16,7 +17,7 @@ class ComponentCreatorSession {
     /**
      * @description 启动前核对工作树内登记、候选、精确版本及同工程进程互斥。
      */
-    public static preflight(): { registration: Record<string, string> & { offlineServiceProfile?: boolean }; project: string; output: string; binary: string; sameVersion: boolean } {
+    public static preflight(): { registration: Record<string, string> & { offlineServiceProfile?: boolean }; project: string; output: string; binary: string; sameVersion: boolean; diagnosticArgs: string[] } {
         const repository = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
         const project = realpathSync(process.cwd()); const output = dirname(project);
         if (!project.startsWith(`${repository}${sep}evidence${sep}task-5.1${sep}`) || project !== join(output, 'project'))
@@ -42,7 +43,8 @@ class ComponentCreatorSession {
         const processes = this.processes();
         if (processes.some((line) => line.includes(`${binary} --project ${project}`))) throw new Error('creator_project_session_conflict');
         const sameVersion = processes.some((line) => line.includes(`${binary} --project `));
-        return { registration, project, output, binary, sameVersion };
+        const diagnosticArgs = ComponentCreatorDiagnostics.args(registration.metricsDiagnostics, registration.creatorVersion);
+        return { registration, project, output, binary, sameVersion, diagnosticArgs };
     }
 
     /**
@@ -59,7 +61,8 @@ class ComponentCreatorSession {
         const launcherErr = useOpen ? openSync(join(context.output, 'launcher-stderr.log'), 'wx', 0o600) : err;
         const args = useOpen ? ['-n', '-a', context.registration.creatorApp ?? '', '-W',
             '--stdout', join(context.output, 'stdout.log'), '--stderr', join(context.output, 'stderr.log'),
-            '--args', '--project', context.project, '--nologin'] : ['--project', context.project, '--nologin'];
+            '--args', '--project', context.project, '--nologin', ...context.diagnosticArgs]
+            : ['--project', context.project, '--nologin', ...context.diagnosticArgs];
         const child = spawn(useOpen ? '/usr/bin/open' : context.binary, args, {
             cwd: context.project, stdio: ['ignore', launcherOut, launcherErr], detached: true,
         });
@@ -86,6 +89,7 @@ class ComponentCreatorSession {
                 writeFileSync(join(context.output, 'creator-owned-start.json'), JSON.stringify({
                     owner: context.registration.owner, runId: context.registration.runId, pid: creatorPid,
                     launcherPid: child.pid, launchMethod: useOpen ? 'open-new-instance-wait' : 'direct-binary',
+                    diagnosticArguments: context.diagnosticArgs,
                     otherSameVersionProjectsPresent: context.sameVersion,
                     project: context.project, creatorVersion: context.registration.creatorVersion, identity,
                     executableSha256: createHash('sha256').update(readFileSync(context.binary)).digest('hex'),

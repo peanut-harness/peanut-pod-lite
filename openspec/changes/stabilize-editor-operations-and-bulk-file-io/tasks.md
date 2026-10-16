@@ -130,3 +130,5 @@ Sorting2D原始重叠对照在原生字段为蓝色order1/红色order0时仍显�
 2026-10-15后续：13文件批准已用于8045b84，完整verify1256项、官方打包和候选校验通过。首次真实空模板暂存于启动前失败：3.8.7官方empty-quality只有project.json，没有settings/v2/packages/engine.json，原工具误要求文件预先存在；未启动Creator，失败日志保留。新修复仅允许在真实原始父目录内首次排他创建同版官方UI配置，继续拒绝已有modules、已启动工程、目录/文件/悬空链接；不添加未知模块或放宽六项权限。92项组件夹具、严格类型与源码规范通过，使用实际SDK/完整空模板的第二个全新离线暂存成功，包安装出现未签名本地候选既有package_signature_missing提示，不作原生日志零警告证明。当前新增工具尚未提交，须新clean检查点、完整verify/候选及新工程原生Profile读回和Sorting2D实际排序复验；旧失败目录保留且不重用，5.1仍未完成，不开all、不推送或发布。
 
 后处理相机门禁：同版SDK的Camera.usePostProcess默认false；新展示源显式写入其已审计序列化槽，并在原生快照只读核对公开getter及全局PostProcess，避免只有组件而未启用效果。f158519的完整verify1256项通过，此相机补齐仍需新检查点及实机。
+
+2026-10-16诊断续查：加入3.8.7同版启动器已有的metric输出开关、Node警告堆栈与ComponentManager只读监听器观测；不修改SDK、监听器阈值或日志门禁。SDK源码显示metrics同步末尾reset，缺少起始时间时打印trackTimeEnd失败，但尚未证明根因。111项组件回归通过；下一步为新clean候选的单变量冷启动对照，当前仅为诊断准备，不宣称GPU/监听器/SDK错误已修复，5.1仍未完成。

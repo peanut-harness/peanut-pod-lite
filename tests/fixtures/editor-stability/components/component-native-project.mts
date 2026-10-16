@@ -21,6 +21,7 @@ import { ComponentSpriteImport } from './component-sprite-import.mts';
 import { ComponentTerrainEffect } from './component-terrain-effect.mts';
 import { ComponentProjectUrlFiles } from './component-project-url-files.ts';
 import { ComponentTaskOwnership } from './component-task-ownership.mts';
+import { ComponentCreatorDiagnostics } from './component-creator-diagnostics.mts';
 
 const root = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
 const args = process.argv.slice(2);
@@ -33,6 +34,8 @@ const fixtureProfile = args.includes('--component-matrix') ? 'component-matrix'
     : args.includes('--sprite-roundtrip') ? 'sprite-roundtrip' : 'resource-import';
 if (!['3.8.3', '3.8.7'].includes(version ?? '') || !app || !runId || !/^[a-z0-9][a-z0-9-]{1,63}$/u.test(runId)) throw new Error('component_native_project_arguments_invalid');
 if (version !== '3.8.3' && version !== '3.8.7') throw new Error('component_native_version_unsupported');
+const metricsDiagnostics = args.includes('--metrics-diagnostics');
+ComponentCreatorDiagnostics.args(metricsDiagnostics, version);
 if (engineModulesContext === 'post-process' && version !== '3.8.7') throw new Error('component_native_post_version_unverified');
 const resources = join(realpathSync(app), 'Contents/Resources');
 const engine = join(resources, 'resources/3d/engine');
@@ -58,7 +61,7 @@ mkdirSync(join(project, 'node_modules'), { recursive: true });
 cpSync(join(engine, 'node_modules/tslib'), join(project, 'node_modules/tslib'), { recursive: true });
 const registration = { kind: 'worktree-local-validation-project', task: '5.1',
     owner, change: 'stabilize-editor-operations-and-bulk-file-io',
-    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7',
+    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: version === '3.8.7', metricsDiagnostics,
     candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
     registeredAt: new Date().toISOString(), userAuthorization: '推进5.1真实导入、后端确认和原生加载验证；按Hub操作Cocos，只关闭自己实例' };
 writeFileSync(join(output, 'project-ownership.json'), JSON.stringify(registration, null, 2) + '\n');

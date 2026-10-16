@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
 import { fileURLToPath } from 'node:url';
 import { runInNewContext } from 'node:vm';
 import { buildSync } from 'esbuild';
@@ -19,7 +20,13 @@ test('UI model observation keeps real mesh/shared-material identities without in
     const cc = { director: { getScene: () => node }, Component: class {}, macro: { CUSTOM_PIPELINE_NAME: '' },
         js: { getClassName: (value: { type: string }) => value.type }, isValid: () => true };
     const output = { exports: {} };
-    runInNewContext(code, { module: output, exports: output.exports, require: (id: string): unknown => {
+    const observedProcess = { traceProcessWarnings: false };
+    const manager = new EventEmitter();
+    function observeAdd(): void {}
+    function observeRemove(): void {}
+    manager.on('add', observeAdd); manager.on('remove', observeRemove);
+    const maximum = manager.getMaxListeners();
+    runInNewContext(code, { process: observedProcess, EditorExtends: { Component: manager }, module: output, exports: output.exports, require: (id: string): unknown => {
         if (id === 'cc') return cc;
         throw Error('unexpected module:' + id);
     } });
@@ -31,4 +38,11 @@ test('UI model observation keeps real mesh/shared-material identities without in
         modelNodeMatches: true, modelEnabled: true, mesh: { uuid: 'native-mesh', type: 'cc.Mesh', valid: true },
         sharedMaterials: [{ uuid: 'native-material', type: 'cc.Material', valid: true }] });
     assert.equal(instanceReads, 0);
+    assert.equal(result.warningStacksEnabled, true);
+    assert.equal(observedProcess.traceProcessWarnings, true);
+    assert.deepEqual(result.componentManagerListeners, { max: maximum, add: 1, remove: 1,
+        callbackNames: [{ event: 'add', names: ['observeAdd'] }, { event: 'remove', names: ['observeRemove'] }] });
+    assert.equal(manager.getMaxListeners(), maximum);
+    assert.deepEqual(manager.rawListeners('add'), [observeAdd]);
+    assert.deepEqual(manager.rawListeners('remove'), [observeRemove]);
 });

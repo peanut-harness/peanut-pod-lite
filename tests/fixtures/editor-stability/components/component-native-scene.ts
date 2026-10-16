@@ -21,6 +21,7 @@ class ComponentNativeScene {
      * @description 从当前真实场景读取节点、组件及已经实例化的物理后端。
      */
     public static snapshot(): unknown {
+        Reflect.set(process, 'traceProcessWarnings', true);
         const cc = require('cc'); const scene = cc.director.getScene();
         if (!scene) throw new Error('component_native_scene_missing');
         const nodes: unknown[] = [];
@@ -37,7 +38,13 @@ class ComponentNativeScene {
         const world2d = cc.PhysicsSystem2D?.instance?.physicsWorld;
         const builder = typeof cc.rendering?.getCustomPipeline === 'function'
             ? cc.rendering.getCustomPipeline(cc.macro.CUSTOM_PIPELINE_NAME) : null;
-        return { sceneName: scene.name, sceneUuid: scene.uuid, nodes,
+        const manager = Reflect.get(globalThis, 'EditorExtends')?.Component;
+        const componentManagerListeners = typeof manager?.listenerCount === 'function' && typeof manager?.getMaxListeners === 'function'
+            ? { max: manager.getMaxListeners(), add: manager.listenerCount('add'), remove: manager.listenerCount('remove'),
+                callbackNames: ['add', 'remove'].map(event => ({ event, names: typeof manager.rawListeners === 'function'
+                    ? manager.rawListeners(event).map((listener: Function) => listener.name) : null })) } : null;
+        return { sceneName: scene.name, sceneUuid: scene.uuid, nodes, warningStacksEnabled: Reflect.get(process, 'traceProcessWarnings') === true,
+            componentManagerListeners,
             physics3d: world3d ? { constructor: world3d.constructor.name } : null,
             physics2d: world2d ? { constructor: world2d.constructor.name } : null,
             pipelineConstructor: cc.director.root?.pipeline?.constructor?.name ?? null,

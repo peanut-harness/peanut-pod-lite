@@ -190,7 +190,16 @@ export class ComponentNativeClient {
      * @returns 原始result。
      */
     public async mcp(body: Record<string, unknown>): Promise<unknown> {
-        const execute = (): Promise<unknown> => this.request('cocos-mcp.json', '/mcp', 'x-peanut-mcp-token', { connectionId: this.connectionId, ...body });
+        const execute = async (): Promise<unknown> => {
+            const value = await this.request('cocos-mcp.json', '/mcp', 'x-peanut-mcp-token', { connectionId: this.connectionId, ...body });
+            if (body.action === 'call') {
+                const result = this.record(value); const post = this.record(result.postflight ?? result.taskPostflight);
+                this.events.push({ step: 'mcp-call-returned-before-raw-postflight', name: body.name,
+                    taskId: result.taskId, taskStatus: result.taskStatus, available: result.available,
+                    productPostflightVerified: post.verified === true }); this.save();
+            }
+            return value;
+        };
         if (body.action !== 'call') return execute();
         return ComponentNativeLogGuard.run(this.project, 'mcp:' + String(body.name), execute, event => { this.events.push(event); this.save(); });
     }

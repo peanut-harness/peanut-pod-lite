@@ -23,6 +23,7 @@ class ComponentNativeMain {
      * @description 在 Creator 的实际扩展加载入口创建仅本机的窄接口。
      */
     public static load(): void {
+        Reflect.set(process, 'traceProcessWarnings', true);
         const editor = Reflect.get(globalThis, 'Editor');
         this.project = fs.realpathSync(editor.Project.path);
         this.registration = JSON.parse(fs.readFileSync(path.join(this.project, '..', 'project-ownership.json'), 'utf8'));
@@ -82,6 +83,7 @@ class ComponentNativeMain {
             const host = await request('peanut-pod-lite-host', 'query-status');
             return { projectPath: this.project, creatorVersion: editor.App.version, pid: process.pid,
                 nodeVersion: process.versions.node, electronVersion: process.versions.electron,
+                warningStacksEnabled: Reflect.get(process, 'traceProcessWarnings') === true,
                 effectiveEngineProfile: await editor.Profile.getConfig('engine'),
                 engineModulesProfile: await editor.Profile.getProject('engine', 'modules'),
                 engineMacroProfile: await editor.Profile.getProject('engine', 'macroConfig'),
