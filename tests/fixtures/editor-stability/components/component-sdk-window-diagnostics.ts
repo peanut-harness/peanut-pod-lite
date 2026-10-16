@@ -40,7 +40,8 @@ export class ComponentSdkWindowDiagnostics {
             if (typeof value === 'function') {
                 const source = Function.prototype.toString.call(value);
                 if (/main-window:ready|hierarchy:render-tree/u.test(source) || /\/(?:__eb__|addBroadcastListener|removeBroadcastListener)$/u.test(path)
-                    || /hierarchy\/dist\/panel\.ccc\/(?:ready|close|beforeClose)$/u.test(path)) {
+                    || /hierarchy\/dist\/panel\.ccc\/(?:ready|close|beforeClose)$/u.test(path)
+                    || (/hierarchy\/dist\/panel\.ccc\/listeners\//u.test(path) && /methods\.ready|scene:ready|query-is-ready/u.test(source))) {
                     if (source.length > 131072 || sources.length >= 128) { complete = false; return; }
                     sources.push({ path, source });
                 }

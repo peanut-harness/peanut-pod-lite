@@ -148,6 +148,9 @@ export class ComponentSdkDiagnostics {
             node: this.sources(cce?.Node, ['initWithScene', 'onSceneOpened', 'onSceneClosed', 'clear', 'registerNodeMgrEvents', 'unregisterNodeMgrEvents']),
             facade: this.sources(cce?.SceneFacadeManager, ['openScene', 'closeScene', 'onSceneOpened', 'getCurrentFacade']),
             currentFacade: this.sources(current, ['onSceneOpened', 'onSceneClosed', 'openScene', 'changeScene', 'closeScene', 'reloadScene', 'load']),
+            managerHooks: Object.fromEntries(['Animation', 'Asset', 'Camera', 'Engine', 'Gizmo', 'Node', 'Prefab', 'Scene', 'Component', 'Terrain', 'Preview', 'Plugin']
+                .map(name => [name, this.sources(cce?.[name], ['onSceneOpened', 'onSceneClosed', 'init'])])),
+            facadeDispatch: this.sources(current, ['dispatchEvents']),
             startup: this.sources(cce?.Startup, ['requireEngine', 'configEngine', 'openEngine', 'initManager']),
             preview: this.sources(cce?.EditorPreview, ['init', 'initialize', 'open', 'onSceneReady', 'onSceneOpened']) };
     }
