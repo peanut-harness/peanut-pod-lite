@@ -6,8 +6,8 @@
       "treeSha": "f439147bc5065882caa1b21ba4d34769716668ef5880a03f07a4e8853924dfa7",
       "cardSha": "84e10ddb038a9926e0100eb4f646ad2281249eabd7603a962d76b1a7b561e3c0",
       "fileCount": 15,
-      "attestReason": "Host跨包字段准备及自身main卸载修复源码就绪，保留真实原生失败边界",
-      "updatedAt": "2026-10-19T05:56:45.441Z"
+      "attestReason": "补齐真实打包回归测试内部依赖声明，既有原生验收边界不变",
+      "updatedAt": "2026-10-19T05:58:17.863Z"
     }
   }
 }
