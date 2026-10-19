@@ -30,7 +30,7 @@ export class LifecycleExitLiveBaseline {
         const candidate = candidateInput ? this.assertCandidate(project, output, candidateInput.directory, candidateInput.sourceCommit) : null;
         const sdkTimerEnvironment = sdkEnvironmentInput
             ? this.assertSdkTimerEnvironment(project, output, sdkEnvironmentInput.directory, sdkEnvironmentInput.sourceCommit)
-            : candidateInput && candidate ? { kind: 'formal-host-sdk-worker', sourceCommit: candidate.sourceCommit,
+            : candidateInput && candidate ? { kind: 'formal-host-sdk-worker', entry: 'direct-sdk-worker', sourceCommit: candidate.sourceCommit,
                 workerSha256: this.sha(this.readCandidateWorker(candidateInput.directory, candidate)) } : null;
         const binary = join(app, 'Contents/MacOS/CocosCreator');
         accessSync(binary, constants.X_OK);
@@ -228,7 +228,7 @@ export class LifecycleExitLiveBaseline {
      * @returns 共同 SDK 环境身份；不把夹具冒充纯净无扩展基线。
      */
     public static assertSdkTimerEnvironment(project: string, output: string, directory: string, sourceCommit: string): {
-        kind: string; sourceCommit: string; workerSha256: string;
+        kind: string; entry: string; sourceCommit: string; workerSha256: string;
     } {
         if (!/^[a-f0-9]{40}$/u.test(sourceCommit) || !isAbsolute(directory) || realpathSync(directory) !== directory)
             throw new Error('lifecycle_sdk_environment_input_invalid');
@@ -243,7 +243,7 @@ export class LifecycleExitLiveBaseline {
             throw new Error('lifecycle_sdk_environment_extension_set_invalid');
         const helper = join(project, 'extensions/peanut-sdk-startup-timer-helper');
         this.assertSdkHelper(helper, workerSha256);
-        return { kind: 'fixed-common-sdk-worker', sourceCommit, workerSha256 };
+        return { kind: 'fixed-common-sdk-worker', entry: 'direct-sdk-worker', sourceCommit, workerSha256 };
     }
 
     /**
@@ -273,6 +273,10 @@ export class LifecycleExitLiveBaseline {
 
      */
     private static readCandidateWorker(directory: string, candidate: ReturnType<typeof verifyReleaseCandidate>): Buffer {
+        const metadata = spawnSync('/usr/bin/tar', ['-xOf', join(directory, candidate.host.archive),
+            `peanut-pod-lite-host-${candidate.version}/package.json`], { maxBuffer: 4 * 1024 * 1024 });
+        if (metadata.error || metadata.status !== 0) throw new Error('lifecycle_sdk_worker_manifest_missing');
+        this.assertSdkWorkerContribution(JSON.parse(metadata.stdout.toString('utf8')));
         const result = spawnSync('/usr/bin/tar', ['-xOf', join(directory, candidate.host.archive),
             `peanut-pod-lite-host-${candidate.version}/dist/sdk-startup-timer-worker.js`], { maxBuffer: 4 * 1024 * 1024 });
         if (result.error || result.status !== 0 || result.stdout.length === 0) throw new Error('lifecycle_sdk_worker_archive_missing');
@@ -291,6 +295,7 @@ export class LifecycleExitLiveBaseline {
         if (!/^[a-f0-9]{40}$/u.test(sourceCommit) || !isAbsolute(directory) || realpathSync(directory) !== directory)
             throw new Error('lifecycle_candidate_input_invalid');
         const candidate = verifyReleaseCandidate(directory, { expectedSourceCommit: sourceCommit });
+        this.readCandidateWorker(directory, candidate);
         const registration = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8')) as Record<string, unknown>;
         if (registration.candidateSourceCommit !== sourceCommit || registration.hostSha256 !== candidate.host.sha256
             || registration.coreSha256 !== candidate.core.sha256) throw new Error('lifecycle_candidate_registration_mismatch');
@@ -340,6 +345,21 @@ export class LifecycleExitLiveBaseline {
             return leftPath < rightPath ? -1 : leftPath > rightPath ? 1 : 0;
         });
         if (this.sha(Buffer.from(records.join('\n'))) !== expected) throw new Error('lifecycle_candidate_tree_digest_mismatch');
+    }
+
+    /**
+     * @description 正式入口必须由 SDK 直接评估，拒绝二次 require 造成全局上下文丢失。
+     * @param manifest 已验证 archive 的 Host 清单。
+     */
+    public static assertSdkWorkerContribution(manifest: unknown): void {
+        if (!manifest || typeof manifest !== 'object') throw new Error('lifecycle_sdk_worker_contribution_invalid');
+        const contributions: unknown = Reflect.get(manifest, 'contributions');
+        const assetDb: unknown = contributions && typeof contributions === 'object' ? Reflect.get(contributions, 'asset-db') : undefined;
+        if (!assetDb || typeof assetDb !== 'object' || Array.isArray(assetDb)
+            || Object.keys(assetDb).sort().join(',') !== 'global-hook,script'
+            || Reflect.get(assetDb, 'script') !== './dist/sdk-startup-timer-worker.js') throw new Error('lifecycle_sdk_worker_contribution_invalid');
+        const hooks: unknown = Reflect.get(assetDb, 'global-hook');
+        if (!Array.isArray(hooks) || hooks.length !== 1 || hooks[0] !== 'beforePreStart') throw new Error('lifecycle_sdk_worker_contribution_invalid');
     }
 
     /**

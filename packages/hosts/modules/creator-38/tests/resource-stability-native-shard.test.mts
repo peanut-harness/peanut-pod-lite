@@ -1,12 +1,80 @@
 import { ResourceStabilityNativeRuntime } from '../scripts/resource-stability-native-runtime.mts';
+import { ResourceStabilityNativeFixture } from '../scripts/resource-stability-native-fixture.mts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ResourceStabilityNativeShard, type IResourceNativeShardFixture } from '../scripts/resource-stability-native-shard.mts';
 import type { ICoverageInventory } from '../../../../../tools/editor-stability/coverage-contracts.mts';
+import { CoverageManifestGenerator } from '../../../../../tools/editor-stability/coverage-manifest-generator.mts';
 import type { IResourceSessionIdentity } from '../scripts/resource-stability-contracts.mts';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
+test('real catalog manifest prepares all 95 fixture names, including serialized arrays and reject_invalid', () => {
+    const repository = new URL('../../../../../', import.meta.url);
+    const catalog = JSON.parse(readFileSync(new URL('tests/fixtures/editor-stability/serialized/resource-fixtures.json', repository), 'utf8')) as {
+        fixtures: { creatorVersion: string; assetKind: string; files: { source: { path: string } };
+            initialPublic: Record<string, unknown> }[] };
+    const fixtures = catalog.fixtures.filter((row) => row.creatorVersion === '3.8.3'
+        && ResourceStabilityNativeRuntime.kinds.includes(row.assetKind));
+    assert.equal(fixtures.length, 8);
+    const assets = JSON.parse(readFileSync(new URL('packages/engine/modules/lumen/bundled/schema/assets.json', repository), 'utf8')) as {
+        entries: { assetKind: string; scaffold: boolean; fields: { apiName: string; kind: string; writable?: boolean }[] }[] };
+    const targets: ICoverageInventory['targets'][number][] = assets.entries.filter((entry) =>
+        ResourceStabilityNativeRuntime.kinds.includes(entry.assetKind)).flatMap((entry) => [{
+            id: `asset:${entry.assetKind}`, domain: 'asset' as const, subject: entry.assetKind,
+            actions: [...entry.scaffold ? ['create'] : [], 'import', 'query', 'inspect', 'patch', 'copy', 'move', 'rename', 'refresh', 'delete'],
+            fieldKind: null, availability: 'unverified' as const, availabilitySourceId: null,
+        }, ...entry.assetKind !== 'physicsMaterial' ? [] : entry.fields.map((field) => ({
+            id: `field:asset:physicsMaterial:${field.apiName}`, domain: 'field' as const, subject: `asset:physicsMaterial.${field.apiName}`,
+            actions: field.writable === false ? ['read', 'reject_write'] : ['read', 'set', 'reject_invalid'],
+            fieldKind: field.kind, availability: 'unverified' as const, availabilitySourceId: null,
+        }))]);
+    const manifest = CoverageManifestGenerator.createDraft({ creatorVersion: '3.8.3', targets,
+        sources: [{ id: 'product/assets.json', kind: 'product_catalog', creatorVersion: null, sha256: CoverageManifestGenerator.digest(assets) }],
+        nativeImporterModules: [], nativeRegisteredClasses: [], nativeRegistrationAlternatives: [], nativeUnresolvedRegistrations: [],
+        nativeComponentDeclarations: [], nativeAbstractComponentDeclarations: [], curatedComponentsWithoutDeclaration: [] });
+    assert.equal(manifest.cases.length, 95); let preparedCount = 0; let invalidCount = 0;
+    for (const fixture of fixtures) {
+      for (const row of manifest.cases.filter((item) => item.targetId === `asset:${fixture.assetKind}`
+          || fixture.assetKind === 'physicsMaterial' && item.targetId.startsWith('field:asset:physicsMaterial:'))) {
+        const source = readFileSync(new URL(fixture.files.source.path, repository));
+        const field = row.targetId.startsWith('field:') ? row.targetId.split(':').at(-1) : undefined;
+        const original = Buffer.from(source); const name = `${fixture.assetKind}-${field ? `${field}-` : ''}${row.action}`;
+        const prepared = ResourceStabilityNativeFixture.prepare(fixture.assetKind, source, name, fixture.initialPublic);
+        preparedCount += 1; if (row.action === 'reject_invalid') invalidCount += 1;
+        assert.deepEqual(source, original, 'frozen input bytes must remain unchanged');
+        if (fixture.assetKind === 'terrain') {
+            assert.deepEqual(prepared.source, source); assert.deepEqual(prepared.initial, fixture.initialPublic); continue;
+        }
+        const expected = JSON.parse(source.toString('utf8')) as Record<string, unknown> | Record<string, unknown>[];
+        const root = Array.isArray(expected) ? expected[0]! : expected;
+        const hasName = Object.hasOwn(root, '_name');
+        if (hasName) root._name = name;
+        assert.deepEqual(JSON.parse(prepared.source.toString('utf8')), expected, 'all non-root-name data must remain unchanged');
+        if (Object.hasOwn(fixture.initialPublic, '/name')) assert.equal(prepared.initial['/name'], root._name);
+        else assert.deepEqual(prepared.initial, fixture.initialPublic);
+        if (fixture.assetKind === 'animationGraph' || fixture.assetKind === 'animationGraphVariant') {
+            assert.ok(Array.isArray(expected)); assert.equal(root._name, name);
+            assert.equal(prepared.initial['/name'], name);
+        }
+        if (!hasName) assert.deepEqual(prepared.source, source);
+      }
+    }
+    assert.equal(preparedCount, 95); assert.equal(invalidCount, 5);
+});
+
+test('fixture derivation refuses a wrong root, nested name or unsupported binary name expectation', () => {
+    const encode = (value: unknown): Buffer => Buffer.from(JSON.stringify(value));
+    assert.throws(() => ResourceStabilityNativeFixture.prepare('animationGraph', encode([
+        { __type__: 'cc.animation.Layer', _name: 'child' }, { __type__: 'cc.animation.AnimationGraph', _name: '' },
+    ]), 'graph-copy', { '/name': '' }), /resource_native_fixture_root_type_mismatch/u);
+    assert.throws(() => ResourceStabilityNativeFixture.prepare('animationGraph', encode({
+        __type__: 'cc.animation.AnimationGraph', nested: { _name: '' },
+    }), 'graph-copy', { '/name': '' }), /resource_native_fixture_root_name_missing/u);
+    assert.throws(() => ResourceStabilityNativeFixture.prepare('terrain', Buffer.from([8, 0]), 'terrain-copy',
+        { '/name': '' }), /resource_native_fixture_binary_name_unsupported/u);
+});
 
 test('native shard keeps every full denominator row and follows the real public import target contract', async () => {
     const kinds = ResourceStabilityNativeRuntime.kinds;

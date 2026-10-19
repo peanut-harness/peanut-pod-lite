@@ -129,6 +129,10 @@
 - **WHEN** SDK版本/方法指纹未知，或卸载时该方法已被其它主体改变
 - **THEN** 不覆盖其它实现；仅恢复本入口拥有的引用，保留可定位失败，不吞诊断
 
+#### Scenario: Formal worker keeps the SDK entry context
+- **WHEN** 正式Host的asset-db入口装载已核验worker
+- **THEN** SDK直接装载与共同环境控制组同字节的worker，不依赖普通Node子模块自动继承SDK入口上下文；版本化升级由正式manifest指向选定worker，回滚恢复原manifest
+
 #### Scenario: Minimal comparison requires a shared SDK repair environment
 - **WHEN** 原纯无Lite和带Lite最小工程均复现同一SDK冷计时错误
 - **THEN** 保留两侧原失败；新对照明确记录无Host/Core但带固定SDK修复夹具的控制条件，与正式Host使用同字节worker来源，不能称为未加夹具的纯原生SDK通过

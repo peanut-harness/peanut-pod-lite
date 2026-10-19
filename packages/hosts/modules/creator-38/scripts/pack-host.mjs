@@ -68,7 +68,7 @@ await build({
     outfile: resolve(outputDirectory, 'dist/bootstrap.js'),
     legalComments: 'none',
 });
-for (const entry of ['sdk-startup-timer-bootstrap', 'sdk-startup-timer-worker']) {
+for (const entry of ['sdk-startup-timer-worker']) {
     const outfile = resolve(outputDirectory, 'dist', `${entry}.js`);
     await build({ bundle: true, entryPoints: [resolve(extensionRoot, 'src', `${entry}.ts`)],
         format: 'cjs', platform: 'node', target: 'node14', outfile, legalComments: 'none' });

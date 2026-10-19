@@ -15,7 +15,7 @@ export interface IComponentFormalSdkWorkerProof {
     readonly hostSha256: string;
     readonly hostPackageDigest: string;
     readonly manifestSha256: string;
-    readonly bootstrapSha256: string;
+    readonly entry: 'direct-sdk-worker';
     readonly workerSha256: string;
     readonly sourceVerified: true;
 }
@@ -25,7 +25,7 @@ export interface IComponentFormalSdkWorkerProof {
  */
 export class ComponentFormalSdkWorker {
     /**
-     * @description 校验候选 archive 后读取固定三个条目；3.8.3 不声称已安装 3.8.7 修复。
+     * @description 校验候选 archive 后读取固定两个条目；3.8.3 不声称已安装 3.8.7 修复。
      * @param directory 已冻结候选目录。
      * @param sourceCommit 完整期望源码提交。
      * @param version 实际 Creator 版本。
@@ -38,8 +38,7 @@ export class ComponentFormalSdkWorker {
             `peanut-pod-lite-host-${candidate.version}/${file}`], { maxBuffer: 4 * 1024 * 1024 });
         const manifest = read('package.json'); const parsed = JSON.parse(manifest.toString('utf8'));
         if (parsed.contributions?.['asset-db'] === undefined) return null;
-        return this.fromBytes(candidate, { manifest, bootstrap: read('dist/sdk-startup-timer-bootstrap.js'),
-            worker: read('dist/sdk-startup-timer-worker.js') });
+        return this.fromBytes(candidate, { manifest, worker: read('dist/sdk-startup-timer-worker.js') });
     }
 
     /**
@@ -49,18 +48,18 @@ export class ComponentFormalSdkWorker {
      * @returns 正式 worker 来源证明。
      */
     public static fromBytes(candidate: { sourceCommit: string; host: { sha256: string; packageDigest: string } },
-        files: { manifest: Buffer; bootstrap: Buffer; worker: Buffer }): IComponentFormalSdkWorkerProof {
+        files: { manifest: Buffer; worker: Buffer }): IComponentFormalSdkWorkerProof {
         const manifest = JSON.parse(files.manifest.toString('utf8'));
-        const expected = { script: './dist/sdk-startup-timer-bootstrap.js', 'global-hook': ['beforePreStart'] };
+        const expected = { script: './dist/sdk-startup-timer-worker.js', 'global-hook': ['beforePreStart'] };
         if (!/^[a-f0-9]{40}$/u.test(candidate.sourceCommit) || !/^[a-f0-9]{64}$/u.test(candidate.host.sha256)
             || !/^[a-f0-9]{64}$/u.test(candidate.host.packageDigest) || manifest.name !== 'peanut-pod-lite-host'
             || !isDeepStrictEqual(manifest.contributions?.['asset-db'], expected)
-            || files.bootstrap.length === 0 || files.worker.length === 0
-            || [files.manifest, files.bootstrap, files.worker].some(bytes => bytes.length > 4 * 1024 * 1024))
+            || files.worker.length === 0
+            || [files.manifest, files.worker].some(bytes => bytes.length > 4 * 1024 * 1024))
             throw new Error('component_formal_sdk_worker_source_invalid');
         return { kind: 'formal-host-sdk-worker', creatorVersion: '3.8.7', sourceCommit: candidate.sourceCommit,
             hostSha256: candidate.host.sha256, hostPackageDigest: candidate.host.packageDigest, manifestSha256: this.sha(files.manifest),
-            bootstrapSha256: this.sha(files.bootstrap), workerSha256: this.sha(files.worker), sourceVerified: true };
+            entry: 'direct-sdk-worker', workerSha256: this.sha(files.worker), sourceVerified: true };
     }
 
     /**
@@ -89,7 +88,7 @@ export class ComponentFormalSdkWorker {
         const root = join(project, 'extensions/peanut-pod-lite-host');
         if (realpathSync(root) !== root || lstatSync(root).isSymbolicLink()) throw new Error('component_formal_sdk_worker_link_refused');
         for (const [file, expected] of [['package.json', proof.manifestSha256],
-            ['dist/sdk-startup-timer-bootstrap.js', proof.bootstrapSha256], ['dist/sdk-startup-timer-worker.js', proof.workerSha256]]) {
+            ['dist/sdk-startup-timer-worker.js', proof.workerSha256]]) {
             const path = join(root, file);
             if (realpathSync(path) !== path || lstatSync(path).isSymbolicLink() || this.sha(readFileSync(path)) !== expected)
                 throw new Error('component_formal_sdk_worker_payload_mismatch');

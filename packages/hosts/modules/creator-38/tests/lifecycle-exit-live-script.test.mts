@@ -138,3 +138,13 @@ test('common SDK environment admits only exact fixed helper bytes and refuses ad
         assert.throws(() => LifecycleExitLiveBaseline.assertSdkHelper(root, digest), /payload_mismatch/u);
     } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+
+test('formal SDK environment requires the exact direct worker contribution rather than an indirect bootstrap', () => {
+    const direct = { contributions: { 'asset-db': { script: './dist/sdk-startup-timer-worker.js', 'global-hook': ['beforePreStart'] } } };
+    assert.doesNotThrow(() => LifecycleExitLiveBaseline.assertSdkWorkerContribution(direct));
+    for (const value of [null, {}, { contributions: { 'asset-db': { ...direct.contributions['asset-db'], script: './dist/sdk-startup-timer-bootstrap.js' } } },
+        { contributions: { 'asset-db': { ...direct.contributions['asset-db'], 'global-hook': ['beforeReady'] } } }]) {
+        assert.throws(() => LifecycleExitLiveBaseline.assertSdkWorkerContribution(value), /contribution_invalid/u);
+    }
+});

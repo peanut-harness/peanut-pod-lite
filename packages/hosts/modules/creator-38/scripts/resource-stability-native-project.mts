@@ -1,4 +1,5 @@
 import { ResourceStabilityNativeRuntime } from './resource-stability-native-runtime.mts';
+import { ResourceStabilityNativeFixture } from './resource-stability-native-fixture.mts';
 import { cpSync, copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -96,16 +97,14 @@ export class ResourceStabilityNativeProject {
                 const folder = join(project, '.peanut-ai/resource-stability-inputs', options.runId, fixture.assetKind, row.action);
                 mkdirSync(folder, { recursive: true });
                 const filename = `${fixture.assetKind}-${fieldName ? `${fieldName}-` : ''}${row.action}${basename(fixture.files.source.path).match(/\.[^.]+$/u)?.[0] ?? ''}`;
-                const isJson = source[0] === 123;
-                const data = isJson ? JSON.parse(source.toString('utf8')) as Record<string, unknown> : null;
                 const name = filename.replace(/\.[^.]+$/u, '');
-                if (data && Object.hasOwn(data, '_name')) data._name = name;
+                const prepared = ResourceStabilityNativeFixture.prepare(fixture.assetKind, source, name, fixture.initialPublic);
                 const metadata = JSON.parse(meta.toString('utf8')) as Record<string, unknown>;
                 metadata.uuid = randomUUID(); metadata.imported = false; metadata.files = [];
-                const input = join(folder, filename); writeFileSync(input, data ? JSON.stringify(data) : source); writeFileSync(`${input}.meta`, JSON.stringify(metadata));
+                const input = join(folder, filename); writeFileSync(input, prepared.source); writeFileSync(`${input}.meta`, JSON.stringify(metadata));
                 fixtureSources[input] = this.hash(readFileSync(input)); fixtureSources[`${input}.meta`] = this.hash(readFileSync(`${input}.meta`));
                 fixtures.push({ kind: fixture.assetKind, caseId: row.id, filename, source: input, sourceMeta: `${input}.meta`,
-                    initial: Object.hasOwn(fixture.initialPublic, '/name') ? { ...fixture.initialPublic, '/name': name } : fixture.initialPublic, patch: fixture.patch.valid, expectedPatch: fixture.patch.expectedPublic,
+                    initial: prepared.initial, patch: fixture.patch.valid, expectedPatch: fixture.patch.expectedPublic,
                     field: fieldName && fieldCase ? { name: fieldName, initial: fieldName === 'name' ? name : fieldCase.initial,
                         expected: fieldCase.expected, patch: fieldCase.patch, invalidPatch: fieldCase.invalidPatch,
                         rejectionCode: `lumen_property_type:${fieldName}:${fieldName === 'name' ? 'string' : 'number>=0'}` } : undefined });

@@ -3,11 +3,11 @@
   "corpusId": "peanut-org",
   "repos": {
     "peanut-pod-lite": {
-      "treeSha": "bc8158a489632b14149e123fc11ef3596f691c11dd495a3b5d1db0d1a465a1b7",
+      "treeSha": "83997292864d5a42440dc1650f26166c998b41f5370450b894e0d1545acc7bb7",
       "cardSha": "84e10ddb038a9926e0100eb4f646ad2281249eabd7603a962d76b1a7b561e3c0",
       "fileCount": 15,
-      "attestReason": "只修正新SDK测试到tsx入口，产品事实不变；首次完整verify失败日志保留，定向两组123通过，新clean检查点须完整重跑",
-      "updatedAt": "2026-10-19T04:06:52.568Z"
+      "attestReason": "正式SDK direct worker入口和数组根名称修复，离线定向通过，旧实机失败完整保留，新候选实机待验证",
+      "updatedAt": "2026-10-19T04:26:23.855Z"
     }
   }
 }
