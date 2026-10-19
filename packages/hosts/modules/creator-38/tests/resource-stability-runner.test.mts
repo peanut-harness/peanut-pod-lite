@@ -6,7 +6,7 @@ import type { IResourceCampaignExpectation, IResourceCampaignPlan, IResourceCamp
     IResourceCasePlan, IResourceCallOutcome, IResourceCommand, IResourceSessionIdentity, IResourceSnapshot } from '../scripts/resource-stability-contracts.mts';
 import { createHash } from 'node:crypto';
 
-const namespace = 'assets/_peanut-resource-stability/synthetic-test';
+const namespace = 'assets/fixtures/resource-stability/synthetic-test';
 const source = `${namespace}/source.anim`;
 const uuid = '11111111-2222-4333-8444-555555555555';
 const destinationUuid = '99999999-2222-4333-8444-555555555555';
@@ -61,6 +61,26 @@ class SyntheticPort implements IResourceCampaignPort {
     public async recordObservation(value: IResourceCaseObservation): Promise<void> { this.recorded.push(structuredClone(value)); }
     public async recordFailure(caseId: string, code: string): Promise<void> { this.failures.push(`${caseId}:${code}`); }
 }
+
+test('explicit bounded commit completes before native readback and its failure stops the case', async () => {
+    const commit: IResourceCommand = { name: 'peanut.editor-mcp.lumen-commit',
+        input: { assetRelativePath: source, paths: [source] }, write: true, destructive: false };
+    const r = { ...row(), afterCommands: [commit] }; const port = new SyntheticPort();
+    await ResourceStabilityRunner.run(plan([r]), expectation([r]), port);
+    assert.equal(port.calls, 2);
+    const failed = new SyntheticPort();
+    failed.call = async (command) => {
+        if (command === commit) return { status: 'succeeded', rejectionCode: null, postflightVerified: false };
+        failed.state = snapshot(source, 2); return failed.outcome;
+    };
+    await assert.rejects(ResourceStabilityRunner.run(plan([r]), expectation([r]), failed), /incomplete_or_failed/u);
+    assert.equal(failed.recorded.length, 0);
+});
+
+test('rejection cases cannot append commit or another hidden mutation', () => {
+    const r = { ...row('reject_invalid'), afterCommands: [command()] };
+    assert.throws(() => ResourceStabilityRunner.validatePlan(plan([r]), expectation([r])), /rejection_after_commands/u);
+});
 
 test('synthetic runner executes one exact scope and records the actual observation before returning', async () => {
     const r = row(); const port = new SyntheticPort();

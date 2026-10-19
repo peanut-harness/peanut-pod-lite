@@ -78,9 +78,10 @@ export interface IPluginTaskExecutorContext {
   /**
    * @description Host从受信MCP invocation捕获的范围守卫，原writer窗口核对同一任务的实际输入。
    * @param request 必须是当前executor的同一受理任务。
+   * @param closure 原writer中独立重算的资源闭包，不能由业务输入提供。
    * @returns 挂接、资源与引用重新校验完成时结束；撤销或越界时拒绝。
    */
-  assertScopedWrite?(request: Readonly<ITaskRequest>): Promise<void>;
+  assertScopedWrite?(request: Readonly<ITaskRequest>, closure?: readonly string[]): Promise<void>;
   /**
    * @description 资源等待完成后进入不可逆 commit；任务已取消或超时时返回 false。
    */

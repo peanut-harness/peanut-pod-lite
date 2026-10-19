@@ -50,11 +50,11 @@ export class PluginTaskApi implements IPluginTaskApi {
     /**
      * @description 校验宿主签发 invocation 并解析其连接与 capability。
      */
-    private readonly _resolveInvocationOwner: ((invocation: IMcpCapabilityInvocation) => { readonly connectionId: string; readonly capability: string; readonly scopedWriteGuard?: (input: unknown) => Promise<void> } | null) | null;
+    private readonly _resolveInvocationOwner: ((invocation: IMcpCapabilityInvocation) => { readonly connectionId: string; readonly capability: string; readonly scopedWriteGuard?: (input: unknown, closure?: readonly string[]) => Promise<void> } | null) | null;
     /**
      * @description 受理到executor开始之间的有界Host守卫；不接受业务输入提供的回调。
      */
-    private readonly _scopedWriteGuards = new Map<string, (input: unknown) => Promise<void>>();
+    private readonly _scopedWriteGuards = new Map<string, (input: unknown, closure?: readonly string[]) => Promise<void>>();
     /**
      * @description 当前插件注册的 executor 撤销函数。
      */
@@ -80,7 +80,7 @@ export class PluginTaskApi implements IPluginTaskApi {
         pluginId: string,
         runtime: ICocosRuntime,
         projectKey: string = `plugin:${pluginId}`,
-        resolveInvocationOwner: ((invocation: IMcpCapabilityInvocation) => { readonly connectionId: string; readonly capability: string; readonly scopedWriteGuard?: (input: unknown) => Promise<void> } | null) | null = null,
+        resolveInvocationOwner: ((invocation: IMcpCapabilityInvocation) => { readonly connectionId: string; readonly capability: string; readonly scopedWriteGuard?: (input: unknown, closure?: readonly string[]) => Promise<void> } | null) | null = null,
     ) {
         this._pluginId = pluginId;
         this._runtime = runtime;
@@ -422,10 +422,10 @@ export class PluginTaskApi implements IPluginTaskApi {
         const key = `${owner.connectionId}:${owner.capability}:${request.requestId}`;
         const guard = this._scopedWriteGuards.get(key); this._scopedWriteGuards.delete(key);
         if (!guard) return undefined;
-        return async (actualRequest) => {
+        return async (actualRequest: Readonly<ITaskRequest>, closure?: readonly string[]) => {
             if (actualRequest !== request || actualRequest.payload == null || typeof actualRequest.payload !== 'object'
                 || Array.isArray(actualRequest.payload)) throw new Error('plugin_task_scoped_context_invalid');
-            await guard(Reflect.get(actualRequest.payload, 'input'));
+            await guard(Reflect.get(actualRequest.payload, 'input'), closure);
         };
     }
 

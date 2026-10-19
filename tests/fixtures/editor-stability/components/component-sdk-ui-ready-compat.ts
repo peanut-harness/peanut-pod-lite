@@ -12,7 +12,7 @@ export class ComponentSdkUiReadyCompat {
         const module = (suffix: string): any => {
             const matches = Object.entries(cache).filter(([path]) => path.endsWith('/app.asar/' + suffix));
             if (matches.length !== 1) throw new Error('component_sdk_ui_ready_module_identity_invalid:' + suffix);
-            return matches[0][1]?.exports;
+        return matches[0]?.[1]?.exports;
         };
         const broadcast = module('builtin/scene/dist/panel/message/broadcast.ccc');
         const hierarchy = module('modules/editor-extensions/extensions/hierarchy/dist/panel.ccc');

@@ -40,7 +40,7 @@ export class McpCapabilityRegistry {
     /**
      * @description 当前 handler 调用期间由宿主签发的 invocation 身份。
      */
-    private readonly _invocationOwners = new WeakMap<IMcpCapabilityInvocation, { readonly pluginId: string; readonly capability: string; readonly scopedWriteGuard?: (input: unknown) => Promise<void> }>();
+    private readonly _invocationOwners = new WeakMap<IMcpCapabilityInvocation, { readonly pluginId: string; readonly capability: string; readonly scopedWriteGuard?: (input: unknown, closure?: readonly string[]) => Promise<void> }>();
     /**
      * @description Hub注入的当前工程精确授权，不改变插件整体公开档位。
      */
@@ -234,7 +234,7 @@ export class McpCapabilityRegistry {
     public resolveInvocationOwner(
         pluginId: string,
         invocation: IMcpCapabilityInvocation,
-    ): { readonly connectionId: string; readonly capability: string; readonly scopedWriteGuard?: (input: unknown) => Promise<void> } | null {
+    ): { readonly connectionId: string; readonly capability: string; readonly scopedWriteGuard?: (input: unknown, closure?: readonly string[]) => Promise<void> } | null {
         const owner = this._invocationOwners.get(invocation);
         return owner?.pluginId === pluginId
             ? { connectionId: invocation.connectionId, capability: owner.capability,

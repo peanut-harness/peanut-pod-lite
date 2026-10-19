@@ -90,7 +90,19 @@ export class ResourceOperationTaskExecutor {
         });
         let batch: IResourceOperationBatchContext | undefined;
         try {
-            await context.assertScopedWrite?.(request);
+            if (context.assertScopedWrite) {
+                const current = await this._options.plan(payload.operation, payload.input);
+                if (current.projectKey !== plan.projectKey || current.requiresProjectWriter !== plan.requiresProjectWriter
+                    || current.resourceKeys.some(key => !plan.resourceKeys.includes(key))
+                    || JSON.stringify(current.preparedCopy) !== JSON.stringify(plan.preparedCopy)) {
+                    throw new Error('editor_mcp_scoped_resource_closure_changed');
+                }
+                const closure = current.closure;
+                await context.assertScopedWrite(request, closure == null ? undefined : [
+                    ...closure.roots, ...closure.dependencies, ...closure.sidecars,
+                    ...closure.unresolvedUuids.map(uuid => `uuid:${uuid}`),
+                ]);
+            }
             await this._options.revalidate?.(payload.operation, payload.input, plan);
             if (plan.workerManagedCommitWindow !== true && !context.enterCommitWindow()) {
                 throw new Error('editor_mcp_task_cancelled_before_commit');

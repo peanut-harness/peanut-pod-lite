@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -7,6 +7,27 @@ import test from 'node:test';
 import { CocosUuidCodec } from '../src/cocos-uuid-codec.ts';
 import { FileAssetDependencyIndex } from '../src/file-asset-dependency-index.ts';
 import { SilentAssetClosureCopy } from '../src/silent-asset-closure-copy.ts';
+
+test('copy preparation includes directory descendants and refreshes changed dependencies without writing', () => {
+    const root = mkdtempSync(join(tmpdir(), 'copy-preparation-'));
+    try {
+        writeImage(root, 'assets/local.png', '11111111-1111-4111-8111-111111111111');
+        writeImage(root, 'assets/foreign.png', '22222222-2222-4222-8222-222222222222');
+        const file = 'assets/seed/child.prefab'; const childUuid = '33333333-3333-4333-8333-333333333333';
+        writePrefab(root, file, childUuid, '11111111-1111-4111-8111-111111111111');
+        const request = { projectRoot: root, seedRelativePaths: ['assets/seed'], targetDirectoryRelative: 'assets/output' };
+        const copier = new SilentAssetClosureCopy(); const first = copier.prepare(request);
+        assert.ok(first.order.includes(file)); assert.ok(first.order.includes('assets/local.png'));
+        assert.equal(existsSync(join(root, 'assets/output')), false);
+        assert.equal(existsSync(join(root, 'assets/seed.meta')), false);
+        writePrefab(root, file, childUuid, '22222222-2222-4222-8222-222222222222');
+        const second = copier.prepare(request);
+        assert.ok(second.order.includes('assets/foreign.png')); assert.notEqual(first.sourceDigest, second.sourceDigest);
+        assert.throws(() => copier.copy(request, first), /silent_copy_preparation_changed/);
+        assert.equal(existsSync(join(root, 'assets/output')), false);
+        assert.equal(existsSync(join(root, 'assets/seed.meta')), false);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+});
 
 /**
  * @description 写入带引用的最小 prefab。

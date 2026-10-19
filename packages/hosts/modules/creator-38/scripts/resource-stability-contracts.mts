@@ -79,6 +79,10 @@ export interface IResourceCasePlan {
      */
     readonly command: IResourceCommand;
     /**
+     * @description 成功业务操作后的明确公共命令，如有界 commit；拒绝操作不得附带写入。
+     */
+    readonly afterCommands?: readonly IResourceCommand[];
+    /**
      * @description 操作前被测源路径。
      */
     readonly beforePath: string;

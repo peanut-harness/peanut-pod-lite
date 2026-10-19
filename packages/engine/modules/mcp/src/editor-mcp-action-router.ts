@@ -474,7 +474,7 @@ export class EditorMcpActionRouter {
         const projectRoot = await this._requireProjectPath();
         const postflightMonitor = new ProjectLogPostflightMonitor();
         const logCheckpoint = postflightMonitor.checkpoint(projectRoot);
-        const result = await this._executeDirect(request, context, plan?.preparedTextWrite);
+        const result = await this._executeDirect(request, context, plan?.preparedTextWrite, undefined, plan);
         const creation = this._readRequiredCreationEvidence(operation, input, result.data);
         const postflight = postflightMonitor.readDelta(logCheckpoint);
         if (!postflight.logChecked || postflight.newErrorCount > 0 || postflight.newWarningCount > 0) {
@@ -660,7 +660,7 @@ export class EditorMcpActionRouter {
             case 'asset.copy':
                 return {
                     operation: request.operation,
-                    data: await this._silentAssets._executeAssetCopy(request.input),
+                    data: await this._silentAssets._executeAssetCopy(request.input, plan?.preparedCopy),
                 };
             case 'asset.move':
                 return {

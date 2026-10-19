@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "peanut.org-rag.sync.v1",
+  "corpusId": "peanut-org",
+  "repos": {
+    "peanut-pod-lite": {
+      "treeSha": "cecde1de4bf9769e8e38d87ec6a2a82ae01fbb6f153f5f25a483fa0bf54833ff",
+      "cardSha": "84e10ddb038a9926e0100eb4f646ad2281249eabd7603a962d76b1a7b561e3c0",
+      "fileCount": 15,
+      "attestReason": "资源精确profile/完整复制准备及双Cocos独立任务；定向通过，完整verify需干净checkpoint；实机和5.1未完成",
+      "updatedAt": "2026-10-19T03:28:13.893Z"
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import { constants, copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'fs';
 import type { Stats } from 'fs';
 import { basename, dirname, join, posix, resolve } from 'path';
+import { createHash } from 'crypto';
 
 import { CocosUuidCodec } from './cocos-uuid-codec.js';
 import { CompatibleUuid } from './compatible-uuid.js';
@@ -26,6 +27,22 @@ export interface ISilentAssetClosureCopyRequest {
      * @description 复制产物根目录（`assets/...`）；闭包内相对布局会挂到该根下。
      */
     readonly targetDirectoryRelative: string;
+}
+
+/**
+ * @description 与真实复制共用的只读准备；记录目录子项、传递依赖、实际输出及源/祖先摘要。
+ */
+export interface ISilentAssetClosureCopyPreparation {
+    /** @description 真实工程根。 */
+    readonly projectRoot: string;
+    /** @description 完整依赖拓扑序，包含目录子项。 */
+    readonly order: readonly string[];
+    /** @description 精确源与输出路径映射。 */
+    readonly pathMap: Readonly<Record<string, string>>;
+    /** @description 当前无法解析的引用，精确授权不得豁免。 */
+    readonly unresolvedUuids: readonly string[];
+    /** @description 源、metadata、目录列表和目标祖先的摘要。 */
+    readonly sourceDigest: string;
 }
 
 /**
@@ -104,11 +121,11 @@ export class SilentAssetClosureCopy {
     }
 
     /**
-     * @description 执行依赖闭包静默复制。
+     * @description 独立重算真实复制闭包，不创建目录、meta或新UUID；不依赖旧缓存。
      * @param request 请求。
-     * @returns 复制结果（含 uuid 映射与拓扑序）。
+     * @returns 不可变的当前只读准备。
      */
-    public copy(request: ISilentAssetClosureCopyRequest): ISilentAssetClosureCopyResult {
+    public prepare(request: ISilentAssetClosureCopyRequest): ISilentAssetClosureCopyPreparation {
         const projectRoot = realpathSync(resolve(request.projectRoot));
         const seeds = request.seedRelativePaths.map((pathValue) => this._normalizeAssetPath(pathValue));
         const targetRoot = this._normalizeAssetPath(request.targetDirectoryRelative);
@@ -136,6 +153,35 @@ export class SilentAssetClosureCopy {
                 throw new Error(`silent_copy_target_exists:${toPath}`);
             }
         }
+
+        const paths = new Set(order.flatMap(path => [path, `${path}.meta`]));
+        let ancestor = targetRoot;
+        while (ancestor !== '.' && ancestor !== 'assets') {
+            paths.add(ancestor); paths.add(`${ancestor}.meta`); ancestor = posix.dirname(ancestor);
+        }
+        const hashes = [...paths].sort().map(path => {
+            const absolute = join(projectRoot, path);
+            if (!this._pathExists(absolute)) return `${path}:absent`;
+            const stat = this._sourceStat(projectRoot, path);
+            const bytes = stat.isDirectory() ? Buffer.from(readdirSync(absolute).sort().join('\u0000')) : readFileSync(absolute);
+            return `${path}:${createHash('sha256').update(bytes).digest('hex')}`;
+        });
+        return Object.freeze({ projectRoot, order: Object.freeze(order), pathMap: Object.freeze(pathMap),
+            unresolvedUuids: Object.freeze([...unresolvedUuids].sort()),
+            sourceDigest: createHash('sha256').update(hashes.join('\n')).digest('hex') });
+    }
+
+    /**
+     * @description 写前重算同一准备并核对源与祖先身份；排队后发生变化时首项变更前拒绝。
+     * @param request 复制请求。
+     * @param expected 原受管任务的只读准备，业务JSON不能提供此参数。
+     * @returns 复制结果（含uuid映射与拓扑序）。
+     */
+    public copy(request: ISilentAssetClosureCopyRequest, expected?: ISilentAssetClosureCopyPreparation): ISilentAssetClosureCopyResult {
+        const prepared = this.prepare(request);
+        if (expected && JSON.stringify(prepared) !== JSON.stringify(expected)) throw new Error('silent_copy_preparation_changed');
+        const { projectRoot, order, pathMap, unresolvedUuids } = prepared;
+        const targetRoot = this._normalizeAssetPath(request.targetDirectoryRelative);
 
         const uuidMap = new Map<string, string>();
         const sourceMetas = new Map<string, unknown>();

@@ -22,15 +22,21 @@ export class McpScopedResourceBoundary {
     /**
      * @description 实际 AssetDB 查询端口；缺失时拒绝 UUID 绑定。
      */
-    private readonly _queryAsset: ((uuid: string) => Promise<unknown>) | null;
+    protected readonly _queryAsset: ((uuid: string) => Promise<unknown>) | null;
+    /**
+     * @description 已由挂接记录验证的相对根；组件配置保持原两个根。
+     */
+    private readonly _roots: readonly string[];
 
     /**
      * @description 创建与当前工程绑定的资源校验器。
      * @param project 工程根。
      * @param queryAsset 实际 AssetDB 查询端口。
+     * @param roots 受信profile已经校验的工程相对根。
      */
-    public constructor(project: string, queryAsset: ((uuid: string) => Promise<unknown>) | null) {
-        this._project = resolve(project); this._queryAsset = queryAsset;
+    public constructor(project: string, queryAsset: ((uuid: string) => Promise<unknown>) | null,
+        roots: readonly string[] = McpScopedResourceBoundary.roots) {
+        this._project = resolve(project); this._queryAsset = queryAsset; this._roots = roots;
     }
 
     /**
@@ -104,8 +110,16 @@ export class McpScopedResourceBoundary {
      * @description 校验项目内根与所有已存在路径段；缺文件保留原始范围，不解析到其它资产。
      * @param value 规范化相对路径。
      */
-    private _checkPath(value: string): void {
-        if (!McpScopedResourceBoundary.roots.some((root) => value === root || value.startsWith(`${root}/`))) this._deny('resource_out_of_scope');
+    protected _checkPath(value: string): void {
+        if (!this._roots.some((root) => value === root || value.startsWith(`${root}/`))) this._deny('resource_out_of_scope');
+        this._checkIdentity(value);
+    }
+
+    /**
+     * @description 路径范围由profile先核验；随后逐祖先拒绝链接身份变化。
+     * @param value 已通过范围检查的相对路径。
+     */
+    protected _checkIdentity(value: string): void {
         let current = this.project();
         for (const part of value.split('/')) {
             current = join(current, part);
@@ -125,7 +139,7 @@ export class McpScopedResourceBoundary {
      * @param value 未受信路径。
      * @returns 明确项目相对路径。
      */
-    private _path(value: unknown): string {
+    protected _path(value: unknown): string {
         if (typeof value !== 'string' || value.length > 512 || /[\\%\u0000-\u001f\u007f]/u.test(value)) this._deny('path_invalid');
         const path = value.startsWith('db://') ? value.slice(5) : value;
         if (path.split('/').some((part) => part === '' || part === '.' || part === '..')) this._deny('path_invalid');
@@ -137,7 +151,7 @@ export class McpScopedResourceBoundary {
      * @param value 未受信集合。
      * @returns 已规范化路径。
      */
-    private _paths(value: unknown): string[] {
+    protected _paths(value: unknown): string[] {
         if (!Array.isArray(value) || value.length > 128) this._deny('resources_invalid');
         return value.map((item) => this._path(item));
     }
@@ -147,7 +161,7 @@ export class McpScopedResourceBoundary {
      * @param value 字段对象。
      * @returns 待核对字符串。
      */
-    private _references(value: unknown): readonly string[] {
+    protected _references(value: unknown): readonly string[] {
         const result: string[] = []; const seen = new Set<object>(); let count = 0;
         const visit = (item: unknown, depth: number): void => {
             if (++count > 4096 || depth > 16) this._deny('reference_budget_exceeded');
@@ -165,7 +179,7 @@ export class McpScopedResourceBoundary {
      * @param value 未受信值。
      * @returns 普通字段记录。
      */
-    private _record(value: unknown): Record<string, unknown> {
+    protected _record(value: unknown): Record<string, unknown> {
         if (typeof value !== 'object' || value == null || Array.isArray(value)) this._deny('input_invalid');
         return Object.fromEntries(Object.entries(value));
     }
@@ -175,5 +189,5 @@ export class McpScopedResourceBoundary {
      * @param reason 受控原因。
      * @returns 始终抛出。
      */
-    private _deny(reason: string): never { return McpControlFlowRefusal.reject(`cocos_mcp_scoped_${reason}`); }
+    protected _deny(reason: string): never { return McpControlFlowRefusal.reject(`cocos_mcp_scoped_${reason}`); }
 }

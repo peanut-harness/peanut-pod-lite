@@ -3,6 +3,7 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, writeFileSy
 import { join } from 'path';
 import { McpControlFlowRefusal } from './mcp-control-flow-refusal.js';
 import { McpScopedResourceBoundary } from './mcp-scoped-resource-boundary.js';
+import { McpResourceCampaignBoundary } from './mcp-resource-campaign-boundary.js';
 import type { McpCapabilityRegistry } from './mcp-capability-registry.js';
 import { toHex } from '../shared/random-hex.js';
 
@@ -49,6 +50,10 @@ export class McpScopedCapabilityAttachments {
      */
     private readonly _boundary: McpScopedResourceBoundary;
     /**
+     * @description 同工程只读AssetDB端口，供独立资源profile核对真实引用。
+     */
+    private readonly _queryAsset: ((uuid: string) => Promise<unknown>) | null;
+    /**
      * @description 当前工程的状态位置，不读取其它工程记录。
      */
     private readonly _path: string;
@@ -59,6 +64,7 @@ export class McpScopedCapabilityAttachments {
      * @param queryAsset 实际AssetDB查询端口。
      */
     public constructor(project: string, queryAsset: ((uuid: string) => Promise<unknown>) | null) {
+        this._queryAsset = queryAsset;
         this._boundary = new McpScopedResourceBoundary(project, queryAsset);
         this._path = join(project, '.peanut-ai', 'cocos-mcp-attachments.json');
         if (!existsSync(this._path)) return;
@@ -115,7 +121,7 @@ export class McpScopedCapabilityAttachments {
      * @param name 当前已挂接能力名。
      * @param input 未受信业务输入。
      */
-    public validate(name: string, input: unknown): void { this._boundary.validate(name, input); }
+    public validate(name: string, input: unknown): void { this._activeBoundary().validate(name, input); }
 
     /**
      * @description 核对实际导入引用；未知UUID和范围外引用拒绝。
@@ -123,7 +129,7 @@ export class McpScopedCapabilityAttachments {
      * @param input 业务输入。
      * @returns 校验完成时结束。
      */
-    public async validateReferences(name: string, input: unknown): Promise<void> { await this._boundary.validateReferences(name, input); }
+    public async validateReferences(name: string, input: unknown): Promise<void> { await this._activeBoundary().validateReferences(name, input); }
 
     /**
      * @description 将execute控制请求的一次性令牌合入原计划，不允许改写计划业务参数。
@@ -144,12 +150,14 @@ export class McpScopedCapabilityAttachments {
      * @param input 原受理业务输入。
      * @returns 必须在写入前执行的宿主守卫。
      */
-    public captureGuard(name: string, input: unknown): (actualInput: unknown) => Promise<void> {
-        const revision = this._revision; const resources = this._boundary.validate(name, input);
-        return async (actualInput) => {
+    public captureGuard(name: string, input: unknown): (actualInput: unknown, closure?: readonly string[]) => Promise<void> {
+        const revision = this._revision; const boundary = this._activeBoundary(); const resources = boundary.validate(name, input);
+        return async (actualInput, closure) => {
             if (revision !== this._revision || !this.has('peanut.editor-mcp', name)) this._deny('attachment_revoked');
             if (actualInput == null || typeof actualInput !== 'object' || Array.isArray(actualInput)) this._deny('input_invalid');
+            if (boundary instanceof McpResourceCampaignBoundary) await boundary.validateClosure(closure, name.endsWith('.asset-import'), resources);
             await this.validateReferences(name, { ...Object.fromEntries(Object.entries(actualInput)), resources });
+            if (revision !== this._revision || !this.has('peanut.editor-mcp', name)) this._deny('attachment_revoked');
         };
     }
 
@@ -164,12 +172,24 @@ export class McpScopedCapabilityAttachments {
         if (record.schemaVersion !== 1 || record.projectPath !== this._boundary.project()
             || typeof record.owner !== 'string' || !/^[A-Za-z0-9._:-]{1,128}$/u.test(record.owner)) this._deny('attachment_identity_invalid');
         const capabilities = record.capabilities; const roots = record.resourceRoots;
-        if (!Array.isArray(capabilities) || capabilities.length > 6
-            || !capabilities.every((name): name is string => typeof name === 'string' && McpScopedResourceBoundary.names.includes(name))
+        const resourceProfile = McpResourceCampaignBoundary.isRoots(roots);
+        const names = resourceProfile ? McpResourceCampaignBoundary.names : McpScopedResourceBoundary.names;
+        if (!Array.isArray(capabilities) || capabilities.length > names.length
+            || !capabilities.every((name): name is string => typeof name === 'string' && names.includes(name))
             || new Set(capabilities).size !== capabilities.length) this._deny('attachment_names_invalid');
-        if (!Array.isArray(roots) || roots.length !== 2 || !McpScopedResourceBoundary.roots.every((root) => roots.includes(root))) this._deny('attachment_roots_invalid');
+        if (!resourceProfile && (!Array.isArray(roots) || roots.length !== 2 || !McpScopedResourceBoundary.roots.every((root) => roots.includes(root)))) this._deny('attachment_roots_invalid');
         return Object.freeze({ schemaVersion: 1, projectPath: record.projectPath, owner: record.owner,
-            capabilities: Object.freeze([...capabilities]), resourceRoots: McpScopedResourceBoundary.roots });
+            capabilities: Object.freeze([...capabilities]), resourceRoots: Object.freeze([...(resourceProfile ? roots : McpScopedResourceBoundary.roots)]) });
+    }
+
+    /**
+     * @description 资源和组件profile相互独立，不能用资源授权执行组件白名单操作。
+     * @returns 当前已校验记录对应的边界。
+     */
+    private _activeBoundary(): McpScopedResourceBoundary {
+        const roots = this._record?.resourceRoots;
+        return McpResourceCampaignBoundary.isRoots(roots)
+            ? new McpResourceCampaignBoundary(this._boundary.project(), this._queryAsset, roots[0]) : this._boundary;
     }
 
     /**

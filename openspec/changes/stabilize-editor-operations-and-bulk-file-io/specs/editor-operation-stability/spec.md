@@ -86,3 +86,26 @@
 #### Scenario: Expected refusal is exercised under load
 - **WHEN** 非法输入、无审批、版本不支持、取消或过载负面用例按预期返回结构化拒绝
 - **THEN** 报告单列预期拒绝与退避重试，验证未发生越权写入或额外日志；不能删除必要容量和权限保护以追求所有响应成功
+
+### Requirement: Resource campaigns use exact directory attachments
+系统 SHALL 在默认只读档位下将资源验收所需的12项既有写能力精确挂接到单一运行目录assets/fixtures/resource-stability/<run>，与组件六项授权隔离；每次写入仍使用匹配连接和资源的一次性令牌，并在原writer锁内独立重算、核对完整资源依赖闭包。
+
+#### Scenario: A resource is imported from a registered input
+- **WHEN** 同工程本轮私有暂存目录的普通文件通过明确来源全集导入本轮资产目录
+- **THEN** 来源只能只读、拒绝符号链接和外盘路径，不允许隐式依赖展开或省略全局目标，输出身份通过真实AssetDB及原生对象后验
+
+#### Scenario: A copy carries a dependency outside the attached directory
+- **WHEN** 写入前独立重算的复制闭包包含范围外路径或未知UUID，或等待writer时闭包新增资源
+- **THEN** 第一项变化前拒绝，不以调用方声明的种子或resources替代真实闭包，不公开all
+
+#### Scenario: Resource and component profiles are mixed
+- **WHEN** 请求混合两个profile的能力名、扩大资源根或只提供UUID目标
+- **THEN** 原授权保持不变并拒绝；撤销和重启恢复沿用现有单工程记录及原writer代数校验
+
+#### Scenario: A missing parent metadata would be created implicitly
+- **WHEN** 本轮目录的任一祖先目录或其metadata缺失、为链接或身份变化
+- **THEN** 第一项变更前拒绝，不在授权目录外隐含补写；复制的实际执行还须与完整只读准备及源/祖先摘要一致
+
+#### Scenario: Attachment is revoked while a native reference query waits
+- **WHEN** 原writer守卫的异步AssetDB查询期间授权被撤销或重新挂接
+- **THEN** 查询完成后重新核验授权代数并拒绝旧任务，不进入commit

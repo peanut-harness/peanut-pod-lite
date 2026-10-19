@@ -88,6 +88,34 @@ test('resource executor preserves FIFO for the same resource', async () => {
     assert.deepEqual(started, ['first', 'second']);
 });
 
+test('scoped resource execution supplies the current transitive closure and refuses new dependencies before commit', async () => {
+    const root = 'assets/fixtures/resource-stability/one/source.mtl';
+    const dependency = 'assets/fixtures/resource-stability/one/texture.png';
+    let calls = 0; let changed = false; let writes = 0; let commits = 0;
+    const instance = new ResourceOperationTaskExecutor({
+        plan: async () => {
+            calls += 1;
+            const dependencies = changed && calls > 1 ? ['assets/foreign/texture.png'] : [dependency];
+            return { projectKey: '/project', operation: 'asset.copy', requiresProjectWriter: true,
+                resourceKeys: [root, ...dependencies],
+                closure: { roots: [root], dependencies, sidecars: [`${root}.meta`], uuidKeys: [], unresolvedUuids: [] } };
+        },
+        execute: async () => { writes += 1; return {}; },
+    });
+    const observed: string[][] = [];
+    const scopedContext: IPluginTaskExecutorContext = { ...context(),
+        enterCommitWindow: () => { commits += 1; return true; },
+        assertScopedWrite: async (_request, closure) => {
+            assert.ok(closure); observed.push([...closure]);
+        } };
+    await instance.execute(request('scope-internal', {}), scopedContext);
+    assert.deepEqual(observed, [[root, dependency, `${root}.meta`]]);
+    assert.equal(writes, 1); assert.equal(commits, 1);
+    calls = 0; changed = true;
+    await assert.rejects(instance.execute(request('scope-external', {}), scopedContext), /scoped_resource_closure_changed/);
+    assert.equal(writes, 1); assert.equal(commits, 1); assert.equal(observed.length, 1);
+});
+
 test('scoped authorization is rechecked after the actual writer lock and before commit', async () => {
     const started: string[] = []; const firstGate = gate(); const instance = executor(started, new Map([['first', firstGate]]));
     const first = instance.execute(request('first', { id: 'first', project: '/p', resource: 'asset:a' }), context());

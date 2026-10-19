@@ -13,7 +13,7 @@ export class ResourceStabilityRunner {
      * @param expected 独立重算的可信预期。
      */
     public static validatePlan(plan: IResourceCampaignPlan, expected: IResourceCampaignExpectation): void {
-        if (!/^assets\/_peanut-resource-stability\/[a-z0-9][a-z0-9-]{0,95}$/u.test(plan.namespace)
+        if (!/^assets\/fixtures\/resource-stability\/[a-z0-9][a-z0-9-]{0,95}$/u.test(plan.namespace)
             || plan.namespace !== expected.namespace || plan.creatorVersion !== expected.creatorVersion
             || plan.inventorySha256 !== expected.inventorySha256 || !/^[a-f0-9]{64}$/u.test(plan.inventorySha256)) {
             throw new Error('resource_campaign_plan_identity_invalid');
@@ -36,7 +36,8 @@ export class ResourceStabilityRunner {
             }
             this.assertPath(row.beforePath, plan.namespace);
             this.assertPath(row.afterPath, plan.namespace);
-            for (const command of [...row.setup, row.command]) this.assertCommand(command, plan.namespace, expected);
+            if (row.expectedRejection && row.afterCommands?.length) throw new Error('resource_campaign_rejection_after_commands');
+            for (const command of [...row.setup, row.command, ...row.afterCommands ?? []]) this.assertCommand(command, plan.namespace, expected);
         }
     }
 
@@ -67,6 +68,12 @@ export class ResourceStabilityRunner {
                 await this.assertFixtureHashes(row.command, expected, port);
                 this.assertSession(await port.preflight(), expected);
                 const outcome = await port.call(row.command, plan.namespace);
+                if (outcome.status === 'succeeded') for (const command of row.afterCommands ?? []) {
+                    const afterOutcome = await port.call(command, plan.namespace);
+                    if (afterOutcome.status !== 'succeeded' || command.write && !afterOutcome.postflightVerified) {
+                        throw new Error('resource_campaign_after_command_failed');
+                    }
+                }
                 const after = await port.snapshot(row.afterPath);
                 const afterHash = await port.sourceHashes(row.expectedRejection ? row.beforePath : row.afterPath);
                 this.assertSession(await port.preflight(), expected);

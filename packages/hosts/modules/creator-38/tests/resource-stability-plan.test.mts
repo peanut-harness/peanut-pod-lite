@@ -4,7 +4,7 @@ import { ResourceStabilityPlanFactory } from '../scripts/resource-stability-plan
 import type { ICoverageInventory, ICoverageTarget } from '../../../../../tools/editor-stability/coverage-contracts.mts';
 import type { IResourceCasePlan, IResourceSessionIdentity } from '../scripts/resource-stability-contracts.mts';
 
-const namespace = 'assets/_peanut-resource-stability/plan-unit';
+const namespace = 'assets/fixtures/resource-stability/plan-unit';
 const identity: IResourceSessionIdentity = { creatorVersion: '3.8.7', owner: 'unit-owner', change: 'unit-change',
     projectPath: '/private/tmp/plan-unit', projectName: 'plan-unit', runId: 'plan-unit', creatorPid: 123, creatorStartedAt: '2026-10-13T00:00:00Z',
     hostSha256: 'a'.repeat(64), coreSha256: 'b'.repeat(64), sourceCommit: 'c'.repeat(40) };
