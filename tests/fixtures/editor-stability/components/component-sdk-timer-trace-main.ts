@@ -10,6 +10,7 @@ import { ComponentSdkWindowModuleLifecycle } from './component-sdk-window-module
  * @description 显式登记的SDK计时观测入口；不修改安装包、统计事件或原始日志。
  */
 class ComponentSdkTimerTraceMain {
+    private static generation = 0;
     private static lifecycle: ComponentSdkWindowModuleLifecycle | null = null;
 
     /**
@@ -24,7 +25,12 @@ class ComponentSdkTimerTraceMain {
             || registration.creatorVersion === '3.8.3' && (registration.sdkUiReadyCompat !== true || registration.sdkSceneCacheCompat !== true)
             || !project.startsWith(realpathSync(registration.worktree) + sep + 'evidence' + sep + 'task-5.1' + sep))
             throw new Error('component_sdk_timer_trace_project_not_registered');
+        const generationId = String(process.pid) + ':' + String(++this.generation);
         const lifecycle = new ComponentSdkWindowModuleLifecycle({
+            recordEvent: event => { appendFileSync(join(output, 'sdk-window-module-lifecycle.ndjson'), JSON.stringify({
+                schemaVersion: 1, owner: registration.owner, runId: registration.runId, candidateSourceCommit: registration.candidateSourceCommit,
+                projectPath: project, creatorVersion: registration.creatorVersion, pid: process.pid, generationId,
+                closeId: generationId, at: new Date().toISOString(), ...event }) + '\n'); },
             writeReceipt: (receipt, result) => { writeFileSync(receipt, JSON.stringify(result, null, 2) + '\n'); },
             reportError: error => { console.error(error); }, delay: milliseconds => new Promise(done => setTimeout(done, milliseconds)),
         });
@@ -72,7 +78,10 @@ class ComponentSdkTimerTraceMain {
     /**
      * @description Stop new installs and settle every owned install and cleanup before unload completes.
      */
-    public static unload(): Promise<void> { return this.lifecycle?.close() ?? Promise.resolve(); }
+    public static unload(): Promise<void> {
+        this.lifecycle?.hookEntered();
+        return this.lifecycle?.close() ?? Promise.resolve();
+    }
 
 }
 

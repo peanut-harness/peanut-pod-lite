@@ -1,3 +1,5 @@
+import { types } from 'util';
+
 /**
  * @description One generation of owned window-module installs; closing drains only work admitted before closing.
  */
@@ -12,11 +14,13 @@ export class ComponentSdkWindowModuleLifecycle {
     private readonly failures: unknown[] = [];
     private readonly failedReceipts = new Set<string>();
     private closing: Promise<void> | null = null;
+    private sequence = 0;
+    private evidenceFailed = false;
 
     /**
      * @description Keep receipt, logging and waiting ports tied to this generation, never a later load.
      */
-    public constructor(private readonly ports: ComponentSdkModulePorts) {}
+    public constructor(private readonly ports: ComponentSdkModulePorts) { this.event('generation-created'); }
 
     /**
      * @description Phase callbacks may admit work only before closing begins.
@@ -57,12 +61,18 @@ export class ComponentSdkWindowModuleLifecycle {
     }
 
     /**
+     * @description Observe the actual entry without changing the Promise returned by the main adapter.
+     */
+    public hookEntered(): void { this.event('hook-entered'); }
+
+    /**
      * @description Synchronously close admission; concurrent callers share the same complete cleanup outcome.
      */
     public close(): Promise<void> {
         if (this.closing) return this.closing;
         this.phase = 'closing';
         this.closing = Promise.resolve().then(() => this.finishClose());
+        this.event('admission-closed');
         return this.closing;
     }
 
@@ -94,10 +104,13 @@ export class ComponentSdkWindowModuleLifecycle {
             for (const restore of this.restores.splice(0).reverse()) {
                 try { restore(); } catch (error) { this.failed(error); }
             }
+            this.event('drain-wait', { admittedPending: this.pending.size });
             await Promise.allSettled([...this.pending]);
+            this.event('drain-settled');
             await Promise.allSettled(this.windows.splice(0).map(async window => {
                 try { await this.clean(window); } catch (error) { this.failed(error, window.receipt); }
             }));
+            this.event('close-settled', { outcome: this.failures.length ? 'rejected' : 'fulfilled' });
             if (this.failures.length === 1) throw this.failures[0];
             if (this.failures.length > 1) throw new AggregateError([...this.failures], 'component_sdk_window_cleanup_failed');
         } finally { this.phase = 'closed'; }
@@ -108,7 +121,22 @@ export class ComponentSdkWindowModuleLifecycle {
      */
     private async clean(window: { contents: ComponentSdkModuleContents; script: string; receipt: string; result: Record<string, unknown> }): Promise<void> {
         const destroyed = window.contents.isDestroyed();
-        if (!destroyed) await window.contents.executeJavaScript('require(' + JSON.stringify(window.script) + ').unload()', false);
+        if (destroyed) this.event('original-unload-destroyed-before-call', { script: window.script });
+        else {
+            this.event('original-unload-invoke-attempt', { script: window.script });
+            let returned: ReturnType<ComponentSdkModuleContents['executeJavaScript']>;
+            try { returned = window.contents.executeJavaScript('require(' + JSON.stringify(window.script) + ').unload()', false); }
+            catch (error) { this.event('original-unload-rejected', { script: window.script, rejectionPhase: 'call',
+                error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }); throw error; }
+            this.event('original-unload-returned', { script: window.script, returnKind: types.isPromise(returned) ? 'native-promise' : typeof returned });
+            try {
+                const result = await returned;
+                this.event('original-unload-fulfilled', { script: window.script, resultKind: result === null ? 'null' : typeof result });
+            } catch (error) {
+                this.event('original-unload-rejected', { script: window.script, rejectionPhase: 'await',
+                    error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }); throw error;
+            }
+        }
         // Keep an earlier failure receipt authoritative even when later cleanup succeeds.
         if (this.failedReceipts.has(window.receipt)) return;
         this.ports.writeReceipt(window.receipt, { ...window.result, installed: false,
@@ -127,6 +155,16 @@ export class ComponentSdkWindowModuleLifecycle {
             catch (receiptError) { this.failures.push(receiptError); this.report(receiptError); }
         }
         this.report(error);
+    }
+
+    /**
+     * @description Synchronous evidence failure is sticky and cannot skip native cleanup or replace its error.
+     */
+    private event(phase: string, detail: Record<string, unknown> = {}): void {
+        if (!this.ports.recordEvent) return;
+        try { this.ports.recordEvent({ phase, sequence: ++this.sequence, pendingInstalls: this.pending.size,
+            trackedWindows: this.windows.length, failures: this.failures.length, evidenceStatus: this.evidenceFailed ? 'failed' : 'ok', ...detail }); }
+        catch (error) { this.evidenceFailed = true; this.failures.push(error); this.report(error); }
     }
 
     /**
@@ -149,6 +187,7 @@ export interface ComponentSdkModuleContents {
  * @description Existing entry-point I/O only, injectable for deferred-promise lifecycle tests.
  */
 export interface ComponentSdkModulePorts {
+    recordEvent?(event: Record<string, unknown>): void;
     writeReceipt(path: string, result: Record<string, unknown>): void;
     reportError(error: unknown): void;
     delay(milliseconds: number): Promise<void>;

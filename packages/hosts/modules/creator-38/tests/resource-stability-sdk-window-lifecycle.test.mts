@@ -144,7 +144,9 @@ test('both real entry adapters capture generation, gate reload and preserve regi
         new URL('../../../../../tests/fixtures/editor-stability/components/component-sdk-timer-trace-main.ts', import.meta.url)];
     for (const [index, path] of entries.entries()) {
         const source = readFileSync(path, 'utf8'); assert.match(source, /this\.lifecycle && !this\.lifecycle\.canRestart/u);
-        assert.match(source, /const lifecycle = new ComponentSdkWindowModuleLifecycle/u); assert.match(source, /if \(!lifecycle\.isOpen\) return/u);
+        assert.match(source, /const lifecycle = new ComponentSdkWindowModuleLifecycle/u);
+        assert.match(source, /this\.lifecycle\?\.hookEntered\(\)/u);
+        assert.match(source, /sdk-window-module-lifecycle\.ndjson/u); assert.match(source, /if \(!lifecycle\.isOpen\) return/u);
         assert.match(source, /lifecycle\.install\(/u); assert.match(source, /lifecycle\.own\(\(\) => phases\.restore\(\)\)/u);
         assert.match(source, /return this\.lifecycle\?\.close\(\) \?\? Promise\.resolve\(\)/u);
         assert.match(source, /catch \(error\) \{ lifecycle\.abort\(error\); throw error; \}/u);
@@ -152,4 +154,76 @@ test('both real entry adapters capture generation, gate reload and preserve regi
         assert.ok(source.includes("registration.task !== '" + (index === 0 ? '4.3' : '5.1') + "'"));
         assert.doesNotMatch(source, /failed: !this\.stopping|if \(!this\.stopping\) console\.error/u);
     }
+});
+
+
+test('synchronous admission and pending native unload phases distinguish entry from unresolved cleanup', async () => {
+    const events: Record<string, unknown>[] = []; const load = deferred<Record<string, unknown>>(); const cleanup = deferred<Record<string, unknown> | undefined>();
+    const lifecycle = new ComponentSdkWindowModuleLifecycle({ recordEvent: event => { events.push(event); }, writeReceipt: () => {}, reportError: () => {}, delay: async () => {} });
+    const c = contents(() => load.promise, () => cleanup.promise); lifecycle.install(() => c.value, 'owned.js', 'receipt'); await flush();
+    lifecycle.hookEntered(); const closing = lifecycle.close(); assert.equal(closing, lifecycle.close());
+    assert.deepEqual(events.map(event => event.phase), ['generation-created', 'hook-entered', 'admission-closed']); assert.equal(events[0]?.pendingInstalls, 0); assert.equal(events[2]?.pendingInstalls, 1);
+    await flush(); assert.equal(events.at(-1)?.phase, 'drain-wait'); load.resolve({ installed: true }); await flush();
+    const returned = events.find(event => event.phase === 'original-unload-returned'); assert.equal(returned?.returnKind, 'native-promise');
+    assert.equal(events.some(event => event.phase === 'original-unload-fulfilled'), false);
+    assert.equal(events.some(event => event.phase === 'close-settled'), false); cleanup.resolve(undefined); await closing;
+    assert.equal(events.find(event => event.phase === 'original-unload-fulfilled')?.resultKind, 'undefined');
+    assert.equal(events.at(-1)?.phase, 'close-settled'); assert.equal(events.at(-1)?.outcome, 'fulfilled');
+    assert.deepEqual(events.map(event => event.sequence), events.map((_, index) => index + 1)); assert.deepEqual(c.calls, ['load', 'unload']);
+});
+
+test('phase append and logger failures preserve original native rejection and still attempt every cleanup', async () => {
+    const nativeError = Error('original-native-unload'); const writeError = Error('phase-append'); const loggerError = Error('phase-log');
+    const native = deferred<Record<string, unknown> | undefined>(); const events: Record<string, unknown>[] = []; const logged: unknown[] = []; let healthy = 0;
+    const unhandled: unknown[] = []; const observe = (reason: unknown): void => { unhandled.push(reason); }; process.on('unhandledRejection', observe);
+    try {
+        const lifecycle = new ComponentSdkWindowModuleLifecycle({ recordEvent: event => {
+            if (event.phase === 'original-unload-returned') throw writeError; events.push(event);
+        }, writeReceipt: () => {}, reportError: error => { logged.push(error); if (error === writeError) throw loggerError; }, delay: async () => {} });
+        const failed = contents(async () => ({ installed: true }), () => native.promise);
+        const other = contents(async () => ({ installed: true }), async () => { healthy++; return undefined; });
+        lifecycle.install(() => failed.value, 'failed.js', 'failed'); lifecycle.install(() => other.value, 'other.js', 'other'); await flush();
+        const closing = lifecycle.close(); const rejected = assert.rejects(closing, error => error instanceof AggregateError
+            && error.errors.includes(nativeError) && error.errors.includes(writeError) && error.errors.includes(loggerError));
+        await flush(); failed.destroy(); native.reject(nativeError); await rejected; await new Promise<void>(done => setImmediate(done));
+        assert.equal(healthy, 1); assert.ok(logged.includes(nativeError)); assert.equal(lifecycle.canRestart, false); assert.deepEqual(unhandled, []);
+        assert.equal(events.find(event => event.phase === 'original-unload-rejected')?.rejectionPhase, 'await');
+        assert.equal(events.at(-1)?.evidenceStatus, 'failed'); assert.equal(events.at(-1)?.outcome, 'rejected');
+    } finally { process.removeListener('unhandledRejection', observe); }
+});
+
+test('sync native invocation failure remains the identical Error while destroyed pre-call invokes nothing', async () => {
+    const events: Record<string, unknown>[] = []; const nativeError = Error('sync-unload');
+    const lifecycle = new ComponentSdkWindowModuleLifecycle({ recordEvent: event => { events.push(event); }, writeReceipt: () => {}, reportError: () => {}, delay: async () => {} });
+    const failing = contents(async () => ({ installed: true }), () => { throw nativeError; }); const gone = contents(async () => ({ installed: true }));
+    lifecycle.install(() => failing.value, 'failing.js', 'failing'); lifecycle.install(() => gone.value, 'gone.js', 'gone'); await flush(); gone.destroy();
+    await assert.rejects(lifecycle.close(), error => error === nativeError); assert.deepEqual(gone.calls, ['load']);
+    assert.equal(events.find(event => event.phase === 'original-unload-rejected')?.rejectionPhase, 'call');
+    assert.ok(events.some(event => event.phase === 'original-unload-destroyed-before-call')); assert.equal(events.at(-1)?.outcome, 'rejected');
+});
+
+
+test('reentrant admission event and reporting share the already-established close Promise', async () => {
+    const evidenceError = Error('admission-event-write'); let lifecycle!: ComponentSdkWindowModuleLifecycle;
+    let eventClose: Promise<void> | undefined; let reportClose: Promise<void> | undefined; let restored = 0;
+    const events: Record<string, unknown>[] = [];
+    lifecycle = new ComponentSdkWindowModuleLifecycle({ recordEvent: event => {
+        events.push(event);
+        if (event.phase === 'admission-closed') { eventClose = lifecycle.close(); throw evidenceError; }
+    }, writeReceipt: () => {}, reportError: () => { reportClose = lifecycle.close(); }, delay: async () => {} });
+    assert.equal(events[0]?.phase, 'generation-created'); lifecycle.own(() => { restored++; });
+    const closing = lifecycle.close(); assert.equal(eventClose, closing); assert.equal(reportClose, closing);
+    await assert.rejects(closing, error => error === evidenceError); assert.equal(restored, 1);
+    assert.equal(events.filter(event => event.phase === 'admission-closed').length, 1);
+    assert.equal(events.filter(event => event.phase === 'close-settled').length, 1);
+});
+
+test('generation baseline append failure remains evidence failure without blocking normal owned cleanup', async () => {
+    const error = Error('baseline-write'); const phases: string[] = []; const logged: unknown[] = [];
+    const lifecycle = new ComponentSdkWindowModuleLifecycle({ recordEvent: event => {
+        phases.push(String(event.phase)); if (event.phase === 'generation-created') throw error;
+    }, writeReceipt: () => {}, reportError: error => { logged.push(error); }, delay: async () => {} });
+    const c = contents(async () => ({ installed: true })); lifecycle.install(() => c.value, 'owned.js', 'receipt'); await flush();
+    assert.equal(phases[0], 'generation-created'); await assert.rejects(lifecycle.close(), reason => reason === error);
+    assert.deepEqual(c.calls, ['load', 'unload']); assert.deepEqual(logged, [error]); assert.equal(lifecycle.canRestart, false);
 });

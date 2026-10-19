@@ -3,11 +3,11 @@
   "corpusId": "peanut-org",
   "repos": {
     "peanut-pod-lite": {
-      "treeSha": "9f37a0ebdaf2d48e103baf991e27f8450ab27217d7e6aff95b5baa9a129351a6",
+      "treeSha": "89254f737261065c1c99d8cab59e71519de3ff0a11660343f818a8a1db47738a",
       "cardSha": "84e10ddb038a9926e0100eb4f646ad2281249eabd7603a962d76b1a7b561e3c0",
       "fileCount": 15,
-      "attestReason": "记录1de正式387独立comparison及Host schema打包缺口，Guest6原始失败保留",
-      "updatedAt": "2026-10-19T06:12:56.587Z"
+      "attestReason": "main synchronous unload phases and exact f5 native diagnostic boundaries",
+      "updatedAt": "2026-10-19T06:59:15.815Z"
     }
   }
 }
