@@ -80,6 +80,7 @@ for (const entry of ['sdk-startup-timer-worker']) {
 }
 await copyFile(resolve(extensionRoot, 'src/cpm-package-store.js'), resolve(outputDirectory, 'dist/cpm-package-store.js'));
 await cp(resolve(extensionRoot, 'package.json'), resolve(outputDirectory, 'package.json'));
+await cp(resolve(repositoryRoot, 'packages/engine/modules/lumen/bundled/schema'), resolve(outputDirectory, 'bundled/schema'), { recursive: true });
 await cp(resolve(extensionRoot, 'panel'), resolve(outputDirectory, 'panel'), { recursive: true });
 await build({
     entryPoints: [resolve(extensionRoot, 'panel/plugin-workbench/index.cts')],

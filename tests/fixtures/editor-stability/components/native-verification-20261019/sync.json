@@ -3,11 +3,11 @@
   "corpusId": "peanut-org",
   "repos": {
     "peanut-pod-lite": {
-      "treeSha": "f439147bc5065882caa1b21ba4d34769716668ef5880a03f07a4e8853924dfa7",
+      "treeSha": "9f37a0ebdaf2d48e103baf991e27f8450ab27217d7e6aff95b5baa9a129351a6",
       "cardSha": "84e10ddb038a9926e0100eb4f646ad2281249eabd7603a962d76b1a7b561e3c0",
       "fileCount": 15,
-      "attestReason": "补齐真实打包回归测试内部依赖声明，既有原生验收边界不变",
-      "updatedAt": "2026-10-19T05:58:17.863Z"
+      "attestReason": "记录1de正式387独立comparison及Host schema打包缺口，Guest6原始失败保留",
+      "updatedAt": "2026-10-19T06:12:56.587Z"
     }
   }
 }
