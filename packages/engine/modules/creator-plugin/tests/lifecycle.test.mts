@@ -21,20 +21,23 @@ test('independently bundled Core public field handler keeps Host-owned preparati
         platform: 'node', target: 'es2021', outfile: bundle, legalComments: 'none', external: ['canvas'] });
     cpSync(join(repo, 'packages/engine/modules/lumen/bundled'), join(temporary, 'bundled'), { recursive: true });
     const packed = createRequire(import.meta.url)(bundle) as typeof import('../dist/index.js');
-    const variants = ['name', 'friction', 'rollingFriction', 'spinningFriction', 'restitution', 'missing-producer', 'copied-error', 'forged-error'];
+    const variants = ['name', 'friction', 'rollingFriction', 'spinningFriction', 'restitution', 'missing-producer', 'copied-error', 'forged-error',
+        'audio', 'audio-copied-error', 'audio-forged-error'];
     try {
         for (const variant of variants) {
             const root = join(temporary, variant); mkdirSync(join(root, 'assets'), { recursive: true });
-            const path = 'assets/one.pmtl'; writeFileSync(join(root, 'package.json'), JSON.stringify({ creator: { version: '3.8.3' } }));
-            writeFileSync(join(root, path), '{"__type__":"cc.PhysicsMaterial","_name":"original","_friction":0.5,"_restitution":0.1}');
-            writeFileSync(join(root, path + '.meta'), JSON.stringify({ uuid: '11111111-1111-4111-8111-111111111111', importer: 'physics-material',
-                ver: '1.0.0', imported: true, files: ['.json'], userData: {}, subMetas: {} }));
+            const audio = variant.startsWith('audio');
+            const readonlyCode = 'lumen_audio_property_not_editable:audio:downloadMode:allowed=';
+            const path = audio ? 'assets/one.wav' : 'assets/one.pmtl'; writeFileSync(join(root, 'package.json'), JSON.stringify({ creator: { version: '3.8.3' } }));
+            writeFileSync(join(root, path), audio ? Buffer.from('524946462600000057415645666d74201000000001000100401f0000803e00000200100064617461020000000000', 'hex') : '{"__type__":"cc.PhysicsMaterial","_name":"original","_friction":0.5,"_restitution":0.1}');
+            writeFileSync(join(root, path + '.meta'), JSON.stringify({ uuid: '11111111-1111-4111-8111-111111111111', importer: audio ? 'audio-clip' : 'physics-material',
+                ver: '1.0.0', imported: true, files: [audio ? '.wav' : '.json'], userData: audio ? { downloadMode: 0 } : {}, subMetas: {} }));
             const runtime = new RuntimeFacade('3.8.3', { allowMemoryPanelWindowProviderFallback: true });
             await runtime.project.configure(root, 'FieldBundle'); const connectionId = 'field-bundle'; let sdkCalls = 0;
             const fixed = new HostResourceFieldPreparation(root, '3.8.3');
-            const producer = variant === 'missing-producer' ? null : variant === 'forged-error'
-                ? { prepare: async () => { throw new Error('lumen_property_type:friction:number>=0'); } }
-                : variant === 'copied-error' ? { prepare: async (project: string, input: unknown) => {
+            const producer = variant === 'missing-producer' ? null : ['forged-error', 'audio-forged-error'].includes(variant)
+                ? { prepare: async () => { throw new Error(audio ? readonlyCode : 'lumen_property_type:friction:number>=0'); } }
+                : ['copied-error', 'audio-copied-error'].includes(variant) ? { prepare: async (project: string, input: unknown) => {
                     try { await fixed.prepare(project, input); } catch (error) { throw new Error((error as Error).message); }
                 } } : fixed;
             const api = new PluginTaskApi('peanut.editor-mcp', runtime, root,
@@ -56,17 +59,19 @@ test('independently bundled Core public field handler keeps Host-owned preparati
                     services: {} as never, connectionId, mcp: { register: (definition, handler) => {
                         handlers.set(definition.name, handler as never); return () => { handlers.delete(definition.name); };
                     } } });
-                const field = variants.slice(0, 5).includes(variant) ? variant : 'friction';
-                const code = `lumen_property_type:${field}:${field === 'name' ? 'string' : 'number>=0'}`;
+                const field = audio ? 'downloadMode' : variants.slice(0, 5).includes(variant) ? variant : 'friction';
+                const code = audio ? readonlyCode : `lumen_property_type:${field}:${field === 'name' ? 'string' : 'number>=0'}`;
                 const lease = plugin.issueApprovalLease({ connectionId, resources: [path, path + '.meta'], operations: ['lumen.assetSet'], maxRisk: 'write' });
                 const handler = [...handlers].find(([name]) => name.endsWith('lumen-asset-set'))![1]; let caught: unknown;
-                try { await handler({ assetRelativePath: path, props: { [field]: field === 'name' ? false : 'invalid' },
+                try { await handler({ assetRelativePath: path, props: { [field]: audio ? 1 : field === 'name' ? false : 'invalid' },
                     resources: [path, path + '.meta'], approvalToken: lease.token }, { connectionId }); } catch (error) { caught = error; }
                 assert.ok(caught instanceof Error); const dto = McpFailurePresenter.present(caught);
                 const task = terminal as unknown as { taskId: string; ok: boolean; status: string; data: Record<string, unknown>; changes: unknown[] };
                 assert.equal(task.ok, false); assert.equal(task.status, 'failed'); assert.deepEqual(task.changes, []);
-                if (variants.slice(0, 5).includes(variant)) {
-                    assert.equal(dto.code, code); assert.equal(dto.category, 'invalid_input'); assert.equal(dto.state, 'unchanged');
+                if (variants.slice(0, 5).includes(variant) || variant === 'audio') {
+                    assert.equal(dto.code, code); assert.equal(dto.schemaVersion, 1);
+                    assert.equal(dto.retryable, true); assert.equal(dto.recommendedAction, 'fix_input');
+                    assert.equal(dto.category, 'invalid_input'); assert.equal(dto.state, 'unchanged');
                     assert.equal(dto.taskId, task.taskId); assert.equal(dto.taskStatus, 'failed'); assert.equal(dto.operation, 'lumen.assetSet');
                     assert.deepEqual(dto.assetFieldPreparationRefusal, { schemaVersion: 1, code, phase: 'prepare_before_writer', projectState: 'unchanged', taskId: task.taskId });
                 } else { assert.equal(dto.state, 'unknown'); assert.equal(dto.assetFieldPreparationRefusal, undefined); }

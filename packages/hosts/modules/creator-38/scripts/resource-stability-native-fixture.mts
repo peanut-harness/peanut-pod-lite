@@ -12,6 +12,11 @@ export class ResourceStabilityNativeFixture {
     public static prepare(kind: string, source: Buffer, name: string, initial: Readonly<Record<string, unknown>>): {
         source: Buffer; initial: Record<string, unknown>;
     } {
+        if (kind === 'audio') {
+            if (source.length > 1024 * 1024 || initial['/assetType'] !== 'cc.AudioClip' || initial['/importer'] !== 'audio-clip'
+                || initial['/downloadMode'] !== 0 || Object.keys(initial).some(key => !['/assetType', '/importer', '/downloadMode'].includes(key))) throw new Error('resource_native_audio_fixture_invalid');
+            return { source: Buffer.from(source), initial: { ...initial } };
+        }
         if (ResourceStabilityNativeSourceText.kinds.includes(kind)) {
             const decoded = new TextDecoder('utf-8', { fatal: true }).decode(source);
             if (source.length > 1024 * 1024 || decoded !== initial['/source']

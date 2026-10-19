@@ -1,3 +1,4 @@
+import { ResourceStabilityNativeAudioMeta } from './resource-stability-native-audio-meta.mts';
 import { ResourceStabilityNativeSourceText } from './resource-stability-native-source-text.mts';
 import { createServer, type Server } from 'node:http';
 import { randomBytes } from 'node:crypto';
@@ -54,7 +55,15 @@ class ResourceStabilityNativeMain {
             meta: uuid => editor.Message.request('asset-db', 'query-asset-meta', uuid),
             path: uuid => editor.Message.request('asset-db', 'query-path', uuid),
         });
+        const audioBindings = ResourceStabilityNativeAudioMeta.bindings(JSON.parse(readFileSync(join(output, 'resource-native-staging.json'), 'utf8')));
+        if (audioBindings.size) ResourceStabilityNativeAudioMeta.assertSdk(join(registration.creatorApp, 'Contents/Resources/resources/3d/engine'), join(registration.creatorApp, 'Contents/Resources'));
+        const audioMeta = new ResourceStabilityNativeAudioMeta(project, String(registration.namespace), audioBindings, {
+            info: uuid => editor.Message.request('asset-db', 'query-asset-info', uuid, ['depends']),
+            meta: uuid => editor.Message.request('asset-db', 'query-asset-meta', uuid),
+            path: uuid => editor.Message.request('asset-db', 'query-path', uuid),
+        });
         const reader = new ResourceStabilityNativeSnapshot(project, String(registration.namespace), {
+            audioMeta: (path, info, meta) => audioMeta.read(path, info, meta),
             sourceText: (path, info, meta) => sourceText.read(path, info, meta),
             assetInfo: (value) => editor.Message.request('asset-db', 'query-asset-info', value),
             dependencies: async (uuid) => (await identity(uuid)).dependencies,

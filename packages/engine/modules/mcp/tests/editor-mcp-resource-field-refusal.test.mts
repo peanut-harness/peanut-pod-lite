@@ -24,21 +24,26 @@ function hashTree(root: string): string {
     visit(''); return hash.digest('hex');
 }
 
-for (const variant of ['invalid-scalar', 'mixed-patch', 'rolling-friction', 'spinning-friction', 'missing-source', 'post-prepare-failure']) {
-    test(`real PhysicsMaterial preparation preserves unchanged proof only before writes: ${variant}`, async () => {
+for (const variant of ['invalid-scalar', 'mixed-patch', 'rolling-friction', 'spinning-friction', 'missing-source', 'post-prepare-failure',
+    'audio', 'audio-copied', 'audio-forged', 'audio-uuid-mixed', 'audio-post-writer']) {
+    test(`real asset codec preparation preserves unchanged proof only before writes: ${variant}`, async () => {
         const root = mkdtempSync('/private/tmp/resource-field-real-'); mkdirSync(join(root, 'assets'));
         writeFileSync(join(root, 'package.json'), JSON.stringify({ creator: { version: '3.8.3' } }));
-        const path = 'assets/one.pmtl';
-        writeFileSync(join(root, path), JSON.stringify({ __type__: 'cc.PhysicsMaterial', _name: 'original', _friction: 0.5, _restitution: 0.1 }));
-        writeFileSync(join(root, `${path}.meta`), JSON.stringify({ uuid: '11111111-1111-4111-8111-111111111111', importer: 'physics-material',
-            imported: true, ver: '1.0.0', files: ['.json'], subMetas: {}, userData: {} }));
+        const audio = variant.startsWith('audio');
+        const readonlyCode = 'lumen_audio_property_not_editable:audio:downloadMode:allowed=';
+        const path = audio ? 'assets/one.wav' : 'assets/one.pmtl';
+        writeFileSync(join(root, path), audio ? Buffer.from('524946462600000057415645666d74201000000001000100401f0000803e00000200100064617461020000000000', 'hex') : JSON.stringify({ __type__: 'cc.PhysicsMaterial', _name: 'original', _friction: 0.5, _restitution: 0.1 }));
+        writeFileSync(join(root, `${path}.meta`), JSON.stringify({ uuid: '11111111-1111-4111-8111-111111111111', importer: audio ? 'audio-clip' : 'physics-material',
+            imported: true, ver: '1.0.0', files: [audio ? '.wav' : '.json'], subMetas: {}, userData: audio ? { downloadMode: 0 } : {} }));
         const before = hashTree(root); const facade = new RuntimeFacade('3.8.3'); const service = facade.execution;
         const gateway = new EditorMcpLumenGateway(async () => root, null, '3.8.3');
         let writes = 0;
         const executor = new ResourceOperationTaskExecutor({ trustedInProcessFieldPreparation: true, plan: async (_operation, input) => {
-            await gateway.prepareAssetSet(input, input);
+            if (variant === 'audio-forged') throw new Error(readonlyCode);
+            try { await gateway.prepareAssetSet(input, input); }
+            catch (error) { if (variant === 'audio-copied') throw new Error((error as Error).message); throw error; }
             return { operation: 'lumen.assetSet', projectKey: root, requiresProjectWriter: false, resourceKeys: [path] };
-        }, execute: async () => { writes += 1; throw new Error('lumen_property_type:after_writer:unexpected'); } });
+        }, execute: async () => { writes += 1; throw new Error(audio ? readonlyCode : 'lumen_property_type:after_writer:unexpected'); } });
         const remove = service.registerExecutor('test.resource-field', ResourceOperationTaskExecutor.KIND, {
             concurrency: 'executor_managed', execute: async task => {
                 const data = await executor.execute(task.request, { owner: { pluginId: 'test.resource-field', connectionId: 'test',
@@ -48,7 +53,9 @@ for (const variant of ['invalid-scalar', 'mixed-patch', 'rolling-friction', 'spi
             } });
         try {
             const terminal = new Promise<void>(resolve => service.onTaskTerminal(() => resolve()));
-            const props = variant === 'rolling-friction' ? { rollingFriction: 'invalid' } : variant === 'spinning-friction' ? { spinningFriction: 'invalid' } : variant === 'post-prepare-failure' ? { name: 'valid' }
+            const props = variant === 'audio-post-writer' ? {} : variant === 'audio-uuid-mixed'
+                ? { downloadMode: 1, textureUuid: '11111111-1111-4111-8111-111111111111' }
+                : audio ? { downloadMode: 1 } : variant === 'rolling-friction' ? { rollingFriction: 'invalid' } : variant === 'spinning-friction' ? { spinningFriction: 'invalid' } : variant === 'post-prepare-failure' ? { name: 'valid' }
                 : variant === 'mixed-patch' ? { name: 'changed in memory only', friction: 'invalid' } : { friction: 'invalid' };
             const receipt = await service.submit({ requestId: variant, pluginId: 'test.resource-field', scope: 'project', priority: 'normal',
                 kind: ResourceOperationTaskExecutor.KIND, payload: { operation: 'lumen.assetSet', input: {
@@ -56,21 +63,22 @@ for (const variant of ['invalid-scalar', 'mixed-patch', 'rolling-friction', 'spi
             await terminal; const result = await service.getResult(receipt.taskId);
             assert.equal(result?.ok, false); assert.equal(result?.status, 'failed');
             const refusal = EditorMcpResourceFieldRefusal.fromTaskResult(result, receipt.taskId);
-            if (['invalid-scalar', 'mixed-patch', 'rolling-friction', 'spinning-friction'].includes(variant)) {
+            if (['invalid-scalar', 'mixed-patch', 'rolling-friction', 'spinning-friction', 'audio'].includes(variant)) {
                 assert.ok(refusal); assert.equal(writes, 0);
                 const dto = McpFailurePresenter.present(refusal);
                 assert.equal(dto.category, 'invalid_input'); assert.equal(dto.state, 'unchanged'); assert.equal(dto.taskStatus, 'failed');
                 assert.equal(dto.taskId, receipt.taskId); assert.equal(dto.operation, 'lumen.assetSet');
                 assert.deepEqual(dto.assetFieldPreparationRefusal, { schemaVersion: 1, code: dto.code, phase: 'prepare_before_writer',
                     projectState: 'unchanged', taskId: receipt.taskId });
-                assert.match(dto.code, /^lumen_property_type(?::|$)/u);
+                if (audio) assert.equal(dto.code, readonlyCode);
+                else assert.match(dto.code, /^lumen_property_type(?::|$)/u);
                 if (variant === 'rolling-friction') assert.equal(dto.code, 'lumen_property_type:rollingFriction:number>=0');
                 if (variant === 'spinning-friction') assert.equal(dto.code, 'lumen_property_type:spinningFriction:number>=0');
             } else {
                 assert.equal(refusal, null);
                 const old = EditorMcpTextWriteFailure.fromTaskResult(result, receipt.taskId, result?.error?.code ?? 'failed');
                 assert.equal(McpFailurePresenter.present(old).state, 'unknown');
-                assert.equal(writes, variant === 'post-prepare-failure' ? 1 : 0);
+                assert.equal(writes, ['post-prepare-failure', 'audio-uuid-mixed', 'audio-post-writer'].includes(variant) ? 1 : 0);
             }
             assert.equal(hashTree(root), before);
         } finally { remove(); service.dispose(); rmSync(root, { recursive: true, force: true }); }

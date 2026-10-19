@@ -1,4 +1,5 @@
-import { closeSync, constants, fstatSync, lstatSync, openSync, readFileSync, readSync, realpathSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { ResourceStabilityNativeFileScope } from './resource-stability-native-file-scope.mts';
 import { join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { createHash } from 'node:crypto';
@@ -8,6 +9,7 @@ import type { IResourceSemanticAuthority } from './resource-stability-contracts.
  * @description Fixed SDK AssetDB/meta/source readers for two ordinary source assets; never loads a runtime Asset.
  */
 export class ResourceStabilityNativeSourceText {
+    private readonly files: ResourceStabilityNativeFileScope;
     public static readonly kinds = Object.freeze(['text', 'json']);
     public static readonly infoSource = '837a1d8f233e39d681db0e60eb51b736a078ed8a832f0319d69607256e2dbda9';
     private static readonly inspectorSources: Readonly<Record<string, string>> = {
@@ -24,14 +26,12 @@ export class ResourceStabilityNativeSourceText {
     /**
      * @description Capture only this registered namespace and immutable plan bindings.
      */
-    public constructor(private readonly project: string, private readonly namespace: string,
+    public constructor(project: string, namespace: string,
         private readonly bindings: ReadonlyMap<string, { kind: string; sha256: string }>,
         private readonly port: { info(uuid: string): Promise<unknown>; meta(uuid: string): Promise<unknown>; path(uuid: string): Promise<unknown> }) {
-        if (realpathSync(project) !== project || !/^assets\/fixtures\/resource-stability\/[a-z0-9][a-z0-9-]{0,95}$/u.test(namespace)) {
-            throw new Error('resource_source_scope_invalid');
-        }
+        this.files = new ResourceStabilityNativeFileScope(project, namespace);
         for (const [path, binding] of bindings) {
-            this.scoped(path);
+            this.files.scoped(path);
             if (!ResourceStabilityNativeSourceText.kinds.includes(binding.kind) || !/^[a-f0-9]{64}$/u.test(binding.sha256)
                 || !path.endsWith(binding.kind === 'text' ? '.txt' : '.json')) throw new Error('resource_source_binding_invalid');
         }
@@ -90,7 +90,7 @@ export class ResourceStabilityNativeSourceText {
             if ([initialInfo.importer, diskMeta.importer].some(value => typeof value === 'string' && ResourceStabilityNativeSourceText.kinds.includes(value))) throw new Error('resource_source_path_not_bound');
             return null;
         }
-        const absolute = this.scoped(path); const uuid = diskMeta.uuid;
+        const absolute = this.files.scoped(path); const uuid = diskMeta.uuid;
         if (typeof uuid !== 'string') throw new Error('resource_source_uuid_missing');
         const info = this.record(await this.port.info(uuid)); const meta = this.record(await this.port.meta(uuid));
         const nativePath = await this.port.path(uuid);
@@ -110,53 +110,21 @@ export class ResourceStabilityNativeSourceText {
                 throw new Error('resource_source_meta_configuration_unbound');
             }
         }
-        const metaBytes = this.readFile(path + '.meta');
+        const metaBytes = this.files.readFile(path + '.meta');
         const independent = this.record(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(metaBytes)));
         for (const key of ['uuid', 'importer', 'ver', 'imported', 'files', 'subMetas', 'userData']) {
             if (!isDeepStrictEqual(independent[key], meta[key]) || !isDeepStrictEqual(independent[key], diskMeta[key])) throw new Error('resource_source_meta_changed');
         }
-        const bytes = this.readFile(path); const hash = ResourceStabilityNativeSourceText.hash(bytes);
+        const bytes = this.files.readFile(path); const hash = ResourceStabilityNativeSourceText.hash(bytes);
         if (hash !== binding.sha256) throw new Error('resource_source_content_not_frozen');
         const source = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
         if (binding.kind === 'json') this.json(JSON.parse(source));
-        if (!this.readFile(path + '.meta').equals(metaBytes)) throw new Error('resource_source_meta_changed');
+        if (!this.files.readFile(path + '.meta').equals(metaBytes)) throw new Error('resource_source_meta_changed');
         const semantic = { source, sourceSha256: hash, importer: String(meta.importer), assetType: String(info.type) };
         // valid is registered/imported AssetDB identity with exact public type, never runtime Asset.isValid.
         return { origin: 'creator-native' as const, actualUuid: uuid, valid: true, semantic,
             dependencies: [] as readonly string[], authorities: Object.fromEntries(Object.keys(semantic).map(key =>
                 ['/' + key, ResourceStabilityNativeSourceText.authority(binding.kind, '/' + key)])) };
-    }
-
-    /**
-     * @description Exact bounded read-only descriptor, no links, stable inode/content and namespace revalidation.
-     */
-    private readFile(path: string): Buffer {
-        const file = this.scoped(path); const before = lstatSync(file);
-        if (!before.isFile() || before.size > 1024 * 1024) throw new Error('resource_source_file_budget_or_type');
-        const fd = openSync(file, constants.O_RDONLY | constants.O_NOFOLLOW);
-        try {
-            const first = fstatSync(fd); if (first.dev !== before.dev || first.ino !== before.ino || first.size !== before.size) throw new Error('resource_source_fd_changed');
-            const bytes = Buffer.alloc(first.size); let offset = 0;
-            while (offset < bytes.length) { const n = readSync(fd, bytes, offset, bytes.length - offset, offset); if (!n) throw new Error('resource_source_short_read'); offset += n; }
-            const last = fstatSync(fd); const after = lstatSync(this.scoped(path));
-            if (last.ino !== first.ino || last.dev !== first.dev || last.size !== first.size || last.mtimeMs !== first.mtimeMs || last.ctimeMs !== first.ctimeMs
-                || after.ino !== first.ino || after.dev !== first.dev || after.size !== first.size || after.mtimeMs !== first.mtimeMs || after.ctimeMs !== first.ctimeMs) throw new Error('resource_source_read_changed');
-            return bytes;
-        } finally { closeSync(fd); }
-    }
-
-    /**
-     * @description Inspect all existing ancestors; no escape or link may reach an unowned file.
-     */
-    private scoped(path: string): string {
-        if (!path.startsWith(this.namespace + '/') || path.length > 512 || /[\\%\u0000-\u001f]/u.test(path)
-            || path.split('/').some(part => !part || part === '.' || part === '..')) throw new Error('resource_source_path_denied');
-        let current = this.project;
-        for (const part of path.split('/')) { current = join(current, part);
-            try { if (lstatSync(current).isSymbolicLink() || realpathSync(current) !== current) throw new Error('resource_source_symlink'); }
-            catch (error) { if (error && typeof error === 'object' && Reflect.get(error, 'code') === 'ENOENT') return join(this.project, path); throw error; }
-        }
-        return current;
     }
 
     /**

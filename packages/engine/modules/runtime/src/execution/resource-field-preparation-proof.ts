@@ -14,6 +14,7 @@ export class ResourceFieldPreparationProof {
     /** @description 只允许已核实字段标识和固定codec约束词法；不公开路径、空白或动态输入值。 */
     public static isSafeCode(value: unknown): value is string {
         if (typeof value !== 'string' || value.length > 256) return false;
+        if (value === 'lumen_audio_property_not_editable:audio:downloadMode:allowed=') return true;
         const match = /^(lumen(?:_(?:physics_material|auto_atlas|label_atlas|render_flow|render_stage|audio|font|spine|cubemap|directory|particle|spriteatlas|javascript|animation_graph_variant|animation_mask|render_pipeline))?)_property_(type|range):([^:]+):([^:]+)$/u.exec(value);
         if (!match) return false;
         const fields = new Set(['name', 'friction', 'rollingFriction', 'spinningFriction', 'restitution', 'graph', 'clips',
