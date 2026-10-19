@@ -56,7 +56,7 @@ class ComponentCreatorSession {
         const context = this.preflight();
         const out = openSync(join(context.output, 'stdout.log'), 'wx', 0o600);
         const err = openSync(join(context.output, 'stderr.log'), 'wx', 0o600);
-        const useOpen = process.platform === 'darwin' || context.sameVersion;
+        const useOpen = context.sameVersion;
         const launcherOut = useOpen ? openSync(join(context.output, 'launcher-stdout.log'), 'wx', 0o600) : out;
         const launcherErr = useOpen ? openSync(join(context.output, 'launcher-stderr.log'), 'wx', 0o600) : err;
         const args = useOpen ? ['-n', '-a', context.registration.creatorApp ?? '', '-W',
