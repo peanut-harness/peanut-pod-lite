@@ -26,6 +26,14 @@ export class ResourceStabilityRunner {
             throw new Error('resource_campaign_case_scope_mismatch');
         }
         for (const row of plan.cases) {
+            if (row.action === 'rename' || row.expectedSourceContentSha256 !== undefined) {
+                const imported = row.setup.find(command => command.name === 'peanut.editor-mcp.asset-import');
+                const source = Array.isArray(imported?.input.sources) && imported.input.sources.length === 1 ? imported.input.sources[0] : null;
+                if (row.action !== 'rename' || !/^[a-f0-9]{64}$/u.test(row.expectedSourceContentSha256 ?? '')
+                    || typeof source !== 'string' || expected.fixtureSources[source] !== row.expectedSourceContentSha256) {
+                    throw new Error('resource_campaign_rename_source_proof_invalid');
+                }
+            }
             if (row.expectedAuthorities !== undefined) {
                 if (!row.expectedAuthorities || typeof row.expectedAuthorities !== 'object' || Array.isArray(row.expectedAuthorities)) {
                     throw new Error('resource_campaign_authority_contract_invalid');
@@ -93,6 +101,12 @@ export class ResourceStabilityRunner {
                 }
                 const before = await port.snapshot(row.beforePath);
                 const beforeHash = await port.sourceHashes(row.beforePath);
+                let beforeContent: string | undefined;
+                if (row.expectedSourceContentSha256 !== undefined) {
+                    if (!port.sourceContentSha256) throw new Error('resource_campaign_source_content_reader_missing');
+                    beforeContent = await port.sourceContentSha256(row.beforePath);
+                    if (beforeContent !== row.expectedSourceContentSha256) throw new Error('resource_campaign_source_content_changed_before');
+                }
                 await this.assertFixtureHashes(row.command, expected, port);
                 this.assertSession(await port.preflight(), expected);
                 const outcome = await port.call(row.command, plan.namespace);
@@ -104,12 +118,16 @@ export class ResourceStabilityRunner {
                 }
                 const after = await port.snapshot(row.afterPath);
                 const afterHash = await port.sourceHashes(row.expectedRejection ? row.beforePath : row.afterPath);
+                const afterContent = row.expectedSourceContentSha256 !== undefined
+                    ? await port.sourceContentSha256!(row.afterPath) : undefined;
                 this.assertSession(await port.preflight(), expected);
                 const observation: IResourceCaseObservation = {
                     caseId: row.caseId, action: row.action, before, after, referenceSnapshots,
                     rejected: outcome.status === 'rejected', failure: outcome.rejectionCode,
                     postflightVerified: outcome.postflightVerified,
                     beforeSourceSha256: beforeHash, afterSourceSha256: afterHash,
+                    ...(row.expectedSourceContentSha256 !== undefined
+                        ? { beforeSourceContentSha256: beforeContent, afterSourceContentSha256: afterContent } : {}),
                     preservedSource: row.action === 'copy' ? await port.snapshot(row.beforePath) : null,
                     preservedSourceSha256: row.action === 'copy' ? await port.sourceHashes(row.beforePath) : null,
                     obsoletePath: ['move', 'rename'].includes(row.action) ? await port.snapshot(row.beforePath) : null,
@@ -135,6 +153,9 @@ export class ResourceStabilityRunner {
      */
     public static validateObservation(row: IResourceCasePlan, observed: IResourceCaseObservation): string[] {
         const issues: string[] = [];
+        if (row.action === 'rename' && (!/^[a-f0-9]{64}$/u.test(row.expectedSourceContentSha256 ?? '')
+            || observed.beforeSourceContentSha256 !== row.expectedSourceContentSha256
+            || observed.afterSourceContentSha256 !== row.expectedSourceContentSha256)) issues.push('rename_source_content_mismatch');
         const authoritySnapshot = row.expectedRejection || row.action === 'delete' ? observed.before : observed.after;
         for (const [pointer, expected] of Object.entries(row.expectedAuthorities ?? {})) {
             if (!isDeepStrictEqual(authoritySnapshot.authorities?.[pointer], expected)) issues.push(`semantic_authority_mismatch:${pointer}`);

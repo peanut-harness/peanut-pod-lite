@@ -125,6 +125,10 @@ export interface IResourceCasePlan {
      */
     readonly expectedSemantic: Readonly<Record<string, unknown>>;
     /**
+     * @description rename独立绑定approved输入源字节；前后均须匹配，不能从本轮after生成预期。
+     */
+    readonly expectedSourceContentSha256?: string;
+    /**
      * @description null语义占位的真实源身份，不允许静态猜测导入UUID。
      */
     readonly expectedReferences?: Readonly<Record<string, IResourceNativeReference>>;
@@ -281,6 +285,14 @@ export interface IResourceCaseObservation {
      */
     readonly afterSourceSha256: string;
     /**
+     * @description rename之前的单源原始字节摘要，不混入路径或meta。
+     */
+    readonly beforeSourceContentSha256?: string;
+    /**
+     * @description rename之后的单源原始字节摘要，必须匹配静态approved源。
+     */
+    readonly afterSourceContentSha256?: string;
+    /**
      * @description copy 后的原源独立读回，不能仅使用操作前缓存。
      */
     readonly preservedSource: IResourceSnapshot | null;
@@ -337,6 +349,10 @@ export interface IResourceCampaignPort {
      * @description 非法操作窗口的全文件摘要基线与读回。
      */
     sourceHashes(relativePath: string): Promise<string>;
+    /**
+     * @description 单源原始字节读取；声明rename proof时缺少此口必须停止。
+     */
+    sourceContentSha256?(relativePath: string): Promise<string>;
     /**
      * @description 在下一步或失败退出前追加保存本次观察；不得覆盖旧运行证据。
      */

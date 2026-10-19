@@ -12,6 +12,7 @@ export interface IResourceManagedConnection {
     identity(): Promise<IResourceSessionIdentity>;
     nativeSnapshot(relativePath: string): Promise<IResourceSnapshot>;
     sourceHashes(relativePath: string): Promise<string>;
+    sourceContentSha256?(relativePath: string): Promise<string>;
     fixtureSourceSha256(absolutePath: string): Promise<string>;
     recordObservation(observation: IResourceCaseObservation): Promise<void>;
     recordFailure(caseId: string, code: string): Promise<void>;
@@ -118,6 +119,13 @@ export class ResourceStabilityManagedPort implements IResourceCampaignPort {
      * @description 源和 metadata 的原始摘要。
      */
     public sourceHashes(path: string): Promise<string> { return this.connection.sourceHashes(path); }
+    /**
+     * @description 不以包含path/meta的摘要替代单源proof；缺少真实读取口拒绝。
+     */
+    public sourceContentSha256(path: string): Promise<string> {
+        if (!this.connection.sourceContentSha256) throw new Error('resource_managed_source_content_reader_missing');
+        return this.connection.sourceContentSha256(path);
+    }
     /**
      * @description 导入前对已审查输入再计算摘要。
      */

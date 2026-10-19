@@ -22,7 +22,7 @@ export interface IResourceNativeShardFixture {
 }
 
 /**
- * @description 显式保留完整分母的四类原生分片；不能交给完整 campaign validator 宣称 4.3 完成。
+ * @description 显式保留完整分母的八类原生分片；不能交给完整 campaign validator 宣称 4.3 完成。
  */
 export class ResourceStabilityNativeShard {
     public static readonly physicsFields = Object.freeze(['name', 'friction', 'rollingFriction', 'spinningFriction', 'restitution']);
@@ -92,15 +92,22 @@ export class ResourceStabilityNativeShard {
                         resources: [path, `${path}.meta`, afterPath, `${afterPath}.meta`] }, true); break;
                 case 'rename': { const name = fixture.filename.replace(/(\.[^.]+)$/u, '-renamed$1'); afterPath = `${folder}/${name}`;
                     actual = command('asset-rename', { path, newName: name, resources: [path, `${path}.meta`, afterPath, `${afterPath}.meta`] }, true);
-                    expectedSemantic = Object.hasOwn(fixture.initial, '/name')
-                        ? { ...fixture.initial, '/name': name.replace(/\.[^.]+$/u, '') } : fixture.initial; break; }
+                    // 3.8.3八类native name-policy诊断及file-only rename合同；不能泛化其他版本或类型。
+                    const preserve = ['animationGraph', 'animationGraphVariant', 'animationMask', 'physicsMaterial', 'renderPipeline'];
+                    const filename = ['animationClip', 'renderTexture', 'terrain'];
+                    if (inventory.creatorVersion !== '3.8.3' || ![...preserve, ...filename].includes(fixture.kind)) {
+                        throw new Error('resource_native_rename_policy_unproven');
+                    }
+                    expectedSemantic = preserve.includes(fixture.kind) ? fixture.initial
+                        : { ...fixture.initial, '/name': name.replace(/\.[^.]+$/u, '') }; break; }
                 case 'refresh': actual = command('asset-reimport', { paths: [path], resources: [path, `${path}.meta`] }, true); break;
                 case 'delete': actual = command('asset-delete', { paths: [path], confirmDestructive: true,
                     resources: [path, `${path}.meta`] }, true, true); break;
                 default: throw new Error('resource_native_shard_action_blocked');
             }
             return { caseId: row.id, action: row.action, setup, command: actual, afterCommands, beforePath: path,
-                afterPath, expectedSemantic, expectedAuthorities: Object.fromEntries(Object.keys(expectedSemantic).map((pointer) =>
+                afterPath, expectedSemantic, ...(row.action === 'rename' ? { expectedSourceContentSha256: fixtureSources[fixture.source] } : {}),
+                expectedAuthorities: Object.fromEntries(Object.keys(expectedSemantic).map((pointer) =>
                     [pointer, ResourceStabilityNativeRuntime.authority(ResourceStabilityNativeRuntime.typeForKind(fixture.kind), pointer)])), expectedRejection, rejectionCodes };
         });
         const plan: IResourceCampaignPlan = { creatorVersion: inventory.creatorVersion as '3.8.3' | '3.8.7',

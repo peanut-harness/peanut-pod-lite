@@ -112,6 +112,18 @@ export class ResourceStabilityNativeClient implements IResourceManagedConnection
         visit(join(this.project, path)); visit(join(this.project, `${path}.meta`)); return hash.digest('hex');
     }
     /**
+     * @description 仅namespace内真实普通源文件的原始字节，不含文件名和meta，不执行SDK。
+     */
+    public async sourceContentSha256(path: string): Promise<string> {
+        const absolute = join(this.project, path);
+        if (!path.startsWith(`${String(this.registration.namespace)}/`) || path.split('/').some(item => !item || item === '.' || item === '..')
+            || /[\\%]/u.test(path) || !existsSync(absolute) || lstatSync(absolute).isSymbolicLink()
+            || realpathSync(absolute) !== absolute || !statSync(absolute).isFile() || statSync(absolute).size > 32 * 1024 * 1024) {
+            throw new Error('resource_native_source_content_out_of_scope');
+        }
+        return createHash('sha256').update(readFileSync(absolute)).digest('hex');
+    }
+    /**
      * @description 观察追加保存；一次性令牌及请求输入不进入证据。
      */
     public async recordObservation(observation: IResourceCaseObservation): Promise<void> { this.event({ step: 'observation', observation }); }

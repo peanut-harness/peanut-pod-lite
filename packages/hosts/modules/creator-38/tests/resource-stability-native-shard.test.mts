@@ -110,6 +110,20 @@ test('native shard keeps every full denominator row and follows the real public 
     assert.equal(result.plan.cases.filter((row) => row.expectedRejection).length, 5);
     assert.ok(result.plan.cases.filter((row) => row.expectedRejection).every((row) => row.afterCommands?.length === 0 && row.rejectionCodes.length === 1));
     assert.equal(result.blocked.length, 10); assert.equal(result.task43Complete, false);
+    const preserve = ['animationGraph', 'animationGraphVariant', 'animationMask', 'physicsMaterial', 'renderPipeline'];
+    for (const kind of kinds) {
+        const renamed = result.plan.cases.find((row) => row.caseId === `3.8.3|asset:${kind}|rename`)!;
+        assert.equal(renamed.expectedSemantic['/name'], `${kind}-rename${preserve.includes(kind) ? '' : '-renamed'}`);
+        assert.equal(renamed.expectedSourceContentSha256, 'e'.repeat(64));
+    }
+    const unproved = { ...hashes }; delete unproved['/private/tmp/inputs/animationGraph-rename.pmtl'];
+    assert.throws(() => ResourceStabilityNativeShard.create(inventory, identity, 'assets/fixtures/resource-stability/unit', fixtures, unproved), /rename_source_proof_invalid/u);
+    const otherVersion = { ...inventory, creatorVersion: '3.8.7' };
+    const otherFixtures = fixtures.map((row) => ({ ...row, caseId: row.caseId.replace('3.8.3|', '3.8.7|') }));
+    assert.throws(() => ResourceStabilityNativeShard.create(otherVersion, { ...identity, creatorVersion: '3.8.7' },
+        'assets/fixtures/resource-stability/unit', otherFixtures, hashes), /rename_policy_unproven/u);
+    assert.throws(() => ResourceStabilityNativeShard.create(inventory, identity, 'assets/fixtures/resource-stability/unit',
+        fixtures.map((row) => row.caseId === '3.8.3|asset:animationGraph|rename' ? { ...row, kind: 'unmeasuredNativeKind' } : row), hashes), /fixture_missing/u);
     assert.ok(result.plan.cases.filter((row) => ['create', 'patch'].includes(row.action)).every((row) => row.afterCommands?.length === 1));
     const catalog = JSON.parse(readFileSync(new URL('../../../../../tests/fixtures/editor-stability/serialized/resource-fixtures.json', import.meta.url), 'utf8')) as {
         fixtures: { creatorVersion: string; assetKind: string; initialPublic: Record<string, unknown>; files: { source: { path: string } } }[] };

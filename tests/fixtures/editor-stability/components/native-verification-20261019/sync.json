@@ -3,11 +3,11 @@
   "corpusId": "peanut-org",
   "repos": {
     "peanut-pod-lite": {
-      "treeSha": "c9d016f488666edd79fb4ba8275d41994ff31c85044457f8bbe69146ba8e3aa4",
+      "treeSha": "4a5377c37087119da7b40fb315425d7e0870280f06ded5fc08ce5d51da97530e",
       "cardSha": "84e10ddb038a9926e0100eb4f646ad2281249eabd7603a962d76b1a7b561e3c0",
       "fileCount": 15,
-      "attestReason": "两线源码冻结，定向与有界独立复核通过，完整验证和原生待进行",
-      "updatedAt": "2026-10-19T04:57:19.781Z"
+      "attestReason": "保留0d1c74e真实失败与8类rename诊断，按固定源SHA收紧新计划，压缩过期进度重复，待新完整验证",
+      "updatedAt": "2026-10-19T05:15:12.488Z"
     }
   }
 }

@@ -220,8 +220,10 @@ test('copy requires a new UUID and independently rechecks the unchanged original
 
 for (const action of ['move', 'rename']) {
     test(`${action} fails when the old path remains registered`, () => {
-        const r = { ...row(action), afterPath: `${namespace}/destination.anim` };
-        const good = observation(r, { obsoletePath: absent() });
+        const r = { ...row(action), afterPath: `${namespace}/destination.anim`,
+            ...(action === 'rename' ? { expectedSourceContentSha256: 'a'.repeat(64) } : {}) };
+        const good = observation(r, { obsoletePath: absent(), ...(action === 'rename'
+            ? { beforeSourceContentSha256: 'a'.repeat(64), afterSourceContentSha256: 'a'.repeat(64) } : {}) });
         assert.deepEqual(ResourceStabilityRunner.validateObservation(r, good), []);
         assert.ok(ResourceStabilityRunner.validateObservation(r, { ...good, obsoletePath: snapshot() }).includes('old_path_still_registered'));
     });
@@ -231,6 +233,38 @@ test('delete checks both source registration and all destination metadata/AssetD
     const r = { ...row('delete'), command: { ...command(), name: 'peanut.editor-mcp.asset-delete', input: { paths: [source] }, destructive: true } };
     assert.deepEqual(ResourceStabilityRunner.validateObservation(r, observation(r, { after: absent() })), []);
     assert.ok(ResourceStabilityRunner.validateObservation(r, observation(r, { after: { ...absent(), assetDbUuid: uuid } })).includes('delete_residue'));
+});
+
+test('rename binds approved static source bytes before and after; missing proof or reader fails closed', async () => {
+    const fixture = '/private/tmp/reviewed-synthetic.anim'; const approved = 'e'.repeat(64);
+    const r: IResourceCasePlan = { ...row('rename'), afterPath: `${namespace}/renamed.anim`, expectedSourceContentSha256: approved,
+        setup: [{ name: 'peanut.editor-mcp.asset-import', write: true, destructive: false,
+            input: { sources: [fixture], target: `db://${namespace}`, expandClosure: false } }],
+        command: { name: 'peanut.editor-mcp.asset-rename', write: true, destructive: false,
+            input: { path: source, newName: 'renamed.anim' } } };
+    const expected = { ...expectation([r]), fixtureSources: { [fixture]: approved } };
+    assert.doesNotThrow(() => ResourceStabilityRunner.validatePlan(plan([r]), expected));
+    for (const proof of [undefined, 'bad', 'f'.repeat(64)]) {
+        assert.throws(() => ResourceStabilityRunner.validatePlan(plan([{ ...r, expectedSourceContentSha256: proof }]), expected), /rename_source_proof_invalid/u);
+    }
+    const good = observation(r, { obsoletePath: absent(), beforeSourceContentSha256: approved, afterSourceContentSha256: approved });
+    assert.deepEqual(ResourceStabilityRunner.validateObservation(r, good), []);
+    for (const digest of [undefined, 'bad', '0'.repeat(64)]) {
+        assert.ok(ResourceStabilityRunner.validateObservation(r, { ...good, afterSourceContentSha256: digest }).includes('rename_source_content_mismatch'));
+        assert.ok(ResourceStabilityRunner.validateObservation(r, { ...good, beforeSourceContentSha256: digest }).includes('rename_source_content_mismatch'));
+    }
+    for (const mode of ['valid', 'missing-reader', 'changed-before', 'changed-after']) {
+        const port: IResourceCampaignPort & SyntheticPort = new SyntheticPort();
+        if (mode !== 'missing-reader') port.sourceContentSha256 = async () =>
+            mode === 'changed-before' || mode === 'changed-after' && port.calls >= 2 ? '0'.repeat(64) : approved;
+        port.snapshot = async path => path === source && port.calls >= 2 ? absent(source) : snapshot(path, port.calls >= 2 ? 2 : 1);
+        if (mode === 'valid') {
+            await ResourceStabilityRunner.run(plan([r]), expected, port); assert.equal(port.recorded[0]?.afterSourceContentSha256, approved);
+        } else {
+            await assert.rejects(ResourceStabilityRunner.run(plan([r]), expected, port), /case_incomplete_or_failed/u);
+            assert.equal(port.calls, mode === 'changed-after' ? 2 : 1);
+        }
+    }
 });
 
 test('field rejection needs the precise input error and unchanged snapshot/source/meta hashes', () => {

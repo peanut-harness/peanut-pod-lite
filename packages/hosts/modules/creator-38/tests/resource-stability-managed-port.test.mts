@@ -5,6 +5,39 @@ import type { IResourceCampaignExpectation, IResourceCampaignPlan, IResourceComm
 import { ResourceStabilityRunner } from '../scripts/resource-stability-runner.mts';
 import { ResourceStabilityNativeRuntime } from '../scripts/resource-stability-native-runtime.mts';
 import { ResourceStabilityPreparationRefusal } from '../scripts/resource-stability-preparation-refusal.mts';
+import { ResourceStabilityNativeClient } from '../scripts/resource-stability-native-client.mts';
+import { mkdirSync, mkdtempSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createHash } from 'node:crypto';
+
+test('source content port requires a real reader and forwards only the requested source', async () => {
+    const f = fixture(); assert.throws(() => f.port.sourceContentSha256(f.plan.cases[0]!.beforePath), /source_content_reader_missing/u);
+    let path: string | null = null;
+    f.connection.sourceContentSha256 = async value => { path = value; return 'b'.repeat(64); };
+    assert.equal(await f.port.sourceContentSha256(f.plan.cases[0]!.beforePath), 'b'.repeat(64));
+    assert.equal(path, f.plan.cases[0]!.beforePath); assert.equal(f.calls.length, 0);
+});
+
+test('native source digest hashes exact binary bytes independent of filename/meta and rejects escaped or linked files', async () => {
+    const project = realpathSync(mkdtempSync(join(tmpdir(), 'resource-content-digest-')));
+    const namespace = 'assets/fixtures/resource-stability/content-test'; mkdirSync(join(project, namespace), { recursive: true });
+    const path = `${namespace}/original.terrain`; const renamed = `${namespace}/renamed.terrain`;
+    const bytes = Buffer.from([8, 0, 1, 1, 0, 255]); writeFileSync(join(project, path), bytes);
+    // Only the pure filesystem reader is exercised; no authenticated client constructor or native call is used.
+    const client = Object.assign(Object.create(ResourceStabilityNativeClient.prototype) as ResourceStabilityNativeClient,
+        { project, registration: { namespace } });
+    try {
+        const expected = createHash('sha256').update(bytes).digest('hex');
+        assert.equal(await client.sourceContentSha256(path), expected);
+        writeFileSync(join(project, `${path}.meta`), 'different metadata'); renameSync(join(project, path), join(project, renamed));
+        assert.equal(await client.sourceContentSha256(renamed), expected);
+        const link = `${namespace}/link.terrain`; symlinkSync(join(project, renamed), join(project, link));
+        for (const rejected of [link, `${namespace}/../escape.terrain`, `${namespace}/%2e%2e/escape`, 'assets/outside.terrain', namespace]) {
+            await assert.rejects(client.sourceContentSha256(rejected), /source_content_out_of_scope/u);
+        }
+    } finally { rmSync(project, { recursive: true, force: true }); }
+});
 
 function fixture() {
     const namespace = 'assets/fixtures/resource-stability/managed-unit';
