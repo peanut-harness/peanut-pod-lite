@@ -75,7 +75,7 @@ export interface IEditorMcpAssetDbCreationEvidence {
     /**
      * @description 资源种类。
      */
-    readonly resourceType: 'prefab' | 'scene' | 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture';
+    readonly resourceType: 'prefab' | 'scene' | 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture' | 'animationGraph' | 'animationGraphVariant' | 'animationMask' | 'renderPipeline' | 'terrain';
     /**
      * @description AssetDB 主资源 UUID。
      */
@@ -125,7 +125,7 @@ export interface IEditorMcpAssetDbCreationFailureEvidence {
     /**
      * @description 资源种类。
      */
-    readonly resourceType: 'prefab' | 'scene' | 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture';
+    readonly resourceType: 'prefab' | 'scene' | 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture' | 'animationGraph' | 'animationGraphVariant' | 'animationMask' | 'renderPipeline' | 'terrain';
     /**
      * @description 清理摘要。
      */
@@ -169,11 +169,11 @@ export interface IEditorMcpAssetDbCreationRequest {
     /**
      * @description 资源种类。
      */
-    readonly resourceType: 'prefab' | 'scene' | 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture';
+    readonly resourceType: 'prefab' | 'scene' | 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture' | 'animationGraph' | 'animationGraphVariant' | 'animationMask' | 'renderPipeline' | 'terrain';
     /**
      * @description 可选内存内容；提供时协调器调用 `create-asset`。
      */
-    readonly content?: string;
+    readonly content?: string | Buffer;
     /**
      * @description 可选 Creator 原生发布器；与 content 二选一。
      */
@@ -215,6 +215,7 @@ export class EditorMcpAssetDbCreationCoordinator {
      * @returns 已验证身份证据。
      */
     public async create(request: IEditorMcpAssetDbCreationRequest): Promise<IEditorMcpAssetDbCreationEvidence> {
+        const content = Buffer.isBuffer(request.content) ? Buffer.from(request.content) : request.content;
         const targetDbPath = this._normalizeTarget(request.targetPath, request.resourceType);
         const projectRoot = await this._host.requireProjectPath();
         const message = this._host.requireMessage();
@@ -250,8 +251,8 @@ export class EditorMcpAssetDbCreationCoordinator {
                 throw new Error('editor_mcp_task_cancelled_before_commit');
             }
             phase = 'publishing';
-            publicationResponse = request.content != null
-                ? await message.request('asset-db', 'create-asset', targetDbPath, request.content)
+            publicationResponse = content != null
+                ? await message.request('asset-db', 'create-asset', targetDbPath, content)
                 : await request.publish!();
             published = true;
             const registration = await this._waitForRegistration(targetDbPath, request);
@@ -475,10 +476,11 @@ export class EditorMcpAssetDbCreationCoordinator {
     /**
      * @description 规范化并校验 Prefab / Scene 目标。
      */
-    private _normalizeTarget(pathValue: string, resourceType: 'prefab' | 'scene' | 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture'): string {
+    private _normalizeTarget(pathValue: string, resourceType: 'prefab' | 'scene' | 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture' | 'animationGraph' | 'animationGraphVariant' | 'animationMask' | 'renderPipeline' | 'terrain'): string {
         const normalized = pathValue.trim().replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '');
         const dbPath = normalized.startsWith('db://') ? normalized : `db://${normalized}`;
-        const extension = { prefab: '.prefab', scene: '.scene', material: '.mtl', animationClip: '.anim', physicsMaterial: '.pmtl', renderTexture: '.rt' }[resourceType];
+        const extension = { prefab: '.prefab', scene: '.scene', material: '.mtl', animationClip: '.anim', physicsMaterial: '.pmtl', renderTexture: '.rt',
+            animationGraph: '.animgraph', animationGraphVariant: '.animgraphvari', animationMask: '.animask', renderPipeline: '.rpp', terrain: '.terrain' }[resourceType];
         if (!dbPath.startsWith('db://assets/') || !dbPath.toLowerCase().endsWith(extension)) {
             throw new Error(`editor_mcp_asset_create_target_invalid:${pathValue}`);
         }
@@ -516,7 +518,7 @@ export class EditorMcpAssetDbCreationCoordinator {
         message: string,
         phase: EditorMcpAssetDbCreationPhase,
         targetDbPath: string,
-        resourceType: 'prefab' | 'scene' | 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture',
+        resourceType: 'prefab' | 'scene' | 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture' | 'animationGraph' | 'animationGraphVariant' | 'animationMask' | 'renderPipeline' | 'terrain',
         cleanup: IEditorMcpAssetDbCreationCleanupEvidence,
         projectState: EditorMcpAssetDbCreationProjectState = cleanup.complete ? 'unchanged' : 'may_have_changed',
     ): EditorMcpAssetDbCreationError {

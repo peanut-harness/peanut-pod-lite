@@ -10,6 +10,7 @@ import { ComponentTaskOwnership } from '../../../../../tests/fixtures/editor-sta
 import type { IResourceManagedConnection } from './resource-stability-managed-port.mts';
 import type { IResourceCaseObservation, IResourceSessionIdentity, IResourceSnapshot } from './resource-stability-contracts.mts';
 import { ResourceStabilityPreparationRefusal } from './resource-stability-preparation-refusal.mts';
+import { ResourceStabilitySafeFailure } from './resource-stability-safe-failure.mts';
 
 /**
  * @description 4.3 所属工程的认证连接；每个请求重新读取 descriptor、token、端口及原始进程身份。
@@ -139,10 +140,12 @@ export class ResourceStabilityNativeClient implements IResourceManagedConnection
             headers: { 'content-type': 'application/json', [header]: descriptor.token }, body: JSON.stringify(body), signal: AbortSignal.timeout(60000) });
         const payload = this.record(await response.json());
         if (!response.ok || payload.ok !== true) {
+            const summary = ResourceStabilitySafeFailure.http(response.status, route, payload);
+            this.event(summary);
             const refusal = response.status === 400 && route === '/mcp' && body.action === 'call'
                 ? ResourceStabilityPreparationRefusal.fromResponse(payload, body.name) : null;
             if (refusal) { this.event({ step: 'asset-field-prepare-failed-before-writer', failure: refusal.failure }); throw refusal; }
-            throw new Error(typeof payload.error === 'string' ? payload.error : 'resource_native_request_failed');
+            throw new Error(summary.code);
         }
         return payload.result;
     }

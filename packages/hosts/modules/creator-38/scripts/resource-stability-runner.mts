@@ -1,5 +1,6 @@
 import { isDeepStrictEqual } from 'node:util';
 import { isAbsolute } from 'node:path';
+import { ResourceStabilitySafeFailure } from './resource-stability-safe-failure.mts';
 import type { IResourceCampaignExpectation, IResourceCampaignPlan, IResourceCampaignPort, IResourceCaseObservation,
     IResourceCasePlan, IResourceCommand, IResourceNativeReference, IResourceSemanticAuthority, IResourceSessionIdentity, IResourceSnapshot } from './resource-stability-contracts.mts';
 
@@ -117,10 +118,10 @@ export class ResourceStabilityRunner {
                 await port.recordObservation(observation);
                 const issues = this.validateObservation(row, observation);
                 if (issues.length > 0) throw new Error(`resource_campaign_case_failed:${row.caseId}:${issues.join(',')}`);
-            } catch {
-                // 原始传输正文只留在隔离工程的私有捕获，不把 token 或请求正文复制到共享结果。
-                await port.recordFailure(row.caseId, 'resource_campaign_case_incomplete_or_failed');
-                throw new Error(`resource_campaign_case_incomplete_or_failed:${row.caseId}`);
+            } catch (error: unknown) {
+                const code = ResourceStabilitySafeFailure.code(error);
+                await port.recordFailure(row.caseId, code);
+                throw new Error(`resource_campaign_case_incomplete_or_failed:${row.caseId}:${code}`, { cause: new Error(code) });
             }
         }
         return observations;

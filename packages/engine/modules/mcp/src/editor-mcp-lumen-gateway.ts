@@ -619,7 +619,7 @@ export class EditorMcpLumenGateway {
             return this._decorateWriteResult({ ...result }, result.prefab);
         }
         const isHierarchyCreate = /\.(?:prefab|scene)$/iu.test(input.prefabRelativePath);
-        const isSourceCreate = /\.(?:mtl|anim|pmtl|rt)$/iu.test(input.prefabRelativePath);
+        const isSourceCreate = /\.(?:mtl|anim|pmtl|rt|animgraph|animgraphvari|animask|rpp|terrain)$/iu.test(input.prefabRelativePath);
         const projectRoot = await this._resolveProjectRoot();
         const nativeCreate = input.reset !== true && (isHierarchyCreate || isSourceCreate) &&
             !existsSync(join(projectRoot, input.prefabRelativePath));

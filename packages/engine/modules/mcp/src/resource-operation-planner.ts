@@ -97,7 +97,7 @@ export class ResourceOperationPlanner {
     }
 
     /**
-     * @description 识别必须走 AssetDB 首次创建屏障的六类序列化目标。
+     * @description 识别必须走 AssetDB 首次创建屏障的固定序列化目标。
      * @param operation operation。
      * @param input 已校验输入。
      * @returns 创建目标或 null。
@@ -113,7 +113,7 @@ export class ResourceOperationPlanner {
             return null;
         }
         const target = this._readString(input.prefabRelativePath) ?? this._readString(input.assetRelativePath);
-        if (target == null || !/\.(?:prefab|scene|mtl|anim|pmtl|rt)$/iu.test(target)) {
+        if (target == null || !/\.(?:prefab|scene|mtl|anim|pmtl|rt|animgraph|animgraphvari|animask|rpp|terrain)$/iu.test(target)) {
             return null;
         }
         return target;

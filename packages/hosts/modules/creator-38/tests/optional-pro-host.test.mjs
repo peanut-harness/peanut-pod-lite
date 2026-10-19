@@ -1,18 +1,24 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
 
 const require = createRequire(import.meta.url);
 const host = require('../src/main.js');
+const { HostStartupDiagnostics } = require('../src/host-startup-diagnostics.ts');
+const packageEvents = new EventEmitter();
+const originalFromSdk = HostStartupDiagnostics.fromSdk;
+const extensionPath = resolve(import.meta.dirname, '..');
 
 test('optional Pro activation and corruption stay isolated from the required Core package', async () => {
     const temporaryRoot = resolve(import.meta.dirname, '..', '.test-temp');
     mkdirSync(temporaryRoot, { recursive: true });
     const projectRoot = mkdtempSync(join(temporaryRoot, 'optional-pro-host-'));
     try {
+        HostStartupDiagnostics.fromSdk = (editor, options) => new HostStartupDiagnostics({ ...options, events: packageEvents, messages: editor.Message });
         const core = writePackage(
             projectRoot,
             'peanut.pod-lite',
@@ -27,7 +33,9 @@ test('optional Pro activation and corruption stay isolated from the required Cor
         );
         writeInstalledIndex(projectRoot, [core, pro]);
         globalThis.Editor = createEditor(projectRoot);
-        await host.load();
+        await host.load({ extensionRoot: extensionPath });
+        packageEvents.emit('enable', { name: 'peanut-pod-lite-host', path: extensionPath });
+        await new Promise(resolve => setImmediate(resolve));
         const status = host.methods.queryStatus();
         assert.equal(status.ready, true);
         assert.equal(status.coreVersion, '0.1.0');
@@ -54,14 +62,21 @@ test('optional Pro activation and corruption stay isolated from the required Cor
         assert.equal(status.account.state, 'signed_out');
         assert.equal(status.account.recommendedAction, 'sign-in');
         writeFileSync(join(pro.packagePath, 'peanut.cocos-mcp-pro.bundle.js'), 'tampered');
-        await host.load();
+        await host.load({ extensionRoot: extensionPath });
         const recovered = host.methods.queryStatus();
         assert.equal(recovered.ready, true);
         assert.deepEqual(recovered.tools, ['core.read', 'peanut.editor-mcp.issue-local-approval-lease']);
         assert.equal(recovered.pro.state, 'failed');
         assert.match(recovered.pro.error, /integrity_file_mismatch/u);
+        HostStartupDiagnostics.fromSdk = () => { throw new Error('unverified-sdk-diagnostic-fixture'); };
+        await host.load({ extensionRoot: extensionPath });
+        assert.equal(host.methods.queryStatus().ready, true);
+        const diagnosticFailure = readJson(join(projectRoot, 'peanut-plugins', 'runtime', 'startup-diagnostics.json'));
+        assert.equal(diagnosticFailure.state, 'failed');
+        assert.match(diagnosticFailure.detail, /unverified-sdk-diagnostic-fixture/u);
     } finally {
         await host.unload();
+        HostStartupDiagnostics.fromSdk = originalFromSdk;
         delete globalThis.Editor;
         rmSync(projectRoot, { recursive: true, force: true });
     }
@@ -123,7 +138,8 @@ function createEditor(projectRoot) {
         Project: { path: projectRoot, name: 'host-test' },
         App: { version: '3.8.7', safeStorage },
         Selection: { getSelected: () => [] },
-        Message: { request: async () => ({}) },
+        Package: { getPath: () => extensionPath },
+        Message: { request: async () => true, addBroadcastListener() {}, removeBroadcastListener() {} },
         log: () => {},
         warn: () => {},
         error: () => {},

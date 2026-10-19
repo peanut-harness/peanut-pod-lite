@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ResourceStabilityRunner } from '../scripts/resource-stability-runner.mts';
+import { ResourceStabilitySafeFailure } from '../scripts/resource-stability-safe-failure.mts';
 import { ResourceStabilityEvidenceValidator } from '../scripts/resource-stability-evidence.mts';
 import type { IResourceCampaignExpectation, IResourceCampaignPlan, IResourceCampaignPort, IResourceCaseObservation,
     IResourceCasePlan, IResourceCallOutcome, IResourceCommand, IResourceNativeReference, IResourceSessionIdentity, IResourceSnapshot } from '../scripts/resource-stability-contracts.mts';
@@ -249,6 +250,28 @@ test('postflight failure and transport uncertainty persist failure and never ret
         assert.equal(port.failures.length, 1);
         if (!transportFailure) assert.equal(port.recorded.length, 1);
     }
+});
+
+test('HTTP failure evidence and runner preserve safe native cause without copying response secrets or retrying', async () => {
+    const taskId = 'peanut.editor-mcp:editor-mcp-host:asset.copy:23:23';
+    const summary = ResourceStabilitySafeFailure.http(400, '/mcp', {
+        error: 'lumen_asset_db_registration_pending:db://assets/private?token=secret', token: 'secret',
+        failure: { taskId, taskStatus: 'failed', body: 'secret' },
+    });
+    assert.equal(summary.code, 'lumen_asset_db_registration_pending');
+    assert.equal(summary.httpStatus, 400); assert.equal(summary.taskId, taskId); assert.equal(summary.taskStatus, 'failed');
+    assert.equal(ResourceStabilitySafeFailure.http(400, '/mcp', { failure: { taskId: 'private response secret' } }).taskId, null);
+    assert.ok(!JSON.stringify(summary).includes('secret')); assert.ok(!JSON.stringify(summary).includes('db://'));
+    assert.equal(ResourceStabilitySafeFailure.http(500, '/mcp', { error: 'private response secret' }).code,
+        'resource_campaign_unclassified_failure');
+    const r = row(); const port = new SyntheticPort(); let calls = 0;
+    port.call = async () => { calls += 1; throw new Error('lumen_asset_db_registration_pending:private response secret'); };
+    await assert.rejects(ResourceStabilityRunner.run(plan([r]), expectation([r]), port), (error: unknown) => {
+        assert.ok(error instanceof Error); assert.match(error.message, /lumen_asset_db_registration_pending$/u);
+        assert.ok(error.cause instanceof Error); assert.equal(error.cause.message, 'lumen_asset_db_registration_pending');
+        assert.ok(!String(error.stack).includes('secret')); return true;
+    });
+    assert.equal(calls, 1); assert.deepEqual(port.failures, [`${r.caseId}:lumen_asset_db_registration_pending`]);
 });
 
 const cleanLifecycle = () => ({ runId: identity.runId, projectName: identity.projectName, hostSha256: identity.hostSha256,

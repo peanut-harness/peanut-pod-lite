@@ -115,6 +115,7 @@ test('stable Creator bootstrap confirms a healthy Host and restores the previous
         try {
             const health = await bootstrap.load();
             assert.equal(health.ready, true);
+            assert.equal(health.bootstrapExtensionRoot, extensionRoot);
             if (failCandidate) {
                 assert.equal(health.artifacts.host.version, '0.2.0');
                 assert.equal(coordinator.status().state, 'rolled_back');
@@ -205,12 +206,13 @@ function writeRuntimePackage(root, version, failLoad) {
     writeFileSync(join(root, 'dist', 'main.js'), `
         const path = require('path');
         const { CpmPackageStore } = require('./cpm-package-store');
+        let bootstrapExtensionRoot;
         module.exports = {
-            async load() { ${failLoad ? "throw new Error('candidate_load_failed');" : ''} },
+            async load(options) { bootstrapExtensionRoot = options.extensionRoot; ${failLoad ? "throw new Error('candidate_load_failed');" : ''} },
             async unload() {},
             methods: {
                 queryStatus() {
-                    return { ready: true, artifacts: { host: {
+                    return { ready: true, bootstrapExtensionRoot, artifacts: { host: {
                         version: '${version}',
                         packageDigest: CpmPackageStore.hostPackageDigest(path.join(__dirname, '..')),
                     } } };

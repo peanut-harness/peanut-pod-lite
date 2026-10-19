@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
 
 const require = createRequire(import.meta.url);
 const host = require('../src/main.js');
+const { HostStartupDiagnostics } = require('../src/host-startup-diagnostics.ts');
+const originalFromSdk = HostStartupDiagnostics.fromSdk;
 
 test('Lite can sign in and open checkout without granting entitlements or blocking the editor', async () => {
     const temporaryRoot = resolve(import.meta.dirname, '..', '.test-temp');
@@ -57,7 +60,9 @@ test('Lite can sign in and open checkout without granting entitlements or blocki
         );
         writeInstalledIndex(projectRoot, [core]);
         globalThis.Editor = createEditor(projectRoot);
-        await host.load();
+        HostStartupDiagnostics.fromSdk = (_editor, options) => new HostStartupDiagnostics({ ...options, events: new EventEmitter(),
+            messages: { addBroadcastListener() {}, removeBroadcastListener() {}, request: async () => false } });
+        await host.load({ extensionRoot: resolve(import.meta.dirname, '..') });
         assert.equal(host.methods.queryStatus().ready, true);
         assert.equal(host.methods.queryStatus().account.recommendedAction, 'sign-in');
         assert.deepEqual(host.methods.queryPremiumOffer().packageId, 'peanut.cocos-mcp-pro');
@@ -92,6 +97,7 @@ test('Lite can sign in and open checkout without granting entitlements or blocki
     } finally {
         globalThis.fetch = originalFetch;
         await host.unload();
+        HostStartupDiagnostics.fromSdk = originalFromSdk;
         delete globalThis.Editor;
         rmSync(projectRoot, { recursive: true, force: true });
     }

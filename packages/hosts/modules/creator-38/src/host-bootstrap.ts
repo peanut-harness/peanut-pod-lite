@@ -58,7 +58,7 @@ function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => glo
         const candidateNeedsHealthCheck = state?.state === 'switching' || state?.state === 'pending-health-check';
         try {
             runtime = loadRuntime();
-            await runtime.load();
+            await runtime.load({ extensionRoot });
             const health = await runtime.methods.queryStatus();
             if (candidateNeedsHealthCheck) update.confirmHealthy(health);
             return health;
@@ -72,7 +72,7 @@ function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => glo
             update.rollback(error);
             runtime = loadRuntime(update.runtimeEntry());
             try {
-                await runtime.load();
+                await runtime.load({ extensionRoot });
             } catch (rollbackError) {
                 update.writeState({
                     ...(update.readState() ?? {}),

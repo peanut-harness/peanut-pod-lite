@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { LifecycleExitLiveBaseline } from '../scripts/verify-lifecycle-exit-live.mts';
 
@@ -147,4 +147,31 @@ test('formal SDK environment requires the exact direct worker contribution rathe
         { contributions: { 'asset-db': { ...direct.contributions['asset-db'], 'global-hook': ['beforeReady'] } } }]) {
         assert.throws(() => LifecycleExitLiveBaseline.assertSdkWorkerContribution(value), /contribution_invalid/u);
     }
+});
+
+test('quiet native logs cannot replace completed same-run Host smoke with the actual candidate main digest', () => {
+    const root = mkdtempSync(join(tmpdir(), 'lifecycle-host-smoke-'));
+    const runtime = join(root, 'peanut-plugins/runtime'); const main = join(root, 'extensions/peanut-pod-lite-host/dist/main.js');
+    mkdirSync(runtime, { recursive: true }); mkdirSync(dirname(main), { recursive: true }); writeFileSync(main, 'actual candidate main');
+    const started = '2026-10-19T00:00:00.000Z'; const ended = '2026-10-19T00:01:00.000Z';
+    const report = { startedAt: started, writtenAt: '2026-10-19T00:00:10.000Z', ready: true, failed: 0, passed: 1, skipped: 0,
+        results: [{ ok: true }], artifacts: { host: { mainDigest: createHash('sha256').update(readFileSync(main)).digest('hex') } } };
+    const stage = (state: string, result: unknown) => { writeFileSync(join(runtime, 'smoke-results.json'), JSON.stringify(result));
+        writeFileSync(join(runtime, 'startup-diagnostics.json'), JSON.stringify({ state, writtenAt: report.writtenAt, detail: result })); };
+    try {
+        assert.equal(LifecycleExitLiveBaseline.assessHostSmoke(root, started, ended).ok, false);
+        stage('waiting-for-enable', report); assert.equal(LifecycleExitLiveBaseline.assessHostSmoke(root, started, ended).ok, false);
+        stage('complete', report); assert.equal(LifecycleExitLiveBaseline.assessHostSmoke(root, started, ended).ok, true);
+        stage('complete', { ...report, skipped: 1, results: [{ ok: true }, { ok: false, skipped: true }] });
+        assert.equal(LifecycleExitLiveBaseline.assessHostSmoke(root, started, ended).ok, true);
+        for (const value of [{ ...report, failed: 1 }, { ...report, results: [{ ok: false }] },
+            { ...report, skipped: 1, results: [{ ok: false, skipped: true }] },
+            { ...report, passed: 0, skipped: 1, results: [{ ok: false, skipped: true }] },
+            { ...report, passed: 2 }, { ...report, skipped: 1 },
+            { ...report, results: [null] }, { ...report, results: ['not-a-record'] }, { ...report, results: [[]] },
+            { ...report, results: [{ ok: true, skipped: true }] },
+            { ...report, startedAt: '2026-10-18T00:00:00.000Z' }, { ...report, artifacts: { host: { mainDigest: 'foreign' } } }]) {
+            stage('complete', value); assert.equal(LifecycleExitLiveBaseline.assessHostSmoke(root, started, ended).ok, false);
+        }
+    } finally { rmSync(root, { recursive: true, force: true }); }
 });

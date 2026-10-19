@@ -150,6 +150,7 @@ export class LifecycleExitLiveBaseline {
                 sha256: existsSync(file) ? this.sha(this.raw(file)) : null };
         });
         const diagnostics = this.assessRaw(output, rawSources);
+        const hostSmoke = candidate === null ? null : this.assessHostSmoke(project, startedAt, new Date().toISOString());
         const complete = !spawnError && exited && exitCode === 0 && exitSignal === null && quitFailure === null
             && !afterQuit.some((entry) => entry.pid === creatorPid && entry.startedAt === first.startedAt)
             && surviving.length === 0 && rawSources.every((source) => source.exists);
@@ -157,14 +158,45 @@ export class LifecycleExitLiveBaseline {
             owner, project, projectName: 'peanut-lite-lifecycle-387', app, startedAt,
             endedAt: new Date().toISOString(), pid: creatorPid, processStartedAt: first.startedAt,
             candidate, sdkTimerEnvironment, task22Complete: false, quitStyle, stages, rawSources, exited, exitCode, exitSignal, quitFailure,
-            survivingOwnedPids: surviving.map((process) => process.pid), complete, diagnostics,
+            survivingOwnedPids: surviving.map((process) => process.pid), complete, diagnostics, hostSmoke,
             baselinePassed: candidate === null && complete && diagnostics.issueCount === 0,
-            candidateRunPassed: candidate !== null && complete && diagnostics.issueCount === 0 };
+            candidateRunPassed: candidate !== null && complete && diagnostics.issueCount === 0 && hostSmoke?.ok === true };
         writeFileSync(join(output, 'baseline-report.json'), JSON.stringify(report, null, 2) + '\n');
         process.stdout.write(JSON.stringify({ complete, baselinePassed: report.baselinePassed,
             issueCount: diagnostics.issueCount, quitFailure, exitCode, exited }) + '\n');
         if (!exited) child.unref();
-        return complete && diagnostics.issueCount === 0;
+        return complete && diagnostics.issueCount === 0 && (candidate === null || hostSmoke?.ok === true);
+    }
+
+    /**
+     * @description 独立读取真实烟测文件，未执行、跨运行旧文件或失败不能因原始日志安静而通过。
+     */
+    public static assessHostSmoke(project: string, startedAt: string, endedAt: string): { ok: boolean; reason: string | null; reportSha256?: string } {
+        try {
+            const directory = join(project, 'peanut-plugins/runtime');
+            const state = JSON.parse(readFileSync(join(directory, 'startup-diagnostics.json'), 'utf8'));
+            const bytes = readFileSync(join(directory, 'smoke-results.json')); const report = JSON.parse(bytes.toString('utf8'));
+            const validTime = (value: unknown): boolean => typeof value === 'string' && Number.isFinite(Date.parse(value))
+                && Date.parse(value) >= Date.parse(startedAt) && Date.parse(value) <= Date.parse(endedAt);
+            if (!Array.isArray(report.results) || report.results.length === 0) throw new Error('host_smoke_results_invalid');
+            const counts = { passed: 0, failed: 0, skipped: 0 };
+            for (const item of report.results) {
+                if (!item || typeof item !== 'object' || Array.isArray(item) || typeof item.ok !== 'boolean'
+                    || (item.skipped !== undefined && typeof item.skipped !== 'boolean') || (item.ok === true && item.skipped === true))
+                    throw new Error('host_smoke_result_invalid');
+                if (item.ok === true) counts.passed++;
+                else if (item.skipped === true) counts.skipped++;
+                else counts.failed++;
+            }
+            if (counts.passed < 1 || counts.failed !== 0 || report.passed !== counts.passed
+                || report.failed !== counts.failed || report.skipped !== counts.skipped) throw new Error('host_smoke_counts_invalid');
+            if (state.state !== 'complete' || JSON.stringify(state.detail) !== JSON.stringify(report)
+                || !validTime(state.writtenAt) || !validTime(report.startedAt) || !validTime(report.writtenAt)
+                || report.ready !== true || report.failed !== 0 || !Number.isInteger(report.passed) || report.passed < 1
+                || report.artifacts?.host?.mainDigest !== this.sha(readFileSync(join(project, 'extensions/peanut-pod-lite-host/dist/main.js'))))
+                throw new Error('host_smoke_not_complete_or_successful');
+            return { ok: true, reason: null, reportSha256: this.sha(bytes) };
+        } catch (error) { return { ok: false, reason: error instanceof Error ? error.message : String(error) }; }
     }
 
     /**

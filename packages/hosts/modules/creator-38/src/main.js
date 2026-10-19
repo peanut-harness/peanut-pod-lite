@@ -8,6 +8,7 @@ const https = require('https');
 const { RemotePackageDownloader, SignedPluginCatalogVerifier } = require('@peanut/pod-engine/installation');
 const { CreatorContextResolver } = require('@peanut/pod-hosts');
 
+const { HostStartupDiagnostics } = require('./host-startup-diagnostics.ts');
 const { LiteAccountController, createSignedOutAccount } = require('./account-controller');
 const { CpmPackageStore } = require('./cpm-package-store');
 const { HostNativeCapabilities } = require('./native-capabilities.mts');
@@ -624,10 +625,33 @@ async function activateOptionalPro(packageStore) {
     }
 }
 
-async function load() {
+let startupDiagnostics = null;
+
+async function disposeStartupDiagnostics() {
+    const current = startupDiagnostics; startupDiagnostics = null;
+    if (current) await current.dispose();
+}
+
+async function load(options = {}) {
+    await disposeStartupDiagnostics();
     await deactivateModules();
     try {
         creatorContext = resolveTrustedCreatorContext();
+        try {
+            startupDiagnostics = HostStartupDiagnostics.fromSdk(getEditor(), {
+                extensionPath: options.extensionRoot,
+                run: async () => {
+                    const report = await runStartupSmokeAndWriteReport();
+                    if (report.failed !== 0) throw new Error(`startup_smoke_failed:${report.failed}`);
+                    return report;
+                },
+                record: (state, detail) => writeJsonReport('startup-diagnostics.json', { writtenAt: new Date().toISOString(), state, detail }),
+                fail: error => console.error('[peanut-pod-lite] startup diagnostics error:', error),
+            });
+        } catch (error) {
+            writeJsonReport('startup-diagnostics.json', { writtenAt: new Date().toISOString(), state: 'failed', detail: normalizeError(error) });
+            console.error('[peanut-pod-lite] startup diagnostics error:', error);
+        }
         // Load the Plugin Manager shell before activating the Lite runtime.
         await loadPluginManagerShell(creatorContext, {
             nativeCapabilityRegistry: HostNativeCapabilities.createRegistry(resolve(__dirname, '..')),
@@ -668,8 +692,9 @@ async function load() {
         });
         getEditor()?.log?.(`[peanut-pod-lite] lite_host_ready:${hostStatus.tools.length}:pro_${pro.state}:account_${account.state}`);
         writeHostStatusReport();
-        await runStartupSmokeAndWriteReport();
+        startupDiagnostics?.loadedSuccessfully();
     } catch (error) {
+        await disposeStartupDiagnostics();
         await deactivateModules();
         try {
             await unloadPluginManagerShell();
@@ -726,6 +751,7 @@ async function deactivateModules() {
 }
 
 async function unload() {
+    await disposeStartupDiagnostics();
     await deactivateModules();
     try {
         await unloadPluginManagerShell();
@@ -855,6 +881,7 @@ async function runStartupSmokeAndWriteReport() {
     getEditor()?.log?.(
         `[peanut-pod-lite] startup_smoke:${report.passed}_passed:${report.failed}_failed:tools_${report.toolCount}`,
     );
+    return report;
 }
 
 function previewSmokeValue(value) {

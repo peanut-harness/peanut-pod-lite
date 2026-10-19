@@ -243,6 +243,14 @@ test('planner preserves asset sidecars and offline lumen parallelism', () => {
         rootName: 'NewPanel',
     });
     assert.equal(scaffoldPlan.workerManagedCommitWindow, true);
+    for (const extension of ['animgraph', 'animgraphvari', 'animask', 'rpp', 'terrain']) {
+        const created = planner.plan('D:/projects/game', 'lumen.scaffold', { assetRelativePath: `assets/ui/New.${extension}` });
+        assert.equal(created.workerManagedCommitWindow, true);
+        assert.ok(created.resourceKeys.includes(`resource:db://assets/ui/New.${extension}.meta`));
+        assert.ok(created.resourceKeys.includes('directory:assets/ui'));
+        assert.equal(planner.plan('D:/projects/game', 'lumen.scaffold', {
+            assetRelativePath: `assets/ui/New.${extension}`, reset: true }).workerManagedCommitWindow, undefined);
+    }
     assert.equal(scaffoldPlan.requiresProjectWriter, false);
     assert.ok(scaffoldPlan.resourceKeys.includes('resource:db://assets/ui/NewPanel.prefab'));
     assert.ok(scaffoldPlan.resourceKeys.includes('resource:db://assets/ui/NewPanel.prefab.meta'));

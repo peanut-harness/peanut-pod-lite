@@ -50,7 +50,7 @@ await build({
         },
     ],
     // Creator Electron provides electron; keep it external.
-    external: ['electron', 'canvas'],
+    external: ['electron', 'canvas', '@editor/package'],
 });
 const bundledMain = await readFile(mainBundlePath, 'utf8');
 const normalizedMain = stripNodeBuiltinProtocol(bundledMain);
