@@ -1,0 +1,171 @@
+{
+  "schemaVersion": "peanut.resource-native-local-acceptance.v1",
+  "localTechnicalAcceptance": true,
+  "overallDeliveryComplete": false,
+  "remoteVerified": false,
+  "candidateSourceCommit": "6d4cd97f8cf105f6a3c10ba2f1b33c874b0a45a6",
+  "metadataOnlyCheckpointMayFollow": true,
+  "fullVerification": {
+    "tests": 1502,
+    "pass": 1502,
+    "fail": 0,
+    "skipped": 0,
+    "logSha256": "9d16ac5538c1b0e3663ff25360c42b0c2b625bedd64bcbe6371f5b64c9b5dffe"
+  },
+  "independentAuditSha256": "ae0f64165dc4f077e22d3ee481a261066451b4104e9e6ed0deb09685b3429fd1",
+  "independentAudit": {
+    "auditChecksPassed": true,
+    "diagnosticOnly": true,
+    "accepted": false,
+    "task43Complete": false,
+    "task22Complete": false,
+    "runId": "parallel-383-20261019-resource-l-audio-meta",
+    "sourceCommit": "6d4cd97f8cf105f6a3c10ba2f1b33c874b0a45a6",
+    "nativeRequestsSent": 0,
+    "checks": [
+      {
+        "name": "121actual distinct observations exactly match selected plan/event trace",
+        "ok": true
+      },
+      {
+        "name": "606unchanged; exact old111 plus newaudio10;485blocked",
+        "ok": true
+      },
+      {
+        "name": "16source observations all independently verified with proper authorities",
+        "ok": true
+      },
+      {
+        "name": "pure canonical validator independently replayed for all121captured observations",
+        "ok": true
+      },
+      {
+        "name": "prior111actual source/meta physical regression and correct UUID/action transitions",
+        "ok": true
+      },
+      {
+        "name": "five Physics plus one audio exact prewriter marker bound real failed tasks",
+        "ok": true
+      },
+      {
+        "name": "10audio actual binary FD content/meta/type authority without runtime semantics",
+        "ok": true
+      },
+      {
+        "name": "audio readonly write exact publicHTTP400/task/code/marker and unchanged source/meta UUID",
+        "ok": true
+      },
+      {
+        "name": "audio source/meta catalog bytes and type source pins",
+        "ok": true
+      },
+      {
+        "name": "25ranges continuous; full+segment SHA; complete byte coverage at delayed phase",
+        "ok": true
+      },
+      {
+        "name": "complete raw0 independent scan matches final delayed full-source report",
+        "ok": true
+      },
+      {
+        "name": "ordinary owned SDKquit+physicalgone with0identity transitions",
+        "ok": true
+      },
+      {
+        "name": "official fixed6d4candidate archive identity independently verified",
+        "ok": true
+      },
+      {
+        "name": "actual installed full Host/Core tree manifest/index equals6d4candidate",
+        "ok": true
+      },
+      {
+        "name": "same-run actual smoke19/0/21 and proof hash",
+        "ok": true
+      },
+      {
+        "name": "source/SDK/fixture pins unchanged since observed source preaudit",
+        "ok": true
+      },
+      {
+        "name": "ordinary quit lifecycle records reported exactly without invented hooks",
+        "ok": true
+      }
+    ],
+    "selectedObserved": 121,
+    "prior111Verified": true,
+    "newSource16Verified": 16,
+    "totalCaseIds": 606,
+    "blocked": 485,
+    "diagnostics": [],
+    "raw": [
+      {
+        "source": "stdout.log",
+        "bytes": 23561,
+        "sha256": "5e3bde474f1abe2da3abd9ce7211e9ea24ab225a6b2014223d3a7bd0849a78b5"
+      },
+      {
+        "source": "stderr.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "source": "launcher-stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "source": "launcher-stderr.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "source": "project/temp/logs/project.log",
+        "bytes": 890,
+        "sha256": "e57d65aab840968de2d2748d8c964e37b7c32483fbc3fb10ad2fb7c4eb5ba3d4"
+      }
+    ],
+    "candidate": {
+      "sourceCommit": "6d4cd97f8cf105f6a3c10ba2f1b33c874b0a45a6",
+      "hostSha256": "e83abe31ece1bc2c233ae8914bca4e508f2224c3dab75ecc5645c221d87aac58",
+      "coreSha256": "537b1f770c0ae7ab3d106de3cac0b9b62fa3b883021c02647735b41ce91edd6c"
+    },
+    "timing": {
+      "quitRequested": "2026-10-19T08:20:09.769Z",
+      "identityTransitions": [],
+      "physicalGone": "2026-10-19T08:20:12.739Z",
+      "cooldownPhaseDeltaMs": 29602,
+      "exitToDelayedPhaseDeltaMs": 16610
+    },
+    "evidenceSha256": {
+      "resource-native-shard-result.json": "23603a5817393e30ad67b1b9843b5c1ef4bba82f17c08c930455e028b6d12156",
+      "resource-native-staging.json": "e6272feab9c2593f84d460bd8d7bd86bd5e83d02e01a1322f2b7d504123ba098",
+      "resource-native-events.ndjson": "24c28613c92d024402a0dda4591d279d49548985f87ef6475653f453319d860c",
+      "owned-normal-close-receipt.json": "f48ecef806ff5f3d081345439ae4fc646b72d2f2995bbfea567950cec51d6f30",
+      "delayed-whole-raw-log-scan-final.json": "9ac851be0b03fea8343989757703c5b7ea8a61f664ddfe9ed6d356cd4390e538",
+      "guest-phase-startup.json": "600695ca0e1f31fd26a799985cecb4b4342ccc935d3bbef236c37c1e2eedc056",
+      "guest-phase-operation.json": "ddee8d3e3de7ac876b478335a901f3d73bc2abe1273c69f600ab836d72d1839c",
+      "guest-phase-cooldown.json": "8764f7c4cd057d5f2d6c954da3231fbd4e590094b82707902d25816969deb4c8",
+      "guest-phase-exit.json": "bc44c2d269e229994c649e2979868d1587f07dd1f06e3a16b48ca5b2f2c0e240",
+      "guest-phase-delayed_diagnostics.json": "d83b695a0dd2cf0f485bbdbb700ab07af52cd24cb681b97f86ee0181d2724cf6"
+    },
+    "source16AuditSha256": "27c2e2867fcfbbf4ef4c472f802ed71839e1fb2fd65ca7be3823b38d9517ae3a",
+    "limitations": [
+      "121 selected actual observations do not complete606 cases;485 remain blocked.",
+      "Source text/hash=source-text; importer=importer-meta; type=asset-db, not runtime-object/render acceptance.",
+      "Normal quit has only baseline lifecycle row and installed snapshot; no own unload hook inferred.",
+      "This run has0recorded identity transitions; no additional process state is inferred.",
+      "Open-wait launcher exit0 is separate from physical-gone proof; parent reports outer87692/close79040 exit0.",
+      "Selected delayed wait8s is not exact checkpoint delta.",
+      "All pre-close audit reports preserved; no SDK/UI/native request, source/tool/run-evidence mutation or token output."
+    ]
+  },
+  "constraints": {
+    "allEnabled": false,
+    "errorsFiltered": false,
+    "sdkInstallationModified": false,
+    "pushOrPublish": false,
+    "previewScreenshotsUsed": 0
+  },
+  "scope": "4.3.4 importer-meta audio lifecycle/read and 4.3.5 exact trusted readonly refusal; full4.3/2.2/5.1 remain incomplete"
+}
