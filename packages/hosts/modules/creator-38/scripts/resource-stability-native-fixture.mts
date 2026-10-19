@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { ResourceStabilityNativeSourceText } from './resource-stability-native-source-text.mts';
 import { ResourceStabilityNativeRuntime } from './resource-stability-native-runtime.mts';
 
 /**
@@ -10,6 +12,13 @@ export class ResourceStabilityNativeFixture {
     public static prepare(kind: string, source: Buffer, name: string, initial: Readonly<Record<string, unknown>>): {
         source: Buffer; initial: Record<string, unknown>;
     } {
+        if (ResourceStabilityNativeSourceText.kinds.includes(kind)) {
+            const decoded = new TextDecoder('utf-8', { fatal: true }).decode(source);
+            if (source.length > 1024 * 1024 || decoded !== initial['/source']
+                || createHash('sha256').update(source).digest('hex') !== initial['/sourceSha256'] || initial['/importer'] !== kind) throw new Error('resource_native_source_fixture_changed');
+            if (kind === 'json') JSON.parse(decoded);
+            return { source: Buffer.from(source), initial: { ...initial } };
+        }
         if (!ResourceStabilityNativeRuntime.kinds.includes(kind)) throw new Error('resource_native_fixture_kind_invalid');
         if (!/^[a-zA-Z0-9_-]+$/u.test(name)) throw new Error('resource_native_fixture_name_invalid');
         if (kind === 'terrain') {

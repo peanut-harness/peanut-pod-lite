@@ -1,3 +1,4 @@
+import type { ResourceStabilityNativeSourceText } from './resource-stability-native-source-text.mts';
 import { existsSync, lstatSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { IResourceSnapshot, IResourceSemanticAuthority } from './resource-stability-contracts.mts';
@@ -7,6 +8,7 @@ import type { IResourceSnapshot, IResourceSemanticAuthority } from './resource-s
  */
 export interface IResourceNativeReadPort {
     assetInfo(pathOrUuid: string): Promise<unknown>;
+    sourceText?(path: string, info: Readonly<Record<string, unknown>>, meta: Readonly<Record<string, unknown>>): Promise<Awaited<ReturnType<ResourceStabilityNativeSourceText['read']>>>;
     dependencies(uuid: string): Promise<readonly string[]>;
     inspector(uuid: string): Promise<{ readonly origin: 'creator-native'; readonly actualUuid: string;
         readonly valid: boolean; readonly semantic: Readonly<Record<string, unknown>>;
@@ -41,6 +43,7 @@ export class ResourceStabilityNativeSnapshot {
         if (!info || info.uuid !== meta.uuid || info.url !== `db://${relativePath}` || info.imported !== true || info.invalid === true) {
             throw new Error('resource_native_root_not_registered');
         }
+        const sourceText = await this.native.sourceText?.(relativePath, info, meta);
         const subassets: { metaUuid: string; assetDbUuid: string | null }[] = [];
         const visit = async (value: unknown, depth: number): Promise<void> => {
             if (depth > 8) throw new Error('resource_native_subasset_depth_exceeded');
@@ -62,7 +65,7 @@ export class ResourceStabilityNativeSnapshot {
             if (visited.has(uuid)) return;
             if (visited.size >= 4096) throw new Error('resource_native_reference_budget_exceeded');
             visited.add(uuid);
-            for (const dependency of await this.native.dependencies(uuid)) {
+            for (const dependency of sourceText && uuid === meta.uuid ? sourceText.dependencies : await this.native.dependencies(uuid)) {
                 const resolved = this.recordOrNull(await this.native.assetInfo(dependency));
                 if (!resolved || resolved.uuid !== dependency || resolved.imported !== true || resolved.invalid === true) {
                     unresolved.add(dependency); continue;
@@ -71,7 +74,7 @@ export class ResourceStabilityNativeSnapshot {
             }
         };
         await references(String(meta.uuid));
-        const inspector = await this.native.inspector(String(meta.uuid));
+        const inspector = sourceText ?? await this.native.inspector(String(meta.uuid));
         if (inspector.origin !== 'creator-native' || inspector.actualUuid !== meta.uuid || inspector.valid !== true) {
             throw new Error('resource_native_inspector_identity_mismatch');
         }

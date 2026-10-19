@@ -1,3 +1,4 @@
+import { ResourceStabilityNativeSourceText } from './resource-stability-native-source-text.mts';
 import { createServer, type Server } from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { readFileSync, realpathSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -46,7 +47,15 @@ class ResourceStabilityNativeMain {
             animationGraphVariant: (uuid) => editor.Message.request('scene', 'query-animation-graph-variant', uuid),
             renderPipeline: (uuid) => editor.Message.request('scene', 'query-render-pipeline', uuid),
             animationMask: (uuid) => editor.Message.request('scene', 'query-animation-mask', uuid) });
+        const sourceBindings = ResourceStabilityNativeSourceText.bindings(JSON.parse(readFileSync(join(output, 'resource-native-staging.json'), 'utf8')));
+        if (sourceBindings.size) ResourceStabilityNativeSourceText.assertSdk(join(registration.creatorApp, 'Contents/Resources/resources/3d/engine'), join(registration.creatorApp, 'Contents/Resources'));
+        const sourceText = new ResourceStabilityNativeSourceText(project, String(registration.namespace), sourceBindings, {
+            info: uuid => editor.Message.request('asset-db', 'query-asset-info', uuid, ['depends']),
+            meta: uuid => editor.Message.request('asset-db', 'query-asset-meta', uuid),
+            path: uuid => editor.Message.request('asset-db', 'query-path', uuid),
+        });
         const reader = new ResourceStabilityNativeSnapshot(project, String(registration.namespace), {
+            sourceText: (path, info, meta) => sourceText.read(path, info, meta),
             assetInfo: (value) => editor.Message.request('asset-db', 'query-asset-info', value),
             dependencies: async (uuid) => (await identity(uuid)).dependencies,
             inspector: (uuid) => inspector.read(uuid),

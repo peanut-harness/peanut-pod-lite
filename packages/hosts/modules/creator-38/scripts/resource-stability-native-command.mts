@@ -16,7 +16,7 @@ const argument = (key: string): string => { const index = args.indexOf(key); con
 if (args.includes('--prepare')) {
     const project = await ResourceStabilityNativeProject.prepare({
         repository: realpathSync(fileURLToPath(new URL('../../../../../', import.meta.url))), creatorApp: argument('--creator-app'),
-        runId: argument('--run-id'), expectedSourceCommit: argument('--source-commit'),
+        sourceText: args.includes('--source-text'), runId: argument('--run-id'), expectedSourceCommit: argument('--source-commit'),
     });
     process.stdout.write(`${project}\n`);
 } else if (args.includes('--run')) {

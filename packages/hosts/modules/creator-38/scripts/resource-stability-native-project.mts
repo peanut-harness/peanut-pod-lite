@@ -1,3 +1,4 @@
+import { ResourceStabilityNativeSourceText } from './resource-stability-native-source-text.mts';
 import { ResourceStabilityNativeRuntime } from './resource-stability-native-runtime.mts';
 import { ResourceStabilityNativeFixture } from './resource-stability-native-fixture.mts';
 import { cpSync, copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
@@ -17,7 +18,7 @@ import { ResourceStabilityNativeShard, type IResourceNativeShardFixture } from '
  * @description 仅准备新的隔离工程，不启动 Creator，不将暂存或 source 检查标为 native passed。
  */
 export class ResourceStabilityNativeProject {
-    public static async prepare(options: { repository: string; creatorApp: string; runId: string; expectedSourceCommit: string }): Promise<string> {
+    public static async prepare(options: { repository: string; creatorApp: string; runId: string; expectedSourceCommit: string; sourceText?: boolean }): Promise<string> {
         const root = realpathSync(options.repository); const app = realpathSync(options.creatorApp);
         if (!/^parallel-383-20261019[a-z0-9-]*$/u.test(options.runId) || !/^[a-f0-9]{40}$/u.test(options.expectedSourceCommit)) {
             throw new Error('resource_native_project_arguments_invalid');
@@ -82,15 +83,17 @@ export class ResourceStabilityNativeProject {
                 files: { source: { path: string; sha256: string }; meta: { path: string; sha256: string } };
                 initialPublic: Record<string, unknown>; patch: { valid: Record<string, unknown>; expectedPublic: Record<string, unknown> };
                 fieldCases?: Record<string, { initial: unknown; expected: unknown; patch: Record<string, unknown>; invalidPatch: Record<string, unknown> }> }[] };
+        const sourceCatalogPath = 'tests/fixtures/editor-stability/serialized/resource-source-text-fixtures.json';
+        if (options.sourceText === true) catalog.fixtures.push(...(JSON.parse(readFileSync(join(root, sourceCatalogPath), 'utf8')) as typeof catalog).fixtures);
         const fixtures: IResourceNativeShardFixture[] = []; const fixtureSources: Record<string, string> = {};
         for (const fixture of catalog.fixtures.filter((row) => row.creatorVersion === '3.8.3'
-            && ResourceStabilityNativeRuntime.kinds.includes(row.assetKind))) {
+            && (ResourceStabilityNativeRuntime.kinds.includes(row.assetKind) || options.sourceText === true && ResourceStabilityNativeSourceText.kinds.includes(row.assetKind)))) {
             if (fixture.dependencies.length) throw new Error('resource_native_fixture_dependency_not_bound');
             const source = readFileSync(join(root, fixture.files.source.path)); const meta = readFileSync(join(root, fixture.files.meta.path));
             if (this.hash(source) !== fixture.files.source.sha256 || this.hash(meta) !== fixture.files.meta.sha256) throw new Error('resource_native_frozen_fixture_changed');
-            for (const row of manifest.cases.filter((item) => item.targetId === `asset:${fixture.assetKind}`
+            for (const row of manifest.cases.filter((item) => (!ResourceStabilityNativeSourceText.kinds.includes(fixture.assetKind) || item.action !== 'patch') && (item.targetId === `asset:${fixture.assetKind}`
                 || fixture.assetKind === 'physicsMaterial' && ResourceStabilityNativeShard.physicsFields.some((field) =>
-                    item.targetId === `field:asset:physicsMaterial:${field}`) && ['read', 'set', 'reject_invalid'].includes(item.action))) {
+                    item.targetId === `field:asset:physicsMaterial:${field}`) && ['read', 'set', 'reject_invalid'].includes(item.action)))) {
                 const fieldName = row.targetId.startsWith('field:') ? row.targetId.split(':').at(-1) : undefined;
                 const fieldCase = fieldName ? fixture.fieldCases?.[fieldName] : undefined;
                 if (fieldName && !fieldCase) throw new Error('resource_native_field_fixture_missing');
@@ -120,6 +123,7 @@ export class ResourceStabilityNativeProject {
             sdkGetterSources: ['cocos/animation/marionette/animation-graph-variant.ts', 'cocos/animation/marionette/animation-mask.ts',
                 'cocos/rendering/render-pipeline.ts', 'cocos/physics/framework/assets/physics-material.ts', 'cocos/asset/asset-manager/depend-util.ts']
                 .map((file) => ({ file, sha256: this.hash(readFileSync(join(engine, file))) })),
+            sourceTextFixtureCatalogSha256: options.sourceText === true ? this.hash(readFileSync(join(root, sourceCatalogPath))) : null,
             inputFixtureCatalogSha256: this.hash(readFileSync(join(root, 'tests/fixtures/editor-stability/serialized/resource-fixtures.json'))) }, null, 2), { flag: 'wx' });
         writeFileSync(join(output, 'coverage-inventory.json'), JSON.stringify(inventory, null, 2), { flag: 'wx' });
         return project;

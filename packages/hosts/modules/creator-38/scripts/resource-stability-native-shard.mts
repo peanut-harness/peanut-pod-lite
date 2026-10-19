@@ -1,3 +1,4 @@
+import { ResourceStabilityNativeSourceText } from './resource-stability-native-source-text.mts';
 import { ResourceStabilityNativeRuntime } from './resource-stability-native-runtime.mts';
 import { CoverageManifestGenerator } from '../../../../../tools/editor-stability/coverage-manifest-generator.mts';
 import type { ICoverageInventory } from '../../../../../tools/editor-stability/coverage-contracts.mts';
@@ -31,7 +32,9 @@ export class ResourceStabilityNativeShard {
         const manifest = CoverageManifestGenerator.createDraft(inventory);
         const full = manifest.cases.filter((row) => row.targetId.startsWith('asset:') || row.targetId.startsWith('field:asset:'));
         const kinds = ResourceStabilityNativeRuntime.kinds;
+        const sourceKinds = ResourceStabilityNativeSourceText.kinds.filter(kind => fixtures.some(fixture => fixture.kind === kind));
         const supported = full.filter((row) => kinds.some((kind) => row.targetId === `asset:${kind}`)
+            || sourceKinds.some(kind => row.targetId === `asset:${kind}` && row.action !== 'patch')
             || this.physicsFields.some((field) => row.targetId === `field:asset:physicsMaterial:${field}`)
                 && ['read', 'set', 'reject_invalid'].includes(row.action));
         if (fixtures.length !== supported.length || new Set(fixtures.map((row) => row.caseId)).size !== fixtures.length) {
@@ -95,10 +98,11 @@ export class ResourceStabilityNativeShard {
                     // 3.8.3八类native name-policy诊断及file-only rename合同；不能泛化其他版本或类型。
                     const preserve = ['animationGraph', 'animationGraphVariant', 'animationMask', 'physicsMaterial', 'renderPipeline'];
                     const filename = ['animationClip', 'renderTexture', 'terrain'];
-                    if (inventory.creatorVersion !== '3.8.3' || ![...preserve, ...filename].includes(fixture.kind)) {
+                    const sourceKind = ResourceStabilityNativeSourceText.kinds.includes(fixture.kind);
+                    if (inventory.creatorVersion !== '3.8.3' || !sourceKind && ![...preserve, ...filename].includes(fixture.kind)) {
                         throw new Error('resource_native_rename_policy_unproven');
                     }
-                    expectedSemantic = preserve.includes(fixture.kind) ? fixture.initial
+                    expectedSemantic = sourceKind || preserve.includes(fixture.kind) ? fixture.initial
                         : { ...fixture.initial, '/name': name.replace(/\.[^.]+$/u, '') }; break; }
                 case 'refresh': actual = command('asset-reimport', { paths: [path], resources: [path, `${path}.meta`] }, true); break;
                 case 'delete': actual = command('asset-delete', { paths: [path], confirmDestructive: true,
@@ -108,7 +112,8 @@ export class ResourceStabilityNativeShard {
             return { caseId: row.id, action: row.action, setup, command: actual, afterCommands, beforePath: path,
                 afterPath, expectedSemantic, ...(row.action === 'rename' ? { expectedSourceContentSha256: fixtureSources[fixture.source] } : {}),
                 expectedAuthorities: Object.fromEntries(Object.keys(expectedSemantic).map((pointer) =>
-                    [pointer, ResourceStabilityNativeRuntime.authority(ResourceStabilityNativeRuntime.typeForKind(fixture.kind), pointer)])), expectedRejection, rejectionCodes };
+                    [pointer, ResourceStabilityNativeSourceText.kinds.includes(fixture.kind) ? ResourceStabilityNativeSourceText.authority(fixture.kind, pointer)
+                        : ResourceStabilityNativeRuntime.authority(ResourceStabilityNativeRuntime.typeForKind(fixture.kind), pointer)])), expectedRejection, rejectionCodes };
         });
         const plan: IResourceCampaignPlan = { creatorVersion: inventory.creatorVersion as '3.8.3' | '3.8.7',
             inventorySha256: manifest.inventorySha256, namespace, cases };
@@ -117,6 +122,6 @@ export class ResourceStabilityNativeShard {
         ResourceStabilityRunner.validatePlan(plan, expected);
         return { plan, expected, fullResourceCaseIds: full.map((row) => row.id), task43Complete: false as const,
             blocked: full.filter((row) => !supported.some((item) => item.id === row.id)).map((row) => ({ caseId: row.id,
-                reason: row.targetId.startsWith('field:') ? 'native_field_contract_not_bound' : 'native_inspector_type_not_bound' })) };
+                reason: ['asset:text', 'asset:json'].includes(row.targetId) && row.action === 'patch' ? 'native_no_writable_fields' : row.targetId.startsWith('field:') ? 'native_field_contract_not_bound' : 'native_inspector_type_not_bound' })) };
     }
 }
