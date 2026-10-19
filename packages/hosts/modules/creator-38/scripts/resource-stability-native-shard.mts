@@ -56,7 +56,11 @@ export class ResourceStabilityNativeShard {
             switch (row.action) {
                 case 'create': actual = command('lumen-scaffold', { assetRelativePath: path, template: 'empty',
                     rootName: fixture.filename.replace(/\.[^.]+$/u, ''), cocosVersion: inventory.creatorVersion,
-                    autoCommit: false, resources: [path, `${path}.meta`] }, true); afterCommands = [commit]; break;
+                    autoCommit: false, resources: [path, `${path}.meta`] }, true); afterCommands = [commit];
+                    // assets.json scaffoldRecord 的两个摩擦默认值为0.1，独立于导入样本的0。
+                    if (fixture.kind === 'physicsMaterial') expectedSemantic = { ...fixture.initial,
+                        '/rollingFriction': 0.1, '/spinningFriction': 0.1 };
+                    break;
                 case 'import': break;
                 case 'query': actual = command('asset-query-info', { pathOrUuid: path }, false); break;
                 case 'inspect': actual = command('lumen-inspect', { assetRelativePath: path }, false); break;

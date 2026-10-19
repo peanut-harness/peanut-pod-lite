@@ -111,6 +111,27 @@ test('native shard keeps every full denominator row and follows the real public 
     assert.ok(result.plan.cases.filter((row) => row.expectedRejection).every((row) => row.afterCommands?.length === 0 && row.rejectionCodes.length === 1));
     assert.equal(result.blocked.length, 10); assert.equal(result.task43Complete, false);
     assert.ok(result.plan.cases.filter((row) => ['create', 'patch'].includes(row.action)).every((row) => row.afterCommands?.length === 1));
+    const catalog = JSON.parse(readFileSync(new URL('../../../../../tests/fixtures/editor-stability/serialized/resource-fixtures.json', import.meta.url), 'utf8')) as {
+        fixtures: { creatorVersion: string; assetKind: string; initialPublic: Record<string, unknown>; files: { source: { path: string } } }[] };
+    const frozen = catalog.fixtures.find((row) => row.creatorVersion === '3.8.3' && row.assetKind === 'physicsMaterial')!;
+    const realFixtures = fixtures.map((row) => row.kind === 'physicsMaterial' && !row.field
+        ? { ...row, initial: { ...frozen.initialPublic, '/name': row.initial['/name'] } } : row);
+    const realPlan = ResourceStabilityNativeShard.create(inventory, identity, 'assets/fixtures/resource-stability/unit', realFixtures, hashes).plan;
+    const created = realPlan.cases.find((row) => row.caseId === '3.8.3|asset:physicsMaterial|create')!;
+    const imported = realPlan.cases.find((row) => row.caseId === '3.8.3|asset:physicsMaterial|import')!;
+    const registryUrl = new URL('../../../../../packages/engine/modules/lumen/source/standalone/registry.ts', import.meta.url);
+    const { LumenStandaloneAsset } = await import(registryUrl.href) as { LumenStandaloneAsset: {
+        createEmpty(path: string, name: string, template: string): { inspect(): Record<string, unknown> };
+        open(root: string, path: string): { inspect(): Record<string, unknown> } } };
+    const actual = LumenStandaloneAsset.createEmpty(created.afterPath, String(created.command.input.rootName), 'empty').inspect();
+    const frozenSource = LumenStandaloneAsset.open(new URL('../../../../../', import.meta.url).pathname, frozen.files.source.path).inspect();
+    for (const field of ['rollingFriction', 'spinningFriction']) {
+        assert.equal(created.expectedSemantic[`/${field}`], 0.1);
+        assert.equal(actual[field], created.expectedSemantic[`/${field}`], 'actual pure scaffolder must match the independent create contract');
+        assert.equal(imported.expectedSemantic[`/${field}`], 0);
+        assert.equal(frozenSource[field], 0, 'frozen import sample stays distinct from create defaults');
+    }
+    assert.equal(realFixtures.find((row) => row.caseId === created.caseId)!.initial['/rollingFriction'], 0);
     const imports = result.plan.cases.flatMap((row) => [...row.setup, row.command])
         .filter((command) => command.name === 'peanut.editor-mcp.asset-import');
     assert.ok(imports.length > 0);

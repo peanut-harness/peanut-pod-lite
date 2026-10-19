@@ -3,11 +3,11 @@
   "corpusId": "peanut-org",
   "repos": {
     "peanut-pod-lite": {
-      "treeSha": "83997292864d5a42440dc1650f26166c998b41f5370450b894e0d1545acc7bb7",
+      "treeSha": "a38f0f11c3def20ff428ae9fa597013550e9fd64ffa47923fdd06e1435855deb",
       "cardSha": "84e10ddb038a9926e0100eb4f646ad2281249eabd7603a962d76b1a7b561e3c0",
       "fileCount": 15,
-      "attestReason": "正式SDK direct worker入口和数组根名称修复，离线定向通过，旧实机失败完整保留，新候选实机待验证",
-      "updatedAt": "2026-10-19T04:26:23.855Z"
+      "attestReason": "仅分离PhysicsMaterial create与import已证默认预期；产品SDK direct入口未变，1405完整结果保留，95实机待新候选",
+      "updatedAt": "2026-10-19T04:31:13.019Z"
     }
   }
 }
