@@ -106,12 +106,19 @@ export class ComponentPresentationFixture {
             document.setNodeProperty(targetPath, { layer: 33554432, scale: { x: 160, y: 160, z: 160 }, euler: { x: 15, y: 30, z: 0 } });
             document.setComponentProperty(targetPath, 'cc.UITransform', { width: 240, height: 240 });
         }
+        // SDK Joint2D没有requireComponent装饰器，但box2d/joints/joint-2d.ts的_init会直接读取同节点刚体impl。
+        // 显式装配真实运行依赖，不能仅凭声明闭包把缺少刚体的关节当成可呈现场景。
+        if (req.physicsBackend === 'box2d' && type.endsWith('Joint2D')) document.attachBuiltinComponent(targetPath, 'cc.RigidBody2D');
         for (const dependency of row.dependencyPlan.attachOrder) {
             const node = document.findNodeIndex(targetPath);
             if (!document.entries.some(entry => entry.__type__ === dependency &&
                 (entry.node as { __id__?: unknown } | undefined)?.__id__ === node)) document.attachBuiltinComponent(targetPath, dependency);
         }
         document.findComponentIndex(document.findNodeIndex(targetPath), type);
+        // 呈现载体保持在镜头内；不以自由落体离开视野代替后续物理行为验收。
+        if (document.entries.some(entry => entry.__type__ === 'cc.RigidBody')) {
+            document.setComponentProperty(targetPath, 'cc.RigidBody', { useGravity: false });
+        }
         if (modelRoot) {
             document.setComponentProperty(modelRoot, 'cc.SkeletalAnimation', { playOnLoad: true, useBakedAnimation: false });
             if (type === 'cc.SkinnedMeshBatchRenderer') {

@@ -18,6 +18,7 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
                 join(assets, 'default_file_content/scene/scene-2d.scene'));
             // 冻结产品预设只验证条目图；实际精确SDK来源和渲染另做原生验收。
             cpSync(join(root, 'packages/engine/modules/lumen/bundled/default_prefab'), join(assets, 'default_prefab'), { recursive: true });
+            cpSync(join(assets, 'default_file_content/scene/scene-2d.scene'), join(assets, 'default_file_content/scene/default.scene'));
             const fixtures: ReturnType<typeof ComponentFieldFixtures.create> = JSON.parse(readFileSync(
                 new URL(`./${version}/component-field-fixtures.json`, import.meta.url), 'utf8'));
             for (const type of ['cc.Label', 'cc.Sprite', 'cc.Button', 'cc.ScrollView', 'cc.ProgressBar', 'cc.RichText', 'cc.UIStaticBatch', 'cc.UIMeshRenderer', ...(version === '3.8.7' ? ['cc.Sorting2D'] : [])]) {
@@ -81,6 +82,17 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
                 if (type === 'cc.ScrollView') result.document.findNodeIndex(result.targetPath + '/view/content/item');
             }
             const postProcess = fixtures.components.find(row => row.componentType === 'cc.HBAO'); assert(postProcess);
+            for (const type of ['cc.DistanceJoint2D', 'cc.ConstantForce', 'cc.ConfigurableConstraint']) {
+                const row = fixtures.components.find(row => row.componentType === type); assert(row);
+                const result = ComponentPresentationFixture.create(scratch, version, row);
+                if (!('document' in result)) throw Error('physics presentation missing');
+                const node = result.document.findNodeIndex(result.targetPath);
+                const bodyType = type === 'cc.DistanceJoint2D' ? 'cc.RigidBody2D' : 'cc.RigidBody';
+                const bodyIndex = result.document.findComponentIndex(node, bodyType);
+                assert(bodyIndex < result.document.findComponentIndex(node, type), '运行时刚体必须在关节/力组件启用前装配');
+                if (bodyType === 'cc.RigidBody') assert.equal(result.document.entries[bodyIndex]?.['_useGravity'], false);
+                assert.equal(result.rendered, false); assert.equal(result.nativePassed, false);
+            }
             const pending = ComponentPresentationFixture.create(scratch, version, postProcess);
             assert.equal(pending.status, 'presentation-context-pending'); assert.equal('document' in pending, false);
             assert(pending.reasons.includes('presentation-active-pipeline-and-effect-context-required'));

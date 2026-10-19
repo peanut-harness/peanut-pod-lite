@@ -6,8 +6,8 @@
       "treeSha": "bd652a1ed7e5abbdeafd7dfa38dcba7e8c02cb0598edc025df840c62d2122d9f",
       "cardSha": "84e10ddb038a9926e0100eb4f646ad2281249eabd7603a962d76b1a7b561e3c0",
       "fileCount": 15,
-      "attestReason": "single existing launch selection change; component regression174 passed; native Widget repair not yet established",
-      "updatedAt": "2026-10-19T10:01:58.208Z"
+      "attestReason": "Existing presentation runtime prerequisites corrected; knowledge card unchanged",
+      "updatedAt": "2026-10-19T10:36:05.651Z"
     }
   }
 }
