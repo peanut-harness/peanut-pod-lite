@@ -9,6 +9,7 @@ const { RemotePackageDownloader, SignedPluginCatalogVerifier } = require('@peanu
 const { CreatorContextResolver } = require('@peanut/pod-hosts');
 
 const { HostStartupDiagnostics } = require('./host-startup-diagnostics.ts');
+const { HostResourceFieldPreparation } = require('./resource-field-preparation.ts');
 const { LiteAccountController, createSignedOutAccount } = require('./account-controller');
 const { CpmPackageStore } = require('./cpm-package-store');
 const { HostNativeCapabilities } = require('./native-capabilities.mts');
@@ -559,7 +560,8 @@ async function activateCore(packageStore) {
     if (pluginManager == null) {
         throw new Error('plugin_manager_kernel_unavailable');
     }
-    coreTaskApi = pluginManager.createHostTaskApi(HUB_CAPABILITY_PLUGIN_ID, requireProjectPath());
+    coreTaskApi = pluginManager.createHostTaskApi(HUB_CAPABILITY_PLUGIN_ID, requireProjectPath(),
+        new HostResourceFieldPreparation(requireProjectPath(), creatorContext.version.raw));
     await coreModule.register?.({ logger: createLogger(CORE_PLUGIN_ID) });
     // Supply EditorMcp gateways through grantedRuntime. Lite policy still excludes
     // paid operations, while Pro remains optional through services.

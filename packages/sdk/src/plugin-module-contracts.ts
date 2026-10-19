@@ -68,6 +68,11 @@ export type PluginManagedTaskRequest = Omit<ITaskRequest, "pluginId">;
  */
 export interface IPluginTaskExecutorContext {
   /**
+   * @description 当前Host任务专属的固定字段准备口；不接受Error、回调或可序列化证明。
+   * 原request/input/signal及真实工程根必须完全匹配；写后、取消、复制context和重放拒绝。
+   */
+  prepareResourceField?(request: Readonly<ITaskRequest>, projectRoot: string, input: unknown, signal: AbortSignal): Promise<void>;
+  /**
    * @description 任务受理时固定的 owner，不能由业务输入覆盖。
    */
   readonly owner: ITaskOwner;

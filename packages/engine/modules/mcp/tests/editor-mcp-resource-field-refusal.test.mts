@@ -35,7 +35,7 @@ for (const variant of ['invalid-scalar', 'mixed-patch', 'rolling-friction', 'spi
         const before = hashTree(root); const facade = new RuntimeFacade('3.8.3'); const service = facade.execution;
         const gateway = new EditorMcpLumenGateway(async () => root, null, '3.8.3');
         let writes = 0;
-        const executor = new ResourceOperationTaskExecutor({ plan: async (_operation, input) => {
+        const executor = new ResourceOperationTaskExecutor({ trustedInProcessFieldPreparation: true, plan: async (_operation, input) => {
             await gateway.prepareAssetSet(input, input);
             return { operation: 'lumen.assetSet', projectKey: root, requiresProjectWriter: false, resourceKeys: [path] };
         }, execute: async () => { writes += 1; throw new Error('lumen_property_type:after_writer:unexpected'); } });

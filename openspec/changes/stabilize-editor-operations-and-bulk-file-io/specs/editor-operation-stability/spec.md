@@ -147,3 +147,14 @@
 #### Scenario: A proof is stale or the write window has started
 - **WHEN** 证明被复制、重放、用于另一任务，输入变化、取消、准备scope失效或故障发生在写入后
 - **THEN** 拒绝使用准备证明，状态保持unknown或实际写入后状态，不能宣称unchanged
+
+#### Scenario: Packed Core and Host retain a single proof owner
+- **WHEN** 独立打包Core通过真实Host任务API执行字段负例，Core和Host模块状态彼此隔离
+- **THEN** 固定准备实现由可信Host组装注入并在Host证明作用域中运行；Core不能提交任意异常、回调或证明，缺少生产准备端口必须明确失败；公开失败保留原精确码、真实taskId及有限证明，源/meta保持不变
+
+### Requirement: Owned window module installations drain before unload
+系统 SHALL 按生命周期generation跟踪自身窗口模块的所有已受理安装；卸载停止接收后等待这些安装和实际late cleanup，并保留卸载期间真实异常，不以stopping或窗口随后销毁将失败转为成功。
+
+#### Scenario: An installation finishes after unload starts
+- **WHEN** 已受理的实际load在unload开始后才报告installed，或load/cleanup真实拒绝
+- **THEN** 等待并清理同generation自有结果，尝试其他自有清理后传播原错误；旧结果不能加入新generation，未完成安装不能冒充已完成卸载

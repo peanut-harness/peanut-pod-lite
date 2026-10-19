@@ -11,6 +11,10 @@ import type { IResourceOperationBatchContext, IResourceOperationTaskPlan } from 
  */
 export interface IResourceOperationTaskExecutorOptions {
     /**
+     * @description 仅同进程Router自有同步入口或明确测试组装使用；绝不能从请求JSON/context推导。
+     */
+    trustedInProcessFieldPreparation?: true;
+    /**
      * @description 规划完整资源闭包。
      */
     plan(operation: string, input: Readonly<Record<string, unknown>>): Promise<IResourceOperationTaskPlan>;
@@ -288,6 +292,15 @@ export class ResourceOperationTaskExecutor {
     private _preparePlan(request: Readonly<ITaskRequest>, context: IPluginTaskExecutorContext,
         payload: { readonly operation: string; readonly input: Readonly<Record<string, unknown>> }): Promise<IResourceOperationTaskPlan> {
         if (nodeTypes.isProxy(context)) throw new Error('editor_mcp_resource_context_untrusted');
+        if (payload.operation === 'lumen.assetSet') {
+            const field = Object.getOwnPropertyDescriptor(context, 'prepareResourceField');
+            if (field != null) {
+                if (!('value' in field) || typeof field.value !== 'function') throw new Error('editor_mcp_resource_context_untrusted');
+                return context.prepareResourceField!(request, context.owner.projectKey, payload.input, context.signal)
+                    .then(() => this._options.plan(payload.operation, payload.input));
+            }
+            if (this._options.trustedInProcessFieldPreparation !== true) throw new Error('resource_field_host_preparation_required');
+        }
         const descriptor = Object.getOwnPropertyDescriptor(context, 'prepareTextWrite');
         if (descriptor != null) {
             if (!('value' in descriptor) || typeof descriptor.value !== 'function') {

@@ -214,6 +214,7 @@ export class EditorMcpActionRouter {
         this._textWriter = new EditorMcpTextWriteGateway((input, beforeWrite, execution) =>
             this._silentAssets._executeAssetWriteText(input, beforeWrite, execution));
         this._resourceTaskExecutor = new ResourceOperationTaskExecutor({
+            trustedInProcessFieldPreparation: true,
             plan: async (operation, input) => this.planManagedResourceOperation(operation as EditorMcpOperationId, input),
             revalidate: async (operation, input, plan) =>
                 this.revalidateManagedResourceOperation(operation as EditorMcpOperationId, input, plan),

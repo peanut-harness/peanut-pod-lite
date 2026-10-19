@@ -190,6 +190,7 @@ export class EditorMcpPluginModule extends PluginModuleBase {
             const decoded = this._executionCodec.decode(this._isRecord(input) ? input : {});
             const requestInput = decoded.input;
             const plan = router.plan({ operation, input: requestInput });
+            if (operation === 'lumen.assetSet' && managedTasks == null) throw new Error('resource_field_host_preparation_required');
             const result = plan.readOnly || managedTasks == null
                 ? await router.dispatch('cocos.call', { operation, input: requestInput }, invocation)
                 : await this._executeManagedCapability(operation, requestInput, invocation, managedTasks, decoded.execution);

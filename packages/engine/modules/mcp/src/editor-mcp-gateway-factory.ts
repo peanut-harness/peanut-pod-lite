@@ -87,6 +87,7 @@ export function createEditorMcpExecuteOperation(
         }
         const decoded = executionCodec.decode(rawInput);
         const plan = router.plan({ operation, input: decoded.input });
+        if (operation === 'lumen.assetSet' && managedTasks == null) throw new Error('resource_field_host_preparation_required');
         if (plan.readOnly || managedTasks == null) {
             const directResult = await router.dispatch('cocos.call', {
                 operation,
