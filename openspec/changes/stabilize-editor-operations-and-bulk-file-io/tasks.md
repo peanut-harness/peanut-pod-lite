@@ -199,3 +199,5 @@ Sorting2D原始重叠对照在原生字段为蓝色order1/红色order0时仍显�
 - 2026-10-19 新候选准备：2.2.0正式worker22项定向通过；版本化worker覆盖新Coordinator管理旧根布局，历史旧bootstrap自身升级不在本轮已证明范围，实机采用完整新Host安装。4.3补齐逐字段authority及有界动态引用契约，原始AssetDB UUID和SDK类型来源作为独立后验，不放宽copy闭包。父协调器独占contracts/runner，资源lane独占其余resource工具，生命周期lane独占SDK worker/退出工具；共享构建/打包/提交仍串行，尚未冻结新候选或宣称实机通过。
 
 - 2026-10-19 5.1新候选启动集成前置：正式Host现拥有3.8.7冷启动worker，同一engine方法不能再由旧组件夹具重复安装；现有5.1 owned components工具将精确核对candidate manifest/worker字节，正式worker与旧独立fixture模式互斥。仅替换未来新工程的启动选择和真实来源校验，既有SDK listener/UI ready兼容各自保留，历史原生证据不改；本项定向及完整检查、原始日志与呈现仍须新工程。
+
+- 2026-10-19 `4e9da0a`本地源码检查点首次完整verify在Host新SDK测试入口失败（原node组未加载tsx，ESM require/扩展解析错误），未进行新实机；原日志保留。仅移动两SDK测试至既有tsx组，复用当次制品的两个测试组40+83全部通过；含pack的完整验证须新clean检查点重跑，不将定向结果冒充完整通过。

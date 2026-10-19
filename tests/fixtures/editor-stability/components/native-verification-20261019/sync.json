@@ -6,8 +6,8 @@
       "treeSha": "bc8158a489632b14149e123fc11ef3596f691c11dd495a3b5d1db0d1a465a1b7",
       "cardSha": "84e10ddb038a9926e0100eb4f646ad2281249eabd7603a962d76b1a7b561e3c0",
       "fileCount": 15,
-      "attestReason": "SDK正式worker真实start、资源authority/动态UUID及有来源字段拒绝修复；定向通过，当前仅准备完整新候选，实机与5.1仍未完成",
-      "updatedAt": "2026-10-19T04:02:51.575Z"
+      "attestReason": "只修正新SDK测试到tsx入口，产品事实不变；首次完整verify失败日志保留，定向两组123通过，新clean检查点须完整重跑",
+      "updatedAt": "2026-10-19T04:06:52.568Z"
     }
   }
 }
