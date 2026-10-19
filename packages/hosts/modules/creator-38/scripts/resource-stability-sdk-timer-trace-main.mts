@@ -1,6 +1,7 @@
 import { appendFileSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { createRequire } from 'node:module';
+import { randomBytes } from 'crypto';
 import { ComponentSdkTimerTrace } from '../../../../../tests/fixtures/editor-stability/components/component-sdk-timer-trace.ts';
 import { ComponentSdkWindowDiagnostics } from '../../../../../tests/fixtures/editor-stability/components/component-sdk-window-diagnostics.ts';
 import { ComponentSdkUiReadyPhases } from '../../../../../tests/fixtures/editor-stability/components/component-sdk-ui-ready-phases.ts';
@@ -25,7 +26,7 @@ class ComponentSdkTimerTraceMain {
             || registration.creatorVersion === '3.8.3' && (registration.sdkUiReadyCompat !== true || registration.sdkSceneCacheCompat !== true)
             || !project.startsWith(realpathSync(registration.worktree) + sep + 'evidence' + sep + 'task-4.3' + sep))
             throw new Error('component_sdk_timer_trace_project_not_registered');
-        const generationId = String(process.pid) + ':' + String(++this.generation);
+        const generationId = String(process.pid) + ':' + randomBytes(16).toString('hex') + ':' + String(++this.generation);
         const lifecycle = new ComponentSdkWindowModuleLifecycle({
             recordEvent: event => { appendFileSync(join(output, 'sdk-window-module-lifecycle.ndjson'), JSON.stringify({
                 schemaVersion: 1, owner: registration.owner, runId: registration.runId, candidateSourceCommit: registration.candidateSourceCommit,

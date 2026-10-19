@@ -245,3 +245,5 @@ Sorting2D原始重叠对照在原生字段为蓝色order1/红色order0时仍显�
 - 2026-10-19 `f5e8e6d`资源h独立Guest observer诊断95/95通过、解绑成功、606/511分区保持。父独立审计五源×五阶段连续offset/segment/whole-prefixSHA覆盖、raw0；5字段各read/reject/set真实任务及HTTP400/pre_writer/unchanged拒绝marker、源/meta和语义后验均一致。原SDK仅一次quit，PID16174消失/identityTransitions0、外层open-wait exit0；Guest observer18条含本run scene Guest6挂载/销毁，但未复现Guest，不跨run映射、不称根因修复。仍accepted=false诊断，不冒充完整4.3。前一g观察器node:fs不支持SDK Node14.16，0/95停止且正常关闭，五源全量两条同事件错误保留；v2另建h，不复用失败工程。h首次CLI仅sandbox ps EPERM在identity阶段，0观察/未attach，原回执独立保留后才以所需权限首次执行真实95，不重放不确定写入。所有自有实例均正常关闭，用户11696未操作。
 
 - 2026-10-19 2.2.1继续串行补实际卸载证据：同步generation-created基线、hook/admission/drain及原renderer unload调用/返回/await/settle回执，绑定owner/run/project/pid/generation；不新增退出监听/计时器或改变SDK回调与正常退出协议。phase I/O/logger失败保持sticky并继续全部cleanup，原Error与并发/重入同close Promise不变；17真实helper定向通过。缺阶段记录不得推断未调用或queue清空，尚待当前源码完整verify/检查点/pack/API与新隔离原生；任务仍不勾选。
+
+- 2026-10-19 `093b0a8`本地检查点完整verify1450/1450、零fail/skip通过。父审补两main轮次标识：仅pid+class static counter在真实SDK module reload后可重复，加入Node14.16可用randomBytes16随机段；生成仍在任何自有install/listen前，原同步错误自然沿SDK加载失败路径保留，不移动try/新增logger/退出协议。两目标node14/CJS bundle与原17项定向复核；当前微小delta后另建检查点并重跑完整验证，不把旧源码结果冒充新源码。

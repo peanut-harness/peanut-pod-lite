@@ -6,8 +6,8 @@
       "treeSha": "89254f737261065c1c99d8cab59e71519de3ff0a11660343f818a8a1db47738a",
       "cardSha": "84e10ddb038a9926e0100eb4f646ad2281249eabd7603a962d76b1a7b561e3c0",
       "fileCount": 15,
-      "attestReason": "main synchronous unload phases and exact f5 native diagnostic boundaries",
-      "updatedAt": "2026-10-19T06:59:15.815Z"
+      "attestReason": "main phase full1450 checkpoint and reload-unique generation id",
+      "updatedAt": "2026-10-19T07:04:49.571Z"
     }
   }
 }
