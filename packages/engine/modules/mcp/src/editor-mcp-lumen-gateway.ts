@@ -1,3 +1,4 @@
+import { ExecutionRuntimeService } from '@peanut/pod-engine/runtime';
 import { McpControlFlowRefusal } from '@peanut/pod-engine/kernel';
 import { EditorMcpLumenMetaSave } from './editor-mcp-lumen-meta-save.js';
 import { existsSync, readFileSync, statSync } from 'node:fs';
@@ -31,6 +32,7 @@ import type {
     ILumenCocosInfoMcpInput,
 } from '@peanut/pod-protocol';
 import {
+    LumenAssetPatchUuidGuard,
     LumenCocosVersion,
     LumenDefaultTemplateRoot,
     LumenHierarchyRefValidator,
@@ -947,6 +949,27 @@ export class EditorMcpLumenGateway {
             },
             input.prefabRelativePath,
         );
+    }
+
+    /**
+     * @description 一次性局部会话运行真实字段codec；无UUID时不刷新catalog，不save或触达原生写器。
+     * @param businessInput 已剥离Hub控制字段的真实业务输入。
+     * @param originalInput Runtime原受理输入身份，不能由JSON标记替代。
+     */
+    public async prepareAssetSet(businessInput: ContractPayload | undefined, originalInput: unknown): Promise<void> {
+        const input = this._input.readAssetSetInput(businessInput);
+        if (Lumen24McpBridge.isCreator2x(input.cocosVersion) || LumenAssetPatchUuidGuard.collect(input.props).length > 0) return;
+        const projectRoot = await this._resolveProjectRoot();
+        // 字段准备不消费模板；显式现有根避免默认模板缓存初始化产生任何工程外副作用。
+        const session = await this._createSession({ templateRoot: projectRoot,
+            ...(input.cocosVersion == null ? {} : { cocosVersion: input.cocosVersion }) }, false);
+        session.openPrefab(input.prefabRelativePath);
+        try {
+            session.setAssetProperty({ patch: input.props });
+        } catch (error) {
+            ExecutionRuntimeService.recordResourceFieldPreparationRefusal(error, originalInput);
+            throw error;
+        }
     }
 
     private async _executeAssetSet(input: ILumenAssetSetMcpInput): Promise<unknown> {

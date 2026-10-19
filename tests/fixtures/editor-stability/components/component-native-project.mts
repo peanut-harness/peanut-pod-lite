@@ -1,3 +1,4 @@
+import { ComponentFormalSdkWorker } from './component-formal-sdk-worker.mts';
 import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, writeFileSync, realpathSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,7 +57,6 @@ const sdkSceneCacheCompat = args.includes('--sdk-scene-cache-compat');
 if (sdkSceneCacheCompat && (version !== '3.8.3' || fixtureProfile !== 'component-matrix')) throw new Error('component_sdk_cache_requires_383_matrix');
 if (tiledHierarchy && fixtureProfile !== 'component-matrix') throw new Error('component_tiled_requires_verified_matrix');
 if (skinnedHierarchy && fixtureProfile !== 'component-matrix') throw new Error('component_skinned_requires_verified_matrix');
-if (sdkUiReadyCompat && (version === '3.8.7' ? !sdkListenerCompat || !sdkStartupTimerCompat : !sdkSceneCacheCompat)) throw new Error('component_sdk_ui_ready_requires_compat_project');
 if (sdkStartupTimerCompat && (!sdkListenerCompat || version !== '3.8.7')) throw new Error('component_sdk_startup_timer_requires_compat_project');
 if (sdkTimerTrace && (!sdkListenerCompat || version !== '3.8.7')) throw new Error('component_sdk_timer_trace_requires_compat_project');
 if (sdkListenerCompat && version !== '3.8.7') throw new Error('component_sdk_listener_version_unverified');
@@ -73,6 +73,10 @@ if (fixtureProfile === 'component-matrix') ComponentBlitScreenMaterial.assertSdk
 const descriptor = verifyReleaseCandidate(join(root, 'release/peanut.pod-lite-0.2.0'), {
     expectedVersion: '0.2.0', expectedSourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
 });
+const formalSdkStartupTimer = ComponentFormalSdkWorker.source(join(root, 'release/peanut.pod-lite-0.2.0'), descriptor.sourceCommit, version);
+const formalStartup = ComponentFormalSdkWorker.mode(version, sdkStartupTimerCompat, formalSdkStartupTimer);
+if (sdkUiReadyCompat && (version === '3.8.7' ? !sdkListenerCompat || !sdkStartupTimerCompat && !formalStartup : !sdkSceneCacheCompat))
+    throw new Error('component_sdk_ui_ready_requires_compat_project');
 const output = join(root, 'evidence/task-5.1', runId); const project = join(output, 'project');
 if (existsSync(output)) throw new Error('component_native_project_must_be_new');
 mkdirSync(project, { recursive: true });
@@ -89,11 +93,12 @@ mkdirSync(join(project, 'node_modules'), { recursive: true });
 cpSync(join(engine, 'node_modules/tslib'), join(project, 'node_modules/tslib'), { recursive: true });
 const registration = { kind: 'worktree-local-validation-project', task: '5.1',
     owner, change: 'stabilize-editor-operations-and-bulk-file-io',
-    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: true, metricsDiagnostics, sdkListenerCompat, sdkTimerTrace, sdkRendererTimerTrace: sdkTimerTrace, sdkStartupTimerCompat, sdkUiReadyCompat, skinnedHierarchy,
+    projectPath: project, worktree: root, creatorVersion: version, creatorApp: realpathSync(app), runId, engineModulesContext, offlineServiceProfile: true, metricsDiagnostics, sdkListenerCompat, sdkTimerTrace, sdkRendererTimerTrace: sdkTimerTrace, sdkStartupTimerCompat, formalSdkStartupTimer, sdkUiReadyCompat, skinnedHierarchy,
     tiledHierarchy, sdkOwnedQuit, sdkDefaultCube, sdkSceneCacheCompat, startupSceneProfile: version === '3.8.3' && fixtureProfile === 'component-matrix', candidateSourceCommit: descriptor.sourceCommit, hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256,
     registeredAt: new Date().toISOString(), userAuthorization: '推进5.1真实导入、后端确认和原生加载验证；按Hub操作Cocos，只关闭自己实例' };
 writeFileSync(join(output, 'project-ownership.json'), JSON.stringify(registration, null, 2) + '\n');
 cpSync(join(root, 'packages/hosts/modules/creator-38/release/peanut-pod-lite-host-0.2.0'), join(project, 'extensions/peanut-pod-lite-host'), { recursive: true });
+if (formalSdkStartupTimer) ComponentFormalSdkWorker.assertInstalled(project, registration, formalSdkStartupTimer);
 const installed = await new PackagingApp({ projectPath: project }).install(join(root, 'packages/engine/modules/creator-plugin/release/peanut.pod-lite-0.2.0'));
 writeFileSync(join(output, 'core-install-receipt.json'), JSON.stringify(installed, null, 2) + '\n');
 const probe = join(project, 'extensions/peanut-component-probe'); mkdirSync(probe, { recursive: true });

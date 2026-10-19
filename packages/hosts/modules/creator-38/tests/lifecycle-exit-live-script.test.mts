@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -97,5 +97,44 @@ test('installed candidate digest uses file path ordering for asset and paired me
         writeFileSync(join(root, 'cube.prefab'), 'asset'); writeFileSync(join(root, 'cube.prefab.meta'), 'metadata');
         const expected = sha(`cube.prefab:${sha('asset')}\ncube.prefab.meta:${sha('metadata')}`);
         assert.doesNotThrow(() => LifecycleExitLiveBaseline.assertTreeDigest(root, expected));
+    } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+
+test('plain SDK missing-start timer diagnostics fail while generic expected business refusal text is not reclassified', () => {
+    const root = mkdtempSync(join(tmpdir(), 'lite-lifecycle-sdk-timer-'));
+    try {
+        const file = join(root, 'stdout.log');
+        const raw = Buffer.from('expected operation failed validation and was refused\n'
+            + 'trackTimeEnd failed! Can not find the track time asset-db:worker-startup-database[internal] start\n'
+            + 'trackTimeEnd failed! Can not find the track time asset-db:worker-startup-database[assets] start\n');
+        writeFileSync(file, raw);
+        const result = LifecycleExitLiveBaseline.assessRaw(root, [{ channel: 'stdout', reference: 'stdout.log', exists: true }]);
+        assert.equal(result.issueCount, 2);
+        assert.deepEqual(result.locations, [{ channel: 'stdout', line: 2 }, { channel: 'stdout', line: 3 }]);
+        assert.deepEqual(readFileSync(file), raw);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+
+test('common SDK environment admits only exact fixed helper bytes and refuses additional main-process or business code', () => {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'lite-lifecycle-fixed-helper-')));
+    try {
+        const worker = 'module.exports={load(){},unload(){}};'; const digest = createHash('sha256').update(worker).digest('hex');
+        const manifest = { package_version: 2, name: 'peanut-sdk-startup-timer-helper', version: '0.1.0', private: true,
+            main: './main.js', editor: '3.8.7', contributions: { 'asset-db': { script: './worker.js', 'global-hook': ['beforePreStart'] } } };
+        writeFileSync(join(root, 'worker.js'), worker); writeFileSync(join(root, 'package.json'), JSON.stringify(manifest));
+        writeFileSync(join(root, 'main.js'), "'use strict';\nmodule.exports = {};\n");
+        assert.doesNotThrow(() => LifecycleExitLiveBaseline.assertSdkHelper(root, digest));
+        writeFileSync(join(root, 'main.js'), 'module.exports={load(){}};');
+        assert.throws(() => LifecycleExitLiveBaseline.assertSdkHelper(root, digest), /payload_mismatch/u);
+        writeFileSync(join(root, 'main.js'), "'use strict';\nmodule.exports = {};\n");
+        writeFileSync(join(root, 'worker.js'), worker + '// changed');
+        assert.throws(() => LifecycleExitLiveBaseline.assertSdkHelper(root, digest), /payload_mismatch/u);
+        writeFileSync(join(root, 'worker.js'), worker); writeFileSync(join(root, 'extra.js'), 'business');
+        assert.throws(() => LifecycleExitLiveBaseline.assertSdkHelper(root, digest), /file_set_invalid/u);
+        rmSync(join(root, 'extra.js'));
+        writeFileSync(join(root, 'package.json'), JSON.stringify({ ...manifest, messages: { execute: {} } }));
+        assert.throws(() => LifecycleExitLiveBaseline.assertSdkHelper(root, digest), /payload_mismatch/u);
     } finally { rmSync(root, { recursive: true, force: true }); }
 });

@@ -1,6 +1,8 @@
 import type { IResourceCampaignExpectation, IResourceCampaignPlan, IResourceCampaignPort, IResourceCaseObservation,
     IResourceCallOutcome, IResourceCommand, IResourceSessionIdentity, IResourceSnapshot } from './resource-stability-contracts.mts';
 import { ResourceStabilityReadiness } from './resource-stability-readiness.mts';
+import { ResourceStabilityRunner } from './resource-stability-runner.mts';
+import { ResourceStabilityPreparationRefusal } from './resource-stability-preparation-refusal.mts';
 
 /**
  * @description 工程专属认证连接与独立只读观测端口；实现方每次请求重读 descriptor 和原进程身份。
@@ -19,8 +21,14 @@ export interface IResourceManagedConnection {
  * @description 仅调用既有公共 MCP 控制入口；没有内部 SDK 写端口，也不切换 all。
  */
 export class ResourceStabilityManagedPort implements IResourceCampaignPort {
+    /**
+     * @description 已追加到本轮证据的观察，包括后续语义校验失败的事实；异常不能清空此前步骤。
+     */
+    public readonly observations: IResourceCaseObservation[] = [];
     public constructor(private readonly plan: IResourceCampaignPlan,
-        private readonly expected: IResourceCampaignExpectation, private readonly connection: IResourceManagedConnection) {}
+        private readonly expected: IResourceCampaignExpectation, private readonly connection: IResourceManagedConnection) {
+        ResourceStabilityRunner.validatePlan(plan, expected);
+    }
 
     /**
      * @description 每次写前由 runner 比对实际身份；准入检查不修改附件。
@@ -49,6 +57,24 @@ export class ResourceStabilityManagedPort implements IResourceCampaignPort {
         }
         await this.preflight();
         let input: Readonly<Record<string, unknown>> = command.input;
+        if (command.nativeBindings !== undefined) {
+            const bound = structuredClone(command.input);
+            for (const [pointer, reference] of Object.entries(command.nativeBindings)) {
+                const snapshot = await this.snapshot(reference.assetPath);
+                const uuid = ResourceStabilityRunner.referenceUuid(reference, snapshot);
+                const keys = pointer.slice(1).split('/'); let current: Record<string, unknown> = bound;
+                for (const key of keys.slice(0, -1)) {
+                    const child: unknown = current[key];
+                    if (!child || typeof child !== 'object') throw new Error('resource_managed_binding_slot_missing');
+                    current = child as Record<string, unknown>;
+                }
+                const key = keys.at(-1);
+                if (!key || current[key] !== null) throw new Error('resource_managed_binding_slot_not_null');
+                current[key] = uuid;
+            }
+            input = bound;
+            await this.preflight();
+        }
         if (command.write) {
             if (!Array.isArray(input.resources) || input.resources.length === 0) throw new Error('resource_managed_resources_missing');
             const issued = this.record(await this.connection.mcp({ action: 'issueApprovalToken', operations: [command.name],
@@ -58,10 +84,17 @@ export class ResourceStabilityManagedPort implements IResourceCampaignPort {
             }
             input = { ...input, approvalToken: issued.approvalToken };
         }
-        const result = this.record(await this.connection.mcp({ action: 'call', name: command.name, input }));
-        if (result.taskStatus === 'rejected' && typeof result.code === 'string') {
-            return { status: 'rejected', rejectionCode: result.code, postflightVerified: false };
+        let response: unknown;
+        try { response = await this.connection.mcp({ action: 'call', name: command.name, input }); }
+        catch (error) {
+            const negative = this.plan.cases.find((row) => row.command === command && row.expectedRejection === true);
+            if (!(error instanceof ResourceStabilityPreparationRefusal) || !negative
+                || !negative.rejectionCodes.includes(error.message)
+                || !ResourceStabilityPreparationRefusal.fromResponse({ ok: false, error: error.message, failure: error.failure }, command.name)) throw error;
+            return { status: 'rejected', rejectionCode: error.message, postflightVerified: false };
         }
+        const result = this.record(response);
+        if (result.taskStatus === 'rejected') throw new Error('resource_managed_untrusted_rejection');
         if (command.write) {
             const postflight = this.record(result.postflight ?? result.taskPostflight);
             if (result.taskStatus !== 'succeeded' || postflight.verified !== true || result.available === false) {
@@ -92,7 +125,10 @@ export class ResourceStabilityManagedPort implements IResourceCampaignPort {
     /**
      * @description 仅持久化 runner 观察，不复制令牌或内部响应。
      */
-    public recordObservation(observation: IResourceCaseObservation): Promise<void> { return this.connection.recordObservation(observation); }
+    public async recordObservation(observation: IResourceCaseObservation): Promise<void> {
+        await this.connection.recordObservation(observation);
+        this.observations.push(observation);
+    }
     /**
      * @description 失败也追加保留。
      */

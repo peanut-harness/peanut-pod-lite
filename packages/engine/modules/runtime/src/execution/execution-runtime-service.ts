@@ -1,3 +1,4 @@
+import { ResourceFieldPreparationProof } from './resource-field-preparation-proof.js';
 import { TextWritePreparationSnapshot } from './text-write-preparation-snapshot.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { createHash } from 'node:crypto';
@@ -195,6 +196,13 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
             input: scope.input, signal: scope.signal, snapshot: scope.snapshot });
     }
 
+    /** @description 原assetSet规划期的任务绑定准备来源，不改变调度。 */
+    public static withResourceFieldPreparation<T>(request: Readonly<ITaskRequest>, signal: AbortSignal,
+        prepare: () => Promise<T>): Promise<T> { return ResourceFieldPreparationProof.run(request, signal, prepare); }
+    /** @description 真实无副作用字段codec捕获处使用，普通属性不能签发证明。 */
+    public static recordResourceFieldPreparationRefusal(error: unknown, input: unknown): void { ResourceFieldPreparationProof.record(error, input); }
+    /** @description 跨正式失败投影共享固定codec码词法，不放宽普通错误投影。 */
+    public static isSafeResourceFieldPreparationCode(code: unknown): code is string { return ResourceFieldPreparationProof.isSafeCode(code); }
     /**
      * @description 保存有限 JSON 输入的原引用及数据属性，不调用 getter，不记录或公开内容。
      * @param input 原受理输入。
@@ -876,6 +884,7 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
     /** @description 封装当前内部处理步骤，供本类流程复用并维持状态一致性。 */
     private async _failGroup(taskGroup: ITaskMergeGroup, kind: string, failure: unknown, acceptedTasks: readonly IAcceptedTask[] = []): Promise<void> {
         const refusalTaskId = this._takeTextPreparationRefusal(failure, taskGroup, acceptedTasks);
+        const fieldRefusal = this._takeResourceFieldPreparationRefusal(failure, taskGroup, acceptedTasks);
         const reason = refusalTaskId != null ? 'text_file_io_content_conflict' : typeof failure === 'string'
             ? failure
             : failure instanceof Error
@@ -898,7 +907,9 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
                 taskId,
                 ok: false,
                 status: 'failed',
-                data: { projectState: refusalTaskId === taskId ? 'unchanged' : projectState,
+                data: { projectState: refusalTaskId === taskId || fieldRefusal?.taskId === taskId ? 'unchanged' : projectState,
+                    ...(fieldRefusal?.taskId !== taskId ? {} : { assetFieldPreparationRefusal: Object.freeze({
+                        schemaVersion: 1, code: fieldRefusal.code, phase: 'prepare_before_writer', projectState: 'unchanged', taskId }) }),
                     ...(textFileWrite == null ? {} : { textFileWrite }),
                     ...(refusalTaskId !== taskId || textFileWrite != null ? {} : { textWritePreparationRefusal: Object.freeze({
                         schemaVersion: 1, code: 'text_file_io_content_conflict', phase: 'prepare_before_writer',
@@ -916,6 +927,18 @@ export class ExecutionRuntimeService implements IExecutionRuntimeService {
         this._settleExecutionDiagnosticGroup(taskGroup.groupId);
     }
 
+
+    /** @description 仅单个未进入写窗口的真实任务消费字段拒绝，批次和取消不继承其状态。 */
+    private _takeResourceFieldPreparationRefusal(failure: unknown, group: ITaskMergeGroup,
+        tasks: readonly IAcceptedTask[]): { taskId: string; code: string } | null {
+        if (tasks.length !== 1 || group.taskIds.length !== 1 || !this._hasExecutorManagedConcurrency(tasks)) return null;
+        const task = tasks[0];
+        if (!task || task.taskId !== group.taskIds[0] || this._controlPlane.query(task.taskId)?.status !== 'waiting_commit') return null;
+        const signal = this._taskAbortControllers.get(task.taskId)?.signal;
+        if (!signal) return null;
+        const code = ResourceFieldPreparationProof.take(failure, task.request, signal);
+        return code == null ? null : { taskId: task.taskId, code };
+    }
 
     /**
      * @description 一次消费真实准备来源，绑定唯一受理 request/input/signal/task，任何组成员已进入写窗口则拒绝。

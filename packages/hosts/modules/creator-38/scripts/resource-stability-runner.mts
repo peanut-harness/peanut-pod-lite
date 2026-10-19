@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import { isAbsolute } from 'node:path';
 import type { IResourceCampaignExpectation, IResourceCampaignPlan, IResourceCampaignPort, IResourceCaseObservation,
-    IResourceCasePlan, IResourceCommand, IResourceSessionIdentity, IResourceSnapshot } from './resource-stability-contracts.mts';
+    IResourceCasePlan, IResourceCommand, IResourceNativeReference, IResourceSemanticAuthority, IResourceSessionIdentity, IResourceSnapshot } from './resource-stability-contracts.mts';
 
 /**
  * @description 只沿既有原生端口串行执行完整计划；任何不确定结果停止，不盲目重试写入。
@@ -25,6 +25,20 @@ export class ResourceStabilityRunner {
             throw new Error('resource_campaign_case_scope_mismatch');
         }
         for (const row of plan.cases) {
+            if (row.expectedAuthorities !== undefined) {
+                if (!row.expectedAuthorities || typeof row.expectedAuthorities !== 'object' || Array.isArray(row.expectedAuthorities)) {
+                    throw new Error('resource_campaign_authority_contract_invalid');
+                }
+                const entries = Object.entries(row.expectedAuthorities);
+                if (entries.length === 0 || entries.length > 128 || entries.length !== Object.keys(row.expectedSemantic).length
+                    || entries.some(([pointer, authority]) => !authority || typeof authority !== 'object' || Array.isArray(authority)
+                        || !Object.hasOwn(row.expectedSemantic, pointer)
+                        || !['runtime-object', 'importer-meta', 'source-text', 'asset-db'].includes(authority.kind)
+                        || authority.creatorVersion !== plan.creatorVersion || !/^[a-f0-9]{64}$/u.test(authority.sourceSha256)
+                        || !/^[A-Za-z0-9._:-]{1,96}$/u.test(authority.readerId))) {
+                    throw new Error('resource_campaign_authority_contract_invalid');
+                }
+            }
             if (!row.caseId.startsWith(`${plan.creatorVersion}|`) || !row.caseId.endsWith(`|${row.action}`)
                 || !['create', 'import', 'query', 'inspect', 'read', 'patch', 'set', 'reject_invalid', 'reject_write',
                     'copy', 'move', 'rename', 'refresh', 'delete', 'save', 'reopen'].includes(row.action)) {
@@ -33,6 +47,14 @@ export class ResourceStabilityRunner {
             if (row.expectedRejection !== ['reject_invalid', 'reject_write'].includes(row.action)
                 || (row.expectedRejection && (row.rejectionCodes.length === 0 || row.rejectionCodes.some((c) => c.includes('*'))))) {
                 throw new Error('resource_campaign_rejection_contract_invalid');
+            }
+            if (row.expectedReferences !== undefined) {
+                this.assertReferenceMap(row.expectedReferences, plan.namespace, expected.creatorVersion);
+                for (const pointer of Object.keys(row.expectedReferences)) {
+                    if (!Object.hasOwn(row.expectedSemantic, pointer) || row.expectedSemantic[pointer] !== null) {
+                        throw new Error('resource_campaign_reference_placeholder_invalid');
+                    }
+                }
             }
             this.assertPath(row.beforePath, plan.namespace);
             this.assertPath(row.afterPath, plan.namespace);
@@ -63,6 +85,11 @@ export class ResourceStabilityRunner {
                         throw new Error(`resource_campaign_setup_failed:${row.caseId}`);
                     }
                 }
+                const referenceSnapshots: Record<string, IResourceSnapshot> = {};
+                for (const [pointer, reference] of Object.entries(row.expectedReferences ?? {})) {
+                    referenceSnapshots[pointer] = await port.snapshot(reference.assetPath);
+                    this.referenceUuid(reference, referenceSnapshots[pointer]);
+                }
                 const before = await port.snapshot(row.beforePath);
                 const beforeHash = await port.sourceHashes(row.beforePath);
                 await this.assertFixtureHashes(row.command, expected, port);
@@ -78,7 +105,7 @@ export class ResourceStabilityRunner {
                 const afterHash = await port.sourceHashes(row.expectedRejection ? row.beforePath : row.afterPath);
                 this.assertSession(await port.preflight(), expected);
                 const observation: IResourceCaseObservation = {
-                    caseId: row.caseId, action: row.action, before, after,
+                    caseId: row.caseId, action: row.action, before, after, referenceSnapshots,
                     rejected: outcome.status === 'rejected', failure: outcome.rejectionCode,
                     postflightVerified: outcome.postflightVerified,
                     beforeSourceSha256: beforeHash, afterSourceSha256: afterHash,
@@ -107,6 +134,10 @@ export class ResourceStabilityRunner {
      */
     public static validateObservation(row: IResourceCasePlan, observed: IResourceCaseObservation): string[] {
         const issues: string[] = [];
+        const authoritySnapshot = row.expectedRejection || row.action === 'delete' ? observed.before : observed.after;
+        for (const [pointer, expected] of Object.entries(row.expectedAuthorities ?? {})) {
+            if (!isDeepStrictEqual(authoritySnapshot.authorities?.[pointer], expected)) issues.push(`semantic_authority_mismatch:${pointer}`);
+        }
         if (row.caseId !== observed.caseId || row.action !== observed.action
             || observed.before.path !== row.beforePath || observed.after.path !== row.afterPath) issues.push('observation_mismatch');
         if (!/^[a-f0-9]{64}$/u.test(observed.beforeSourceSha256) || !/^[a-f0-9]{64}$/u.test(observed.afterSourceSha256)) issues.push('source_digest_invalid');
@@ -153,11 +184,60 @@ export class ResourceStabilityRunner {
         if (['query', 'inspect', 'read'].includes(row.action)
             && (observed.beforeSourceSha256 !== observed.afterSourceSha256
                 || !isDeepStrictEqual(observed.before, after))) issues.push('read_changed_source');
-        for (const [pointer, expected] of Object.entries(row.expectedSemantic)) {
+        for (const [pointer, literal] of Object.entries(row.expectedSemantic)) {
+            let expected = literal;
+            const reference = row.expectedReferences?.[pointer];
+            if (reference) {
+                try { expected = this.referenceUuid(reference, observed.referenceSnapshots?.[pointer]); }
+                catch { issues.push(`reference_identity_invalid:${pointer}`); continue; }
+            }
             if (!pointer.startsWith('/') || !isDeepStrictEqual(this.pointer(after.semantic, pointer), expected)) issues.push(`semantic_mismatch:${pointer}`);
         }
         if (Object.keys(row.expectedSemantic).length === 0) issues.push('semantic_contract_missing');
         return issues;
+    }
+
+    /**
+     * @description 引用必须有同版SDK来源证明且数量有界，禁止原型路径与外部目录。
+     */
+    private static assertReferenceMap(references: Readonly<Record<string, IResourceNativeReference>>, namespace: string,
+        creatorVersion: string): void {
+        if (!references || typeof references !== 'object' || Array.isArray(references)
+            || Object.keys(references).length === 0 || Object.keys(references).length > 32) throw new Error('resource_campaign_reference_contract_invalid');
+        for (const [pointer, reference] of Object.entries(references)) {
+            if (!/^\/(?:[A-Za-z_][A-Za-z0-9_]*|[0-9]+)(?:\/(?:[A-Za-z_][A-Za-z0-9_]*|[0-9]+))*$/u.test(pointer)
+                || pointer.split('/').some((part) => ['__proto__', 'prototype', 'constructor'].includes(part))
+                || !reference || typeof reference !== 'object' || typeof reference.assetPath !== 'string'
+                || !/^[A-Za-z][A-Za-z0-9_.]{0,95}$/u.test(reference.expectedType)
+                || !this.validAuthority(reference.expectedAuthority, creatorVersion)) throw new Error('resource_campaign_reference_contract_invalid');
+            if (reference.expectedAuthority.kind !== 'runtime-object') throw new Error('resource_campaign_reference_authority_invalid');
+            this.assertPath(reference.assetPath, namespace);
+        }
+    }
+
+    /**
+     * @description SDK来源必须精确绑定版本、固定reader与源码摘要。
+     */
+    private static validAuthority(authority: IResourceSemanticAuthority | undefined, version: string): boolean {
+        return !!authority && typeof authority === 'object' && !Array.isArray(authority)
+            && ['runtime-object', 'importer-meta', 'source-text', 'asset-db'].includes(authority.kind)
+            && authority.creatorVersion === version && /^[a-f0-9]{64}$/u.test(authority.sourceSha256)
+            && /^[A-Za-z0-9._:-]{1,96}$/u.test(authority.readerId);
+    }
+
+    /**
+     * @description 从真实原生登记快照解析引用，序列化文件和不匹配来源不能充当UUID依据。
+     */
+    public static referenceUuid(reference: IResourceNativeReference, snapshot: IResourceSnapshot | undefined): string {
+        const issues: string[] = [];
+        if (!snapshot) throw new Error('resource_campaign_reference_snapshot_missing');
+        this.checkRegistered(snapshot, issues);
+        if (reference.expectedAuthority.kind !== 'runtime-object' || issues.length || snapshot.path !== reference.assetPath || snapshot.readbackOrigin !== 'creator-native'
+            || this.pointer(snapshot.semantic, '/type') !== reference.expectedType
+            || !isDeepStrictEqual(snapshot.authorities?.['/type'], reference.expectedAuthority)) {
+            throw new Error('resource_campaign_reference_identity_invalid');
+        }
+        return snapshot.metaUuid as string;
     }
 
     /**
@@ -200,6 +280,24 @@ export class ResourceStabilityRunner {
      * @description 排除计划注入 token 和跨任务路径；源输入只能由已核实 fixture resolver 装配。
      */
     private static assertCommand(command: IResourceCommand, namespace: string, expected: IResourceCampaignExpectation): void {
+        if (command.nativeBindings !== undefined) {
+            this.assertReferenceMap(command.nativeBindings, namespace, expected.creatorVersion);
+            if (!Array.isArray(command.input.resources) || command.input.resources.length === 0
+                || command.input.resources.length > 256) throw new Error('resource_campaign_binding_resources_invalid');
+            for (const resource of command.input.resources) {
+                if (typeof resource !== 'string') throw new Error('resource_campaign_binding_resources_invalid');
+                this.assertPath(resource, namespace);
+            }
+            if (command.name !== 'peanut.editor-mcp.lumen-asset-set') throw new Error('resource_campaign_binding_command_invalid');
+            for (const [pointer, reference] of Object.entries(command.nativeBindings)) {
+                if (!/^\/props\/[A-Za-z_][A-Za-z0-9_]*(?:\/(?:0|[1-9][0-9]{0,3}))?$/u.test(pointer)
+                    || pointer.split('/').some((part) => ['__proto__', 'prototype', 'constructor'].includes(part))
+                    || this.pointer(command.input, pointer) !== null
+                    || !Array.isArray(command.input.resources) || !command.input.resources.includes(reference.assetPath)) {
+                    throw new Error('resource_campaign_binding_placeholder_invalid');
+                }
+            }
+        }
         const suffix = command.name.replace(/^peanut\.editor-mcp\./u, '');
         const writeTools = ['asset-import', 'asset-copy', 'asset-move', 'asset-rename', 'asset-create-folder', 'asset-delete',
             'asset-reimport', 'asset-open', 'lumen-scaffold', 'lumen-asset-set', 'lumen-node-set', 'lumen-commit'];

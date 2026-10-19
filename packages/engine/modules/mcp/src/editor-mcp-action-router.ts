@@ -398,6 +398,7 @@ export class EditorMcpActionRouter {
         operation: EditorMcpOperationId,
         input: Readonly<Record<string, unknown>>,
     ): Promise<ReturnType<ResourceOperationPlanner['plan']>> {
+        if (operation === 'lumen.assetSet') await this._lumen.prepareAssetSet(this._stripHubControlFields(input), input);
         const projectRoot = await this._requireProjectPath();
         const preparedTextWrite = operation === 'asset.writeText' ? this._textWriter.prepare(projectRoot, input) : undefined;
         const plan = this._taskPlanner.plan(projectRoot, operation, input, preparedTextWrite);

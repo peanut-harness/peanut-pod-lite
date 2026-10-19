@@ -72,7 +72,8 @@ export class ResourceOperationTaskExecutor {
      */
     public async execute(request: Readonly<ITaskRequest>, context: IPluginTaskExecutorContext): Promise<unknown> {
         const payload = this._readPayload(request.payload);
-        const plan = await this._preparePlan(request, context, payload);
+        const plan = await ExecutionRuntimeService.withResourceFieldPreparation(request, context.signal,
+            () => this._preparePlan(request, context, payload));
         context.recordEvidence({
             id: 'resource-closure',
             kind: 'resource_closure',

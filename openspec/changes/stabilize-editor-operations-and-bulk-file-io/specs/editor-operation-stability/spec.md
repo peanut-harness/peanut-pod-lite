@@ -109,3 +109,37 @@
 #### Scenario: Attachment is revoked while a native reference query waits
 - **WHEN** 原writer守卫的异步AssetDB查询期间授权被撤销或重新挂接
 - **THEN** 查询完成后重新核验授权代数并拒绝旧任务，不进入commit
+
+#### Scenario: Native resource fields use their actual authority
+- **WHEN** 资源验收读取运行时对象、导入配置或源文本字段
+- **THEN** 逐语义指针标明真实authority、Creator版本、固定reader及源码摘要；导入配置和源文本不能冒充运行时对象，serialized-only不能作为原生通过
+
+#### Scenario: Imported dependencies receive new UUIDs
+- **WHEN** 资产补丁需要引用本轮实际导入的依赖
+- **THEN** 仅允许显式resources中同run源和props下null占位；在签发一次性令牌前从真实AssetDB及固定SDK类型reader解析UUID，独立后验用保留的源快照重算期望，不猜测旧meta UUID，不扩大能力或目录
+
+### Requirement: SDK cold startup retains real timer pairing
+系统 SHALL 在已核验Creator 3.8.7的正式asset-db worker生命周期入口，为真实冷数据库预启动补齐SDK遗漏的真实start，保留原方法、真实end及全部原始诊断；不修改SDK安装包，不在未知版本或函数指纹漂移时安装修复。
+
+#### Scenario: Cold database follows the verified SDK prestart path
+- **WHEN** SDK真实数据库实例在预启动入口开始启动
+- **THEN** 原start恰好调用一次后继续原预启动，不重放数据库操作、不伪造时间，不改变SDK真实end
+
+#### Scenario: Runtime is changed or compatibility entry is unloaded
+- **WHEN** SDK版本/方法指纹未知，或卸载时该方法已被其它主体改变
+- **THEN** 不覆盖其它实现；仅恢复本入口拥有的引用，保留可定位失败，不吞诊断
+
+#### Scenario: Minimal comparison requires a shared SDK repair environment
+- **WHEN** 原纯无Lite和带Lite最小工程均复现同一SDK冷计时错误
+- **THEN** 保留两侧原失败；新对照明确记录无Host/Core但带固定SDK修复夹具的控制条件，与正式Host使用同字节worker来源，不能称为未加夹具的纯原生SDK通过
+
+### Requirement: Resource field refusals retain preparation proof
+系统 SHALL 将真实字段准备阶段的输入拒绝与写入后的执行故障分开，只有来自原操作、原错误和当前准备阶段的有限一次性证明才能将实际failed任务投影为invalid_input及源未变化；未知状态仍保守保留，禁止按错误前缀伪造证明。
+
+#### Scenario: An invalid field fails in disposable preparation
+- **WHEN** 同一受管请求的真实disposable session在save前拒绝非法字段，来源与taskId绑定且输入、取消状态及准备阶段均未变化
+- **THEN** 保留ok:false和failed状态、精确拒绝码与有限准备证明；不执行writer，不将拒绝变成成功，不吞掉真实诊断
+
+#### Scenario: A proof is stale or the write window has started
+- **WHEN** 证明被复制、重放、用于另一任务，输入变化、取消、准备scope失效或故障发生在写入后
+- **THEN** 拒绝使用准备证明，状态保持unknown或实际写入后状态，不能宣称unchanged

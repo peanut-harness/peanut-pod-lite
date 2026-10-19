@@ -68,6 +68,14 @@ await build({
     outfile: resolve(outputDirectory, 'dist/bootstrap.js'),
     legalComments: 'none',
 });
+for (const entry of ['sdk-startup-timer-bootstrap', 'sdk-startup-timer-worker']) {
+    const outfile = resolve(outputDirectory, 'dist', `${entry}.js`);
+    await build({ bundle: true, entryPoints: [resolve(extensionRoot, 'src', `${entry}.ts`)],
+        format: 'cjs', platform: 'node', target: 'node14', outfile, legalComments: 'none' });
+    const bytes = stripNodeBuiltinProtocol(await readFile(outfile, 'utf8'));
+    assertCreator383BundleCompatibility(bytes);
+    await writeFile(outfile, bytes, 'utf8');
+}
 await copyFile(resolve(extensionRoot, 'src/cpm-package-store.js'), resolve(outputDirectory, 'dist/cpm-package-store.js'));
 await cp(resolve(extensionRoot, 'package.json'), resolve(outputDirectory, 'package.json'));
 await cp(resolve(extensionRoot, 'panel'), resolve(outputDirectory, 'panel'), { recursive: true });

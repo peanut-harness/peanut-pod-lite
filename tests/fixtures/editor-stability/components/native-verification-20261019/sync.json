@@ -3,11 +3,11 @@
   "corpusId": "peanut-org",
   "repos": {
     "peanut-pod-lite": {
-      "treeSha": "cecde1de4bf9769e8e38d87ec6a2a82ae01fbb6f153f5f25a483fa0bf54833ff",
+      "treeSha": "bc8158a489632b14149e123fc11ef3596f691c11dd495a3b5d1db0d1a465a1b7",
       "cardSha": "84e10ddb038a9926e0100eb4f646ad2281249eabd7603a962d76b1a7b561e3c0",
       "fileCount": 15,
-      "attestReason": "资源精确profile/完整复制准备及双Cocos独立任务；定向通过，完整verify需干净checkpoint；实机和5.1未完成",
-      "updatedAt": "2026-10-19T03:28:13.893Z"
+      "attestReason": "SDK正式worker真实start、资源authority/动态UUID及有来源字段拒绝修复；定向通过，当前仅准备完整新候选，实机与5.1仍未完成",
+      "updatedAt": "2026-10-19T04:02:51.575Z"
     }
   }
 }

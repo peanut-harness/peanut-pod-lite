@@ -3,7 +3,7 @@ import test from 'node:test';
 import { ResourceStabilityRunner } from '../scripts/resource-stability-runner.mts';
 import { ResourceStabilityEvidenceValidator } from '../scripts/resource-stability-evidence.mts';
 import type { IResourceCampaignExpectation, IResourceCampaignPlan, IResourceCampaignPort, IResourceCaseObservation,
-    IResourceCasePlan, IResourceCallOutcome, IResourceCommand, IResourceSessionIdentity, IResourceSnapshot } from '../scripts/resource-stability-contracts.mts';
+    IResourceCasePlan, IResourceCallOutcome, IResourceCommand, IResourceNativeReference, IResourceSessionIdentity, IResourceSnapshot } from '../scripts/resource-stability-contracts.mts';
 import { createHash } from 'node:crypto';
 
 const namespace = 'assets/fixtures/resource-stability/synthetic-test';
@@ -34,6 +34,23 @@ const observation = (r: IResourceCasePlan, overrides: Partial<IResourceCaseObser
     rejected: false, failure: null, postflightVerified: true,
     beforeSourceSha256: 'e'.repeat(64), afterSourceSha256: 'f'.repeat(64),
     preservedSource: null, preservedSourceSha256: null, obsoletePath: null, ...overrides,
+});
+
+test('semantic authority binds exact native reader/version/source and cannot relabel importer data as runtime', () => {
+    const authority = { kind: 'runtime-object' as const, creatorVersion: '3.8.7' as const,
+        sourceSha256: 'a'.repeat(64), readerId: 'sdk-387:clip.sample' };
+    const r = { ...row(), expectedAuthorities: { '/value': authority } };
+    ResourceStabilityRunner.validatePlan(plan([r]), expectation([r]));
+    const observed = observation(r, { after: { ...snapshot(source, 2), authorities: { '/value': authority } } });
+    assert.deepEqual(ResourceStabilityRunner.validateObservation(r, observed), []);
+    for (const wrong of [undefined, { ...authority, kind: 'importer-meta' as const },
+        { ...authority, sourceSha256: 'b'.repeat(64) }, { ...authority, creatorVersion: '3.8.3' as const },
+        { ...authority, readerId: 'different-reader' }]) {
+        const after: IResourceSnapshot = { ...snapshot(source, 2), authorities: wrong ? { '/value': wrong } : {} };
+        assert.ok(ResourceStabilityRunner.validateObservation(r, observation(r, { after })).includes('semantic_authority_mismatch:/value'));
+    }
+    const partial = { ...r, expectedSemantic: { '/value': 2, '/another': 3 } };
+    assert.throws(() => ResourceStabilityRunner.validatePlan(plan([partial]), expectation([partial])), /authority_contract_invalid/);
 });
 
 /**
@@ -263,4 +280,54 @@ test('raw diagnostics and delayed warnings invalidate every claimed resource pas
     const checked = ResourceStabilityEvidenceValidator.validate(plan([r]), expectation([r]), { session: identity,
         inventorySha256: 'd'.repeat(64), observations: [observation(r)], lifecycle });
     assert.equal(checked.ok, false); assert.equal(checked.passed, 0);
+});
+
+
+test('dynamic native references require pinned real source identity and null bounded placeholders', () => {
+    const authority = { kind: 'runtime-object' as const, creatorVersion: '3.8.7' as const,
+        sourceSha256: 'a'.repeat(64), readerId: 'sdk.effect.type' };
+    const reference = { assetPath: `${namespace}/effect.effect`, expectedType: 'cc.EffectAsset', expectedAuthority: authority };
+    const r: IResourceCasePlan = { ...row(), expectedSemantic: { '/effect': null }, expectedReferences: { '/effect': reference },
+        command: { ...command(), input: { assetRelativePath: source, props: { effect: null }, resources: [source, reference.assetPath] },
+            nativeBindings: { '/props/effect': reference } } };
+    ResourceStabilityRunner.validatePlan(plan([r]), expectation([r]));
+    const native: IResourceSnapshot = { ...snapshot(reference.assetPath), semantic: { type: 'cc.EffectAsset' }, authorities: { '/type': authority } };
+    const observed = observation(r, { referenceSnapshots: { '/effect': native }, after: { ...snapshot(), semantic: { effect: uuid } } });
+    assert.deepEqual(ResourceStabilityRunner.validateObservation(r, observed), []);
+    for (const bad of [undefined, { ...native, assetDbUuid: destinationUuid }, { ...native, readbackOrigin: 'serialized-only' as const },
+        { ...native, semantic: { type: 'cc.Material' } }, { ...native, authorities: {} }, { ...native, path: source }]) {
+        assert.throws(() => ResourceStabilityRunner.referenceUuid(reference, bad), /reference_/u);
+    }
+    assert.ok(ResourceStabilityRunner.validateObservation(r, { ...observed, referenceSnapshots: {} }).includes('reference_identity_invalid:/effect'));
+    const invalidBindings: readonly Readonly<Record<string, IResourceNativeReference>>[] = [
+        { '/assetRelativePath': reference }, { '/props/__proto__': reference },
+        { '/props/effect': { ...reference, assetPath: 'assets/outside.effect' } }];
+    for (const nativeBindings of invalidBindings) {
+        const bad = { ...r, command: { ...r.command, nativeBindings } };
+        assert.throws(() => ResourceStabilityRunner.validatePlan(plan([bad]), expectation([bad])), /resource_campaign_/u);
+    }
+    const missing = { ...r, command: { ...r.command, input: { ...r.command.input, resources: [source] } } };
+    assert.throws(() => ResourceStabilityRunner.validatePlan(plan([missing]), expectation([missing])), /binding_placeholder/u);
+    const excessive = { ...r, command: { ...r.command, input: { ...r.command.input, resources: [source, reference.assetPath, 'assets/outside.effect'] } } };
+    assert.throws(() => ResourceStabilityRunner.validatePlan(plan([excessive]), expectation([excessive])), /path_out_of_scope/u);
+    const textReference = { ...reference, expectedAuthority: { ...authority, kind: 'source-text' as const } };
+    assert.throws(() => ResourceStabilityRunner.referenceUuid(textReference, { ...native, authorities: { '/type': textReference.expectedAuthority } }), /reference_identity/u);
+    const mislabeled = { ...r, expectedReferences: { '/effect': textReference } };
+    assert.throws(() => ResourceStabilityRunner.validatePlan(plan([mislabeled]), expectation([mislabeled])), /reference_authority/u);
+    const nonnull = { ...r, expectedSemantic: { '/effect': uuid } };
+    assert.throws(() => ResourceStabilityRunner.validatePlan(plan([nonnull]), expectation([nonnull])), /reference_placeholder/u);
+});
+
+test('runner captures actual dynamic source snapshots after setup and before the business call', async () => {
+    const authority = { kind: 'runtime-object' as const, creatorVersion: '3.8.7' as const,
+        sourceSha256: 'a'.repeat(64), readerId: 'sdk.effect.type' };
+    const reference = { assetPath: `${namespace}/effect.effect`, expectedType: 'cc.EffectAsset', expectedAuthority: authority };
+    const r = { ...row(), expectedSemantic: { '/value': null }, expectedReferences: { '/value': reference } };
+    const port = new SyntheticPort();
+    port.snapshot = async (path) => path === reference.assetPath
+        ? { ...snapshot(path), semantic: { type: reference.expectedType }, authorities: { '/type': authority } }
+        : { ...snapshot(path), semantic: { value: port.calls ? uuid : null } };
+    const result = await ResourceStabilityRunner.run(plan([r]), expectation([r]), port);
+    assert.equal(result[0]?.referenceSnapshots?.['/value']?.metaUuid, uuid);
+    assert.equal(port.calls, 1);
 });

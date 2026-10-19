@@ -22,10 +22,16 @@ export class LifecycleExitLiveBaseline {
      */
     public static async run(project: string, output: string, app: string, owner: string, preflightOnly = false,
         quitStyle: 'apple-event' | 'app-menu' | 'pid-terminate' = 'app-menu',
-        candidateInput?: { directory: string; sourceCommit: string }): Promise<boolean> {
+        candidateInput?: { directory: string; sourceCommit: string },
+        sdkEnvironmentInput?: { directory: string; sourceCommit: string }): Promise<boolean> {
         const repository = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../..');
-        this.assertProject(repository, project, output, owner, candidateInput !== undefined);
+        if (candidateInput && sdkEnvironmentInput) throw new Error('lifecycle_sdk_environment_mode_conflict');
+        this.assertProject(repository, project, output, owner, candidateInput !== undefined, sdkEnvironmentInput !== undefined);
         const candidate = candidateInput ? this.assertCandidate(project, output, candidateInput.directory, candidateInput.sourceCommit) : null;
+        const sdkTimerEnvironment = sdkEnvironmentInput
+            ? this.assertSdkTimerEnvironment(project, output, sdkEnvironmentInput.directory, sdkEnvironmentInput.sourceCommit)
+            : candidateInput && candidate ? { kind: 'formal-host-sdk-worker', sourceCommit: candidate.sourceCommit,
+                workerSha256: this.sha(this.readCandidateWorker(candidateInput.directory, candidate)) } : null;
         const binary = join(app, 'Contents/MacOS/CocosCreator');
         accessSync(binary, constants.X_OK);
         const installed = JSON.parse(readFileSync(join(app, 'Contents/Resources/resources/3d/engine/package.json'), 'utf8')) as { version?: unknown };
@@ -150,7 +156,7 @@ export class LifecycleExitLiveBaseline {
         const report = { schemaVersion: 'peanut.lite.lifecycle-baseline.v1', mode: candidate === null ? 'without-lite' : 'with-lite', creatorVersion: '3.8.7',
             owner, project, projectName: 'peanut-lite-lifecycle-387', app, startedAt,
             endedAt: new Date().toISOString(), pid: creatorPid, processStartedAt: first.startedAt,
-            candidate, task22Complete: false, quitStyle, stages, rawSources, exited, exitCode, exitSignal, quitFailure,
+            candidate, sdkTimerEnvironment, task22Complete: false, quitStyle, stages, rawSources, exited, exitCode, exitSignal, quitFailure,
             survivingOwnedPids: surviving.map((process) => process.pid), complete, diagnostics,
             baselinePassed: candidate === null && complete && diagnostics.issueCount === 0,
             candidateRunPassed: candidate !== null && complete && diagnostics.issueCount === 0 };
@@ -191,7 +197,7 @@ export class LifecycleExitLiveBaseline {
     /**
      * @description 验收工程只位于当前已登记工作树的独占 evidence；拒绝原工程、链接和其它 owner。
      */
-    private static assertProject(repository: string, project: string, output: string, owner: string, withLite = false): void {
+    private static assertProject(repository: string, project: string, output: string, owner: string, withLite = false, sdkEnvironment = false): void {
         const root = realpathSync(repository);
         if (!isAbsolute(project) || !isAbsolute(output) || realpathSync(output) !== output
             || realpathSync(project) !== project || project !== join(output, 'project')
@@ -206,9 +212,71 @@ export class LifecycleExitLiveBaseline {
         if (registration.owner !== owner || registration.change !== this.change || registration.projectPath !== project
             || registration.kind !== 'worktree-local-validation-project' || registration.creatorVersion !== '3.8.7') throw new Error('lifecycle_project_registration_missing');
         if (registration.mode !== (withLite ? 'with-lite' : 'without-lite')) throw new Error('lifecycle_mode_registration_mismatch');
-        for (const path of withLite ? ['packages', '.peanut-ai/cocos-mcp.json'] : ['extensions', 'packages', 'peanut-plugins', '.peanut-ai/cocos-mcp.json']) {
+        for (const path of withLite ? ['packages', '.peanut-ai/cocos-mcp.json']
+            : sdkEnvironment ? ['packages', 'peanut-plugins', '.peanut-ai/cocos-mcp.json']
+                : ['extensions', 'packages', 'peanut-plugins', '.peanut-ai/cocos-mcp.json']) {
             if (existsSync(join(project, path))) throw new Error('lifecycle_baseline_has_extensions');
         }
+    }
+
+    /**
+     * @description 无 Host/Core 控制组仅允许固定共同 SDK 修复夹具，worker 字节必须等于已核验候选。
+     * @param project 独占无 Lite 控制工程。
+     * @param output 对应明确登记。
+     * @param directory 显式冻结候选。
+     * @param sourceCommit 显式完整源码身份。
+     * @returns 共同 SDK 环境身份；不把夹具冒充纯净无扩展基线。
+     */
+    public static assertSdkTimerEnvironment(project: string, output: string, directory: string, sourceCommit: string): {
+        kind: string; sourceCommit: string; workerSha256: string;
+    } {
+        if (!/^[a-f0-9]{40}$/u.test(sourceCommit) || !isAbsolute(directory) || realpathSync(directory) !== directory)
+            throw new Error('lifecycle_sdk_environment_input_invalid');
+        const candidate = verifyReleaseCandidate(directory, { expectedSourceCommit: sourceCommit });
+        const workerSha256 = this.sha(this.readCandidateWorker(directory, candidate));
+        const registration = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8'));
+        if (registration.mode !== 'without-lite' || registration.sdkTimerEnvironment?.kind !== 'fixed-common-sdk-worker'
+            || registration.sdkTimerEnvironment.sourceCommit !== sourceCommit || registration.sdkTimerEnvironment.workerSha256 !== workerSha256)
+            throw new Error('lifecycle_sdk_environment_registration_mismatch');
+        const extensions = readdirSync(join(project, 'extensions'));
+        if (extensions.length !== 1 || extensions[0] !== 'peanut-sdk-startup-timer-helper')
+            throw new Error('lifecycle_sdk_environment_extension_set_invalid');
+        const helper = join(project, 'extensions/peanut-sdk-startup-timer-helper');
+        this.assertSdkHelper(helper, workerSha256);
+        return { kind: 'fixed-common-sdk-worker', sourceCommit, workerSha256 };
+    }
+
+    /**
+     * @description 固定夹具只含 SDK worker、空主入口和精确清单，不允许额外业务能力或扩展代码。
+     * @param helper 固定夹具目录。
+     * @param workerSha256 已冻结正式 worker 摘要。
+     */
+    public static assertSdkHelper(helper: string, workerSha256: string): void {
+        if (lstatSync(helper).isSymbolicLink() || realpathSync(helper) !== helper)
+            throw new Error('lifecycle_sdk_helper_link_refused');
+        const files = readdirSync(helper).sort();
+        if (files.join(',') !== 'main.js,package.json,worker.js') throw new Error('lifecycle_sdk_helper_file_set_invalid');
+        for (const file of files) if (!lstatSync(join(helper, file)).isFile() || lstatSync(join(helper, file)).isSymbolicLink())
+            throw new Error('lifecycle_sdk_helper_file_type_refused');
+        const manifest = JSON.parse(readFileSync(join(helper, 'package.json'), 'utf8'));
+        const expected = { package_version: 2, name: 'peanut-sdk-startup-timer-helper', version: '0.1.0', private: true,
+            main: './main.js', editor: '3.8.7', contributions: { 'asset-db': { script: './worker.js', 'global-hook': ['beforePreStart'] } } };
+        const stable = (value: unknown): string => JSON.stringify(value, (_, item) => item && typeof item === 'object' && !Array.isArray(item)
+            ? Object.fromEntries(Object.entries(item).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)) : item);
+        if (stable(manifest) !== stable(expected) || readFileSync(join(helper, 'main.js'), 'utf8') !== "'use strict';\nmodule.exports = {};\n"
+            || this.sha(readFileSync(join(helper, 'worker.js'))) !== workerSha256) throw new Error('lifecycle_sdk_helper_payload_mismatch');
+    }
+
+    /**
+
+     * @description 仅从已通过 archive SHA/目录摘要验证的正式 Host 制品读取 worker。
+
+     */
+    private static readCandidateWorker(directory: string, candidate: ReturnType<typeof verifyReleaseCandidate>): Buffer {
+        const result = spawnSync('/usr/bin/tar', ['-xOf', join(directory, candidate.host.archive),
+            `peanut-pod-lite-host-${candidate.version}/dist/sdk-startup-timer-worker.js`], { maxBuffer: 4 * 1024 * 1024 });
+        if (result.error || result.status !== 0 || result.stdout.length === 0) throw new Error('lifecycle_sdk_worker_archive_missing');
+        return result.stdout;
     }
 
     /**
@@ -291,7 +359,8 @@ export class LifecycleExitLiveBaseline {
             try { text = new TextDecoder('utf-8', { fatal: true }).decode(this.raw(join(output, source.reference))); }
             catch { issueCount += 1; continue; }
             for (const [index, line] of text.split(/\r\n|\n|\r/u).entries()) {
-                if (/\bwarn(?:ing)?\b|\berror\b|\bfatal\b|Object has been destroyed/iu.test(line)) {
+                if (/\bwarn(?:ing)?\b|\berror\b|\bfatal\b|Object has been destroyed/iu.test(line)
+                    || /^\s*trackTimeEnd failed! Can not find the track time .+ start\s*$/iu.test(line)) {
                     issueCount += 1;
                     if (locations.length < 100) locations.push({ channel: source.channel, line: index + 1 });
                 }
@@ -362,7 +431,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
         const candidateInput = process.argv.includes('--candidate-dir') ? { directory: argument('--candidate-dir'),
             sourceCommit: process.argv[process.argv.indexOf('--source-commit') + 1] ?? '' } : undefined;
         if (candidateInput && !process.argv.includes('--source-commit')) throw new Error('lifecycle_source_commit_argument_missing');
-        const passed = await LifecycleExitLiveBaseline.run(argument('--project'), argument('--output'), argument('--creator-app'), owner, process.argv.includes('--preflight-only'), quitStyle, candidateInput);
+        const sdkEnvironmentInput = process.argv.includes('--sdk-timer-environment') ? { directory: argument('--sdk-timer-environment'),
+            sourceCommit: process.argv[process.argv.indexOf('--source-commit') + 1] ?? '' } : undefined;
+        if (sdkEnvironmentInput && !process.argv.includes('--source-commit')) throw new Error('lifecycle_source_commit_argument_missing');
+        const passed = await LifecycleExitLiveBaseline.run(argument('--project'), argument('--output'), argument('--creator-app'), owner, process.argv.includes('--preflight-only'), quitStyle, candidateInput, sdkEnvironmentInput);
         process.exitCode = passed ? 0 : 1;
     } catch (error) {
         process.stderr.write(`${error instanceof Error ? error.message : 'lifecycle_baseline_failed'}\n`); process.exitCode = 1;

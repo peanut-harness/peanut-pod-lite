@@ -1,4 +1,14 @@
 /**
+ * @description 字段的真实权威来源，源文本与导入配置不能冒充运行时对象。
+ */
+export interface IResourceSemanticAuthority {
+    readonly kind: 'runtime-object' | 'importer-meta' | 'source-text' | 'asset-db';
+    readonly creatorVersion: '3.8.3' | '3.8.7';
+    readonly sourceSha256: string;
+    readonly readerId: string;
+}
+
+/**
  * @description 资源 campaign 的可移植计划与原生观察；布尔通过标志不能替代实际读回。
  */
 export interface IResourceSnapshot {
@@ -31,15 +41,35 @@ export interface IResourceSnapshot {
      */
     readonly semantic: Readonly<Record<string, unknown>>;
     /**
-     * @description 字段由 Creator 进程中的原生对象读回，serialized-only 不能用于原生验收。
+     * @description 逐JSON pointer的SDK来源证明；新导入配置/源文本用例必须精确声明。
+     */
+    readonly authorities?: Readonly<Record<string, IResourceSemanticAuthority>>;
+    /**
+     * @description 来自Creator固定SDK端口的读回；具体权威来源由authorities区分，serialized-only拒绝。
      */
     readonly readbackOrigin: 'creator-native' | 'serialized-only';
+}
+
+/**
+ * @description 仅引用同run显式资源，UUID必须从真实AssetDB与SDK读回解析。
+ */
+export interface IResourceNativeReference {
+    /** @description 同run显式批准的源路径。 */
+    readonly assetPath: string;
+    /** @description 固定SDK getter读回的资源类型。 */
+    readonly expectedType: string;
+    /** @description 真实类型reader的版本与源码证明。 */
+    readonly expectedAuthority: IResourceSemanticAuthority;
 }
 
 /**
  * @description 一个有界资源命令；审批由实际 Bridge 端口签发，计划不能携带 token。
  */
 export interface IResourceCommand {
+    /**
+     * @description 仅lumen-asset-set的/props字段null占位，执行前有界解析真实UUID。
+     */
+    readonly nativeBindings?: Readonly<Record<string, IResourceNativeReference>>;
     /**
      * @description 公开 operation 的 capability 名称。
      */
@@ -94,6 +124,14 @@ export interface IResourceCasePlan {
      * @description JSON Pointer → 应读回的语义值。
      */
     readonly expectedSemantic: Readonly<Record<string, unknown>>;
+    /**
+     * @description null语义占位的真实源身份，不允许静态猜测导入UUID。
+     */
+    readonly expectedReferences?: Readonly<Record<string, IResourceNativeReference>>;
+    /**
+     * @description 声明后必须完整覆盖所有semantic pointer并与实际SDK/reader/hash逐项一致。
+     */
+    readonly expectedAuthorities?: Readonly<Record<string, IResourceSemanticAuthority>>;
     /**
      * @description 非法字段和只读写入必须以拒绝验收。
      */
@@ -202,6 +240,10 @@ export interface IResourceCampaignExpectation extends IResourceSessionIdentity {
  * @description 保存成功和失败的原生用例观察，失败不删除或覆盖旧结果。
  */
 export interface IResourceCaseObservation {
+    /**
+     * @description setup后、业务调用前真实引用快照，供独立后验重算UUID。
+     */
+    readonly referenceSnapshots?: Readonly<Record<string, IResourceSnapshot>>;
     /**
      * @description 被测用例 ID。
      */

@@ -26,17 +26,19 @@ if (args.includes('--prepare')) {
         plan: IResourceCampaignPlan; expected: IResourceCampaignExpectation; fullResourceCaseIds: string[]; blocked: unknown[] };
     let attached = false; let failure: string | null = null; let detachFailure: string | null = null;
     let observations: Awaited<ReturnType<typeof ResourceStabilityRunner.run>> = [];
+    let port: ResourceStabilityManagedPort | null = null;
     try {
         client.assertWholeLogs();
         const identity = await client.identity();
         const expected = { ...staged.expected, ...identity };
         await client.mcp({ action: 'attachCapabilities', owner: identity.owner, projectPath: identity.projectPath,
             resourceRoots: [staged.plan.namespace], capabilities: names }); attached = true;
-        observations = await ResourceStabilityRunner.run(staged.plan, expected,
-            new ResourceStabilityManagedPort(staged.plan, expected, client));
+        port = new ResourceStabilityManagedPort(staged.plan, expected, client);
+        observations = await ResourceStabilityRunner.run(staged.plan, expected, port);
         client.assertWholeLogs();
     } catch (error) { failure = error instanceof Error ? error.message : String(error); }
     finally {
+        observations = port?.observations ?? observations;
         if (attached) try {
             await client.mcp({ action: 'detachCapabilities', owner: client.registration.owner,
                 projectPath: client.project, resourceRoots: [staged.plan.namespace], capabilities: names });

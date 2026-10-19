@@ -1,6 +1,6 @@
 import { existsSync, lstatSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import type { IResourceSnapshot } from './resource-stability-contracts.mts';
+import type { IResourceSnapshot, IResourceSemanticAuthority } from './resource-stability-contracts.mts';
 
 /**
  * @description 固定只读观测，不接受 SDK message 名称、脚本或写回数据。
@@ -9,7 +9,8 @@ export interface IResourceNativeReadPort {
     assetInfo(pathOrUuid: string): Promise<unknown>;
     dependencies(uuid: string): Promise<readonly string[]>;
     inspector(uuid: string): Promise<{ readonly origin: 'creator-native'; readonly actualUuid: string;
-        readonly valid: boolean; readonly semantic: Readonly<Record<string, unknown>> }>;
+        readonly valid: boolean; readonly semantic: Readonly<Record<string, unknown>>;
+        readonly authorities?: Readonly<Record<string, IResourceSemanticAuthority>> }>;
 }
 
 /**
@@ -75,7 +76,7 @@ export class ResourceStabilityNativeSnapshot {
             throw new Error('resource_native_inspector_identity_mismatch');
         }
         return { path: relativePath, exists, metaUuid: String(meta.uuid), assetDbUuid: String(info.uuid), subassets,
-            unresolvedReferences: [...unresolved].sort(), semantic: inspector.semantic, readbackOrigin: 'creator-native' };
+            unresolvedReferences: [...unresolved].sort(), semantic: inspector.semantic, authorities: inspector.authorities, readbackOrigin: 'creator-native' };
     }
 
     /**

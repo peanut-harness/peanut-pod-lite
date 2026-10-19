@@ -1,3 +1,4 @@
+import { ResourceStabilityNativeRuntime } from './resource-stability-native-runtime.mts';
 import { cpSync, copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -78,24 +79,36 @@ export class ResourceStabilityNativeProject {
         const catalog = JSON.parse(readFileSync(join(root, 'tests/fixtures/editor-stability/serialized/resource-fixtures.json'), 'utf8')) as {
             fixtures: { creatorVersion: string; assetKind: string; dependencies: unknown[];
                 files: { source: { path: string; sha256: string }; meta: { path: string; sha256: string } };
-                initialPublic: Record<string, unknown>; patch: { valid: Record<string, unknown>; expectedPublic: Record<string, unknown> } }[] };
+                initialPublic: Record<string, unknown>; patch: { valid: Record<string, unknown>; expectedPublic: Record<string, unknown> };
+                fieldCases?: Record<string, { initial: unknown; expected: unknown; patch: Record<string, unknown>; invalidPatch: Record<string, unknown> }> }[] };
         const fixtures: IResourceNativeShardFixture[] = []; const fixtureSources: Record<string, string> = {};
         for (const fixture of catalog.fixtures.filter((row) => row.creatorVersion === '3.8.3'
-            && ['physicsMaterial', 'animationGraphVariant', 'renderPipeline', 'animationMask'].includes(row.assetKind))) {
+            && ResourceStabilityNativeRuntime.kinds.includes(row.assetKind))) {
             if (fixture.dependencies.length) throw new Error('resource_native_fixture_dependency_not_bound');
             const source = readFileSync(join(root, fixture.files.source.path)); const meta = readFileSync(join(root, fixture.files.meta.path));
             if (this.hash(source) !== fixture.files.source.sha256 || this.hash(meta) !== fixture.files.meta.sha256) throw new Error('resource_native_frozen_fixture_changed');
-            for (const row of manifest.cases.filter((item) => item.targetId === `asset:${fixture.assetKind}`)) {
+            for (const row of manifest.cases.filter((item) => item.targetId === `asset:${fixture.assetKind}`
+                || fixture.assetKind === 'physicsMaterial' && ResourceStabilityNativeShard.physicsFields.some((field) =>
+                    item.targetId === `field:asset:physicsMaterial:${field}`) && ['read', 'set', 'reject_invalid'].includes(item.action))) {
+                const fieldName = row.targetId.startsWith('field:') ? row.targetId.split(':').at(-1) : undefined;
+                const fieldCase = fieldName ? fixture.fieldCases?.[fieldName] : undefined;
+                if (fieldName && !fieldCase) throw new Error('resource_native_field_fixture_missing');
                 const folder = join(project, '.peanut-ai/resource-stability-inputs', options.runId, fixture.assetKind, row.action);
                 mkdirSync(folder, { recursive: true });
-                const filename = `${fixture.assetKind}-${row.action}${basename(fixture.files.source.path).match(/\.[^.]+$/u)?.[0] ?? ''}`;
-                const data = JSON.parse(source.toString('utf8')) as Record<string, unknown>; data._name = filename.replace(/\.[^.]+$/u, '');
+                const filename = `${fixture.assetKind}-${fieldName ? `${fieldName}-` : ''}${row.action}${basename(fixture.files.source.path).match(/\.[^.]+$/u)?.[0] ?? ''}`;
+                const isJson = source[0] === 123;
+                const data = isJson ? JSON.parse(source.toString('utf8')) as Record<string, unknown> : null;
+                const name = filename.replace(/\.[^.]+$/u, '');
+                if (data && Object.hasOwn(data, '_name')) data._name = name;
                 const metadata = JSON.parse(meta.toString('utf8')) as Record<string, unknown>;
                 metadata.uuid = randomUUID(); metadata.imported = false; metadata.files = [];
-                const input = join(folder, filename); writeFileSync(input, JSON.stringify(data)); writeFileSync(`${input}.meta`, JSON.stringify(metadata));
+                const input = join(folder, filename); writeFileSync(input, data ? JSON.stringify(data) : source); writeFileSync(`${input}.meta`, JSON.stringify(metadata));
                 fixtureSources[input] = this.hash(readFileSync(input)); fixtureSources[`${input}.meta`] = this.hash(readFileSync(`${input}.meta`));
                 fixtures.push({ kind: fixture.assetKind, caseId: row.id, filename, source: input, sourceMeta: `${input}.meta`,
-                    initial: { ...fixture.initialPublic, '/name': data._name }, patch: fixture.patch.valid, expectedPatch: fixture.patch.expectedPublic });
+                    initial: Object.hasOwn(fixture.initialPublic, '/name') ? { ...fixture.initialPublic, '/name': name } : fixture.initialPublic, patch: fixture.patch.valid, expectedPatch: fixture.patch.expectedPublic,
+                    field: fieldName && fieldCase ? { name: fieldName, initial: fieldName === 'name' ? name : fieldCase.initial,
+                        expected: fieldCase.expected, patch: fieldCase.patch, invalidPatch: fieldCase.invalidPatch,
+                        rejectionCode: `lumen_property_type:${fieldName}:${fieldName === 'name' ? 'string' : 'number>=0'}` } : undefined });
             }
         }
         const shard = ResourceStabilityNativeShard.create(inventory, { ...registration, projectName: 'peanut-resource-native-383',

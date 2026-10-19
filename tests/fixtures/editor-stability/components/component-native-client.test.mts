@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import { ComponentNativeClient } from './component-native-client.mts';
@@ -70,6 +70,16 @@ test('scene identity rejects escaped paths and broken metadata without attemptin
 test('native client refuses a project lease owned by the previous actor before any transport', async () => {
     await fixture(async client => {
         assert.throws(() => new RegistrationClient(client.project, { current: () => 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff' }), /component_matrix_owner_invalid/);
+        assert.equal(client.calls.length, 0);
+    });
+});
+
+
+test('native client refuses simultaneous formal and legacy SDK startup patches before any transport', async () => {
+    await fixture(async client => {
+        const file = join(client.output, 'project-ownership.json'); const registration = JSON.parse(readFileSync(file, 'utf8'));
+        writeFileSync(file, JSON.stringify({ ...registration, formalSdkStartupTimer: { kind: 'formal-host-sdk-worker' }, sdkStartupTimerCompat: true }));
+        assert.throws(() => new RegistrationClient(client.project, { current: () => String(registration.owner) }), /formal_sdk_worker_legacy_conflict/u);
         assert.equal(client.calls.length, 0);
     });
 });

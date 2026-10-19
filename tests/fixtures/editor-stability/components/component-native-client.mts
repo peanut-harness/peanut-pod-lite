@@ -1,3 +1,4 @@
+import { ComponentFormalSdkWorker } from './component-formal-sdk-worker.mts';
 import { appendFileSync, readFileSync, realpathSync, existsSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -60,6 +61,8 @@ export class ComponentNativeClient {
             throw new Error('component_matrix_project_out_of_scope');
         this.registration = JSON.parse(readFileSync(join(this.output, 'project-ownership.json'), 'utf8'));
         this.lease = JSON.parse(readFileSync(join(this.output, 'creator-owned-start.json'), 'utf8'));
+        if (this.registration.formalSdkStartupTimer && this.registration.sdkStartupTimerCompat === true)
+            throw new Error('component_formal_sdk_worker_legacy_conflict');
         if (this.registration.task !== '5.1' || this.registration.owner !== ownership.current(this.root)
             || this.registration.projectPath !== this.project || this.lease.owner !== this.registration.owner
             || this.lease.runId !== this.registration.runId || this.lease.project !== this.project) throw new Error('component_matrix_owner_invalid');
@@ -135,6 +138,14 @@ export class ComponentNativeClient {
                     const descriptor = JSON.parse(readFileSync(join(this.root, 'release/peanut.pod-lite-0.2.0/lite-release-descriptor.json'), 'utf8'));
                     if (health.creatorVersion !== this.registration.creatorVersion || health.pid !== this.lease.pid
                         || CpmPackageStore.compareReleaseIdentity(host.artifacts, descriptor).length) throw new Error('component_matrix_candidate_mismatch');
+                    if (this.registration.formalSdkStartupTimer) {
+                        if (typeof this.registration.candidateSourceCommit !== 'string') throw new Error('component_formal_sdk_worker_registration_mismatch');
+                        const formal = ComponentFormalSdkWorker.source(join(this.root, 'release/peanut.pod-lite-0.2.0'),
+                            this.registration.candidateSourceCommit, String(this.registration.creatorVersion));
+                        if (!formal) throw new Error('component_formal_sdk_worker_source_missing');
+                        ComponentFormalSdkWorker.assertInstalled(this.project, this.registration, formal);
+                        this.events.push({ step: 'formal-sdk-startup-worker-source-verified', sourceVerified: true, result: formal }); this.save();
+                    }
                     this.events.push({ step: 'health', result: health }); this.save(); return health;
                 }
             } catch (error) {

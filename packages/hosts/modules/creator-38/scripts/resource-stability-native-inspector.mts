@@ -1,3 +1,5 @@
+import type { IResourceSemanticAuthority } from './resource-stability-contracts.mts';
+import { ResourceStabilityNativeRuntime } from './resource-stability-native-runtime.mts';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -51,6 +53,10 @@ export class ResourceStabilityNativeInspector {
                 throw new Error('resource_native_getter_source_mismatch');
             }
         }
+        for (const [, file, sha256] of ResourceStabilityNativeRuntime.sources) {
+            if (createHash('sha256').update(readFileSync(join(engine, file))).digest('hex') !== sha256) throw new Error('resource_native_runtime_source_mismatch');
+        }
+        if (createHash('sha256').update(readFileSync(join(engine, ResourceStabilityNativeRuntime.publicNameSource.file))).digest('hex') !== ResourceStabilityNativeRuntime.publicNameSource.sha256) throw new Error('resource_native_name_source_mismatch');
         const loader = readFileSync(join(engine, 'cocos/asset/asset-manager/asset-manager.ts'));
         if (createHash('sha256').update(loader).digest('hex') !== '01b1310ccd5a4e37fe83372e2ca181d732fed1765ba47951c157bf444185ac19') {
             throw new Error('resource_native_loader_source_mismatch');
@@ -61,18 +67,24 @@ export class ResourceStabilityNativeInspector {
      * @description 返回真实根身份与未改写的原生 dump；语义指针由完整计划绑定，不猜测字段。
      */
     public async read(uuid: string): Promise<{ origin: 'creator-native'; actualUuid: string; valid: boolean;
-        semantic: Readonly<Record<string, unknown>> }> {
+        semantic: Readonly<Record<string, unknown>>; authorities: Readonly<Record<string, IResourceSemanticAuthority>> }> {
         const identity = await this.queries.loadIdentity(uuid);
         if (!identity.valid || identity.actualUuid !== uuid) throw new Error('resource_native_inspector_identity_mismatch');
         const index = contracts.findIndex(([type]) => type === identity.type);
-        if (index < 0) throw new Error(`resource_native_inspector_type_blocked:${identity.type}`);
+        if (index < 0) {
+            if (!ResourceStabilityNativeRuntime.sources.some(([type]) => type === identity.type) || !identity.semantic || Object.keys(identity.semantic).length === 0) {
+                throw new Error(`resource_native_inspector_type_blocked:${identity.type}`);
+            }
+            return { origin: 'creator-native', actualUuid: identity.actualUuid, valid: true, semantic: identity.semantic, authorities: ResourceStabilityNativeRuntime.authorities(identity.type, identity.semantic) };
+        }
         const readers = [this.queries.physicsMaterial, this.queries.animationGraphVariant,
             this.queries.renderPipeline, this.queries.animationMask];
         const reader = readers[index];
         if (!reader) throw new Error('resource_native_inspector_reader_missing');
         const value = await reader.call(this.queries, uuid);
         if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('resource_native_inspector_dump_missing');
-        return { origin: 'creator-native', actualUuid: identity.actualUuid, valid: true,
-            semantic: identity.semantic ?? Object.fromEntries(Object.entries(value)) };
+        const semantic = identity.semantic ?? Object.fromEntries(Object.entries(value));
+        return { origin: 'creator-native', actualUuid: identity.actualUuid, valid: true, semantic,
+            authorities: ResourceStabilityNativeRuntime.authorities(identity.type, semantic) };
     }
 }
