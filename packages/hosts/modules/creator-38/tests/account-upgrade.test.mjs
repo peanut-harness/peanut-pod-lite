@@ -157,10 +157,11 @@ function createEditor(projectRoot) {
         encryptString: (value) => Buffer.from(`encrypted:${value}`, 'utf8'),
         decryptString: (value) => value.toString('utf8').slice('encrypted:'.length),
     };
+    const timerMap = new Map();
     return {
         Project: { path: projectRoot, name: 'host-test' },
         App: { version: '3.8.7', safeStorage },
-        Metrics: { trackTimeStart() {}, trackTimeEnd() {} },
+        Metrics: { trackTimeStart() {}, trackTimeEnd() {}, __protected__: { getTrackTimeStartMap: () => timerMap } },
         Selection: { getSelected: () => [] },
         Message: { request: async () => ({}) },
         log: () => {},
