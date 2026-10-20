@@ -4,13 +4,15 @@ const path = require('path');
 const { resolve } = path;
 const { HostUpdateCoordinator } = require('./host-update-coordinator.ts');
 
-function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => globalThis.Editor }) {
+function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => globalThis.Editor, waitForAssetDbReady: waitForReady = null }) {
     let runtime = null;
     let coordinator = null;
     let quitListenerRegistered = false;
     let runtimeReady = false;
     let initialization = null;
     let initializationFailure = null;
+    let cancelAssetDbWait = null;
+    let unloading = false;
 
     function getCoordinator() {
         if (coordinator != null) return coordinator;
@@ -57,13 +59,16 @@ function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => glo
     async function initializeRuntime(candidateNeedsHealthCheck) {
         const update = getCoordinator();
         try {
+            if (unloading) throw new Error('peanut_host_startup_cancelled');
+            await (waitForReady ?? waitForSdkAssetDbReady)();
+            if (unloading) throw new Error('peanut_host_startup_cancelled');
             await runtime.load({ extensionRoot });
             const health = await runtime.methods.queryStatus();
             if (candidateNeedsHealthCheck) update.confirmHealthy(health);
             runtimeReady = true;
             return health;
         } catch (error) {
-            if (!candidateNeedsHealthCheck) throw error;
+            if (!candidateNeedsHealthCheck || unloading) throw error;
             try {
                 await runtime?.unload?.();
             } catch {
@@ -95,27 +100,22 @@ function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => glo
         const candidateNeedsHealthCheck = state?.state === 'switching' || state?.state === 'pending-health-check';
         runtimeReady = false;
         initializationFailure = null;
+        unloading = false;
         runtime = loadRuntime();
-
-        // Creator enables package contributions only after its main entry's load resolves.
-        // Let the asset-db worker contribution register before normal Lite Runtime startup.
-        if (candidateNeedsHealthCheck) {
-            initialization = initializeRuntime(true).catch(error => {
-                initializationFailure = error;
-                throw error;
-            });
-            return initialization;
-        }
         initialization = new Promise((resolve, reject) => {
             setImmediate(() => {
-                initializeRuntime(false).then(resolve, reject);
+                initializeRuntime(candidateNeedsHealthCheck).then(resolve, reject);
             });
         });
         void initialization.catch(error => { initializationFailure = error; });
+        // Creator enables package contributions only after this load resolves. Returning
+        // first registers the SDK timer worker, then we start Lite Runtime after asset-db ready.
         return undefined;
     }
 
     async function unload() {
+        unloading = true;
+        cancelAssetDbWait?.();
         try {
             await initialization;
         } catch {
@@ -127,6 +127,32 @@ function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => glo
         initialization = null;
         initializationFailure = null;
         if (typeof current?.unload === 'function') await current.unload();
+    }
+
+    function waitForSdkAssetDbReady() {
+        const messages = getEditor()?.Message;
+        if (typeof messages?.request !== 'function' || typeof messages.addBroadcastListener !== 'function'
+            || typeof messages.removeBroadcastListener !== 'function') throw new Error('peanut_host_asset_db_ready_api_unavailable');
+        return new Promise((resolve, reject) => {
+            let settled = false;
+            const finish = (error) => {
+                if (settled) return;
+                settled = true;
+                cancelAssetDbWait = null;
+                let failure = error;
+                try { messages.removeBroadcastListener('asset-db:ready', onReady); }
+                catch (cleanupError) { failure ??= cleanupError; }
+                if (failure) reject(failure); else resolve();
+            };
+            const onReady = () => finish();
+            try { messages.addBroadcastListener('asset-db:ready', onReady); }
+            catch (error) { finish(error); return; }
+            cancelAssetDbWait = () => finish(new Error('peanut_host_startup_cancelled'));
+            Promise.resolve().then(() => messages.request('asset-db', 'query-ready')).then(ready => {
+                if (typeof ready !== 'boolean') { finish(new Error('peanut_host_asset_db_ready_reply_invalid')); return; }
+                if (ready) finish();
+            }, finish);
+        });
     }
 
     function createMethodsProxy() {
