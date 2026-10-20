@@ -56,12 +56,15 @@ function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => glo
         return require(selectedPath);
     }
 
-    async function initializeRuntime(candidateNeedsHealthCheck) {
+    async function initializeRuntime() {
+        if (unloading) throw new Error('peanut_host_startup_cancelled');
         const update = getCoordinator();
+        const state = update.readState();
+        const candidateNeedsHealthCheck = state?.state === 'switching' || state?.state === 'pending-health-check';
         try {
-            if (unloading) throw new Error('peanut_host_startup_cancelled');
             await (waitForReady ?? waitForSdkAssetDbReady)();
             if (unloading) throw new Error('peanut_host_startup_cancelled');
+            runtime = loadRuntime();
             await runtime.load({ extensionRoot });
             const health = await runtime.methods.queryStatus();
             if (candidateNeedsHealthCheck) update.confirmHealthy(health);
@@ -95,21 +98,18 @@ function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => glo
 
     async function load() {
         registerQuitListener();
-        const update = getCoordinator();
-        const state = update.readState();
-        const candidateNeedsHealthCheck = state?.state === 'switching' || state?.state === 'pending-health-check';
         runtimeReady = false;
         initializationFailure = null;
         unloading = false;
-        runtime = loadRuntime();
+        runtime = null;
         initialization = new Promise((resolve, reject) => {
             setImmediate(() => {
-                initializeRuntime(candidateNeedsHealthCheck).then(resolve, reject);
+                initializeRuntime().then(resolve, reject);
             });
         });
         void initialization.catch(error => { initializationFailure = error; });
-        // Creator enables package contributions only after this load resolves. Returning
-        // first registers the SDK timer worker, then we start Lite Runtime after asset-db ready.
+        // Creator enables package contributions only after this resolves. Keep package IO,
+        // runtime require and startup behind that boundary so the SDK timer worker registers first.
         return undefined;
     }
 
@@ -176,8 +176,9 @@ function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => glo
                         return getCoordinator().status();
                     };
                 }
+                if (typeof property !== 'string' || property === 'then') return undefined;
                 const method = runtime?.methods?.[property];
-                if (typeof method !== 'function') return undefined;
+                if (typeof method !== 'function' && (runtime !== null || !initialization)) return undefined;
                 return (...args) => {
                     if (initializationFailure) throw initializationFailure;
                     const invoke = () => {

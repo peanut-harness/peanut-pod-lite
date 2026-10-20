@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -160,7 +160,9 @@ test('normal Creator enable yields before runtime initialization and gates Host 
     const projectPath = join(root, 'project');
     mkdirSync(extensionRoot, { recursive: true });
     mkdirSync(projectPath, { recursive: true });
-    writeRuntimePackage(extensionRoot, '0.2.0', false, 'await new Promise(resolve => setTimeout(resolve, 40));');
+    const moduleMarker = join(root, 'runtime-module-required');
+    writeRuntimePackage(extensionRoot, '0.2.0', false, 'await new Promise(resolve => setTimeout(resolve, 40));',
+        `require('node:fs').writeFileSync(${JSON.stringify(moduleMarker)}, 'loaded');`);
     let releaseAssetDbReady;
     const assetDbReady = new Promise(resolve => { releaseAssetDbReady = resolve; });
     const bootstrap = createHostBootstrap({ extensionRoot, projectPath, getEditor: () => ({ App: { on() {} } }), waitForAssetDbReady: () => assetDbReady });
@@ -168,11 +170,15 @@ test('normal Creator enable yields before runtime initialization and gates Host 
 
     try {
         await bootstrap.load();
+        assert.equal(existsSync(moduleMarker), false);
+        assert.equal(typeof bootstrap.methods.queryStatus, 'function');
         const health = bootstrap.methods.queryStatus().then(result => { runtimeReady = true; return result; });
         assert.equal(runtimeReady, false);
+        assert.equal(existsSync(moduleMarker), false);
         releaseAssetDbReady();
         assert.equal((await health).ready, true);
         assert.equal(runtimeReady, true);
+        assert.equal(existsSync(moduleMarker), true);
     } finally {
         await bootstrap.unload();
         rmSync(root, { recursive: true, force: true });
@@ -293,12 +299,13 @@ function writeHostPackage(root, version, mainSource) {
     writeFileSync(join(root, 'panel', 'plugin-manager', 'index.js'), `// ${version}\n`);
 }
 
-function writeRuntimePackage(root, version, failLoad, loadBody = '') {
+function writeRuntimePackage(root, version, failLoad, loadBody = '', moduleBody = '') {
     writeHostPackage(root, version, '');
     writeFileSync(join(root, 'dist', 'cpm-package-store.js'), readFileSync(new URL('../src/cpm-package-store.js', import.meta.url)));
     writeFileSync(join(root, 'dist', 'main.js'), `
         const path = require('path');
         const { CpmPackageStore } = require('./cpm-package-store');
+        ${moduleBody}
         let bootstrapExtensionRoot;
         module.exports = {
             async load(options) { bootstrapExtensionRoot = options.extensionRoot; ${loadBody} ${failLoad ? "throw new Error('candidate_load_failed');" : ''} },
