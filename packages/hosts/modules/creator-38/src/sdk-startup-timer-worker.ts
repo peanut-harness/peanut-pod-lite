@@ -46,6 +46,19 @@ export class SdkStartupTimerWorker {
 
 const worker = new SdkStartupTimerWorker();
 /**
+ * @description Host asset-db 贡献可能在 beforePreStart 全局派发之后才加载；SDK 仍会在此后启动数据库。
+ * 在直接 worker 入口求值时尽早安装，SDK 全局尚未就绪时交由原始生命周期钩子重试。
+ */
+const installIfReady = (): void => {
+    const editor = Reflect.get(globalThis, 'Editor');
+    const manager = Reflect.get(globalThis, 'Manager');
+    const app = editor && typeof editor === 'object' ? Reflect.get(editor, 'App') : undefined;
+    const assetDBManager = manager && typeof manager === 'object' ? Reflect.get(manager, 'assetDBManager') : undefined;
+    if (app && typeof app === 'object' && Reflect.get(app, 'version') === '3.8.7'
+        && assetDBManager && typeof assetDBManager === 'object') worker.load(editor, manager);
+};
+installIfReady();
+/**
  * @description SDK 正式 load 钩子。
  */
 export const load = (): void => worker.load(Reflect.get(globalThis, 'Editor'), Reflect.get(globalThis, 'Manager'));
