@@ -140,6 +140,7 @@ function createEditor(projectRoot) {
     return {
         Project: { path: projectRoot, name: 'host-test' },
         App: { version: '3.8.7', safeStorage },
+        Metrics: { trackTimeStart() {}, trackTimeEnd() {} },
         Selection: { getSelected: () => [] },
         Message: { request: async () => ({}) },
         log: () => {},

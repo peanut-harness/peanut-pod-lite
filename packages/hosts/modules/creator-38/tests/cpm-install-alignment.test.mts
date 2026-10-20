@@ -156,6 +156,7 @@ function createEditor(root) {
     return {
         Project: { path: root, name: 'cpm-alignment' },
         App: { version: '3.8.7', safeStorage },
+        Metrics: { trackTimeStart() {}, trackTimeEnd() {} },
         Selection: { getSelected: () => [] },
         Message: {
             request: async (_target, method) => method === 'query-ready' ? true : ({}),

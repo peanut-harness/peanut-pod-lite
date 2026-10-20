@@ -137,6 +137,7 @@ function createEditor(projectRoot) {
     return {
         Project: { path: projectRoot, name: 'host-test' },
         App: { version: '3.8.7', safeStorage },
+        Metrics: { trackTimeStart() {}, trackTimeEnd() {} },
         Selection: { getSelected: () => [] },
         Package: { getPath: () => extensionPath },
         Message: { request: async () => true, addBroadcastListener() {}, removeBroadcastListener() {} },

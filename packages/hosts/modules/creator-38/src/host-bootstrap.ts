@@ -3,6 +3,7 @@
 const path = require('path');
 const { resolve } = path;
 const { HostUpdateCoordinator } = require('./host-update-coordinator.ts');
+const { SdkBuildTaskTimerCompat } = require('./sdk-build-task-timer-compat.ts');
 
 function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => globalThis.Editor, waitForAssetDbReady: waitForReady = null }) {
     let runtime = null;
@@ -13,6 +14,7 @@ function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => glo
     let initializationFailure = null;
     let cancelAssetDbWait = null;
     let unloading = false;
+    let buildTaskTimerPatch = null;
 
     function getCoordinator() {
         if (coordinator != null) return coordinator;
@@ -98,6 +100,7 @@ function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => glo
 
     async function load() {
         registerQuitListener();
+        buildTaskTimerPatch = SdkBuildTaskTimerCompat.install(getEditor());
         runtimeReady = false;
         initializationFailure = null;
         unloading = false;
@@ -126,6 +129,8 @@ function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => glo
         runtimeReady = false;
         initialization = null;
         initializationFailure = null;
+        buildTaskTimerPatch?.restore();
+        buildTaskTimerPatch = null;
         if (typeof current?.unload === 'function') await current.unload();
     }
 
