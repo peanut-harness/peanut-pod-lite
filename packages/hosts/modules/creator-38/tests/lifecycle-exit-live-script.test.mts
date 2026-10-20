@@ -60,12 +60,11 @@ test('actual Creator launch requires the registered project npm creator hook wit
 });
 
 
-test('macOS launch uses a distinct LaunchServices instance with separate application raw streams', () => {
+test('macOS launch uses the installed Creator binary with an explicit project root', () => {
     const app = '/Applications/Cocos Creator.app'; const project = '/isolated/project with spaces'; const output = '/isolated/logs';
     const command = LifecycleExitLiveBaseline.launchCommand(app, project, output, 'darwin');
-    assert.equal(command.command, '/usr/bin/open');
-    assert.deepEqual(command.args, ['-n', '-a', app, '-W', '--stdout', join(output, 'stdout.log'),
-        '--stderr', join(output, 'stderr.log'), '--args', '--project', project, '--nologin']);
+    assert.equal(command.command, join(app, 'Contents/MacOS/CocosCreator'));
+    assert.deepEqual(command.args, ['--project', project, '--nologin']);
     assert.throws(() => LifecycleExitLiveBaseline.launchCommand(app, project, output, 'linux'), /macos_required/u);
 });
 

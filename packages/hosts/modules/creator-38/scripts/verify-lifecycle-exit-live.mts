@@ -49,13 +49,12 @@ export class LifecycleExitLiveBaseline {
             status: 'launch-reserved', pid: null }, null, 2) + '\n', { flag: 'wx' });
         const stdoutFd = openSync(join(output, 'stdout.log'), 'wx');
         const stderrFd = openSync(join(output, 'stderr.log'), 'wx');
-        closeSync(stdoutFd); closeSync(stderrFd);
         const launch = this.launchCommand(app, project, output, process.platform);
         const launcherStdout = openSync(join(output, 'launcher-stdout.log'), 'wx');
         const launcherStderr = openSync(join(output, 'launcher-stderr.log'), 'wx');
         const child = spawn(launch.command, launch.args, { cwd: project,
-            stdio: ['ignore', launcherStdout, launcherStderr] });
-        closeSync(launcherStdout); closeSync(launcherStderr);
+            stdio: ['ignore', stdoutFd, stderrFd] });
+        closeSync(stdoutFd); closeSync(stderrFd); closeSync(launcherStdout); closeSync(launcherStderr);
         let exitCode: number | null = null;
         let exitSignal: string | null = null;
         let exited = false;
@@ -200,17 +199,16 @@ export class LifecycleExitLiveBaseline {
     }
 
     /**
-     * @description macOS 通过 LaunchServices 建立真正应用生命周期，并等待该独立实例退出。
+     * @description 按 Creator 打开规则直启安装包主程序，将工程根作为独立参数传入。
      * @param app 已验证的 Creator 安装包。
      * @param project 独占工程。
      * @param output 独占原始日志目录。
      * @param platform 实际平台。
      * @returns 无 shell 插值的命令与参数。
      */
-    public static launchCommand(app: string, project: string, output: string, platform: NodeJS.Platform): { command: string; args: string[] } {
+    public static launchCommand(app: string, project: string, _output: string, platform: NodeJS.Platform): { command: string; args: string[] } {
         if (platform !== 'darwin') throw new Error('lifecycle_macos_required');
-        return { command: '/usr/bin/open', args: ['-n', '-a', app, '-W', '--stdout', join(output, 'stdout.log'),
-            '--stderr', join(output, 'stderr.log'), '--args', '--project', project, '--nologin'] };
+        return { command: join(app, 'Contents/MacOS/CocosCreator'), args: ['--project', project, '--nologin'] };
     }
 
     /**
