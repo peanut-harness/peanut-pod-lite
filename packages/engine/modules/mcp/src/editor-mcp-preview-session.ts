@@ -70,26 +70,14 @@ export class EditorMcpPreviewSession {
     private async _refresh(): Promise<{ available: boolean; source: 'live'; message: string }> {
         const count = await this._connections();
         if (count === null) return this._result(false, 'preview_refresh_unavailable:preview_state_unknown');
-        if (count > 0) {
-            this._observedConnected = true;
-            try {
-                await this._message.request('preview', 'reload-terminal');
-                return this._result(true, 'preview_refresh_ok:existing-preview+reload-terminal');
-            } catch { return this._result(false, 'preview_refresh_unavailable:existing_preview_reload_failed'); }
-        }
+        if (count > 0) return this._refreshConnectedPreview();
         if (this._openRequested || this._observedConnected)
             return this._result(false, 'preview_refresh_unavailable:preview_disconnected_no_reopen');
         if (this._windowStateUnknown) return this._result(false, 'preview_refresh_unavailable:window_state_unknown');
         // 决定打开之前再次只读确认，避免第一轮查询期间有预览连接完成。
         const checked = await this._connections();
         if (checked === null) return this._result(false, 'preview_refresh_unavailable:preview_state_unknown');
-        if (checked > 0) {
-            this._observedConnected = true;
-            try {
-                await this._message.request('preview', 'reload-terminal');
-                return this._result(true, 'preview_refresh_ok:existing-preview+reload-terminal');
-            } catch { return this._result(false, 'preview_refresh_unavailable:existing_preview_reload_failed'); }
-        }
+        if (checked > 0) return this._refreshConnectedPreview();
         const presence = await this._inspectWindow();
         if (presence === 'unknown') {
             this._windowStateUnknown = true;
@@ -101,13 +89,45 @@ export class EditorMcpPreviewSession {
         }
         const afterInspection = await this._connections();
         if (afterInspection === null) return this._result(false, 'preview_refresh_unavailable:preview_state_unknown');
-        if (afterInspection > 0) {
-            this._observedConnected = true;
-            try {
-                await this._message.request('preview', 'reload-terminal');
-                return this._result(true, 'preview_refresh_ok:existing-preview+reload-terminal');
-            } catch { return this._result(false, 'preview_refresh_unavailable:existing_preview_reload_failed'); }
+        if (afterInspection > 0) return this._refreshConnectedPreview();
+        return this._openOnce();
+    }
+
+    /**
+     * @description 连接数不证明浏览器窗口存在；先核实实际标签再决定reload、单次开窗或拒绝。
+     */
+    private async _refreshConnectedPreview(): Promise<{ available: boolean; source: 'live'; message: string }> {
+        if (this._windowStateUnknown) return this._result(false, 'preview_refresh_unavailable:window_state_unknown');
+        const presence = await this._inspectWindow();
+        if (presence === 'unknown') {
+            this._windowStateUnknown = true;
+            return this._result(false, 'preview_refresh_unavailable:window_state_unknown');
         }
+        if (presence === 'absent') {
+            if (this._observedConnected || this._openRequested)
+                return this._result(false, 'preview_refresh_unavailable:preview_disconnected_no_reopen');
+            return this._openOnce();
+        }
+        this._observedConnected = true;
+        return this._reloadExistingPreview();
+    }
+
+    /**
+     * @description 物理窗口已核实存在后才请求Creator重载，避免刷新陈旧guest连接。
+     */
+    private async _reloadExistingPreview(): Promise<{ available: boolean; source: 'live'; message: string }> {
+        try {
+            await this._message.request('preview', 'reload-terminal');
+            return this._result(true, 'preview_refresh_ok:existing-preview+reload-terminal');
+        } catch { return this._result(false, 'preview_refresh_unavailable:existing_preview_reload_failed'); }
+    }
+
+    /**
+     * @description 只有真实窗口被证明不存在时才允许一次开窗；请求失败后不重试。
+     */
+    private async _openOnce(): Promise<{ available: boolean; source: 'live'; message: string }> {
+        if (this._openRequested || this._observedConnected)
+            return this._result(false, 'preview_refresh_unavailable:preview_disconnected_no_reopen');
         this._openRequested = true;
         try {
             await this._message.send('preview', 'open-terminal', undefined);

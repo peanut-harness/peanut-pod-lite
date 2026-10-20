@@ -99,7 +99,7 @@ test('existing preview is queried then refreshed twenty times without opening', 
     const gateway = new EditorMcpPreviewGateway({ message: {
         send: async (target, name) => calls.push(name),
         request: async (target, name) => { calls.push(name); if (name === 'query-connect-num') return 1; if (name === 'reload-terminal') return undefined; throw Error('unsupported'); },
-    } }, async () => null, async () => 'absent');
+    } }, async () => null, async () => 'exists');
     for (let i = 0; i < 20; i++) assert.equal((await gateway.refresh({ refreshAssets: false })).message, 'preview_refresh_ok:existing-preview+reload-terminal');
     assert.equal(calls.filter(name => name === 'open-terminal').length, 0);
     assert.equal(calls.filter(name => name === 'reload-terminal').length, 20);
@@ -111,7 +111,7 @@ test('initial absence opens once and delayed startup plus concurrent refreshes c
     const gateway = new EditorMcpPreviewGateway({ message: {
         send: async (target, name, ...args) => { calls.push({ name, args }); },
         request: async (target, name) => { calls.push({ name }); if (name === 'query-connect-num') return connections; if (name === 'reload-terminal') return undefined; throw Error('unsupported'); },
-    } }, async () => null, async () => 'absent');
+    } }, async () => null, async () => connections > 0 ? 'exists' : 'absent');
     const results = await Promise.all(Array.from({ length: 10 }, () => gateway.refresh({ refreshAssets: false })));
     assert.equal(results.filter(result => result.available).length, 1);
     assert.equal(calls.filter(call => call.name === 'open-terminal').length, 1);
@@ -128,7 +128,7 @@ test('unknown state, failed reload and failed opening never cause opening retrie
         const gateway = new EditorMcpPreviewGateway({ message: {
             send: async () => { opened++; throw Error('open_failed'); },
             request: async (target, name) => { if (name === 'query-connect-num') { if (state === 'unknown') throw Error('unsupported'); return state === 'reload-failed' ? 1 : 0; } throw Error('reload_failed'); },
-        } }, async () => null, async () => 'absent');
+        } }, async () => null, async () => state === 'reload-failed' ? 'exists' : 'absent');
         for (let i = 0; i < 5; i++) assert.equal((await gateway.refresh({ refreshAssets: false })).available, false);
         assert.equal(opened, state === 'open-failed' ? 1 : 0);
     }
@@ -139,7 +139,7 @@ test('preview appearing between presence checks is refreshed without opening', a
     const gateway = new EditorMcpPreviewGateway({ message: {
         send: async () => { opened++; },
         request: async (target, name) => { if (name === 'query-connect-num') return checks++ === 0 ? 0 : 1; if (name === 'reload-terminal') { reloaded++; return undefined; } throw Error('unsupported'); },
-    } }, async () => null, async () => 'absent');
+    } }, async () => null, async () => 'exists');
     assert.equal((await gateway.refresh({ refreshAssets: false })).available, true);
     assert.equal(opened, 0); assert.equal(reloaded, 1);
 });
@@ -165,6 +165,27 @@ test('zero connections with an existing or unknown physical window never opens o
         } }, async () => null, async () => { inspected++; return presence; });
         for (let i = 0; i < 5; i++) assert.equal((await gateway.refresh({ refreshAssets: false })).available, false);
         assert.equal(opened, 0); assert.equal(reloads, 0); assert.equal(inspected, 1);
+    }
+});
+
+test('stale preview connection with no browser tab opens once and unknown window state stays closed', async () => {
+    for (const presence of ['absent', 'unknown']) {
+        let opened = 0; let reloads = 0;
+        const gateway = new EditorMcpPreviewGateway({ message: {
+            send: async (_target, name) => { if (name === 'open-terminal') opened++; },
+            request: async (_target, name) => { if (name === 'query-connect-num') return 1; if (name === 'reload-terminal') { reloads++; return undefined; } throw Error('unsupported'); },
+        } }, async () => null, async () => presence);
+        const first = await gateway.refresh({ refreshAssets: false });
+        if (presence === 'absent') {
+            assert.equal(first.message, 'preview_refresh_ok:open-requested-once');
+            assert.equal((await gateway.refresh({ refreshAssets: false })).available, false);
+            assert.equal(opened, 1);
+        } else {
+            assert.equal(first.message, 'preview_refresh_unavailable:window_state_unknown');
+            assert.equal((await gateway.refresh({ refreshAssets: false })).available, false);
+            assert.equal(opened, 0);
+        }
+        assert.equal(reloads, 0);
     }
 });
 
