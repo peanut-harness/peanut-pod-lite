@@ -42,8 +42,11 @@ export class SdkBuildTaskTimerCompat {
             delete: Object.getOwnPropertyDescriptor(map, 'delete'),
         };
         const active = new Map<string, TimerEntry[]>();
+        for (const label of this.labels) {
+            if (Reflect.apply(original.has, map, [label])) active.set(label, [{ route: label }]);
+        }
         const selected = new Map<string, string>();
-        let sequence = 0;
+        const sequence = new Map<string, number>();
         let restoreRequested = false;
         let restored = false;
 
@@ -75,7 +78,9 @@ export class SdkBuildTaskTimerCompat {
                 if (typeof key !== 'string' || !SdkBuildTaskTimerCompat.labels.has(key))
                     return Reflect.apply(original.set, this, [key, value]);
                 const entries = active.get(key) ?? [];
-                const route = entries.length === 0 ? key : `${key} [peanut-overlap-${++sequence}]`;
+                const ordinal = (sequence.get(key) ?? 0) + 1;
+                if (entries.length > 0) sequence.set(key, ordinal);
+                const route = entries.length === 0 ? key : `${key} [peanut-overlap-${ordinal}]`;
                 const result = Reflect.apply(original.set, this, [route, value]);
                 entries.push({ route });
                 active.set(key, entries);

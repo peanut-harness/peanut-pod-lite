@@ -127,3 +127,24 @@ test('Creator 3.8.3 does not receive the 3.8.7 Builder timer compatibility patch
     assert.equal(starts.get, original.get); assert.equal(starts.delete, original.delete);
     assert.equal(patch.restore(), true);
 });
+
+test('Creator 3.8.7 Builder timer compatibility retains starts already in flight when installed', () => {
+    const starts = new Map<string, number>();
+    const editor = { App: { version: '3.8.7' }, Metrics: { __protected__: { getTrackTimeStartMap: () => starts } } };
+    const labels = [
+        '// ---- build task 查询 Asset Bundle ----',
+        '// ---- build task 整理部分构建选项内数据到 settings.json ----',
+    ];
+    const finish = (label: string): void => {
+        if (!starts.has(label)) throw new Error(`trackTimeEnd failed! Can not find the track time ${label} start`);
+        starts.delete(label);
+    };
+    for (const label of labels) starts.set(label, 1);
+    const patch = SdkBuildTaskTimerCompat.install(editor);
+    for (const label of labels) starts.set(label, 2);
+    for (const label of labels) assert.equal(starts.get(label), 1);
+    assert.deepEqual([...starts.keys()], [...labels, ...labels.map(label => `${label} [peanut-overlap-1]`)]);
+    for (const label of labels) { finish(label); finish(label); }
+    assert.equal(starts.size, 0);
+    assert.equal(patch.restore(), true);
+});
