@@ -3,11 +3,11 @@
   "corpusId": "peanut-org",
   "repos": {
     "peanut-pod-lite": {
-      "treeSha": "bd652a1ed7e5abbdeafd7dfa38dcba7e8c02cb0598edc025df840c62d2122d9f",
+      "treeSha": "db4561ed05c53c0f852b18fa3030132adc3c23cb6a3665f096e153e7bded0249",
       "cardSha": "84e10ddb038a9926e0100eb4f646ad2281249eabd7603a962d76b1a7b561e3c0",
       "fileCount": 15,
-      "attestReason": "Correct existing joint presentation anchors; knowledge unchanged",
-      "updatedAt": "2026-10-20T01:12:02.205Z"
+      "attestReason": "2026-10-20 existing presentation closeout:65 visible/66 observed;SDK batch and exit diagnostics retained;5.1 incomplete",
+      "updatedAt": "2026-10-20T01:49:53.885Z"
     }
   }
 }
