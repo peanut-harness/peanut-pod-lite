@@ -115,6 +115,15 @@ export class ComponentPresentationFixture {
                 (entry.node as { __id__?: unknown } | undefined)?.__id__ === node)) document.attachBuiltinComponent(targetPath, dependency);
         }
         document.findComponentIndex(document.findNodeIndex(targetPath), type);
+        if (req.physicsBackend === 'box2d' && type.endsWith('Joint2D')) {
+            // 使用同一Canvas中的真实静态刚体作为锚点，避免默认世界原点把载体拉出相机。
+            const anchor = document.addChildFromSpec(parent, { name: 'JointAnchor', components: ['cc.RigidBody2D'] });
+            document.setComponentProperty(anchor, 'cc.RigidBody2D', { type: 0 });
+            document.setComponentProperty(targetPath, type, { connectedBody: anchor });
+        }
+        if (document.entries.some(entry => entry.__type__ === 'cc.RigidBody2D')) {
+            document.setComponentProperty(targetPath, 'cc.RigidBody2D', { gravityScale: 0 });
+        }
         // 呈现载体保持在镜头内；不以自由落体离开视野代替后续物理行为验收。
         if (document.entries.some(entry => entry.__type__ === 'cc.RigidBody')) {
             document.setComponentProperty(targetPath, 'cc.RigidBody', { useGravity: false });

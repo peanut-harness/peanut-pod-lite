@@ -91,6 +91,12 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
                 const bodyIndex = result.document.findComponentIndex(node, bodyType);
                 assert(bodyIndex < result.document.findComponentIndex(node, type), '运行时刚体必须在关节/力组件启用前装配');
                 if (bodyType === 'cc.RigidBody') assert.equal(result.document.entries[bodyIndex]?.['_useGravity'], false);
+                else {
+                    assert.equal(result.document.entries[bodyIndex]?.['_gravityScale'], 0);
+                    const anchor = result.document.findComponentIndex(result.document.findNodeIndex('/Root/Canvas/JointAnchor'), 'cc.RigidBody2D');
+                    assert.equal(result.document.entries[anchor]?.['_type'], 0);
+                    assert.deepEqual(result.document.entries[result.document.findComponentIndex(node, type)]?.['connectedBody'], { __id__: anchor });
+                }
                 assert.equal(result.rendered, false); assert.equal(result.nativePassed, false);
             }
             const pending = ComponentPresentationFixture.create(scratch, version, postProcess);
