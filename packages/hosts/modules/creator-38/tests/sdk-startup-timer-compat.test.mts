@@ -95,37 +95,35 @@ test('hot database start keeps its original single start/end pair and does not p
 
 test('Creator 3.8.7 Builder timer compatibility preserves each overlapping start/end and leaves unmatched ends visible', () => {
     const starts = new Map<string, number>();
-    const startedLabels: string[] = []; const endedLabels: string[] = [];
-    const metrics = {
-        trackTimeStart(label: string): void { startedLabels.push(label); starts.set(label, Date.now()); },
-        trackTimeEnd(label: string, options?: { output?: boolean }): number {
+    const original = { set: starts.set, has: starts.has, get: starts.get, delete: starts.delete };
+    const editor = { App: { version: '3.8.7' }, Metrics: { __protected__: { getTrackTimeStartMap: () => starts } } };
+    const trackTimeStart = (label: string): void => { starts.set(label, Date.now()); };
+    const trackTimeEnd = (label: string, options?: { output?: boolean }): number => {
             if (!starts.has(label)) throw new Error(`trackTimeEnd failed! Can not find the track time ${label} start`);
-            endedLabels.push(label); starts.delete(label); return options?.output ? 1 : 0;
-        },
-    };
-    const originalStart = metrics.trackTimeStart; const originalEnd = metrics.trackTimeEnd;
+            starts.delete(label); return options?.output ? 1 : 0;
+        };
     const label = '// ---- build task 查询 Asset Bundle ----';
-    const patch = SdkBuildTaskTimerCompat.install({ App: { version: '3.8.7' }, Metrics: metrics });
+    const patch = SdkBuildTaskTimerCompat.install(editor);
 
-    metrics.trackTimeStart(label);
-    metrics.trackTimeStart(label);
-    assert.deepEqual(startedLabels, [label, `${label} [peanut-overlap-1]`]);
+    trackTimeStart(label);
+    trackTimeStart(label);
+    assert.deepEqual([...starts.keys()], [label, `${label} [peanut-overlap-1]`]);
     assert.equal(starts.size, 2);
-    assert.equal(metrics.trackTimeEnd(label, { output: true }), 1);
-    assert.equal(metrics.trackTimeEnd(label), 0);
-    assert.deepEqual(endedLabels, [label, `${label} [peanut-overlap-1]`]);
+    assert.equal(trackTimeEnd(label, { output: true }), 1);
+    assert.equal(trackTimeEnd(label), 0);
     assert.equal(starts.size, 0);
-    assert.throws(() => metrics.trackTimeEnd(label), /trackTimeEnd failed! Can not find the track time/u);
+    assert.throws(() => trackTimeEnd(label), /trackTimeEnd failed! Can not find the track time/u);
 
-    metrics.trackTimeStart('ordinary timer'); metrics.trackTimeEnd('ordinary timer');
+    trackTimeStart('ordinary timer'); trackTimeEnd('ordinary timer');
     assert.equal(patch.restore(), true);
-    assert.equal(metrics.trackTimeStart, originalStart); assert.equal(metrics.trackTimeEnd, originalEnd);
+    assert.equal(starts.set, original.set); assert.equal(starts.has, original.has);
+    assert.equal(starts.get, original.get); assert.equal(starts.delete, original.delete);
 });
 
 test('Creator 3.8.3 does not receive the 3.8.7 Builder timer compatibility patch', () => {
-    const metrics = { trackTimeStart(): void {}, trackTimeEnd(): void {} };
-    const start = metrics.trackTimeStart; const end = metrics.trackTimeEnd;
-    const patch = SdkBuildTaskTimerCompat.install({ App: { version: '3.8.3' }, Metrics: metrics });
-    assert.equal(metrics.trackTimeStart, start); assert.equal(metrics.trackTimeEnd, end);
+    const starts = new Map<string, number>(); const original = { set: starts.set, has: starts.has, get: starts.get, delete: starts.delete };
+    const patch = SdkBuildTaskTimerCompat.install({ App: { version: '3.8.3' }, Metrics: { __protected__: { getTrackTimeStartMap: () => starts } } });
+    assert.equal(starts.set, original.set); assert.equal(starts.has, original.has);
+    assert.equal(starts.get, original.get); assert.equal(starts.delete, original.delete);
     assert.equal(patch.restore(), true);
 });
