@@ -97,7 +97,10 @@ test('Creator 3.8.7 Builder timer compatibility preserves each overlapping start
     const starts = new Map<string, number>();
     const original = { set: starts.set, has: starts.has, get: starts.get, delete: starts.delete };
     const editor = { App: { version: '3.8.7' }, Metrics: { __protected__: { getTrackTimeStartMap: () => starts } } };
-    const trackTimeStart = (label: string): void => { starts.set(label, Date.now()); };
+    function trackTimeStart(label: string): void {
+        if (starts.has(label)) starts.delete(label);
+        starts.set(label, Date.now());
+    }
     const trackTimeEnd = (label: string, options?: { output?: boolean }): number => {
             if (!starts.has(label)) throw new Error(`trackTimeEnd failed! Can not find the track time ${label} start`);
             starts.delete(label); return options?.output ? 1 : 0;
@@ -139,9 +142,13 @@ test('Creator 3.8.7 Builder timer compatibility retains starts already in flight
         if (!starts.has(label)) throw new Error(`trackTimeEnd failed! Can not find the track time ${label} start`);
         starts.delete(label);
     };
+    function trackTimeStart(label: string, time: number): void {
+        if (starts.has(label)) starts.delete(label);
+        starts.set(label, time);
+    }
     for (const label of labels) starts.set(label, 1);
     const patch = SdkBuildTaskTimerCompat.install(editor);
-    for (const label of labels) starts.set(label, 2);
+    for (const label of labels) trackTimeStart(label, 2);
     for (const label of labels) assert.equal(starts.get(label), 1);
     assert.deepEqual([...starts.keys()], [...labels, ...labels.map(label => `${label} [peanut-overlap-1]`)]);
     for (const label of labels) { finish(label); finish(label); }

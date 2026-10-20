@@ -46,6 +46,7 @@ export class SdkBuildTaskTimerCompat {
             if (Reflect.apply(original.has, map, [label])) active.set(label, [{ route: label }]);
         }
         const selected = new Map<string, string>();
+        const startDeletePending = new Set<string>();
         const sequence = new Map<string, number>();
         let restoreRequested = false;
         let restored = false;
@@ -77,6 +78,7 @@ export class SdkBuildTaskTimerCompat {
             set: function(this: TimerMap, key: string, value: number): unknown {
                 if (typeof key !== 'string' || !SdkBuildTaskTimerCompat.labels.has(key))
                     return Reflect.apply(original.set, this, [key, value]);
+                startDeletePending.delete(key);
                 const entries = active.get(key) ?? [];
                 const ordinal = (sequence.get(key) ?? 0) + 1;
                 if (entries.length > 0) sequence.set(key, ordinal);
@@ -92,7 +94,16 @@ export class SdkBuildTaskTimerCompat {
                 const route = keyFor(key);
                 selected.set(key, route);
                 const result = Reflect.apply(original.has, this, [route]);
-                if (!result) selected.delete(key);
+                if (!result) {
+                    selected.delete(key);
+                    startDeletePending.delete(key);
+                } else if (SdkBuildTaskTimerCompat.calledFromTrackTimeStart()) {
+                    // Creator 3.8.7's SDK deletes an existing key inside trackTimeStart before setting
+                    // the replacement timestamp. Keep that route so this following set can be isolated.
+                    startDeletePending.add(key);
+                } else {
+                    startDeletePending.delete(key);
+                }
                 return result;
             },
             get: function(this: TimerMap, key: string): number | undefined {
@@ -105,6 +116,7 @@ export class SdkBuildTaskTimerCompat {
                     return Reflect.apply(original.delete, this, [key]);
                 const route = keyFor(key);
                 selected.delete(key);
+                if (startDeletePending.delete(key)) return true;
                 const result = Reflect.apply(original.delete, this, [route]);
                 if (result) releaseEntry(key, route);
                 return result;
@@ -136,6 +148,12 @@ export class SdkBuildTaskTimerCompat {
 
     private static field(value: unknown, key: string): unknown {
         return value && typeof value === 'object' ? Reflect.get(value, key) : undefined;
+    }
+
+    private static calledFromTrackTimeStart(): boolean {
+        // The 3.8.7 SDK's protected/browser trace names this caller in its real stack.
+        const stack = new Error().stack ?? '';
+        return stack.split('\n').some((frame, index) => index > 1 && /\btrackTimeStart\b/u.test(frame));
     }
 
     private static timerMap(value: unknown): value is TimerMap {
