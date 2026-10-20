@@ -8,6 +8,9 @@ function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => glo
     let runtime = null;
     let coordinator = null;
     let quitListenerRegistered = false;
+    let runtimeReady = false;
+    let initialization = null;
+    let initializationFailure = null;
 
     function getCoordinator() {
         if (coordinator != null) return coordinator;
@@ -51,16 +54,13 @@ function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => glo
         return require(selectedPath);
     }
 
-    async function load() {
-        registerQuitListener();
+    async function initializeRuntime(candidateNeedsHealthCheck) {
         const update = getCoordinator();
-        const state = update.readState();
-        const candidateNeedsHealthCheck = state?.state === 'switching' || state?.state === 'pending-health-check';
         try {
-            runtime = loadRuntime();
             await runtime.load({ extensionRoot });
             const health = await runtime.methods.queryStatus();
             if (candidateNeedsHealthCheck) update.confirmHealthy(health);
+            runtimeReady = true;
             return health;
         } catch (error) {
             if (!candidateNeedsHealthCheck) throw error;
@@ -82,13 +82,50 @@ function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => glo
                 });
                 throw rollbackError;
             }
-            return runtime.methods.queryStatus();
+            const health = await runtime.methods.queryStatus();
+            runtimeReady = true;
+            return health;
         }
     }
 
+    async function load() {
+        registerQuitListener();
+        const update = getCoordinator();
+        const state = update.readState();
+        const candidateNeedsHealthCheck = state?.state === 'switching' || state?.state === 'pending-health-check';
+        runtimeReady = false;
+        initializationFailure = null;
+        runtime = loadRuntime();
+
+        // Creator enables package contributions only after its main entry's load resolves.
+        // Let the asset-db worker contribution register before normal Lite Runtime startup.
+        if (candidateNeedsHealthCheck) {
+            initialization = initializeRuntime(true).catch(error => {
+                initializationFailure = error;
+                throw error;
+            });
+            return initialization;
+        }
+        initialization = new Promise((resolve, reject) => {
+            setImmediate(() => {
+                initializeRuntime(false).then(resolve, reject);
+            });
+        });
+        void initialization.catch(error => { initializationFailure = error; });
+        return undefined;
+    }
+
     async function unload() {
+        try {
+            await initialization;
+        } catch {
+            // Shutdown still unloads the runtime after a failed asynchronous startup.
+        }
         const current = runtime;
         runtime = null;
+        runtimeReady = false;
+        initialization = null;
+        initializationFailure = null;
         if (typeof current?.unload === 'function') await current.unload();
     }
 
@@ -114,7 +151,16 @@ function createHostBootstrap({ extensionRoot, projectPath, getEditor = () => glo
                     };
                 }
                 const method = runtime?.methods?.[property];
-                return typeof method === 'function' ? method.bind(runtime.methods) : undefined;
+                if (typeof method !== 'function') return undefined;
+                return (...args) => {
+                    if (initializationFailure) throw initializationFailure;
+                    const invoke = () => {
+                        const currentMethod = runtime?.methods?.[property];
+                        if (typeof currentMethod !== 'function') throw new Error('peanut_host_runtime_method_unavailable');
+                        return Reflect.apply(currentMethod, runtime.methods, args);
+                    };
+                    return runtimeReady || !initialization ? invoke() : initialization.then(invoke);
+                };
             },
             ownKeys() {
                 return [...new Set([

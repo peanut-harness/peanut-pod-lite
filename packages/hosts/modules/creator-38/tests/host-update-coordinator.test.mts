@@ -142,10 +142,33 @@ test('stable Creator bootstrap delegates the initial package entry to the bundle
     const bootstrap = createHostBootstrap({ extensionRoot, projectPath, getEditor: () => ({ App: { on() {} } }) });
 
     try {
-        const health = await bootstrap.load();
+        await bootstrap.load();
+        const health = await bootstrap.methods.queryStatus();
         assert.equal(health.ready, true);
         assert.equal(health.artifacts.host.version, '0.2.0');
         assert.equal(new HostUpdateCoordinator({ extensionRoot, projectPath }).status().state, 'idle');
+    } finally {
+        await bootstrap.unload();
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('normal Creator enable yields before runtime initialization and gates Host methods until ready', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'pod-lite-host-deferred-startup-'));
+    const extensionRoot = join(root, 'extensions', 'peanut-pod-lite-host');
+    const projectPath = join(root, 'project');
+    mkdirSync(extensionRoot, { recursive: true });
+    mkdirSync(projectPath, { recursive: true });
+    writeRuntimePackage(extensionRoot, '0.2.0', false, 'await new Promise(resolve => setTimeout(resolve, 40));');
+    const bootstrap = createHostBootstrap({ extensionRoot, projectPath, getEditor: () => ({ App: { on() {} } }) });
+    let runtimeReady = false;
+
+    try {
+        await bootstrap.load();
+        const health = bootstrap.methods.queryStatus().then(result => { runtimeReady = true; return result; });
+        assert.equal(runtimeReady, false);
+        assert.equal((await health).ready, true);
+        assert.equal(runtimeReady, true);
     } finally {
         await bootstrap.unload();
         rmSync(root, { recursive: true, force: true });
@@ -200,7 +223,7 @@ function writeHostPackage(root, version, mainSource) {
     writeFileSync(join(root, 'panel', 'plugin-manager', 'index.js'), `// ${version}\n`);
 }
 
-function writeRuntimePackage(root, version, failLoad) {
+function writeRuntimePackage(root, version, failLoad, loadBody = '') {
     writeHostPackage(root, version, '');
     writeFileSync(join(root, 'dist', 'cpm-package-store.js'), readFileSync(new URL('../src/cpm-package-store.js', import.meta.url)));
     writeFileSync(join(root, 'dist', 'main.js'), `
@@ -208,7 +231,7 @@ function writeRuntimePackage(root, version, failLoad) {
         const { CpmPackageStore } = require('./cpm-package-store');
         let bootstrapExtensionRoot;
         module.exports = {
-            async load(options) { bootstrapExtensionRoot = options.extensionRoot; ${failLoad ? "throw new Error('candidate_load_failed');" : ''} },
+            async load(options) { bootstrapExtensionRoot = options.extensionRoot; ${loadBody} ${failLoad ? "throw new Error('candidate_load_failed');" : ''} },
             async unload() {},
             methods: {
                 queryStatus() {
