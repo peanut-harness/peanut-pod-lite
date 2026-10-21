@@ -5,7 +5,7 @@ import { LumenCocosVersion } from './cocos-version';
  */
 export class LumenNativeComponentPersistence {
     /**
-     * @description 判断已证实版本中运行时丢失的目录字段，未知版本保持原行为。
+     * @description 判断已证实版本中缺失或运行时丢失的目录字段，未知版本保持原行为。
      * @param version 实际会话版本；MCP 会话由受信 Host 绑定。
      * @param componentType 完整组件类型。
      * @param apiName 公开目录属性名。
@@ -13,16 +13,29 @@ export class LumenNativeComponentPersistence {
      */
     public static isNonPersistent(version: LumenCocosVersion, componentType: string, apiName: string): boolean {
         const field = `${componentType}.${apiName}`;
+        if (version.toString() === '3.8.3' && field === 'cc.SafeArea.symmetric') {
+            return true;
+        }
         if (version.toString() === '3.8.7' && field === 'cc.PolygonCollider2D.threshold') {
+            return true;
+        }
+        if (['3.8.3', '3.8.7'].includes(version.toString()) && ['cc.TiledLayer.enableCulling', 'cc.TiledObjectGroup.premultiplyAlpha'].includes(field)) {
             return true;
         }
         if (!['3.8.3', '3.8.7'].includes(version.toString())) { return false; }
         return [
             'cc.UITransform.priority',
+            'cc.Label.actualFontSize',
             'cc.Camera.targetDisplay',
             'cc.DirectionalLight.intensity',
             'cc.SphereLight.intensity',
             'cc.SpotLight.intensity',
+            'cc.PointLight.intensity',
+            'cc.PointLight.size',
+            'cc.RangedDirectionalLight.intensity',
+            'cc.SpriteRenderer.sortLayer',
+            'cc.SpriteRenderer.sortOrder',
+            'cc.ReflectionProbe.probeId',
         ].includes(field);
     }
 }

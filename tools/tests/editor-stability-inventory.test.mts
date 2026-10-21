@@ -8,6 +8,8 @@ import { CoverageInventoryReader } from '../editor-stability/coverage-inventory-
 import { CoverageManifestGenerator } from '../editor-stability/coverage-manifest-generator.mjs';
 import { CreatorAsarLayoutReader } from '../editor-stability/creator-asar-layout-reader.mjs';
 import { CreatorComponentSourceReader } from '../editor-stability/creator-component-source-reader.mjs';
+import { LumenComponentPropertySchema } from '../../packages/engine/modules/lumen/source/schema/component-property.ts';
+import { LumenCocosVersion } from '../../packages/engine/modules/lumen/source/schema/cocos-version.ts';
 
 /**
  * @description 为测试写入公开 ASAR 头部格式；正文只作无关尾部，不执行任何模块。
@@ -153,4 +155,36 @@ test('dynamic, mutable and cyclic names remain explicit gaps and expressions are
     assert.deepEqual(declarations.unresolvedRegistrations.map((entry) => entry.className), ['Dynamic', 'Mutable', 'Cycle', 'Invocation']);
     assert.ok(declarations.unresolvedRegistrations.every((entry) => entry.sourcePath === 'dynamic.ts' && entry.componentDeclaration));
     assert.equal(declarations.registeredClasses.includes('cc.Mutable'), false);
+});
+
+test('both version inventories cover every effective MeshRenderer bake setting exposed by the public API', (context) => {
+    const root = mkdtempSync(join(tmpdir(), 'pod-coverage-effective-fields-'));
+    context.after(() => rmSync(root, { recursive: true, force: true }));
+    const engine = join(root, 'resources/3d/engine');
+    mkdirSync(engine, { recursive: true });
+    sourceTree(join(engine, 'cocos'));
+    archive(join(root, 'app.asar'), header);
+    const repositoryRoot = resolve(import.meta.dirname, '../..');
+    const expectedNames = ['bakeable', 'castShadow', 'receiveShadow', 'lightmapSize',
+        'useLightProbe', 'bakeToLightProbe', 'reflectionProbe', 'bakeToReflectionProbe'];
+    for (const version of ['3.8.3', '3.8.7'] as const) {
+        writeFileSync(join(engine, 'package.json'), JSON.stringify({ version }));
+        const publicSchema = new LumenComponentPropertySchema(LumenCocosVersion.parse(version));
+        const exposed = publicSchema.describeComponent('cc.MeshRenderer').find((field) => field.apiName === 'bakeSettings');
+        assert.ok(exposed?.nestedProps);
+        assert.deepEqual(exposed.nestedProps.map((field) => field.apiName), expectedNames);
+        const inventory = CoverageInventoryReader.read({ repositoryRoot, creatorResourcesRoot: root, creatorVersion: version });
+        const targets = inventory.targets.filter((target) => target.id.startsWith('field:component:cc.MeshRenderer:bakeSettings:'));
+        assert.equal(targets.length, expectedNames.length);
+        for (const field of exposed.nestedProps) {
+            const target = targets.find((target) => target.id === `field:component:cc.MeshRenderer:bakeSettings:${field.apiName}`);
+            assert.ok(target, field.apiName);
+            assert.equal(target.fieldKind, field.kind);
+            assert.deepEqual(target.actions, ['read', 'set', 'reject_invalid']);
+            assert.equal(target.availability, 'unverified');
+        }
+        assert.match(inventory.sources.find((source) => source.id === 'product/native-component-field-overlay')?.sha256 ?? '', /^[a-f0-9]{64}$/u);
+        const draft = CoverageManifestGenerator.createDraft(inventory);
+        assert.equal(draft.cases.filter((entry) => targets.some((target) => target.id === entry.targetId)).length, expectedNames.length * 3);
+    }
 });

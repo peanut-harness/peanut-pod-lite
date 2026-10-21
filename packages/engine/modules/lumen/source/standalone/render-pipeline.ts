@@ -232,6 +232,14 @@ export class LumenRenderPipelineDocument {
     }
 
     /**
+     * @description 在内存中序列化原生源，由AssetDB首次创建并分配meta。
+     * @returns 完整原生JSON源。
+     */
+    public serializeNativeSource(): string {
+        return `${JSON.stringify(this._entries ?? this._record, null, 2)}\n`;
+    }
+
+    /**
      * @description 写回磁盘与最小 meta。
      * @param projectRoot 项目根
      * @param writeMetaIfMissing 缺少 meta 时是否创建

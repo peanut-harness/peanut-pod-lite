@@ -1,0 +1,4725 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-20T02:50:01.109093+00:00",
+  "owner": "01a14256-aaae-70c0-a49e-449556d45c1e",
+  "candidateSourceCommit": "674d4460aa9aac186c6c7525b88e5da2c92cff12",
+  "hostSha256": "e83abe31ece1bc2c233ae8914bca4e508f2224c3dab75ecc5645c221d87aac58",
+  "coreSha256": "537b1f770c0ae7ab3d106de3cac0b9b62fa3b883021c02647735b41ce91edd6c",
+  "componentCount": 99,
+  "fieldCount": 795,
+  "task51Complete": false,
+  "remoteVerified": false,
+  "whole387SessionZeroDiagnostics": false,
+  "counts": {
+    "componentsWithNativeFieldEvidence": 96,
+    "nativeFieldReadbacks": 758,
+    "expectedPublicRefusals": 15,
+    "fieldEvidenceTotal": 773,
+    "zeroDiagnosticAcceptedCampaignComponents": 52,
+    "zeroDiagnosticAcceptedCampaignFields": 288,
+    "fieldOnlyComponentsFromRejectedCampaign": 44,
+    "fieldOnlyCasesFromRejectedCampaign": 485,
+    "sdkStartupBlockedComponents": 2,
+    "sdkStartupBlockedFields": 17,
+    "sdkBatchSeparatedComponents": 1,
+    "sdkBatchNotRerunFields": 5
+  },
+  "scope": "Existing native component operations, dependency contexts, field/refusal/identity bindings, removal and save/reopen. No new verification tool or new presentation content. Picture and gameplay acceptance not inferred.",
+  "campaigns": [
+    {
+      "runId": "required387-post-20261020",
+      "report": {
+        "path": "evidence/task-5.1/required387-post-20261020/matrix-required-generic-report.json",
+        "sha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+        "bytes": 376343
+      },
+      "campaignAcceptance": "rejected",
+      "componentFieldEvidenceCount": 44,
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 482,
+        "expected-public-refusal-verified": 3
+      },
+      "wholeCampaignPromotedFromRejected": false
+    },
+    {
+      "runId": "required387-builtin-20261020",
+      "report": {
+        "path": "evidence/task-5.1/required387-builtin-20261020/matrix-remaining-builtin-report.json",
+        "sha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+        "bytes": 249125
+      },
+      "campaignAcceptance": "accepted",
+      "componentFieldEvidenceCount": 46,
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 269,
+        "expected-public-refusal-verified": 10
+      },
+      "wholeCampaignPromotedFromRejected": false
+    },
+    {
+      "runId": "required387-builtin-20261020",
+      "report": {
+        "path": "evidence/task-5.1/required387-builtin-20261020/tiled-native-campaign.json",
+        "sha256": "4c09efe36d7a9e0a4859661585e0dc897e0a9ec24666452fe29a3753615ca6d4",
+        "bytes": 461126
+      },
+      "campaignAcceptance": true,
+      "componentFieldEvidenceCount": 4,
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 3,
+        "expected-public-refusal": 2
+      },
+      "wholeCampaignPromotedFromRejected": false
+    },
+    {
+      "runId": "required387-post-tail-20261020",
+      "report": {
+        "path": "evidence/task-5.1/required387-post-tail-20261020/matrix-post-tail-report.json",
+        "sha256": "bdd7149f44cb112e5b63dbd87cbd6888f523953fa0f819e3c962c393c5769579",
+        "bytes": 106964
+      },
+      "campaignAcceptance": "accepted",
+      "componentFieldEvidenceCount": 2,
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 4
+      },
+      "wholeCampaignPromotedFromRejected": false
+    }
+  ],
+  "components": [
+    {
+      "componentType": "cc.Animation",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 3
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Animation:playOnLoad",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Animation:defaultClip",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Animation:clips",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.AudioSource",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 4
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.AudioSource:clip",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.AudioSource:loop",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.AudioSource:playOnAwake",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.AudioSource:volume",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Billboard",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 5
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Billboard:texture",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Billboard:width",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Billboard:height",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Billboard:rotation",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Billboard:techIndex",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.BlitScreen",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 4
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.BlitScreen:activeMaterials",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.BlitScreen:materials",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.BlitScreen:materials:material",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.BlitScreen:materials:enable",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.BlockInputEvents",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {},
+      "fieldCases": [],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Bloom",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 5
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Bloom:enableAlphaMask",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Bloom:useHdrIlluminance",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Bloom:threshold",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Bloom:iterations",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Bloom:intensity",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.BoxCollider",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 4
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.BoxCollider:isTrigger",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.BoxCollider:center",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.BoxCollider:size",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.BoxCollider:material",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.BoxCollider2D",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 7
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.BoxCollider2D:group",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.BoxCollider2D:density",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.BoxCollider2D:sensor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.BoxCollider2D:friction",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.BoxCollider2D:restitution",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.BoxCollider2D:offset",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.BoxCollider2D:size",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Button",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 14
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Button:interactable",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Button:transition",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Button:duration",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Button:zoomScale",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Button:target",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Button:normalColor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Button:pressedColor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Button:hoverColor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Button:disabledColor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Button:normalSprite",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Button:pressedSprite",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Button:hoverSprite",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Button:disabledSprite",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Button:clickEvents",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Camera",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 14,
+        "expected-public-refusal-verified": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Camera:projection",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Camera:priority",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Camera:fov",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Camera:orthoHeight",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Camera:near",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Camera:far",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Camera:color",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Camera:depth",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Camera:stencil",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Camera:clearFlags",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Camera:rect",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Camera:visibility",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Camera:screenScale",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Camera:usePostProcess",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Camera:targetDisplay",
+          "status": "expected-public-refusal-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Canvas",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 2
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Canvas:alignCanvasWithScreen",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Canvas:cameraComponent",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.CapsuleCollider",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 6
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.CapsuleCollider:isTrigger",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.CapsuleCollider:center",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.CapsuleCollider:radius",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.CapsuleCollider:cylinderHeight",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.CapsuleCollider:direction",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.CapsuleCollider:material",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.CircleCollider2D",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 7
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.CircleCollider2D:group",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.CircleCollider2D:density",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.CircleCollider2D:sensor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.CircleCollider2D:friction",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.CircleCollider2D:restitution",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.CircleCollider2D:offset",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.CircleCollider2D:radius",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.ColorGrading",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 2
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.ColorGrading:contribute",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ColorGrading:colorGradingMap",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.ConeCollider",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 6
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.ConeCollider:isTrigger",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ConeCollider:center",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ConeCollider:radius",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ConeCollider:height",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ConeCollider:direction",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ConeCollider:material",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.ConfigurableConstraint",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 9
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.ConfigurableConstraint:connectedBody",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ConfigurableConstraint:enableCollision",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ConfigurableConstraint:axis",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ConfigurableConstraint:secondaryAxis",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ConfigurableConstraint:pivotA",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ConfigurableConstraint:pivotB",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ConfigurableConstraint:autoPivotB",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ConfigurableConstraint:breakForce",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ConfigurableConstraint:breakTorque",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.ConstantForce",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 4
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.ConstantForce:force",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ConstantForce:localForce",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ConstantForce:torque",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ConstantForce:localTorque",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.CylinderCollider",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 6
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.CylinderCollider:isTrigger",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.CylinderCollider:center",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.CylinderCollider:radius",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.CylinderCollider:height",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.CylinderCollider:direction",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.CylinderCollider:material",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.DOF",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 3
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.DOF:focusDistance",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DOF:focusRange",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DOF:bokehRadius",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.DirectionalLight",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 19,
+        "expected-public-refusal-verified": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.DirectionalLight:color",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:useColorTemperature",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:colorTemperature",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:csmLevel",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:csmLayerLambda",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:csmOptimizationMode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:shadowFixedArea",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:csmAdvancedOptions",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:csmLayersTransition",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:csmTransitionRange",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:shadowBias",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:shadowDistance",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:shadowEnabled",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:shadowFar",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:shadowInvisibleOcclusionRange",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:shadowNear",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:shadowNormalBias",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:shadowOrthoSize",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:shadowSaturation",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DirectionalLight:intensity",
+          "status": "expected-public-refusal-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.DistanceJoint2D",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 6
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.DistanceJoint2D:anchor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DistanceJoint2D:connectedAnchor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DistanceJoint2D:collideConnected",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DistanceJoint2D:connectedBody",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DistanceJoint2D:maxLength",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.DistanceJoint2D:autoCalcDistance",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.EditBox",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 13
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.EditBox:string",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.EditBox:placeholder",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.EditBox:maxLength",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.EditBox:inputMode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.EditBox:inputFlag",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.EditBox:returnType",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.EditBox:tabIndex",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.EditBox:fontSize",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.EditBox:lineHeight",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.EditBox:fontColor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.EditBox:placeholderFontSize",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.EditBox:placeholderFontColor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.EditBox:backgroundImage",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.FSR",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.FSR:sharpness",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.FixedConstraint",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 4
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.FixedConstraint:connectedBody",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.FixedConstraint:enableCollision",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.FixedConstraint:breakForce",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.FixedConstraint:breakTorque",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.FixedJoint2D",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 6
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.FixedJoint2D:anchor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.FixedJoint2D:connectedAnchor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.FixedJoint2D:collideConnected",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.FixedJoint2D:connectedBody",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.FixedJoint2D:frequency",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.FixedJoint2D:dampingRatio",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Graphics",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 7
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Graphics:lineWidth",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Graphics:lineJoin",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Graphics:lineCap",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Graphics:miterLimit",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Graphics:strokeColor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Graphics:fillColor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Graphics:color",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.HBAO",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 5
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.HBAO:radiusScale",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HBAO:angleBiasDegree",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HBAO:blurSharpness",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HBAO:aoSaturation",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HBAO:needBlur",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.HingeConstraint",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 13
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.HingeConstraint:connectedBody",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeConstraint:enableCollision",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeConstraint:pivotA",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeConstraint:pivotB",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeConstraint:axis",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeConstraint:limit",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeConstraint:limit:enabled",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeConstraint:limit:upperLimit",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeConstraint:limit:lowerLimit",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeConstraint:motor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeConstraint:motor:enabled",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeConstraint:motor:motorVelocity",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeConstraint:motor:motorForceLimit",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.HingeJoint2D",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 10
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.HingeJoint2D:anchor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeJoint2D:connectedAnchor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeJoint2D:collideConnected",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeJoint2D:connectedBody",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeJoint2D:enableLimit",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeJoint2D:lowerAngle",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeJoint2D:upperAngle",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeJoint2D:enableMotor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeJoint2D:maxMotorTorque",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.HingeJoint2D:motorSpeed",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.LODGroup",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 2
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.LODGroup:localBoundaryCenter",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.LODGroup:objectSize",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Label",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 25,
+        "expected-public-refusal-verified": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Label:string",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:horizontalAlign",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:verticalAlign",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:fontSize",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:lineHeight",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:overflow",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:enableWrapText",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:fontFamily",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:font",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:useSystemFont",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:isBold",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:isItalic",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:isUnderline",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:cacheMode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:color",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:customMaterial",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:enableOutline",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:outlineColor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:outlineWidth",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:enableShadow",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:shadowColor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:shadowOffset",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:shadowBlur",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:underlineHeight",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:spacingX",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Label:actualFontSize",
+          "status": "expected-public-refusal-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Layout",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 16
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Layout:type",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Layout:resizeMode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Layout:cellSize",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Layout:startAxis",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Layout:paddingLeft",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Layout:paddingRight",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Layout:paddingTop",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Layout:paddingBottom",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Layout:spacingX",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Layout:spacingY",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Layout:verticalDirection",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Layout:horizontalDirection",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Layout:constraint",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Layout:constraintNum",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Layout:affectedByScale",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Layout:isAlign",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.LightProbeGroup",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 6
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.LightProbeGroup:method",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.LightProbeGroup:minPos",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.LightProbeGroup:maxPos",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.LightProbeGroup:nProbesX",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.LightProbeGroup:nProbesY",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.LightProbeGroup:nProbesZ",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Line",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 7
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Line:texture",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Line:worldSpace",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Line:width",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Line:positions",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Line:tile",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Line:offset",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Line:color",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Mask",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 5
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Mask:type",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Mask:inverted",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Mask:segments",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Mask:alphaThreshold",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Mask:spriteFrame",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.MeshCollider",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 5
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.MeshCollider:isTrigger",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshCollider:center",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshCollider:mesh",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshCollider:convex",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshCollider:material",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.MeshRenderer",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 20
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.MeshRenderer:mesh",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:materials",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:shadowCastingMode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:receiveShadow",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:bakeSettings",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:bakeSettings:bakeable",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:bakeSettings:castShadow",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:bakeSettings:receiveShadow",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:bakeSettings:lightmapSize",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:bakeSettings:useLightProbe",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:bakeSettings:bakeToLightProbe",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:bakeSettings:reflectionProbe",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:bakeSettings:bakeToReflectionProbe",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:enabledGlobalStandardSkinObject",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:enableMorph",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:reflectionProbeBlendId",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:reflectionProbeBlendWeight",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:reflectionProbeId",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:shadowBias",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MeshRenderer:shadowNormalBias",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.MotionStreak",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 7
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.MotionStreak:preview",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MotionStreak:fadeTime",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MotionStreak:minSeg",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MotionStreak:stroke",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MotionStreak:texture",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MotionStreak:fastMode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MotionStreak:color",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.MouseJoint2D",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 7
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.MouseJoint2D:anchor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MouseJoint2D:connectedAnchor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MouseJoint2D:collideConnected",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MouseJoint2D:connectedBody",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MouseJoint2D:maxForce",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MouseJoint2D:dampingRatio",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.MouseJoint2D:frequency",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.PageView",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 17
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.PageView:bounceDuration",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageView:brake",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageView:elastic",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageView:inertia",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageView:horizontal",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageView:vertical",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageView:cancelInnerEvents",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageView:autoPageTurningThreshold",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageView:pageTurningSpeed",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageView:sizeMode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageView:direction",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageView:scrollThreshold",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageView:pageTurningEventTiming",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageView:content",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageView:horizontalScrollBar",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageView:verticalScrollBar",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageView:indicator",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.PageViewIndicator",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 4
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.PageViewIndicator:spacing",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageViewIndicator:spriteFrame",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageViewIndicator:direction",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PageViewIndicator:cellSize",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.ParticleSystem",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 127
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.ParticleSystem:capacity",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:prewarm",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:duration",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:loop",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:playOnAwake",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:simulationSpeed",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:simulationSpace",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:scaleSpace",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:gravityModifier",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:rateOverTime",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:rateOverDistance",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:startDelay",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:startLifetime",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:startSpeed",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:startSizeX",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:startSize3D",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:enableCulling",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:startColor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:bursts",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:bursts:time",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:bursts:repeatCount",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:bursts:repeatInterval",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:enable",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:shapeType",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:emitFrom",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:alignToDirection",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:randomDirectionAmount",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:sphericalDirectionAmount",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:randomPositionAmount",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:radius",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:radiusThickness",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:arcMode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:arcSpread",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:length",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:position",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:rotation",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:scale",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:boxThickness",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:shapeModule:arcSpeed",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:colorOverLifetimeModule",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:colorOverLifetimeModule:enable",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:colorOverLifetimeModule:color",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:sizeOvertimeModule",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:sizeOvertimeModule:enable",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:sizeOvertimeModule:separateAxes",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:sizeOvertimeModule:size",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:sizeOvertimeModule:x",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:sizeOvertimeModule:y",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:sizeOvertimeModule:z",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:velocityOvertimeModule",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:velocityOvertimeModule:enable",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:velocityOvertimeModule:space",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:velocityOvertimeModule:x",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:velocityOvertimeModule:y",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:velocityOvertimeModule:z",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:velocityOvertimeModule:speedModifier",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:forceOvertimeModule",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:forceOvertimeModule:enable",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:forceOvertimeModule:space",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:forceOvertimeModule:x",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:forceOvertimeModule:y",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:forceOvertimeModule:z",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:limitVelocityOvertimeModule",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:limitVelocityOvertimeModule:enable",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:limitVelocityOvertimeModule:space",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:limitVelocityOvertimeModule:dampen",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:limitVelocityOvertimeModule:separateAxes",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:limitVelocityOvertimeModule:limit",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:limitVelocityOvertimeModule:limitX",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:limitVelocityOvertimeModule:limitY",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:limitVelocityOvertimeModule:limitZ",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:rotationOvertimeModule",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:rotationOvertimeModule:enable",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:rotationOvertimeModule:separateAxes",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:rotationOvertimeModule:x",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:rotationOvertimeModule:y",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:rotationOvertimeModule:z",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:textureAnimationModule",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:textureAnimationModule:enable",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:textureAnimationModule:mode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:textureAnimationModule:numTilesX",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:textureAnimationModule:numTilesY",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:textureAnimationModule:cycleCount",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:textureAnimationModule:flipU",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:textureAnimationModule:flipV",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:textureAnimationModule:frameOverTime",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:textureAnimationModule:randomRow",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:textureAnimationModule:rowIndex",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:textureAnimationModule:startFrame",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:textureAnimationModule:uvChannelMask",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:noiseModule",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:noiseModule:enable",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:noiseModule:strengthX",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:noiseModule:strengthY",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:noiseModule:strengthZ",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:noiseModule:noiseSpeedX",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:noiseModule:noiseSpeedY",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:noiseModule:noiseSpeedZ",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:noiseModule:noiseFrequency",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:noiseModule:octaveMultiplier",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:noiseModule:octaves",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:noiseModule:octaveScale",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:noiseModule:remapX",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:noiseModule:remapY",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:noiseModule:remapZ",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:trailModule",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:trailModule:enable",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:trailModule:minParticleDistance",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:trailModule:space",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:trailModule:existWithParticles",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:trailModule:widthFromParticle",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:trailModule:colorFromParticle",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:trailModule:colorOvertime",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:trailModule:colorOverTrail",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:trailModule:lifeTime",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:trailModule:widthRatio",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:aabbHalfX",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:aabbHalfY",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:aabbHalfZ",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:dataCulling",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:renderCulling",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:startRotation3D",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:startRotationX",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:startRotationY",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:startSizeY",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem:startSizeZ",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.ParticleSystem2D",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 41
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.ParticleSystem2D:duration",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:emissionRate",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:life",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:lifeVar",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:angle",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:angleVar",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:startSize",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:startSizeVar",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:endSize",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:endSizeVar",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:speed",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:speedVar",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:gravity",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:sourcePos",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:posVar",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:emitterMode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:playOnLoad",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:autoRemoveOnFinish",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:totalParticles",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:file",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:spriteFrame",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:startColor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:endColor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:positionType",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:color",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:custom",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:endRadius",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:endRadiusVar",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:endSpin",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:endSpinVar",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:radialAccel",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:radialAccelVar",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:rotatePerS",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:rotatePerSVar",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:rotationIsDir",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:startRadius",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:startRadiusVar",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:startSpin",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:startSpinVar",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:tangentialAccel",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ParticleSystem2D:tangentialAccelVar",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.PlaneCollider",
+      "runId": "required387-post-20261020",
+      "wholeCampaignAcceptance": "rejected",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 4
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.PlaneCollider:isTrigger",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PlaneCollider:normal",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PlaneCollider:constant",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PlaneCollider:material",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c8192cf2e752ffe11dc549bd20bf514372ef8aaa8c992f067febca04d12fb09",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.PointLight",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 4,
+        "expected-public-refusal-verified": 2
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.PointLight:color",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PointLight:useColorTemperature",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PointLight:colorTemperature",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PointLight:range",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PointLight:intensity",
+          "status": "expected-public-refusal-verified"
+        },
+        {
+          "id": "field:component:cc.PointLight:size",
+          "status": "expected-public-refusal-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.PointToPointConstraint",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 4
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.PointToPointConstraint:connectedBody",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PointToPointConstraint:enableCollision",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PointToPointConstraint:pivotA",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PointToPointConstraint:pivotB",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.PolygonCollider2D",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 7,
+        "expected-public-refusal-verified": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.PolygonCollider2D:group",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PolygonCollider2D:density",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PolygonCollider2D:sensor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PolygonCollider2D:friction",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PolygonCollider2D:restitution",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PolygonCollider2D:offset",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PolygonCollider2D:points",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PolygonCollider2D:threshold",
+          "status": "expected-public-refusal-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.ProgressBar",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 5
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.ProgressBar:progress",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ProgressBar:totalLength",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ProgressBar:mode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ProgressBar:reverse",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ProgressBar:barSprite",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.RangedDirectionalLight",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 3,
+        "expected-public-refusal-verified": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.RangedDirectionalLight:color",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RangedDirectionalLight:useColorTemperature",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RangedDirectionalLight:colorTemperature",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RangedDirectionalLight:intensity",
+          "status": "expected-public-refusal-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.ReflectionProbe",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 8,
+        "expected-public-refusal-verified": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.ReflectionProbe:resolution",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ReflectionProbe:clearFlag",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ReflectionProbe:backgroundColor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ReflectionProbe:visibility",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ReflectionProbe:probeType",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ReflectionProbe:cubemap",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ReflectionProbe:size",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ReflectionProbe:fastBake",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ReflectionProbe:probeId",
+          "status": "expected-public-refusal-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.RelativeJoint2D",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 10
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.RelativeJoint2D:anchor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RelativeJoint2D:connectedAnchor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RelativeJoint2D:collideConnected",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RelativeJoint2D:connectedBody",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RelativeJoint2D:maxForce",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RelativeJoint2D:maxTorque",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RelativeJoint2D:correctionFactor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RelativeJoint2D:angularOffset",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RelativeJoint2D:linearOffset",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RelativeJoint2D:autoCalcOffset",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.RenderRoot2D",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {},
+      "fieldCases": [],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.RichText",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 13
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.RichText:string",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RichText:fontSize",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RichText:fontFamily",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RichText:font",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RichText:fontColor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RichText:lineHeight",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RichText:maxWidth",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RichText:horizontalAlign",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RichText:verticalAlign",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RichText:useSystemFont",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RichText:cacheMode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RichText:imageAtlas",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RichText:handleTouchEvent",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.RigidBody",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 9
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.RigidBody:group",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody:type",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody:mass",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody:allowSleep",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody:linearDamping",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody:angularDamping",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody:useGravity",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody:linearFactor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody:angularFactor",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.RigidBody2D",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 12
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.RigidBody2D:group",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody2D:enabledContactListener",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody2D:bullet",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody2D:type",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody2D:allowSleep",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody2D:gravityScale",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody2D:linearDamping",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody2D:angularDamping",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody2D:linearVelocity",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody2D:angularVelocity",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody2D:fixedRotation",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.RigidBody2D:awakeOnLoad",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.SafeArea",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.SafeArea:symmetric",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.ScrollBar",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 5
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.ScrollBar:direction",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ScrollBar:enableAutoHide",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ScrollBar:autoHideTime",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ScrollBar:handle",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ScrollBar:scrollView",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.ScrollView",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 10
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.ScrollView:horizontal",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ScrollView:vertical",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ScrollView:inertia",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ScrollView:brake",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ScrollView:elastic",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ScrollView:bounceDuration",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ScrollView:cancelInnerEvents",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ScrollView:content",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ScrollView:horizontalScrollBar",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.ScrollView:verticalScrollBar",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.SimplexCollider",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 5
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.SimplexCollider:isTrigger",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SimplexCollider:center",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SimplexCollider:shapeType",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SimplexCollider:vertices",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SimplexCollider:material",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.SkeletalAnimation",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 4
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.SkeletalAnimation:playOnLoad",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SkeletalAnimation:defaultClip",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SkeletalAnimation:clips",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SkeletalAnimation:useBakedAnimation",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.SkinnedMeshRenderer",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 5
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.SkinnedMeshRenderer:mesh",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SkinnedMeshRenderer:materials",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SkinnedMeshRenderer:skeleton",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SkinnedMeshRenderer:shadowCastingMode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SkinnedMeshRenderer:receiveShadow",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Slider",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 3
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Slider:progress",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Slider:direction",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Slider:handle",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.SliderJoint2D",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 12
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.SliderJoint2D:anchor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SliderJoint2D:connectedAnchor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SliderJoint2D:collideConnected",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SliderJoint2D:connectedBody",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SliderJoint2D:angle",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SliderJoint2D:autoCalcAngle",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SliderJoint2D:enableMotor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SliderJoint2D:maxMotorForce",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SliderJoint2D:motorSpeed",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SliderJoint2D:enableLimit",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SliderJoint2D:lowerLimit",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SliderJoint2D:upperLimit",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Sorting",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 2
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Sorting:sortingLayer",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Sorting:sortingOrder",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Sorting2D",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 2
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Sorting2D:sortingLayer",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Sorting2D:sortingOrder",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.SphereCollider",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 4
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.SphereCollider:isTrigger",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SphereCollider:center",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SphereCollider:radius",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SphereCollider:material",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.SphereLight",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 5,
+        "expected-public-refusal-verified": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.SphereLight:color",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SphereLight:useColorTemperature",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SphereLight:colorTemperature",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SphereLight:range",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SphereLight:size",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SphereLight:intensity",
+          "status": "expected-public-refusal-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.SpotLight",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 10,
+        "expected-public-refusal-verified": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.SpotLight:color",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpotLight:useColorTemperature",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpotLight:colorTemperature",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpotLight:range",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpotLight:size",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpotLight:spotAngle",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpotLight:angleAttenuationStrength",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpotLight:shadowBias",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpotLight:shadowEnabled",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpotLight:shadowNormalBias",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpotLight:intensity",
+          "status": "expected-public-refusal-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.SpringJoint2D",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 8
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.SpringJoint2D:anchor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpringJoint2D:connectedAnchor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpringJoint2D:collideConnected",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpringJoint2D:connectedBody",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpringJoint2D:frequency",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpringJoint2D:dampingRatio",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpringJoint2D:distance",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpringJoint2D:autoCalcDistance",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Sprite",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 12
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Sprite:spriteFrame",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Sprite:atlas",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Sprite:type",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Sprite:sizeMode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Sprite:trim",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Sprite:grayscale",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Sprite:fillType",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Sprite:fillCenter",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Sprite:fillStart",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Sprite:fillRange",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Sprite:color",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Sprite:customMaterial",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.SpriteRenderer",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 7,
+        "expected-public-refusal-verified": 2
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.SpriteRenderer:spriteFrame",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpriteRenderer:materials",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpriteRenderer:mode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpriteRenderer:color",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpriteRenderer:flipX",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpriteRenderer:flipY",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpriteRenderer:size",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SpriteRenderer:sortLayer",
+          "status": "expected-public-refusal-verified"
+        },
+        {
+          "id": "field:component:cc.SpriteRenderer:sortOrder",
+          "status": "expected-public-refusal-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.SubContextView",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 2
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.SubContextView:designResolutionSize",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.SubContextView:fps",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Terrain",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 7
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Terrain:asset",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Terrain:effectAsset",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Terrain:receiveShadow",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Terrain:useNormalmap",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Terrain:usePBR",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Terrain:lodBias",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Terrain:lodEnable",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.TerrainCollider",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 3
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.TerrainCollider:isTrigger",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.TerrainCollider:terrain",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.TerrainCollider:material",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.TiledMap",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 3
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.TiledMap:tmxFile",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.TiledMap:enableCulling",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.TiledMap:cleanupImageCache",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Toggle",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 4
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Toggle:isChecked",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Toggle:interactable",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Toggle:target",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Toggle:checkMark",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.ToggleContainer",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.ToggleContainer:allowSwitchOff",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.UICoordinateTracker",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 4
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.UICoordinateTracker:target",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.UICoordinateTracker:camera",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.UICoordinateTracker:useScale",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.UICoordinateTracker:distance",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.UIMeshRenderer",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {},
+      "fieldCases": [],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.UIOpacity",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.UIOpacity:opacity",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.UISkew",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 2
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.UISkew:skew",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.UISkew:rotational",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.UIStaticBatch",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {},
+      "fieldCases": [],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.UITransform",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 6,
+        "expected-public-refusal-verified": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.UITransform:contentSize",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.UITransform:width",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.UITransform:height",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.UITransform:anchorPoint",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.UITransform:anchorX",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.UITransform:anchorY",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.UITransform:priority",
+          "status": "expected-public-refusal-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.VideoPlayer",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 11
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.VideoPlayer:resourceType",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.VideoPlayer:remoteURL",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.VideoPlayer:clip",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.VideoPlayer:playOnAwake",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.VideoPlayer:volume",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.VideoPlayer:mute",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.VideoPlayer:playbackRate",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.VideoPlayer:loop",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.VideoPlayer:fullScreenOnAwake",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.VideoPlayer:stayOnBottom",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.VideoPlayer:keepAspectRatio",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.WebView",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.WebView:url",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.WheelJoint2D",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 10
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.WheelJoint2D:anchor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.WheelJoint2D:connectedAnchor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.WheelJoint2D:collideConnected",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.WheelJoint2D:connectedBody",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.WheelJoint2D:angle",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.WheelJoint2D:enableMotor",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.WheelJoint2D:maxMotorTorque",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.WheelJoint2D:motorSpeed",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.WheelJoint2D:frequency",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.WheelJoint2D:dampingRatio",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.Widget",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 18
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.Widget:top",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:bottom",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:left",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:right",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:horizontalCenter",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:verticalCenter",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:alignMode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:alignFlags",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:target",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:isAbsBottom",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:isAbsHorizontalCenter",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:isAbsLeft",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:isAbsRight",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:isAbsTop",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:isAbsVerticalCenter",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:lockFlags",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:originalHeight",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.Widget:originalWidth",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.animation.AnimationController",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.animation.AnimationController:graph",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "dragonBones.ArmatureDisplay",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 11
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:dragonBones.ArmatureDisplay:dragonAsset",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:dragonBones.ArmatureDisplay:dragonAtlasAsset",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:dragonBones.ArmatureDisplay:armatureName",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:dragonBones.ArmatureDisplay:animationName",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:dragonBones.ArmatureDisplay:timeScale",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:dragonBones.ArmatureDisplay:playTimes",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:dragonBones.ArmatureDisplay:premultipliedAlpha",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:dragonBones.ArmatureDisplay:debugBones",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:dragonBones.ArmatureDisplay:enableBatch",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:dragonBones.ArmatureDisplay:color",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:dragonBones.ArmatureDisplay:customMaterial",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "sp.Skeleton",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 14
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:sp.Skeleton:skeletonData",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:sp.Skeleton:defaultSkin",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:sp.Skeleton:defaultAnimation",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:sp.Skeleton:premultipliedAlpha",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:sp.Skeleton:timeScale",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:sp.Skeleton:defaultCacheMode",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:sp.Skeleton:useTint",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:sp.Skeleton:enableBatch",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:sp.Skeleton:debugSlots",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:sp.Skeleton:debugBones",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:sp.Skeleton:debugMesh",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:sp.Skeleton:color",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:sp.Skeleton:customMaterial",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:sp.Skeleton:loop",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "9f99660d36865b84e20a1a4644a4ef78b6d1c934313e1ee9f8f0ebe5e16b55b4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.TiledLayer",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": true,
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 1,
+        "expected-public-refusal": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.TiledLayer:color",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.TiledLayer:enableCulling",
+          "status": "expected-public-refusal"
+        }
+      ],
+      "reportSha256": "4c09efe36d7a9e0a4859661585e0dc897e0a9ec24666452fe29a3753615ca6d4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.TiledObjectGroup",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": true,
+      "fieldStatusCounts": {
+        "expected-public-refusal": 1
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.TiledObjectGroup:premultiplyAlpha",
+          "status": "expected-public-refusal"
+        }
+      ],
+      "reportSha256": "4c09efe36d7a9e0a4859661585e0dc897e0a9ec24666452fe29a3753615ca6d4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.TiledTile",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": true,
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 2
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.TiledTile:x",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.TiledTile:y",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "4c09efe36d7a9e0a4859661585e0dc897e0a9ec24666452fe29a3753615ca6d4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.TiledUserNodeData",
+      "runId": "required387-builtin-20261020",
+      "wholeCampaignAcceptance": true,
+      "fieldStatusCounts": {},
+      "fieldCases": [],
+      "reportSha256": "4c09efe36d7a9e0a4859661585e0dc897e0a9ec24666452fe29a3753615ca6d4",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.PostProcess",
+      "runId": "required387-post-tail-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 2
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.PostProcess:global",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.PostProcess:shadingScale",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "bdd7149f44cb112e5b63dbd87cbd6888f523953fa0f819e3c962c393c5769579",
+      "actualPresentationOrGameplayPromoted": false
+    },
+    {
+      "componentType": "cc.TAA",
+      "runId": "required387-post-tail-20261020",
+      "wholeCampaignAcceptance": "accepted",
+      "fieldStatusCounts": {
+        "native-field-readback-verified": 2
+      },
+      "fieldCases": [
+        {
+          "id": "field:component:cc.TAA:sampleScale",
+          "status": "native-field-readback-verified"
+        },
+        {
+          "id": "field:component:cc.TAA:feedback",
+          "status": "native-field-readback-verified"
+        }
+      ],
+      "reportSha256": "bdd7149f44cb112e5b63dbd87cbd6888f523953fa0f819e3c962c393c5769579",
+      "actualPresentationOrGameplayPromoted": false
+    }
+  ],
+  "closedRuns": [
+    {
+      "runId": "required387-post-20261020",
+      "pid": 89865,
+      "rawErrorRecords": 6,
+      "rawWarningRecords": 0,
+      "files": [
+        {
+          "path": "evidence/task-5.1/required387-post-20261020/project-ownership.json",
+          "sha256": "a861d07c6ea2ff949c2c2423d1a946b975b2a9eb3b997b9d35f80eb9bb0999f1",
+          "bytes": 2056
+        },
+        {
+          "path": "evidence/task-5.1/required387-post-20261020/creator-owned-start.json",
+          "sha256": "0f62549289690d98415cffed52d6ab886f0725bc4370ba8359a1c42c43b7ee47",
+          "bytes": 976
+        },
+        {
+          "path": "evidence/task-5.1/required387-post-20261020/creator-owned-exit.json",
+          "sha256": "5b2fb0dbdc100cc1acc84984e9c17f878c6790006c3a3db0b3924ff7a732b68c",
+          "bytes": 206
+        },
+        {
+          "path": "evidence/task-5.1/required387-post-20261020/gui-close-observation.json",
+          "sha256": "f39fdc397b111be570e7337b6a0b75dc92afebfa2cd3877ff5862dbd21ecd003",
+          "bytes": 799
+        },
+        {
+          "path": "evidence/task-5.1/required387-post-20261020/final-delayed-whole-raw.json",
+          "sha256": "9ef3227b2612742a23c03c26cb4f7b96dc2617f9eff6cef9a825f8a30d42f0f2",
+          "bytes": 3042
+        },
+        {
+          "path": "evidence/task-5.1/required387-post-20261020/stdout.log",
+          "sha256": "453d2f97eaaf7ff3108f9b23eae591d019daf7bdc17382e28fbf011226396fda",
+          "bytes": 22655
+        },
+        {
+          "path": "evidence/task-5.1/required387-post-20261020/stderr.log",
+          "sha256": "394b6253878e3657010851c17da21e59d67a7f889da25581cc4b7cf4d59dab0d",
+          "bytes": 7785
+        },
+        {
+          "path": "evidence/task-5.1/required387-post-20261020/project/temp/logs/project.log",
+          "sha256": "6a66fc697a4dc7eeda42a042a839a83f4e3e551ceaece868881b6cbf58ab87e9",
+          "bytes": 6497
+        },
+        {
+          "path": "evidence/task-5.1/required387-post-20261020/preview-safety-receipt.json",
+          "sha256": "01471f70670bc15a28ffd8fb6daf6632fdd4655384d659e1f2262ef8e998f02f",
+          "bytes": 5569
+        }
+      ]
+    },
+    {
+      "runId": "required387-builtin-20261020",
+      "pid": 27388,
+      "rawErrorRecords": 0,
+      "rawWarningRecords": 0,
+      "files": [
+        {
+          "path": "evidence/task-5.1/required387-builtin-20261020/project-ownership.json",
+          "sha256": "1fbcab70e539357212f26a852da12ad62e73988c0d2df8e728dbd66e55dca8a3",
+          "bytes": 2056
+        },
+        {
+          "path": "evidence/task-5.1/required387-builtin-20261020/creator-owned-start.json",
+          "sha256": "3bcaeda18f31908314c39ce20c5b81ae1204b4d63821b29d6ad65ea06e2e87f7",
+          "bytes": 985
+        },
+        {
+          "path": "evidence/task-5.1/required387-builtin-20261020/creator-owned-exit.json",
+          "sha256": "b4a53f80f4c4d767c731432b761c66d006d33f2e17ebbbe1128632c5c34b0780",
+          "bytes": 206
+        },
+        {
+          "path": "evidence/task-5.1/required387-builtin-20261020/gui-close-observation.json",
+          "sha256": "7480c18eebacad778091e158941e6343b8af3926316f4451d39a5295a98c64e9",
+          "bytes": 805
+        },
+        {
+          "path": "evidence/task-5.1/required387-builtin-20261020/final-delayed-whole-raw.json",
+          "sha256": "c0ba2267f2bc8523b3331598bf173872ffa80800bb1d1f51e5899cedb7ffcb50",
+          "bytes": 952
+        },
+        {
+          "path": "evidence/task-5.1/required387-builtin-20261020/stdout.log",
+          "sha256": "334b7136e36091d7a225c2ba0d0ba2d1552ca659bad7cc510e6fdad97fdc195e",
+          "bytes": 22924
+        },
+        {
+          "path": "evidence/task-5.1/required387-builtin-20261020/stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "evidence/task-5.1/required387-builtin-20261020/project/temp/logs/project.log",
+          "sha256": "aa9e9ad0f75f0a604ff00ab1093e3a127fd3025b96b843d80b99854b507a13ee",
+          "bytes": 1019
+        },
+        {
+          "path": "evidence/task-5.1/required387-builtin-20261020/preview-safety-receipt.json",
+          "sha256": "e7e22445e7aa53a34563c00aa33f6ae94bd643cc76dcfe16f9738405400885c1",
+          "bytes": 5587
+        }
+      ]
+    },
+    {
+      "runId": "required387-post-tail-20261020",
+      "pid": 56058,
+      "rawErrorRecords": 0,
+      "rawWarningRecords": 0,
+      "files": [
+        {
+          "path": "evidence/task-5.1/required387-post-tail-20261020/project-ownership.json",
+          "sha256": "b029a1162aad3a901cff530e100c05a8643488b7b88308190fccd700311ccb7b",
+          "bytes": 2067
+        },
+        {
+          "path": "evidence/task-5.1/required387-post-tail-20261020/creator-owned-start.json",
+          "sha256": "376aa2cd8d2e1ac5167583688d81d0b159d61ecaeb4d1d95b7c91f099f4bb99f",
+          "bytes": 991
+        },
+        {
+          "path": "evidence/task-5.1/required387-post-tail-20261020/creator-owned-exit.json",
+          "sha256": "1aa6118e89e0eda3e6a1dc0fca762ca4caad23bccc77d6f7bf56dd4f1be32903",
+          "bytes": 206
+        },
+        {
+          "path": "evidence/task-5.1/required387-post-tail-20261020/gui-close-observation.json",
+          "sha256": "7dc2370b8607142a10168ea4887fede5e9b3ca48c58f26aa5605198915ac938c",
+          "bytes": 809
+        },
+        {
+          "path": "evidence/task-5.1/required387-post-tail-20261020/final-delayed-whole-raw.json",
+          "sha256": "6356a7c166e7f543e9e330e133022b2c2df415bd7fae69e85d6262c3a1b26c29",
+          "bytes": 957
+        },
+        {
+          "path": "evidence/task-5.1/required387-post-tail-20261020/stdout.log",
+          "sha256": "96ecf504463a770ec32a8fca53663e4d1e7b23212c1f3daf8af61c6ca49fa344",
+          "bytes": 22662
+        },
+        {
+          "path": "evidence/task-5.1/required387-post-tail-20261020/stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "evidence/task-5.1/required387-post-tail-20261020/project/temp/logs/project.log",
+          "sha256": "3cf82660b45a60e004b0f9d05d11ba248ce8329be38bdb48fdd8089a07f112ab",
+          "bytes": 880
+        },
+        {
+          "path": "evidence/task-5.1/required387-post-tail-20261020/preview-safety-receipt.json",
+          "sha256": "9c65471bda112e7f667557ba22b71177f3dd214525ddadfb3dc7e8669612dbc7",
+          "bytes": 5599
+        }
+      ]
+    },
+    {
+      "runId": "required387-physx-20261020",
+      "pid": 61876,
+      "rawErrorRecords": 1,
+      "rawWarningRecords": 0,
+      "files": [
+        {
+          "path": "evidence/task-5.1/required387-physx-20261020/project-ownership.json",
+          "sha256": "d914f6df3aa8be54815cb7a52e42c5485a066ca6d22f4b1fe531785df829501d",
+          "bytes": 2062
+        },
+        {
+          "path": "evidence/task-5.1/required387-physx-20261020/creator-owned-start.json",
+          "sha256": "a0dd5136f07ff15b2b1f16be943a5107735a59b0378052aed8eff306ab3fb36b",
+          "bytes": 979
+        },
+        {
+          "path": "evidence/task-5.1/required387-physx-20261020/creator-owned-exit.json",
+          "sha256": "7a88f86bef8b568d49f3a40e2510071c41d87b5a5464acdebac2cf4f62819d79",
+          "bytes": 206
+        },
+        {
+          "path": "evidence/task-5.1/required387-physx-20261020/gui-close-observation.json",
+          "sha256": "c6dd24d35a9b0f2544cacb6366c561d713304a0118dc5e225c9e3efde4d82346",
+          "bytes": 801
+        },
+        {
+          "path": "evidence/task-5.1/required387-physx-20261020/final-delayed-whole-raw.json",
+          "sha256": "5163e62299b580a13d2e406788ab03024a7b0d1b3e8bf585e5f830cde0beb51d",
+          "bytes": 1243
+        },
+        {
+          "path": "evidence/task-5.1/required387-physx-20261020/stdout.log",
+          "sha256": "09a6e16e52ff8ff16edd72e96491e451d8d5b1d7eb88a26a7248fbcc8e20b4a0",
+          "bytes": 22100
+        },
+        {
+          "path": "evidence/task-5.1/required387-physx-20261020/stderr.log",
+          "sha256": "10d8d023a98f4c9c67ab98d16126ddc23e8e50d6150deab43f670a7e1de4f0f8",
+          "bytes": 118
+        },
+        {
+          "path": "evidence/task-5.1/required387-physx-20261020/project/temp/logs/project.log",
+          "sha256": "589b72fc8997c57fdafdd15dace8a3d096a9deeea14a22846087eae055700f62",
+          "bytes": 879
+        },
+        {
+          "path": "evidence/task-5.1/required387-physx-20261020/startup-refusal.json",
+          "sha256": "db05d102eb00d0dde9395277d42d798fe8c47ead61d97ead679bb56364fab2c4",
+          "bytes": 306
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "fullVerifyReusedSource": "566c873407a6311a25ad1a64edde8613152c25f6",
+    "fullVerifyPassed": 1502,
+    "fullVerifyFailed": 0,
+    "fullVerifySkipped": 0,
+    "fixtureTestsPassed": 174,
+    "sourceAndConfigurationUnchanged": true,
+    "freshOfficialPackAndApiVerified": true,
+    "candidateFiles": [
+      {
+        "path": "evidence/task-5.1/required-candidate-674d446/api-verification.json",
+        "sha256": "c35eb651074584268c6bca7a78ed9885008c74f2def2c797526fa75be095972e",
+        "bytes": 1051
+      },
+      {
+        "path": "evidence/task-5.1/required-candidate-674d446/lite-release-descriptor.json",
+        "sha256": "9ec0eef84b15d8bcbaaefc78a191e17f16eff829e20931de4da327371fa169b5",
+        "bytes": 1066
+      },
+      {
+        "path": "evidence/task-5.1/required-candidate-674d446/peanut-pod-lite-core-0.2.0.tar.gz",
+        "sha256": "537b1f770c0ae7ab3d106de3cac0b9b62fa3b883021c02647735b41ce91edd6c",
+        "bytes": 550274
+      },
+      {
+        "path": "evidence/task-5.1/required-candidate-674d446/peanut-pod-lite-host-0.2.0.tar.gz",
+        "sha256": "e83abe31ece1bc2c233ae8914bca4e508f2224c3dab75ecc5645c221d87aac58",
+        "bytes": 716056
+      }
+    ],
+    "checkEvidence": [
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-required-pack.log",
+        "sha256": "9cc2d3602c351f517908b3a6e7a24e9334e74b1507608d1be96c71bc93cba373",
+        "bytes": 2026
+      },
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-required-native-read.log",
+        "sha256": "0f112b11c2fa4c07932a1d82f1c00a690895b44207aa2eaf4ed3d969cada1364",
+        "bytes": 361
+      },
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-required-generic-matrix.log",
+        "sha256": "151220252c6c4d04714d71b1ea853f63d61ae3e7dce3ac6c60c0da7e68e83b17",
+        "bytes": 3834
+      },
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-required-builtin-read.log",
+        "sha256": "968dc2a026b5ced25238a80e8182ac1ef00256d24dccf41c344e99e1077a9929",
+        "bytes": 364
+      },
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-required-builtin-matrix.log",
+        "sha256": "502f416780cf8e10073027b21c16cbe9f7d92fd5a6acacfc61f0f433076c7ac3",
+        "bytes": 2912
+      },
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-required-tiled.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-required-post-tail-read.log",
+        "sha256": "4861e40cc93ee5bb10cd99439ebddf5254b3426a691da69dbdd12e661561991e",
+        "bytes": 366
+      },
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-required-post-tail-matrix.log",
+        "sha256": "a7fd81d73aeedd792ed00502f0953604bf1429fe54c25a5dacc1008955504d22",
+        "bytes": 116
+      },
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-required-physx-read.log",
+        "sha256": "4897941083cd042ff649135d62e91fad7db1b2587d29a829c8f2999891a7f3e5",
+        "bytes": 1103
+      },
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-joint-anchor-full-verify.log",
+        "sha256": "1cf0ea66f49efa04ba7deba73920765d8ceecd81a1771f6ced7cae7135fa9809",
+        "bytes": 319042
+      },
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-joint-anchor-fixture-tests.log",
+        "sha256": "376713499b2f312ba9ba7350fed31389b6dcf48f70388828aa1f0d747d269edb",
+        "bytes": 19835
+      }
+    ]
+  },
+  "reused383": {
+    "receipt": {
+      "path": "tests/fixtures/editor-stability/components/native-verification-20261019/component-closeout-383.json",
+      "sha256": "fb04b7029783ed917240ad0ce32c84f85ce0ef8b59112339251f36c8bc56820c",
+      "bytes": 19944
+    },
+    "hostCoreBytesMatchCurrent": true,
+    "components": 97,
+    "fieldEvidence": 791,
+    "declarationGaps": 4,
+    "crossVersionEvidenceUsedAs387": false
+  },
+  "blockingAndSeparateItems": [
+    {
+      "id": "physx-sdk-cold-start",
+      "status": "blocked-not-retried",
+      "components": [
+        "cc.BoxCharacterController",
+        "cc.CapsuleCharacterController"
+      ],
+      "fields": 17,
+      "businessWrites": 0,
+      "capabilitiesAttached": false,
+      "finding": "Actual direct-binary startup again emitted blink.mojom.Widget Message2 rejected. Readiness rejected component_service_active_profile_mismatch. No matrix/safety writes attempted; not re-opened hoping for clean logs.",
+      "source": {
+        "path": "evidence/task-5.1/required387-physx-20261020/startup-refusal.json",
+        "sha256": "db05d102eb00d0dde9395277d42d798fe8c47ead61d97ead679bb56364fab2c4",
+        "bytes": 306
+      }
+    },
+    {
+      "id": "sdk-high-quality-pipeline-invalid-pass",
+      "status": "unresolved-sdk-path-not-root-cause-fixed",
+      "finding": "PointLight scene-open triggered SDK BlitDesc.createStageDescriptor: material.passes[passID] undefined then localSetLayout access. Target scene has no BlitScreen. Exact trigger unknown. Six raw diagnostic records including propagation remain; whole campaign rejected. Fresh ordinary pipeline verified PointLight, but does not prove SDK root-cause fix.",
+      "sdkSource": "3.8.7/cocos/rendering/custom/executor.ts:469",
+      "sdkSourceSha256": "2778f4eab6ae73b8b8d489aac888977337a3a0d06f758542edcca0770f2b9f48"
+    },
+    {
+      "id": "sdk-skinned-batch",
+      "status": "separated-by-user-not-rerun",
+      "fields": 5,
+      "evidence": {
+        "path": "tests/fixtures/editor-stability/components/native-verification-20261019/component-presentation-closeout-387.json",
+        "sha256": "ec228a5bb3d3f909f3fbc30f38ec0a295d67334ff5bcfd8d816c6fd7f32e7ad7",
+        "bytes": 83187
+      }
+    },
+    {
+      "id": "version-declarations-383",
+      "status": "separated-not-pass-not-NA",
+      "fields": 4,
+      "components": [
+        "cc.Sorting2D",
+        "cc.UISkew"
+      ]
+    },
+    {
+      "id": "whole-lifecycle-sdk-diagnostics",
+      "status": "unresolved",
+      "finding": "Original Widget/startup and prior WindowSender exit errors remain. Direct binary startup is no longer even consistently clean; no Chromium/SDK/root-cause repair claim."
+    },
+    {
+      "id": "presentation-content-and-behavior",
+      "status": "separate-unverified-not-promoted",
+      "authoredPictures": 66,
+      "visible": 65,
+      "sdkBatchFailure": 1,
+      "contextContentPending": 29,
+      "tiledWithoutAuthoredPictureScene": 4,
+      "finding": "Field operation evidence does not fill presentation content or validate full interaction, physics motion, animation, LOD, platform or effect comparison."
+    },
+    {
+      "id": "resource-adapters",
+      "status": "outside-this-scope",
+      "remaining": 485,
+      "blocksFormalTask51Dependencies": false
+    }
+  ],
+  "constraints": {
+    "allEnabled": false,
+    "errorsFiltered": false,
+    "sdkInstallationPatched": false,
+    "verificationToolsExpanded": false,
+    "sourceModifiedDuringLiveCreator": false,
+    "pushedOrPublished": false,
+    "onlyOwnedInstancesClosed": true,
+    "protectedForeignPid11696Preserved": true,
+    "noFurtherSdkRetry": true
+  },
+  "remainingNonSdkFailureRepairIdentified": false,
+  "creatorVersion": "3.8.7"
+}

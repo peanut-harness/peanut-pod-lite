@@ -1,0 +1,20 @@
+{
+  "creatorVersion": "3.8.7",
+  "source": "app.asar/extension/cocos-service/utils/config.js",
+  "sourceSha256": "74babacd1e5ef9bd10ec2a0b8e06a03c46c4e4093b3fe30707748f37d0eb3c36",
+  "methods": [
+    "updateConfigFile",
+    "writeBindGame",
+    "writeConfigSet",
+    "readConfigSets",
+    "readConfigSet",
+    "readEnableServices"
+  ],
+  "legacyInput": "settings/service.json",
+  "migrationVersion": "2.0.0",
+  "enabledServices": [],
+  "contractTest": "actual SDK method initializers in restricted VM with in-memory Profile and fixed legacy JSON; no module imports or external writes",
+  "nativeVerified": false,
+  "accountBound": false,
+  "sdkModified": false
+}

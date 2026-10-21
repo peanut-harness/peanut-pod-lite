@@ -121,7 +121,7 @@ export interface ILumenStandaloneAssetDocument {
      * @description 提供新源资产的内存内容，首次创建交给 Creator；不提前写源或 meta。
      * @returns Creator 源 JSON 文本。
      */
-    serializeNativeSource?(): string;
+    serializeNativeSource?(): string | Buffer;
 }
 
 /**

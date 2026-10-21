@@ -15,6 +15,8 @@ import { ProjectLogPostflightMonitor } from "@peanut/pod-engine/runtime";
 import { EditorMcpThinLayerAvailabilityMapper } from "./editor-mcp-thin-layer-availability.js";
 import type { IEditorMcpThinLayerAvailabilityInput } from "./editor-mcp-thin-layer-availability.js";
 import { EditorMcpLumen24Bridge } from "./editor-mcp-lumen-24-bridge.js";
+import { EditorMcpPreviewSession } from "./editor-mcp-preview-session.js";
+import { EditorMcpPreviewWindowInspector } from "./editor-mcp-preview-window-inspector.js";
 
 /**
  * @description 预览 MCP 结果（可能标记为不可用）。
@@ -82,17 +84,27 @@ export class EditorMcpPreviewGateway {
   private readonly _projectLog: ProjectLogPostflightMonitor;
 
   /**
+   * @description 当前宿主的预览状态与唯一开窗请求保护。
+   */
+  private readonly _previewSession: EditorMcpPreviewSession | null;
+
+  /**
    * @description 构造预览网关。
    * @param runtime 授权 runtime。
    * @param resolveProjectRoot 可选工程根解析。
+   * @param inspectPreviewWindow 可选只读窗口核对，用于可控平台适配及测试。
    */
   public constructor(
     runtime: IGrantedRuntimeClientSet,
     resolveProjectRoot: () => Promise<string | null> = async () => null,
+    inspectPreviewWindow?: () => Promise<'exists' | 'absent' | 'unknown'>,
   ) {
     this._runtime = runtime;
     this._resolveProjectRoot = resolveProjectRoot;
     this._projectLog = new ProjectLogPostflightMonitor();
+    const message = runtime.message;
+    this._previewSession = message ? new EditorMcpPreviewSession(message,
+      inspectPreviewWindow ?? (() => new EditorMcpPreviewWindowInspector(message).inspect())) : null;
   }
 
   /**
@@ -125,16 +137,6 @@ export class EditorMcpPreviewGateway {
       const live = await this._queryLivePreview(message, liveTried);
       if (live != null) {
         return this._enrichStartScene(live);
-      }
-      try {
-        await message.send("preview", "open-terminal", undefined);
-        liveTried.push("preview.open-terminal");
-      } catch {
-        // optional warm-up
-      }
-      const afterWarmup = await this._queryLivePreview(message, liveTried);
-      if (afterWarmup != null) {
-        return this._enrichStartScene(afterWarmup);
       }
     }
     const fallback = await this._queryFallbackFromProject();
@@ -259,47 +261,10 @@ export class EditorMcpPreviewGateway {
         // continue
       }
     }
-    let opened = false;
-    try {
-      // Creator 3.8 的预览面板“播放”按钮调用 preview.open-terminal；
-      // start-preview 不在 3.8 的消息清单中。
-      // Do not await Creator's terminal lifecycle: before Scene is ready the
-      // request form can hold the Hub lane until its timeout. The official
-      // Message API provides send for this command-style operation.
-      await message.send("preview", "open-terminal", undefined);
-      opened = true;
-    } catch {
-      // Keep the reload fallbacks below for already-open preview terminals.
+    if (this._previewSession === null) {
+      return this._finalize({ available: false, message: "preview_refresh_unavailable:runtime_message_missing" });
     }
-    for (const candidate of [
-      "reload-terminal",
-      "refresh",
-      "reload",
-      "refresh-preview",
-      "reload-preview",
-    ] as const) {
-      try {
-        await message.request("preview", candidate, {});
-        return this._finalize({
-          available: true,
-          source: "live",
-          message: `preview_refresh_ok:${opened ? "open-terminal+" : ""}${candidate}`,
-        });
-      } catch {
-        // try next
-      }
-    }
-    if (opened) {
-      return this._finalize({
-        available: true,
-        source: "live",
-        message: "preview_refresh_ok:open-terminal",
-      });
-    }
-    return this._finalize({
-      available: false,
-      message: "preview_refresh_unavailable:no_supported_message",
-    });
+    return this._finalize(await this._previewSession.refresh());
   }
 
   /**

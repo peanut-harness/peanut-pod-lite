@@ -1,0 +1,11 @@
+{
+  "creatorVersion": "3.8.3",
+  "electronVersion": "13.1.4",
+  "nativeSource": "evidence/task-5.1/post-tiled-383-20261016/sdk-window-ready-sources.json",
+  "sdkModule": "node_modules/@editor/creator/dist/app/index.ccc",
+  "moduleSha256": "cf93cef51b13e8d5a6dd1929656379aed76144a9bc86467d85a0df3b994f23ea",
+  "quitFunctionSource": "quit(){if(\"renderer\"===process.type)return ipc.send(\"editor-lib-app:quit\");windows.quit(),electron_1.app.quit()}",
+  "quitFunctionSha256": "6e5b1af63ee6ccfccc0aa9a7a3cdc2c4195c7d9cadbbf409c60377ab9b45009c",
+  "rule": "Call original SDK public App.quit, including original windows.quit before electron app.quit; never evaluate recorded source",
+  "nativeCloseFixAccepted": false
+}

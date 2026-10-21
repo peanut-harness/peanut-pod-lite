@@ -3,41 +3,190 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import test from 'node:test';
+import { runInNewContext } from 'node:vm';
 
 import { createPluginModule, EditorMcpActionRouter, EditorMcpLumenGateway, EditorMcpPluginModule } from '../dist/index.js';
 import { EditorMcpPreviewGateway } from '../dist/editor-mcp-preview-gateway.js';
+import { EditorMcpPreviewWindowInspector } from '../dist/editor-mcp-preview-window-inspector.js';
 
-test('preview refresh starts the browser preview before reload and reports the actual route', async () => {
-    const requests = [];
-    const gateway = new EditorMcpPreviewGateway({
-        message: {
-            send: async (target, message, ...args) => {
-                requests.push({ target, message, args });
-                if (target === 'preview' && message === 'open-terminal') {
-                    return;
-                }
-                throw new Error('unsupported');
+test('physical preview inspection uses resolved Creator settings and the configured browser only', { skip: process.platform !== 'darwin' }, async () => {
+    const previous = Object.getOwnPropertyDescriptor(globalThis, 'Editor');
+    const calls = []; let platform = 'browser';
+    Object.defineProperty(globalThis, 'Editor', { configurable: true, value: { Profile: {
+        getConfig: async (...args) => { calls.push(args); assert.equal(args.length, 2); return args[0] === 'preview' ? platform : { path: '/Applications/Google Chrome.app' }; },
+    } } });
+    try {
+        const inspector = new EditorMcpPreviewWindowInspector({ request: async (...args) => {
+            calls.push(args); return 'http://127.0.0.1:7459';
+        } });
+        const commands = [];
+        inspector._exec = async (file, args) => { commands.push({ file, args }); return file.endsWith('lsof') ? 'owned listener' : '1'; };
+        assert.equal(await inspector.inspect(), 'exists');
+        assert.deepEqual(calls, [['preview', 'preview.current.platform'], ['program', 'browserV2'], ['preview', 'query-preview-url']]);
+        assert.deepEqual(commands.map(command => command.file), ['/usr/sbin/lsof', '/usr/bin/osascript']);
+        assert.ok(commands[0].args.includes(String(process.pid)));
+        assert.ok(commands[0].args.includes('-iTCP:7459'));
+        assert.equal(commands[1].args.at(-1), '/Applications/Google Chrome.app');
+        platform = undefined; commands.length = 0;
+        assert.equal(await inspector.inspect(), 'unknown');
+        assert.equal(commands.length, 0);
+    } finally {
+        if (previous) Object.defineProperty(globalThis, 'Editor', previous);
+        else delete globalThis.Editor;
+    }
+});
+
+test('unknown or malformed browser configuration cannot fall back to a different browser', { skip: process.platform !== 'darwin' }, async () => {
+    const previous = Object.getOwnPropertyDescriptor(globalThis, 'Editor');
+    let config; let commands = 0;
+    Object.defineProperty(globalThis, 'Editor', { configurable: true, value: { Profile: {
+        getConfig: async (name) => name === 'preview' ? 'browser' : config,
+    } } });
+    try {
+        const inspector = new EditorMcpPreviewWindowInspector({ request: async () => 'http://127.0.0.1:7459' });
+        inspector._exec = async () => { commands++; return null; };
+        for (config of [undefined, null, 'Chrome', [], { path: null }, { path: false }, { path: 'Chrome.app' }, { path: '/Applications/browser' }])
+            assert.equal(await inspector.inspect(), 'unknown');
+        assert.equal(commands, 0);
+        for (config of [{}, { path: '' }]) assert.equal(await inspector.inspect(), 'unknown');
+        assert.equal(commands, 2); // listener refusal remains unknown, never an absent window
+    } finally {
+        if (previous) Object.defineProperty(globalThis, 'Editor', previous);
+        else delete globalThis.Editor;
+    }
+});
+
+test('browser reader ignores unrelated Safari and counts only the selected project tabs in one batch', () => {
+    function observe({ configured = '/Applications/Google Chrome.app', defaultBrowser = 'Safari', running = 1, ready = true, refused = false } = {}) {
+        const calls = []; let defaultLookups = 0;
+        const url = (path) => ({ lastPathComponent: path.split('/').at(-1) });
+        const result = runInNewContext(EditorMcpPreviewWindowInspector._script + '\nrun(argv)', {
+            argv: ['7459', JSON.stringify(['localhost', '127.0.0.1']), configured],
+            ObjC: { import: () => undefined, unwrap: value => value },
+            $: {
+                NSURL: { fileURLWithPath: url, URLWithString: value => value },
+                NSWorkspace: { sharedWorkspace: { URLForApplicationToOpenURL: () => { defaultLookups++; return url(defaultBrowser + '.app'); } } },
+                NSBundle: { bundleWithURL: () => ({ bundleIdentifier: 'com.google.Chrome' }) },
+                NSRunningApplication: { runningApplicationsWithBundleIdentifier: identifier => { calls.push(['running', identifier]); return { count: running }; } },
             },
-            request: async (target, message, ...args) => {
-                requests.push({ target, message, args });
-                if (target === 'preview' && message === 'reload-terminal') {
-                    return { ok: true };
-                }
-                throw new Error('unsupported');
+            Application: identifier => {
+                assert.equal(identifier, 'com.google.Chrome'); calls.push(['application', identifier]);
+                return { running: () => ready, windows: () => {
+                    if (refused) throw Error('selected_browser_read_refused');
+                    return [{ tabs: { url: () => { calls.push(['batch']); return ['http://localhost:7459/', 'https://127.0.0.1:7459/a',
+                        'http://localhost:7458/', 'http://other-host:7459/', 'about:blank']; } } }];
+                } };
             },
-        },
-    });
+        });
+        return { result, calls, defaultLookups };
+    }
+    const selected = observe();
+    assert.equal(selected.result, '2'); assert.equal(selected.defaultLookups, 0);
+    assert.equal(selected.calls.filter(call => call[0] === 'batch').length, 1);
+    assert.deepEqual(selected.calls.filter(call => call[0] === 'application'), [['application', 'com.google.Chrome']]);
+    const absent = observe({ running: 0 });
+    assert.equal(absent.result, '0'); assert.equal(absent.calls.some(call => call[0] === 'application'), false);
+    assert.equal(observe({ running: 2 }).result, 'null');
+    assert.equal(observe({ ready: false }).result, 'null');
+    const fallback = observe({ configured: '', defaultBrowser: 'Google Chrome' });
+    assert.equal(fallback.result, '2'); assert.equal(fallback.defaultLookups, 1);
+    assert.equal(observe({ configured: '/Applications/Unsupported.app' }).result, 'null');
+    assert.throws(() => observe({ refused: true }), /selected_browser_read_refused/);
+});
 
-    const result = await gateway.refresh({ refreshAssets: false });
+test('existing preview is queried then refreshed twenty times without opening', async () => {
+    const calls = [];
+    const gateway = new EditorMcpPreviewGateway({ message: {
+        send: async (target, name) => calls.push(name),
+        request: async (target, name) => { calls.push(name); if (name === 'query-connect-num') return 1; if (name === 'reload-terminal') return undefined; throw Error('unsupported'); },
+    } }, async () => null, async () => 'exists');
+    for (let i = 0; i < 20; i++) assert.equal((await gateway.refresh({ refreshAssets: false })).message, 'preview_refresh_ok:existing-preview+reload-terminal');
+    assert.equal(calls.filter(name => name === 'open-terminal').length, 0);
+    assert.equal(calls.filter(name => name === 'reload-terminal').length, 20);
+    assert.deepEqual(calls.slice(0, 2), ['query-connect-num', 'reload-terminal']);
+});
 
-    assert.equal(result.available, true);
-    assert.equal(result.source, 'live');
-    assert.equal(result.message, 'preview_refresh_ok:open-terminal+reload-terminal');
-    assert.deepEqual(
-        requests.map(({ target, message }) => `${target}.${message}`),
-        ['preview.open-terminal', 'preview.reload-terminal'],
-    );
-    assert.deepEqual(requests[0].args, [undefined]);
+test('initial absence opens once and delayed startup plus concurrent refreshes cannot reopen', async () => {
+    const calls = []; let connections = 0;
+    const gateway = new EditorMcpPreviewGateway({ message: {
+        send: async (target, name, ...args) => { calls.push({ name, args }); },
+        request: async (target, name) => { calls.push({ name }); if (name === 'query-connect-num') return connections; if (name === 'reload-terminal') return undefined; throw Error('unsupported'); },
+    } }, async () => null, async () => connections > 0 ? 'exists' : 'absent');
+    const results = await Promise.all(Array.from({ length: 10 }, () => gateway.refresh({ refreshAssets: false })));
+    assert.equal(results.filter(result => result.available).length, 1);
+    assert.equal(calls.filter(call => call.name === 'open-terminal').length, 1);
+    assert.deepEqual(calls.slice(0, 4).map(call => call.name), ['query-connect-num', 'query-connect-num', 'query-connect-num', 'open-terminal']);
+    assert.deepEqual(calls.find(call => call.name === 'open-terminal').args, [undefined]);
+    connections = 1; assert.equal((await gateway.refresh({ refreshAssets: false })).available, true);
+    connections = 0; assert.equal((await gateway.refresh({ refreshAssets: false })).available, false);
+    assert.equal(calls.filter(call => call.name === 'open-terminal').length, 1);
+});
+
+test('unknown state, failed reload and failed opening never cause opening retries', async () => {
+    for (const state of ['unknown', 'reload-failed', 'open-failed']) {
+        let opened = 0;
+        const gateway = new EditorMcpPreviewGateway({ message: {
+            send: async () => { opened++; throw Error('open_failed'); },
+            request: async (target, name) => { if (name === 'query-connect-num') { if (state === 'unknown') throw Error('unsupported'); return state === 'reload-failed' ? 1 : 0; } throw Error('reload_failed'); },
+        } }, async () => null, async () => state === 'reload-failed' ? 'exists' : 'absent');
+        for (let i = 0; i < 5; i++) assert.equal((await gateway.refresh({ refreshAssets: false })).available, false);
+        assert.equal(opened, state === 'open-failed' ? 1 : 0);
+    }
+});
+
+test('preview appearing between presence checks is refreshed without opening', async () => {
+    let checks = 0; let opened = 0; let reloaded = 0;
+    const gateway = new EditorMcpPreviewGateway({ message: {
+        send: async () => { opened++; },
+        request: async (target, name) => { if (name === 'query-connect-num') return checks++ === 0 ? 0 : 1; if (name === 'reload-terminal') { reloaded++; return undefined; } throw Error('unsupported'); },
+    } }, async () => null, async () => 'exists');
+    assert.equal((await gateway.refresh({ refreshAssets: false })).available, true);
+    assert.equal(opened, 0); assert.equal(reloaded, 1);
+});
+
+test('invalid connection states never mean absence and preview query remains read-only', async () => {
+    for (const value of [undefined, null, false, '0', {}, -1, NaN, 1.5]) {
+        let opened = 0;
+        const gateway = new EditorMcpPreviewGateway({ message: {
+            send: async () => { opened++; },
+            request: async (target, name) => { if (name === 'query-connect-num') return value; throw Error('unsupported'); },
+        } }, async () => null, async () => 'absent');
+        assert.equal((await gateway.refresh({ refreshAssets: false })).available, false);
+        await gateway.query({}); assert.equal(opened, 0);
+    }
+});
+
+test('zero connections with an existing or unknown physical window never opens or reloads', async () => {
+    for (const presence of ['exists', 'unknown']) {
+        let opened = 0; let reloads = 0; let inspected = 0;
+        const gateway = new EditorMcpPreviewGateway({ message: {
+            send: async () => { opened++; },
+            request: async (target, name) => { if (name === 'query-connect-num') return 0; reloads++; return undefined; },
+        } }, async () => null, async () => { inspected++; return presence; });
+        for (let i = 0; i < 5; i++) assert.equal((await gateway.refresh({ refreshAssets: false })).available, false);
+        assert.equal(opened, 0); assert.equal(reloads, 0); assert.equal(inspected, 1);
+    }
+});
+
+test('stale preview connection with no browser tab opens once and unknown window state stays closed', async () => {
+    for (const presence of ['absent', 'unknown']) {
+        let opened = 0; let reloads = 0;
+        const gateway = new EditorMcpPreviewGateway({ message: {
+            send: async (_target, name) => { if (name === 'open-terminal') opened++; },
+            request: async (_target, name) => { if (name === 'query-connect-num') return 1; if (name === 'reload-terminal') { reloads++; return undefined; } throw Error('unsupported'); },
+        } }, async () => null, async () => presence);
+        const first = await gateway.refresh({ refreshAssets: false });
+        if (presence === 'absent') {
+            assert.equal(first.message, 'preview_refresh_ok:open-requested-once');
+            assert.equal((await gateway.refresh({ refreshAssets: false })).available, false);
+            assert.equal(opened, 1);
+        } else {
+            assert.equal(first.message, 'preview_refresh_unavailable:window_state_unknown');
+            assert.equal((await gateway.refresh({ refreshAssets: false })).available, false);
+            assert.equal(opened, 0);
+        }
+        assert.equal(reloads, 0);
+    }
 });
 
 function createCatalogLookupStub() {

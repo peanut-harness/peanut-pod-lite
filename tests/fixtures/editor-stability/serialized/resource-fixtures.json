@@ -1,0 +1,3670 @@
+{
+  "schemaVersion": 1,
+  "purpose": "task 4.1 版本匹配夹具与静态契约；不代表 Creator 导入或实机通过",
+  "fixtures": [
+    {
+      "id": "creator-3.8.3-animationClip-task41",
+      "creatorVersion": "3.8.3",
+      "assetKind": "animationClip",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/animation-clip.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "c234b3ecc5791ff4916c6387fec8833a30c809948249b7305e4e1e0d389fca72",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/animationClip/default.anim",
+          "sha256": "342261ed21c4be6a8e7866cdc5ef0b16b064bf7702c0457c99d4d83dccea75fd",
+          "sourceReference": "engine/editor/assets/default_file_content/animation-clip/default.anim"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/animationClip/default.anim.meta",
+          "sha256": "f22e6c884d7750a02d655229962e34167644c36b6a4dc5975306e76433a599dd",
+          "sourceReference": "engine/editor/assets/default_file_content/animation-clip/default.anim.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "sample": 120,
+          "speed": 0.5
+        },
+        "invalid": {
+          "sample": 0
+        },
+        "expectedPublic": {
+          "/sample": 120,
+          "/speed": 0.5
+        }
+      },
+      "initialPublic": {
+        "/sample": 60,
+        "/speed": 1
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "animation-clip",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/sample": 120,
+        "/speed": 0.5
+      }
+    },
+    {
+      "id": "creator-3.8.3-animationGraph-task41",
+      "creatorVersion": "3.8.3",
+      "assetKind": "animationGraph",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/animation-graph.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "219b2136015b1852372a9117d1dfd8d01a1481211c8a08ea23021a7ad2deb002",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/animationGraph/default.animgraph",
+          "sha256": "36853e8f612fb243b7f227c0bea2584489508653a0b8bc07b59c3283ff168c45",
+          "sourceReference": "engine/editor/assets/default_file_content/animation-graph/default.animgraph"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/animationGraph/default.animgraph.meta",
+          "sha256": "e22e082bdd53f22cb38fd2028671019b82b4ae948e85f7cdf6632dc781a05a54",
+          "sourceReference": "engine/editor/assets/default_file_content/animation-graph/default.animgraph.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "name": "task41-graph",
+          "layers": [
+            {
+              "index": 0,
+              "weight": 0.5
+            }
+          ]
+        },
+        "invalid": {
+          "layers": [
+            {
+              "index": 0,
+              "weight": "invalid"
+            }
+          ]
+        },
+        "expectedPublic": {
+          "/name": "task41-graph",
+          "/layers/0/weight": 0.5
+        }
+      },
+      "initialPublic": {
+        "/name": "",
+        "/layers/0/weight": 1
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "animation-graph",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/0/_name": "task41-graph",
+        "/1/weight": 0.5
+      }
+    },
+    {
+      "id": "creator-3.8.3-animationGraphVariant-task41",
+      "creatorVersion": "3.8.3",
+      "assetKind": "animationGraphVariant",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/animation-graph-variant.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "69d3ba7ed831b6892678eb9e44cc1dffc5c8ad19ba8fce51a2b7d9b43bf5660e",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/animationGraphVariant/default.animgraphvari",
+          "sha256": "408c15d8013dc3cf8300ab016c9df0f332fba15fac0b6e11a25131bdd9446f7c",
+          "sourceReference": "engine/editor/assets/default_file_content/animation-graph-variant/default.animgraphvari"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/animationGraphVariant/default.animgraphvari.meta",
+          "sha256": "286c46fb088f4bbfe0a56a03a8f24e628dfbcf1e438833c01e4f8fa02f094363",
+          "sourceReference": "engine/editor/assets/default_file_content/animation-graph-variant/default.animgraphvari.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "name": "task41-variant"
+        },
+        "invalid": {
+          "name": false
+        },
+        "expectedPublic": {
+          "/name": "task41-variant",
+          "/graph": null,
+          "/clips": []
+        }
+      },
+      "initialPublic": {
+        "/name": "",
+        "/graph": null,
+        "/clips": []
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "animation-graph-variant",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/0/_name": "task41-variant"
+      }
+    },
+    {
+      "id": "creator-3.8.3-animationMask-task41",
+      "creatorVersion": "3.8.3",
+      "assetKind": "animationMask",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/animation-mask.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "4ba7859dbd57c4a4ffaf6c9ef934fb4ed1220682ef4b50d0e24f7b047a4c2b99",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/animationMask/default.animask",
+          "sha256": "d81aa0aa5a3ad3cb41015ba3f9278d17f948ff3403dc34eb0fff9fd13ab3948b",
+          "sourceReference": "engine/editor/assets/default_file_content/animation-mask/default.animask"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/animationMask/default.animask.meta",
+          "sha256": "fd438fd246f6d4c6ee3fbca3f2c3c6f8fef69da6ee1cf3c118aa64260346c9ae",
+          "sourceReference": "engine/editor/assets/default_file_content/animation-mask/default.animask.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "name": "task41-mask"
+        },
+        "invalid": {
+          "name": false
+        },
+        "expectedPublic": {
+          "/name": "task41-mask",
+          "/joints": []
+        }
+      },
+      "initialPublic": {
+        "/name": "",
+        "/joints": []
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "animation-mask",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/_name": "task41-mask"
+      }
+    },
+    {
+      "id": "creator-3.8.3-material-task41",
+      "creatorVersion": "3.8.3",
+      "assetKind": "material",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/material.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [
+        {
+          "kind": "builtin-effect",
+          "uuid": "c8f66d17-351a-48da-a12c-0212d28575c4",
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/builtin-standard.effect",
+          "sha256": "36877f415fee4712f54127651f9566b9c0136e98beb699b1aa5f1307d3cf2efa",
+          "sourceReference": "engine/editor/assets/effects/builtin-standard.effect"
+        },
+        {
+          "kind": "builtin-effect-meta",
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/builtin-standard.effect.meta",
+          "sha256": "44eb95c68b263908fe90a3ce904ebcbdb1d6ea4174405ac423feca30e0313efd",
+          "sourceReference": "engine/editor/assets/effects/builtin-standard.effect.meta"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/fog.chunk",
+          "sha256": "7c6a691b9ad36e90a075bde22c9fe8c8503af99f000db1078c9d0288f7b71b0b",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/fog.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/fog"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/morph-animation.chunk",
+          "sha256": "f2f13d331445c514ab86c9214afa528eac9f8541655950c0047f20c8b88bb5c3",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/morph-animation.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/morph-animation"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/probe.chunk",
+          "sha256": "ee044e46379f1a8c2e9d862abd7359eddad7800721c958b78e9c755f1492a40a",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/probe.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/probe"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/sh.chunk",
+          "sha256": "7ebfa34b59b39b6a200ca5eca6fdb7038b4fcbd33b0a00a4139148865444bac6",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/sh.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/sh"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/shadow-map.chunk",
+          "sha256": "15ae137f9206b292fe8286ca77ab2b504ac52201df2ae23deff4c9ff84945b6f",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/shadow-map.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/shadow-map"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/skinning-animation-lbs.chunk",
+          "sha256": "c84ab5f88c601a1a69ddcfaecb25f1707403ba549b9a1b7b8d609332a853ddc8",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/skinning-animation-lbs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/skinning-animation-lbs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/world-transform.chunk",
+          "sha256": "14f0d3d066a04424360d94d8123a0a64f1fa13245cce4c812a42bdbee32d2bf8",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/world-transform.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/world-transform"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-csm.chunk",
+          "sha256": "cd4c797461cb3f8d1ddc782de766a30635c115c299afe024e1c2b8f5145a8637",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-csm.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-csm"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-diffusemap.chunk",
+          "sha256": "95f990873b3d2b3801db1af8d00df263a10e6a62e89835a01a705c7b18117404",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-diffusemap.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-diffusemap"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-environment.chunk",
+          "sha256": "8273b6ec59dd18b67fe67b8410145fc747ad4a0232084643cc1fe2109f26d755",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-environment.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-environment"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-forward-light.chunk",
+          "sha256": "a61051ee880a67f5e857b470d4117e9e9208e9618ad56ba430874d18a192720f",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-forward-light.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-forward-light"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-global.chunk",
+          "sha256": "4036cab1daf2dbaa906ac5b934a608ac66836478a96c9e94d51025f44a5f75b6",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-global.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-global"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-light-map.chunk",
+          "sha256": "4922961861969acc4f87991219fcc20575c0c15d5ccd07b00a83e9e8391318d1",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-light-map.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-light-map"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-local.chunk",
+          "sha256": "e7ee504b5dd91c441574490e1b27d63c04fdb198b7703d175692f05c5710aceb",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-local.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-local"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-local-batched.chunk",
+          "sha256": "763a6b0ad0b26f1ad6114fe15d444de2cc82ae0115057a862d6ee5a608c77503",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-local-batched.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-local-batched"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-morph.chunk",
+          "sha256": "cf38599aedbf9db4b9edcc168a2e6a94bcda0c385858f067447f93d59df0a265",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-morph.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-morph"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-reflection-probe.chunk",
+          "sha256": "039ed6ddb94352c918c054d858b7642a9cd665b22687e5997b9b493f6f288631",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-reflection-probe.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-reflection-probe"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-sh.chunk",
+          "sha256": "8d742b86e4e92aea1482740960f2619e92a5a317ba14882e4862eb285002207f",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-sh.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-sh"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-shadow.chunk",
+          "sha256": "3218d3d2787d46938df66bebb40148a9660d2a9884656a86b1252e332d0a8bb5",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-shadow.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-shadow"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-shadow-map.chunk",
+          "sha256": "dba252944aa1589d5fb297eed39ea67b9d9cfd2fe42b329b3211d90ce9dc13bd",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-shadow-map.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-shadow-map"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-skinning.chunk",
+          "sha256": "b1429c387d5c556ea6af3cba2707fb745a6efd82273645746d9688bb97ede49f",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-skinning.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-skinning"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/color/aces.chunk",
+          "sha256": "9ab59a61959926d87c20a4efbb180616ad7961f51b07885abd5cff9207e7ab5a",
+          "sourceReference": "engine/editor/assets/chunks/common/color/aces.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/color/aces"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/color/gamma.chunk",
+          "sha256": "58e8a46747db5c2e15fa88bd9e383aa3d693fd550a56486b8eb3c26f7b3b62a6",
+          "sourceReference": "engine/editor/assets/chunks/common/color/gamma.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/color/gamma"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/color/tone-mapping.chunk",
+          "sha256": "7085a89c7d731bfc889783620d6bce30b7c3a517a82d8e72f56e29af51b8f94a",
+          "sourceReference": "engine/editor/assets/chunks/common/color/tone-mapping.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/color/tone-mapping"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/common-define.chunk",
+          "sha256": "997aa07b094c4d0ca15576744c55a81b087b29e24a70d4a53f0e28d86dde846d",
+          "sourceReference": "engine/editor/assets/chunks/common/common-define.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/common-define"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/data/packing.chunk",
+          "sha256": "d7f8da3964692ffccf098c79ed4b513dc7f7a15aad2a4dfe04fef878152ed2e8",
+          "sourceReference": "engine/editor/assets/chunks/common/data/packing.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/data/packing"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/data/unpack.chunk",
+          "sha256": "88fe68850825ca851211642b08fcbf0089f2cce0a62a4940b6bb7dfbbbae7910",
+          "sourceReference": "engine/editor/assets/chunks/common/data/unpack.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/data/unpack"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/debug/debug-view-define.chunk",
+          "sha256": "42578e90386d6231e3700493de2b87f9c3c71681f8c76b5bcdcc51eccea1dd55",
+          "sourceReference": "engine/editor/assets/chunks/common/debug/debug-view-define.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/debug/debug-view-define"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/effect/fog.chunk",
+          "sha256": "17a3ecec65eaa1b153888b315e2655f2b223000faaaaac221f13c7fab55a9f40",
+          "sourceReference": "engine/editor/assets/chunks/common/effect/fog.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/effect/fog"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/lighting/attenuation.chunk",
+          "sha256": "71299d2e7f7d813d2b82b79481fee25dd54ed04d22b9bfc73d9236c00dbf6357",
+          "sourceReference": "engine/editor/assets/chunks/common/lighting/attenuation.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/lighting/attenuation"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/lighting/brdf.chunk",
+          "sha256": "69d8dcd452cc85b393efa91ebb2c49297031c70aedace92d2c5749c08d17d747",
+          "sourceReference": "engine/editor/assets/chunks/common/lighting/brdf.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/lighting/brdf"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/lighting/bxdf.chunk",
+          "sha256": "df7eab11df3fe2d0aa7503d146612c99115e464eebc2ed903b7c08e09b952579",
+          "sourceReference": "engine/editor/assets/chunks/common/lighting/bxdf.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/lighting/bxdf"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/lighting/functions.chunk",
+          "sha256": "f654e4850bcedf9759a6b763d28fa7d6338c6983a60d1e95824e35d0d2d65331",
+          "sourceReference": "engine/editor/assets/chunks/common/lighting/functions.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/lighting/functions"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/lighting/light-map.chunk",
+          "sha256": "cdd34736f19da1da08eb7e9f2b7489826bb24dca82b73bf30b6ce2c13566c9b3",
+          "sourceReference": "engine/editor/assets/chunks/common/lighting/light-map.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/lighting/light-map"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/math/coordinates.chunk",
+          "sha256": "599d8262e20e173b915e1947bf47047c41460c8646ab86a5238020d6e779bc06",
+          "sourceReference": "engine/editor/assets/chunks/common/math/coordinates.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/math/coordinates"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/math/number.chunk",
+          "sha256": "59cd37ed1c432759fac91723f3b39d6755b0e56d2cec5a75556759c07c35bf0c",
+          "sourceReference": "engine/editor/assets/chunks/common/math/number.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/math/number"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/math/octahedron-transform.chunk",
+          "sha256": "b8a5b6c7410ffba5aa862bde9922f02b1f913a849e03b0577976eafa95c19f35",
+          "sourceReference": "engine/editor/assets/chunks/common/math/octahedron-transform.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/math/octahedron-transform"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/mesh/material.chunk",
+          "sha256": "c96e09a30a66b3f332deefb774000f5b0c2d1f5f8d6495970ff29cd4b7bc5502",
+          "sourceReference": "engine/editor/assets/chunks/common/mesh/material.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/mesh/material"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/shadow/native-pcf.chunk",
+          "sha256": "67cb9ab87496dd28b6fb359b9579a3169d568207740793d84394e7fb3447388e",
+          "sourceReference": "engine/editor/assets/chunks/common/shadow/native-pcf.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/shadow/native-pcf"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/texture/cubemap.chunk",
+          "sha256": "74c66c2eb242dbe4c9ef3d9302b72f00a99153ab2df1358826b27b75f8aed751",
+          "sourceReference": "engine/editor/assets/chunks/common/texture/cubemap.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/texture/cubemap"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/texture/texture-lod.chunk",
+          "sha256": "c48ebd308e072286272419ca13d4f2664a38d35b1003da4bdca25dd2e9543d34",
+          "sourceReference": "engine/editor/assets/chunks/common/texture/texture-lod.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/texture/texture-lod"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/lighting-models/data-structures/lighting-intermediate-data.chunk",
+          "sha256": "7a85b10b4bcc078abb81e4af581f118d16d3c30983000d5a73192508fd4745da",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/data-structures/lighting-intermediate-data.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/data-structures/lighting-intermediate-data"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/lighting-models/data-structures/lighting-misc-data.chunk",
+          "sha256": "a61f8505766cf26d8ed712c0a5c3633f3034577f61ce6d605aafc123651961b6",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/data-structures/lighting-misc-data.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/data-structures/lighting-misc-data"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/lighting-models/data-structures/lighting-result.chunk",
+          "sha256": "f4e5f9ca84f0244b6b5f989bd98dcd747ed8c0a0f901a6d020a27fe512b49a56",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/data-structures/lighting-result.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/data-structures/lighting-result"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/lighting-models/default-functions/standard.chunk",
+          "sha256": "e8fc6d6d06ba213db1cd6aa76c9c12fb8ba00fc6b466fb4d5ab475ce0ca7874a",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/default-functions/standard.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/default-functions/standard"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/lighting-models/includes/common.chunk",
+          "sha256": "c5b3adebb90a245dba17c2180bd74964d8e7d5067c883b0747d1bd305873aebf",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/includes/common.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/includes/common"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/lighting-models/includes/standard.chunk",
+          "sha256": "337f4a9ead48994d5042a2cab1df992c50a3b0575feb78a97509899cee379fd0",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/includes/standard.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/includes/standard"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/lighting-models/lighting-flow/common-flow.chunk",
+          "sha256": "d67851563bf552c7a31201d538110af006a866027ff97ab9c9f70f421deb92d9",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/lighting-flow/common-flow.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/lighting-flow/common-flow"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/lighting-models/model-functions/standard.chunk",
+          "sha256": "4942dcc494ccd4749dd4dd1ba0ebe43578e940cd398d57ed75b590c7a8283524",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/model-functions/standard.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/model-functions/standard"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/lighting-models/model-functions/standard-common.chunk",
+          "sha256": "8c210824f4f20b71799ffba9ba0ff871accf13ffdb5f4a91ff4ab39c39ce3c13",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/model-functions/standard-common.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/model-functions/standard-common"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/shading-entries/data-structures/fs-input.chunk",
+          "sha256": "995b752f957f5f3cca1b8a57df59382794f441b2175ac28669fee220bef2aa36",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/data-structures/fs-input.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/data-structures/fs-input"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/shading-entries/data-structures/vs-fs.chunk",
+          "sha256": "3a076ee47223e6f7f759a229ad31d7175089a1e8c9a4a5694cb4650a524f4b1e",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/data-structures/vs-fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/data-structures/vs-fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/shading-entries/data-structures/vs-input.chunk",
+          "sha256": "c84c67245ced137ea249bc5d9bfd2b5aadf151d90ea0583b16d674b510f31bcc",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/data-structures/vs-input.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/data-structures/vs-input"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/shading-entries/data-structures/vs-intermediate.chunk",
+          "sha256": "8a0fcf62e848919a050c823e0495ee00ff01e25b2f3611f890be7d2dd1297f59",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/data-structures/vs-intermediate.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/data-structures/vs-intermediate"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/shading-entries/data-structures/vs-output.chunk",
+          "sha256": "9ab2e433c61026ac063191d41759b7f7fe9fa70ff2c3d583600eaebe161960d4",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/data-structures/vs-output.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/data-structures/vs-output"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-planar-shadow/fs.chunk",
+          "sha256": "a06e89e9818841ff1fb2ae587e8a6ae8ca24708456bed7dc3f5e174e59a222ad",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-planar-shadow/fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-planar-shadow/fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-planar-shadow/vs.chunk",
+          "sha256": "b6ad1bfadaa6a15e5d02151a649fdbc40dd33ece27aa6886b368e693a6c867ba",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-planar-shadow/vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-planar-shadow/vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-to-reflectmap/fs.chunk",
+          "sha256": "74c3d7908066e1ab72636487f8349a5737ccaa75859aa78f99f3159705ab8ec4",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-to-reflectmap/fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-to-reflectmap/fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-to-scene/fs.chunk",
+          "sha256": "9ba87797005f8cd9627e167db653a7516805bdea92c58351a53eb9d1bcd74280",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-to-scene/fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-to-scene/fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-to-scene/pipeline/deferred-fs.chunk",
+          "sha256": "508352ad87c47a8a3d2c80e9e1fb023bca3125dbc99cc1d9185218f48bfc53e0",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-to-scene/pipeline/deferred-fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-to-scene/pipeline/deferred-fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-to-scene/pipeline/forward-fs.chunk",
+          "sha256": "b762e534a956c23fdae7f86becc4f00edfcd28be30337ad883a25a99b2dc1de9",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-to-scene/pipeline/forward-fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-to-scene/pipeline/forward-fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-to-scene/vs.chunk",
+          "sha256": "94c0512205c15376448d7ca9c2deff7a284c0879403b9ea4dfc2b3564d282450",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-to-scene/vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-to-scene/vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-to-shadowmap/fs.chunk",
+          "sha256": "77e44602ee517346904f0bec1df0bd55321593a605d2fdf8a900dfc0688591bc",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-to-shadowmap/fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-to-shadowmap/fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-to-shadowmap/vs.chunk",
+          "sha256": "e95c046330092d1bd363a6f56a0a92a672214801ea8d9128d7ea14c898e42b28",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-to-shadowmap/vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-to-shadowmap/vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/surfaces/data-structures/standard.chunk",
+          "sha256": "8e6a22b7560cc48cdbe7c9ec0e721ca2f431f8122becd03c3ffaffefc4171ec9",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/data-structures/standard.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/data-structures/standard"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/surfaces/default-functions/common-vs.chunk",
+          "sha256": "3816422a99462eb6c11bf925b5beabc363c6a5708b3ef5756248a24b65fbedb6",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/default-functions/common-vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/default-functions/common-vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/surfaces/default-functions/standard-fs.chunk",
+          "sha256": "70d61a2431f32da069cb256733176ff6f646d662e53e8d18ba2fb19eff1dcbc8",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/default-functions/standard-fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/default-functions/standard-fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/surfaces/effect-macros/common-macros.chunk",
+          "sha256": "baddb21a7b13cde39cbcfd121a24fb821cbf547a0a356fe54f4390d27160cae3",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/effect-macros/common-macros.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/effect-macros/common-macros"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/surfaces/effect-macros/render-planar-shadow.chunk",
+          "sha256": "5ddabeb45426125e9d4c4b45334cc1355b3202a3a59fe63006013dbfc0bd8f93",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/effect-macros/render-planar-shadow.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/effect-macros/render-planar-shadow"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/surfaces/effect-macros/render-to-shadowmap.chunk",
+          "sha256": "5ddabeb45426125e9d4c4b45334cc1355b3202a3a59fe63006013dbfc0bd8f93",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/effect-macros/render-to-shadowmap.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/effect-macros/render-to-shadowmap"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/surfaces/includes/common-fs.chunk",
+          "sha256": "6124e7fdd2555e70197b2af27c543721f270dbdebd24d3f8d44d1117380696b4",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/includes/common-fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/includes/common-fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/surfaces/includes/common-vs.chunk",
+          "sha256": "d66289523ec0459f438ccb230d88d94771ac33bec3011c19ab108f25dcb60dd8",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/includes/common-vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/includes/common-vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/surfaces/includes/standard-fs.chunk",
+          "sha256": "3e5083504fae0dda0e742dc95d47d0a025ee1a83ce9209232344e448991158af",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/includes/standard-fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/includes/standard-fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/surfaces/includes/standard-vs.chunk",
+          "sha256": "4b487388f4e0d00c568420c4e48dc4f50fc0db042a57d26705381896f6a76ea4",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/includes/standard-vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/includes/standard-vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/surfaces/module-functions/common-vs.chunk",
+          "sha256": "8bf84c1301545e31a8149257f0cb6a633d39b8bdda54614e3968f7c11f351788",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/module-functions/common-vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/module-functions/common-vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/surfaces/module-functions/debug-view.chunk",
+          "sha256": "b63e7f25646619416517c1b2fee9b62fc355134f71d62a81718a70d52fa25441",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/module-functions/debug-view.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/module-functions/debug-view"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/surfaces/module-functions/standard-fs.chunk",
+          "sha256": "148cc255567d47af937d32ac24b93b0f778a4ef825fda339e2e5057f39dbd494",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/module-functions/standard-fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/module-functions/standard-fs"
+        }
+      ],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "8e67025f39f5ca9a11b0627ec554b15e5628a9fc8231ff84a6c473a568b18aaf",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/material/default.mtl",
+          "sha256": "6535a416157b0c913d2a295784b5658520cea3843fd7f730704fcb88e9431517",
+          "sourceReference": "engine/editor/assets/default_file_content/material/default.mtl"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/material/default.mtl.meta",
+          "sha256": "72740287db8a6f862fbccb09437af5918195eba2223e39a3f2f0488ba9a92929",
+          "sourceReference": "engine/editor/assets/default_file_content/material/default.mtl.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "name": "task41-material"
+        },
+        "invalid": {
+          "technique": -1
+        },
+        "expectedPublic": {
+          "/name": "task41-material",
+          "/technique": 0
+        }
+      },
+      "initialPublic": {
+        "/name": "",
+        "/technique": 0
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "material",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/_name": "task41-material"
+      }
+    },
+    {
+      "id": "creator-3.8.3-physicsMaterial-task41",
+      "creatorVersion": "3.8.3",
+      "assetKind": "physicsMaterial",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/json-asset-document.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "e6c0ba8a0a5f8cef0cfd8a1257dd8d8ad37e2853903245eee2b14103c75dda09",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/physicsMaterial/default.pmtl",
+          "sha256": "bcc878c3c9a366a971619bbb79660ce8512119a5e5a419f90754d673d3cbe76e",
+          "sourceReference": "engine/editor/assets/default_file_content/physics-material/default.pmtl"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/physicsMaterial/default.pmtl.meta",
+          "sha256": "a912e087406e941c5664084d4ccb6c6976ac46190455d00be9efc81ede43c85a",
+          "sourceReference": "engine/editor/assets/default_file_content/physics-material/default.pmtl.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "name": "task41-physics",
+          "friction": 0.7,
+          "rollingFriction": 0.2,
+          "spinningFriction": 0.3,
+          "restitution": 0.4
+        },
+        "invalid": {
+          "friction": -1
+        },
+        "expectedPublic": {
+          "/name": "task41-physics",
+          "/friction": 0.7,
+          "/rollingFriction": 0.2,
+          "/spinningFriction": 0.3,
+          "/restitution": 0.4
+        }
+      },
+      "initialPublic": {
+        "/name": "",
+        "/friction": 0.5,
+        "/rollingFriction": 0,
+        "/spinningFriction": 0,
+        "/restitution": 0.1
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "physics-material",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {
+        "name": {
+          "serializedName": "_name",
+          "writable": true,
+          "initial": "",
+          "expected": "task41-physics",
+          "patch": {
+            "name": "task41-physics"
+          },
+          "invalidPatch": {
+            "name": false
+          }
+        },
+        "friction": {
+          "serializedName": "_friction",
+          "writable": true,
+          "initial": 0.5,
+          "expected": 0.7,
+          "patch": {
+            "friction": 0.7
+          },
+          "invalidPatch": {
+            "friction": "invalid"
+          }
+        },
+        "rollingFriction": {
+          "serializedName": "_rollingFriction",
+          "writable": true,
+          "initial": 0,
+          "expected": 0.2,
+          "patch": {
+            "rollingFriction": 0.2
+          },
+          "invalidPatch": {
+            "rollingFriction": "invalid"
+          }
+        },
+        "spinningFriction": {
+          "serializedName": "_spinningFriction",
+          "writable": true,
+          "initial": 0,
+          "expected": 0.3,
+          "patch": {
+            "spinningFriction": 0.3
+          },
+          "invalidPatch": {
+            "spinningFriction": "invalid"
+          }
+        },
+        "restitution": {
+          "serializedName": "_restitution",
+          "writable": true,
+          "initial": 0.1,
+          "expected": 0.4,
+          "patch": {
+            "restitution": 0.4
+          },
+          "invalidPatch": {
+            "restitution": "invalid"
+          }
+        }
+      },
+      "serializedPatchAssertions": {
+        "/_name": "task41-physics",
+        "/_friction": 0.7,
+        "/_rollingFriction": 0.2,
+        "/_spinningFriction": 0.3,
+        "/_restitution": 0.4
+      }
+    },
+    {
+      "id": "creator-3.8.3-renderPipeline-task41",
+      "creatorVersion": "3.8.3",
+      "assetKind": "renderPipeline",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/render-pipeline.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "ab862e6f8eea186da940ce0e9116a869dbf7e533194c7c06f1fbf9c115c136ff",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/renderPipeline/default.rpp",
+          "sha256": "271452105e48e629c5e844fe3b16e94997ab8676e5423ff5a3852b4835af8e05",
+          "sourceReference": "engine/editor/assets/default_file_content/render-pipeline/default.rpp"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/renderPipeline/default.rpp.meta",
+          "sha256": "ce078e9c43496cb903aea6928ecb3c4a24583e6ae68385d0bd92cf6596fbb930",
+          "sourceReference": "engine/editor/assets/default_file_content/render-pipeline/default.rpp.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "name": "task41-pipeline",
+          "tag": 1
+        },
+        "invalid": {
+          "tag": -1
+        },
+        "expectedPublic": {
+          "/name": "task41-pipeline",
+          "/tag": 1,
+          "/flows": []
+        }
+      },
+      "initialPublic": {
+        "/name": "",
+        "/tag": 0,
+        "/flows": []
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "render-pipeline",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/_name": "task41-pipeline",
+        "/_tag": 1
+      }
+    },
+    {
+      "id": "creator-3.8.3-renderFlow-task41",
+      "creatorVersion": "3.8.3",
+      "assetKind": "renderFlow",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/json-asset-document.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [
+        {
+          "kind": "patch-stage-reference",
+          "fixtureId": "creator-3.8.3-renderStage-task41",
+          "uuid": "822512ef-5fa8-578c-895b-771053380974"
+        }
+      ],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "e6c0ba8a0a5f8cef0cfd8a1257dd8d8ad37e2853903245eee2b14103c75dda09",
+      "construction": "由精确版本原生序列化字段声明和既有产品 codec 构造；须由离线测试及二进制格式独立检查证明，不作为原生导入证据。",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/renderFlow/default.flow",
+          "sha256": "278978a870d55b62a626310e0ccd32d266556ac61225513113ab3e65aaea86e7"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/renderFlow/default.flow.meta",
+          "sha256": "97a5a97b12774fefa4eaf72d78c3030dbd2521cecee8fca7f0ca1d74061e8b62",
+          "sourceReference": "产品 codec 新建 meta；版本 importer 表与原生声明核对，非 AssetDB 登记结果"
+        }
+      },
+      "generatedMeta": {
+        "importer": "render-flow",
+        "uuid": "a6cd7d9f-d182-513f-9cb8-ba45feeb2684"
+      },
+      "patch": {
+        "valid": {
+          "name": "task41-flow",
+          "priority": 2,
+          "tag": 1,
+          "stageUuids": [
+            "822512ef-5fa8-578c-895b-771053380974"
+          ]
+        },
+        "invalid": {
+          "priority": 0.5
+        },
+        "expectedPublic": {
+          "/name": "task41-flow",
+          "/priority": 2,
+          "/tag": 1,
+          "/type": "RenderFlow",
+          "/stageUuids": [
+            "822512ef-5fa8-578c-895b-771053380974"
+          ]
+        }
+      },
+      "initialPublic": {
+        "/name": "",
+        "/priority": 0,
+        "/tag": 0,
+        "/type": "RenderFlow",
+        "/stageUuids": []
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "render-flow",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {
+        "type": {
+          "serializedName": "__type__",
+          "writable": false,
+          "initial": "RenderFlow",
+          "expected": "RenderFlow",
+          "patch": null,
+          "invalidPatch": {
+            "type": "InvalidStageType"
+          }
+        },
+        "name": {
+          "serializedName": "_name",
+          "writable": true,
+          "initial": "",
+          "expected": "task41-flow",
+          "patch": {
+            "name": "task41-flow"
+          },
+          "invalidPatch": {
+            "name": false
+          }
+        },
+        "priority": {
+          "serializedName": "_priority",
+          "writable": true,
+          "initial": 0,
+          "expected": 2,
+          "patch": {
+            "priority": 2
+          },
+          "invalidPatch": {
+            "priority": "invalid"
+          }
+        },
+        "tag": {
+          "serializedName": "_tag",
+          "writable": true,
+          "initial": 0,
+          "expected": 1,
+          "patch": {
+            "tag": 1
+          },
+          "invalidPatch": {
+            "tag": "invalid"
+          }
+        },
+        "stageUuids": {
+          "serializedName": "_stages",
+          "writable": true,
+          "initial": [],
+          "expected": [
+            "822512ef-5fa8-578c-895b-771053380974"
+          ],
+          "patch": {
+            "stageUuids": [
+              "822512ef-5fa8-578c-895b-771053380974"
+            ]
+          },
+          "invalidPatch": {
+            "stageUuids": [
+              false
+            ]
+          }
+        }
+      },
+      "serializedPatchAssertions": {
+        "/_name": "task41-flow",
+        "/_priority": 2,
+        "/_tag": 1,
+        "/_stages": [
+          {
+            "__uuid__": "822512ef-5fa8-578c-895b-771053380974"
+          }
+        ]
+      }
+    },
+    {
+      "id": "creator-3.8.3-renderStage-task41",
+      "creatorVersion": "3.8.3",
+      "assetKind": "renderStage",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/json-asset-document.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "e6c0ba8a0a5f8cef0cfd8a1257dd8d8ad37e2853903245eee2b14103c75dda09",
+      "construction": "由精确版本原生序列化字段声明和既有产品 codec 构造；须由离线测试及二进制格式独立检查证明，不作为原生导入证据。",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/renderStage/default.stg",
+          "sha256": "8aa3e11ca284cb4d142648a64e5a219d8772ef90b92e7bf7dc9ba9c2a77b83ae"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/renderStage/default.stg.meta",
+          "sha256": "3025880619cb037c34eb1f71a0a496e3e867fd8c3b72a9dbafa467fe0c37f9cf",
+          "sourceReference": "产品 codec 新建 meta；版本 importer 表与原生声明核对，非 AssetDB 登记结果"
+        }
+      },
+      "generatedMeta": {
+        "importer": "render-stage",
+        "uuid": "822512ef-5fa8-578c-895b-771053380974"
+      },
+      "patch": {
+        "valid": {
+          "name": "task41-stage",
+          "priority": 2,
+          "tag": 1
+        },
+        "invalid": {
+          "priority": 0.5
+        },
+        "expectedPublic": {
+          "/name": "task41-stage",
+          "/priority": 2,
+          "/tag": 1,
+          "/type": "RenderStage"
+        }
+      },
+      "initialPublic": {
+        "/name": "",
+        "/priority": 0,
+        "/tag": 0,
+        "/type": "RenderStage"
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "render-stage",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {
+        "type": {
+          "serializedName": "__type__",
+          "writable": false,
+          "initial": "RenderStage",
+          "expected": "RenderStage",
+          "patch": null,
+          "invalidPatch": {
+            "type": "InvalidStageType"
+          }
+        },
+        "name": {
+          "serializedName": "_name",
+          "writable": true,
+          "initial": "",
+          "expected": "task41-stage",
+          "patch": {
+            "name": "task41-stage"
+          },
+          "invalidPatch": {
+            "name": false
+          }
+        },
+        "priority": {
+          "serializedName": "_priority",
+          "writable": true,
+          "initial": 0,
+          "expected": 2,
+          "patch": {
+            "priority": 2
+          },
+          "invalidPatch": {
+            "priority": "invalid"
+          }
+        },
+        "tag": {
+          "serializedName": "_tag",
+          "writable": true,
+          "initial": 0,
+          "expected": 1,
+          "patch": {
+            "tag": 1
+          },
+          "invalidPatch": {
+            "tag": "invalid"
+          }
+        }
+      },
+      "serializedPatchAssertions": {
+        "/_name": "task41-stage",
+        "/_priority": 2,
+        "/_tag": 1
+      }
+    },
+    {
+      "id": "creator-3.8.3-renderTexture-task41",
+      "creatorVersion": "3.8.3",
+      "assetKind": "renderTexture",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/render-texture.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "5fb8b33634fa498bcf9623529da57c3219893696190c978cc94b9261b67dc521",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/renderTexture/default.rt",
+          "sha256": "d68eb23d8a8fa7a107a19789129721eeabf88ffc3efe001be87154696de34a8f",
+          "sourceReference": "engine/editor/assets/default_file_content/render-texture/default.rt"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/renderTexture/default.rt.meta",
+          "sha256": "55b454aae6b2bd613ba78130da0594a71682215fb3fbba9c2aefbbce1698b020",
+          "sourceReference": "engine/editor/assets/default_file_content/render-texture/default.rt.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "width": 128,
+          "height": 64
+        },
+        "invalid": {
+          "width": 0
+        },
+        "expectedPublic": {
+          "/width": 128,
+          "/height": 64
+        }
+      },
+      "initialPublic": {
+        "/width": 256,
+        "/height": 256
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "render-texture",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/content/w": 128,
+        "/content/h": 64
+      }
+    },
+    {
+      "id": "creator-3.8.3-prefab-task41",
+      "creatorVersion": "3.8.3",
+      "assetKind": "prefab",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/hierarchy/prefab-document.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "a021ddbcc73544f06dafe2cba8fc1ccb207c85f27e8e4ffb37d0e7e1e20f2fbc",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/prefab/default.prefab",
+          "sha256": "9e0d26ad575111c24b2be5b307c2d6a4b8eec69dab93c4b90a5ab572459a1aee",
+          "sourceReference": "engine/editor/assets/default_file_content/prefab/default.prefab"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/prefab/default.prefab.meta",
+          "sha256": "4f381f0db322b78c917ee2a5e294190dc983aee9c419261a42d6f7717a00c026",
+          "sourceReference": "engine/editor/assets/default_file_content/prefab/default.prefab.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "active": false
+        },
+        "invalid": {
+          "active": "invalid"
+        },
+        "expectedPublic": {
+          "/node/active": false
+        }
+      },
+      "nodePath": "/default",
+      "initialPublic": {
+        "/node/active": true
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "prefab",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/1/_active": false
+      }
+    },
+    {
+      "id": "creator-3.8.3-scene-task41",
+      "creatorVersion": "3.8.3",
+      "assetKind": "scene",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/hierarchy/prefab-document.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "a021ddbcc73544f06dafe2cba8fc1ccb207c85f27e8e4ffb37d0e7e1e20f2fbc",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/scene/scene-2d.scene",
+          "sha256": "a5d385092ccca8fcf16377e4901a3e80d2128e2f0821c9f43c0b3b80509a4c53",
+          "sourceReference": "engine/editor/assets/default_file_content/scene/scene-2d.scene"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/scene/scene-2d.scene.meta",
+          "sha256": "8d989b1d1d2c4bb4f4d9073147d34dd95d5b65809458a2a8d931db4592e5727d",
+          "sourceReference": "engine/editor/assets/default_file_content/scene/scene-2d.scene.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "active": false
+        },
+        "invalid": {
+          "active": "invalid"
+        },
+        "expectedPublic": {
+          "/node/active": false
+        }
+      },
+      "nodePath": "/scene-2d",
+      "initialPublic": {
+        "/node/active": true
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "scene",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/1/_active": false
+      }
+    },
+    {
+      "id": "creator-3.8.3-terrain-task41",
+      "creatorVersion": "3.8.3",
+      "assetKind": "terrain",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/terrain.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "e6d2c6706eb17d606a0c8dc028c84b4dcc7622d29190c5641b1e65777a2b21e5",
+      "construction": "由精确版本原生序列化字段声明和既有产品 codec 构造；须由离线测试及二进制格式独立检查证明，不作为原生导入证据。",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/terrain/flat.terrain",
+          "sha256": "3614bf5ed63fee2df67c15969f25a95d5e52ad2a0e74db8aa5ae32c4363bec6c"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/terrain/flat.terrain.meta",
+          "sha256": "ea8e59c47113761bc4b3bc834f49533517f26bf3f61e792b67893bf107ec8cca",
+          "sourceReference": "产品 codec 新建 meta；版本 importer 表与原生声明核对，非 AssetDB 登记结果"
+        }
+      },
+      "generatedMeta": {
+        "importer": "terrain",
+        "uuid": "b954eff6-67cf-5cb7-a644-6fdecd2a22be"
+      },
+      "patch": {
+        "valid": {
+          "flatHeight": 2,
+          "tileSize": 2
+        },
+        "invalid": {
+          "tileSize": 0
+        },
+        "expectedPublic": {
+          "/tileSize": 2,
+          "/blockCount": [
+            1,
+            1
+          ],
+          "/heightMin": 2,
+          "/heightMax": 2,
+          "/layerInfos": []
+        }
+      },
+      "initialPublic": {
+        "/tileSize": 1,
+        "/blockCount": [
+          1,
+          1
+        ],
+        "/heightMin": 0,
+        "/heightMax": 0,
+        "/layerInfos": []
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator terrain VERSION8 binary",
+        "metaImporter": "terrain",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {}
+    },
+    {
+      "id": "creator-3.8.3-effect-task41",
+      "creatorVersion": "3.8.3",
+      "assetKind": "effect",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/effect.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/fog.chunk",
+          "sha256": "7c6a691b9ad36e90a075bde22c9fe8c8503af99f000db1078c9d0288f7b71b0b",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/fog.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/fog"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/morph-animation.chunk",
+          "sha256": "f2f13d331445c514ab86c9214afa528eac9f8541655950c0047f20c8b88bb5c3",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/morph-animation.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/morph-animation"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/shadow-map.chunk",
+          "sha256": "15ae137f9206b292fe8286ca77ab2b504ac52201df2ae23deff4c9ff84945b6f",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/shadow-map.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/shadow-map"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/skinning-animation-lbs.chunk",
+          "sha256": "c84ab5f88c601a1a69ddcfaecb25f1707403ba549b9a1b7b8d609332a853ddc8",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/skinning-animation-lbs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/skinning-animation-lbs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/world-transform.chunk",
+          "sha256": "14f0d3d066a04424360d94d8123a0a64f1fa13245cce4c812a42bdbee32d2bf8",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/world-transform.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/world-transform"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-csm.chunk",
+          "sha256": "cd4c797461cb3f8d1ddc782de766a30635c115c299afe024e1c2b8f5145a8637",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-csm.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-csm"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-global.chunk",
+          "sha256": "4036cab1daf2dbaa906ac5b934a608ac66836478a96c9e94d51025f44a5f75b6",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-global.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-global"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-local.chunk",
+          "sha256": "e7ee504b5dd91c441574490e1b27d63c04fdb198b7703d175692f05c5710aceb",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-local.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-local"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-local-batched.chunk",
+          "sha256": "763a6b0ad0b26f1ad6114fe15d444de2cc82ae0115057a862d6ee5a608c77503",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-local-batched.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-local-batched"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-morph.chunk",
+          "sha256": "cf38599aedbf9db4b9edcc168a2e6a94bcda0c385858f067447f93d59df0a265",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-morph.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-morph"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-shadow.chunk",
+          "sha256": "3218d3d2787d46938df66bebb40148a9660d2a9884656a86b1252e332d0a8bb5",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-shadow.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-shadow"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-shadow-map.chunk",
+          "sha256": "dba252944aa1589d5fb297eed39ea67b9d9cfd2fe42b329b3211d90ce9dc13bd",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-shadow-map.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-shadow-map"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-skinning.chunk",
+          "sha256": "b1429c387d5c556ea6af3cba2707fb745a6efd82273645746d9688bb97ede49f",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-skinning.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-skinning"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/color/gamma.chunk",
+          "sha256": "58e8a46747db5c2e15fa88bd9e383aa3d693fd550a56486b8eb3c26f7b3b62a6",
+          "sourceReference": "engine/editor/assets/chunks/common/color/gamma.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/color/gamma"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/common-define.chunk",
+          "sha256": "997aa07b094c4d0ca15576744c55a81b087b29e24a70d4a53f0e28d86dde846d",
+          "sourceReference": "engine/editor/assets/chunks/common/common-define.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/common-define"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/data/packing.chunk",
+          "sha256": "d7f8da3964692ffccf098c79ed4b513dc7f7a15aad2a4dfe04fef878152ed2e8",
+          "sourceReference": "engine/editor/assets/chunks/common/data/packing.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/data/packing"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/data/unpack.chunk",
+          "sha256": "88fe68850825ca851211642b08fcbf0089f2cce0a62a4940b6bb7dfbbbae7910",
+          "sourceReference": "engine/editor/assets/chunks/common/data/unpack.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/data/unpack"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/effect/fog.chunk",
+          "sha256": "17a3ecec65eaa1b153888b315e2655f2b223000faaaaac221f13c7fab55a9f40",
+          "sourceReference": "engine/editor/assets/chunks/common/effect/fog.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/effect/fog"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/math/coordinates.chunk",
+          "sha256": "599d8262e20e173b915e1947bf47047c41460c8646ab86a5238020d6e779bc06",
+          "sourceReference": "engine/editor/assets/chunks/common/math/coordinates.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/math/coordinates"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/common/shadow/native-pcf.chunk",
+          "sha256": "67cb9ab87496dd28b6fb359b9579a3169d568207740793d84394e7fb3447388e",
+          "sourceReference": "engine/editor/assets/chunks/common/shadow/native-pcf.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/shadow/native-pcf"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/legacy/main-functions/general-vs.chunk",
+          "sha256": "d5db13a6bb9a173e41a8a543c1407b2cdf8310a61ee2ba2010027d448839ef4e",
+          "sourceReference": "engine/editor/assets/chunks/legacy/main-functions/general-vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "general-vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/legacy/decode-base.chunk",
+          "sha256": "4787a7db395b6bf2cf701008fe6814518cd2f177c6487b940be195a38912fd82",
+          "sourceReference": "engine/editor/assets/chunks/legacy/decode-base.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/decode-base"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/legacy/decode-standard.chunk",
+          "sha256": "01545a317c907fa9f89f14a27498dd6db7e1e0fec92d254e69c5f63d31fad49c",
+          "sourceReference": "engine/editor/assets/chunks/legacy/decode-standard.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/decode-standard"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/legacy/fog-base.chunk",
+          "sha256": "54160468d055bd3cc0b832e550556e2ba98ac216a16aa84654ff5993f4f4cec7",
+          "sourceReference": "engine/editor/assets/chunks/legacy/fog-base.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/fog-base"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/legacy/fog-fs.chunk",
+          "sha256": "7ea30cdaea20423a1db8951c3a35c87e02890b1cac64106300ae81d4acf944dd",
+          "sourceReference": "engine/editor/assets/chunks/legacy/fog-fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/fog-fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/legacy/fog-vs.chunk",
+          "sha256": "a065cc2a528dad0fba466ec0149b8ead4898fbe2aa64bfc9ee82aa95a774112d",
+          "sourceReference": "engine/editor/assets/chunks/legacy/fog-vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/fog-vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/legacy/input-standard.chunk",
+          "sha256": "ca34ef850015792f54254aa0cbe9a99d2f45477c03130d176f2a8654c456f719",
+          "sourceReference": "engine/editor/assets/chunks/legacy/input-standard.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/input-standard"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/legacy/local-batch.chunk",
+          "sha256": "2058a68d2d97b365a02bbc25c440fbf1311544f707b0a35bf94c428392b207fa",
+          "sourceReference": "engine/editor/assets/chunks/legacy/local-batch.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/local-batch"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/legacy/main-functions/general-vs.chunk",
+          "sha256": "d5db13a6bb9a173e41a8a543c1407b2cdf8310a61ee2ba2010027d448839ef4e",
+          "sourceReference": "engine/editor/assets/chunks/legacy/main-functions/general-vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/main-functions/general-vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/legacy/morph.chunk",
+          "sha256": "c4e352252c261a0534a43b88fe3baaaa87eff731bc42961766ce4b4eb406859a",
+          "sourceReference": "engine/editor/assets/chunks/legacy/morph.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/morph"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/legacy/output.chunk",
+          "sha256": "89a57d193d446477e5db77d20e51b0b879dc781815317296caf6c1a53a867ebc",
+          "sourceReference": "engine/editor/assets/chunks/legacy/output.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/output"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/legacy/shadow-map-base.chunk",
+          "sha256": "f688e8696b55f4ccbd8394d8758d2a38498099a275328f68f7065e5a72ab74a9",
+          "sourceReference": "engine/editor/assets/chunks/legacy/shadow-map-base.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/shadow-map-base"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/legacy/shadow-map-vs.chunk",
+          "sha256": "254623c4ac0f07675777160f42a47347dd9c4ad49f1ba268fa55763f603ef8a5",
+          "sourceReference": "engine/editor/assets/chunks/legacy/shadow-map-vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/shadow-map-vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/legacy/skinning.chunk",
+          "sha256": "88661202838911530e1b5d1e51fc3142bc0230b72256a47508ca8287adbe5fc5",
+          "sourceReference": "engine/editor/assets/chunks/legacy/skinning.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/skinning"
+        }
+      ],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "e50d66e15ff8a84ed3f3473e590c5344eb38f3eec978d95296742e96f812e2a8",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/effect/default.effect",
+          "sha256": "b5809361ef0736ef431f68e789343f151b2db1d98eaeaf737326d2e4f6617412",
+          "sourceReference": "engine/editor/assets/default_file_content/effect/default.effect"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/effect/default.effect.meta",
+          "sha256": "5ba171b6243350c32840b1a87b3d9f46d75ba986bd2481cab3cefd4aa4f28fe1",
+          "sourceReference": "engine/editor/assets/default_file_content/effect/default.effect.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "builtinSymbolPolicy": "shader 及材质默认纹理符号由该版本引擎提供；不伪造外部纹理 UUID；必须在实机核对原生解析与原始日志。",
+      "patch": {
+        "valid": {
+          "source": "// Effect Syntax Guide: https://docs.cocos.com/creator/manual/zh/shader/index.html\n\nCCEffect %{\n  techniques:\n  - name: opaque\n    passes:\n    - vert: legacy/main-functions/general-vs:vert # builtin header\n      frag: unlit-fs:frag\n      properties: &props\n        mainTexture:    { value: white }\n        mainColor:      { value: [1, 1, 1, 1], editor: { type: color } }\n  - name: transparent\n    passes:\n    - vert: general-vs:vert # builtin header\n      frag: unlit-fs:frag\n      blendState:\n        targets:\n        - blend: true\n          blendSrc: src_alpha\n          blendDst: one_minus_src_alpha\n          blendSrcAlpha: src_alpha\n          blendDstAlpha: one_minus_src_alpha\n      properties: *props\n}%\n\nCCProgram unlit-fs %{\n  precision highp float;\n  #include <legacy/output>\n  #include <legacy/fog-fs>\n\n  in vec2 v_uv;\n  in vec3 v_position;\n\n  uniform sampler2D mainTexture;\n\n  uniform Constant {\n    vec4 mainColor;\n  };\n\n  vec4 frag () {\n    vec4 col = mainColor * texture(mainTexture, v_uv);\n    CC_APPLY_FOG(col, v_position);\n    return CCFragOutput(col);\n  }\n}%\n\n// task41: valid comment-only Inspector source edit\n"
+        },
+        "invalid": {
+          "unsupported": true
+        },
+        "expectedPublic": {
+          "/effectYaml": "\n  techniques:\n  - name: opaque\n    passes:\n    - vert: legacy/main-functions/general-vs:vert # builtin header\n      frag: unlit-fs:frag\n      properties: &props\n        mainTexture:    { value: white }\n        mainColor:      { value: [1, 1, 1, 1], editor: { type: color } }\n  - name: transparent\n    passes:\n    - vert: general-vs:vert # builtin header\n      frag: unlit-fs:frag\n      blendState:\n        targets:\n        - blend: true\n          blendSrc: src_alpha\n          blendDst: one_minus_src_alpha\n          blendSrcAlpha: src_alpha\n          blendDstAlpha: one_minus_src_alpha\n      properties: *props\n"
+        }
+      },
+      "initialPublic": {
+        "/effectYaml": "\n  techniques:\n  - name: opaque\n    passes:\n    - vert: legacy/main-functions/general-vs:vert # builtin header\n      frag: unlit-fs:frag\n      properties: &props\n        mainTexture:    { value: white }\n        mainColor:      { value: [1, 1, 1, 1], editor: { type: color } }\n  - name: transparent\n    passes:\n    - vert: general-vs:vert # builtin header\n      frag: unlit-fs:frag\n      blendState:\n        targets:\n        - blend: true\n          blendSrc: src_alpha\n          blendDst: one_minus_src_alpha\n          blendSrcAlpha: src_alpha\n          blendDstAlpha: one_minus_src_alpha\n      properties: *props\n"
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator effect/chunk source",
+        "metaImporter": "effect",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {}
+    },
+    {
+      "id": "creator-3.8.3-effectChunk-task41",
+      "creatorVersion": "3.8.3",
+      "assetKind": "effectChunk",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/effect.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-global.chunk",
+          "sha256": "4036cab1daf2dbaa906ac5b934a608ac66836478a96c9e94d51025f44a5f75b6",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-global.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-global"
+        }
+      ],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "e50d66e15ff8a84ed3f3473e590c5344eb38f3eec978d95296742e96f812e2a8",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/effectChunk/default.chunk",
+          "sha256": "fb1bfb9cad3278ceb8cdd53002ec9c20aa944a845101ff3098f96eef76fd4d5b",
+          "sourceReference": "engine/editor/assets/default_file_content/effect-header/chunk"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/effectChunk/default.chunk.meta",
+          "sha256": "1ca902cbace3c4c222e4529ab637590a4435af6d4419b10f7e71226ef80d300e",
+          "sourceReference": "engine/editor/assets/default_file_content/effect-header/chunk.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "builtinSymbolPolicy": "shader 及材质默认纹理符号由该版本引擎提供；不伪造外部纹理 UUID；必须在实机核对原生解析与原始日志。",
+      "patch": {
+        "valid": {
+          "source": "// you can write GLSL code directly in here\n\n#include <builtin/uniforms/cc-global>\n\n#define iResolution cc_screenSize\n#define iTime cc_time.x\n#define iTimeDelta cc_time.y\n#define iFrame cc_time.z\n\n// shadertoy template\nvoid mainImage (out vec4 fragColor, in vec2 fragCoord) {\n  // Normalized pixel coordinates (from 0 to 1)\n  vec2 uv = fragCoord / iResolution.xy;\n  // Time varying pixel color\n  vec3 col = 0.5 + 0.5 * cos(iTime + uv.xyx + vec3(0, 2, 4));\n  // Output to screen\n  fragColor = vec4(col, 1.0);\n}\n\n// task41: valid comment-only chunk edit\n"
+        },
+        "invalid": {
+          "source": false
+        },
+        "expectedPublic": {
+          "/source": "// you can write GLSL code directly in here\n\n#include <builtin/uniforms/cc-global>\n\n#define iResolution cc_screenSize\n#define iTime cc_time.x\n#define iTimeDelta cc_time.y\n#define iFrame cc_time.z\n\n// shadertoy template\nvoid mainImage (out vec4 fragColor, in vec2 fragCoord) {\n  // Normalized pixel coordinates (from 0 to 1)\n  vec2 uv = fragCoord / iResolution.xy;\n  // Time varying pixel color\n  vec3 col = 0.5 + 0.5 * cos(iTime + uv.xyx + vec3(0, 2, 4));\n  // Output to screen\n  fragColor = vec4(col, 1.0);\n}\n\n// task41: valid comment-only chunk edit\n"
+        }
+      },
+      "initialPublic": {
+        "/source": "// you can write GLSL code directly in here\n\n#include <builtin/uniforms/cc-global>\n\n#define iResolution cc_screenSize\n#define iTime cc_time.x\n#define iTimeDelta cc_time.y\n#define iFrame cc_time.z\n\n// shadertoy template\nvoid mainImage (out vec4 fragColor, in vec2 fragCoord) {\n  // Normalized pixel coordinates (from 0 to 1)\n  vec2 uv = fragCoord / iResolution.xy;\n  // Time varying pixel color\n  vec3 col = 0.5 + 0.5 * cos(iTime + uv.xyx + vec3(0, 2, 4));\n  // Output to screen\n  fragColor = vec4(col, 1.0);\n}\n"
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator effect/chunk source",
+        "metaImporter": "*",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {}
+    },
+    {
+      "id": "creator-3.8.7-animationClip-task41",
+      "creatorVersion": "3.8.7",
+      "assetKind": "animationClip",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/animation-clip.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "c234b3ecc5791ff4916c6387fec8833a30c809948249b7305e4e1e0d389fca72",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/animationClip/default.anim",
+          "sha256": "342261ed21c4be6a8e7866cdc5ef0b16b064bf7702c0457c99d4d83dccea75fd",
+          "sourceReference": "engine/editor/assets/default_file_content/animation-clip/default.anim"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/animationClip/default.anim.meta",
+          "sha256": "663cb3b6cf0659d39223593707b2f523e921e2c48e35d8e97ae1a476ba3d1ec4",
+          "sourceReference": "engine/editor/assets/default_file_content/animation-clip/default.anim.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "sample": 120,
+          "speed": 0.5
+        },
+        "invalid": {
+          "sample": 0
+        },
+        "expectedPublic": {
+          "/sample": 120,
+          "/speed": 0.5
+        }
+      },
+      "initialPublic": {
+        "/sample": 60,
+        "/speed": 1
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "animation-clip",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/sample": 120,
+        "/speed": 0.5
+      }
+    },
+    {
+      "id": "creator-3.8.7-animationGraph-task41",
+      "creatorVersion": "3.8.7",
+      "assetKind": "animationGraph",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/animation-graph.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "219b2136015b1852372a9117d1dfd8d01a1481211c8a08ea23021a7ad2deb002",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/animationGraph/default.animgraph",
+          "sha256": "36853e8f612fb243b7f227c0bea2584489508653a0b8bc07b59c3283ff168c45",
+          "sourceReference": "engine/editor/assets/default_file_content/animation-graph/default.animgraph"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/animationGraph/default.animgraph.meta",
+          "sha256": "e22e082bdd53f22cb38fd2028671019b82b4ae948e85f7cdf6632dc781a05a54",
+          "sourceReference": "engine/editor/assets/default_file_content/animation-graph/default.animgraph.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "name": "task41-graph",
+          "layers": [
+            {
+              "index": 0,
+              "weight": 0.5
+            }
+          ]
+        },
+        "invalid": {
+          "layers": [
+            {
+              "index": 0,
+              "weight": "invalid"
+            }
+          ]
+        },
+        "expectedPublic": {
+          "/name": "task41-graph",
+          "/layers/0/weight": 0.5
+        }
+      },
+      "initialPublic": {
+        "/name": "",
+        "/layers/0/weight": 1
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "animation-graph",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/0/_name": "task41-graph",
+        "/1/weight": 0.5
+      }
+    },
+    {
+      "id": "creator-3.8.7-animationGraphVariant-task41",
+      "creatorVersion": "3.8.7",
+      "assetKind": "animationGraphVariant",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/animation-graph-variant.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "69d3ba7ed831b6892678eb9e44cc1dffc5c8ad19ba8fce51a2b7d9b43bf5660e",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/animationGraphVariant/default.animgraphvari",
+          "sha256": "408c15d8013dc3cf8300ab016c9df0f332fba15fac0b6e11a25131bdd9446f7c",
+          "sourceReference": "engine/editor/assets/default_file_content/animation-graph-variant/default.animgraphvari"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/animationGraphVariant/default.animgraphvari.meta",
+          "sha256": "286c46fb088f4bbfe0a56a03a8f24e628dfbcf1e438833c01e4f8fa02f094363",
+          "sourceReference": "engine/editor/assets/default_file_content/animation-graph-variant/default.animgraphvari.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "name": "task41-variant"
+        },
+        "invalid": {
+          "name": false
+        },
+        "expectedPublic": {
+          "/name": "task41-variant",
+          "/graph": null,
+          "/clips": []
+        }
+      },
+      "initialPublic": {
+        "/name": "",
+        "/graph": null,
+        "/clips": []
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "animation-graph-variant",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/0/_name": "task41-variant"
+      }
+    },
+    {
+      "id": "creator-3.8.7-animationMask-task41",
+      "creatorVersion": "3.8.7",
+      "assetKind": "animationMask",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/animation-mask.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "4ba7859dbd57c4a4ffaf6c9ef934fb4ed1220682ef4b50d0e24f7b047a4c2b99",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/animationMask/default.animask",
+          "sha256": "d81aa0aa5a3ad3cb41015ba3f9278d17f948ff3403dc34eb0fff9fd13ab3948b",
+          "sourceReference": "engine/editor/assets/default_file_content/animation-mask/default.animask"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/animationMask/default.animask.meta",
+          "sha256": "fd438fd246f6d4c6ee3fbca3f2c3c6f8fef69da6ee1cf3c118aa64260346c9ae",
+          "sourceReference": "engine/editor/assets/default_file_content/animation-mask/default.animask.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "name": "task41-mask"
+        },
+        "invalid": {
+          "name": false
+        },
+        "expectedPublic": {
+          "/name": "task41-mask",
+          "/joints": []
+        }
+      },
+      "initialPublic": {
+        "/name": "",
+        "/joints": []
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "animation-mask",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/_name": "task41-mask"
+      }
+    },
+    {
+      "id": "creator-3.8.7-material-task41",
+      "creatorVersion": "3.8.7",
+      "assetKind": "material",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/material.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [
+        {
+          "kind": "builtin-effect",
+          "uuid": "c8f66d17-351a-48da-a12c-0212d28575c4",
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/builtin-standard.effect",
+          "sha256": "36877f415fee4712f54127651f9566b9c0136e98beb699b1aa5f1307d3cf2efa",
+          "sourceReference": "engine/editor/assets/effects/builtin-standard.effect"
+        },
+        {
+          "kind": "builtin-effect-meta",
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/builtin-standard.effect.meta",
+          "sha256": "44eb95c68b263908fe90a3ce904ebcbdb1d6ea4174405ac423feca30e0313efd",
+          "sourceReference": "engine/editor/assets/effects/builtin-standard.effect.meta"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/fog.chunk",
+          "sha256": "7c6a691b9ad36e90a075bde22c9fe8c8503af99f000db1078c9d0288f7b71b0b",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/fog.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/fog"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/morph-animation.chunk",
+          "sha256": "f2f13d331445c514ab86c9214afa528eac9f8541655950c0047f20c8b88bb5c3",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/morph-animation.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/morph-animation"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/probe.chunk",
+          "sha256": "ee044e46379f1a8c2e9d862abd7359eddad7800721c958b78e9c755f1492a40a",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/probe.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/probe"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/sh.chunk",
+          "sha256": "7ebfa34b59b39b6a200ca5eca6fdb7038b4fcbd33b0a00a4139148865444bac6",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/sh.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/sh"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/shadow-map.chunk",
+          "sha256": "15ae137f9206b292fe8286ca77ab2b504ac52201df2ae23deff4c9ff84945b6f",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/shadow-map.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/shadow-map"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/skinning-animation-lbs.chunk",
+          "sha256": "c84ab5f88c601a1a69ddcfaecb25f1707403ba549b9a1b7b8d609332a853ddc8",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/skinning-animation-lbs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/skinning-animation-lbs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/world-transform.chunk",
+          "sha256": "14f0d3d066a04424360d94d8123a0a64f1fa13245cce4c812a42bdbee32d2bf8",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/world-transform.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/world-transform"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-csm.chunk",
+          "sha256": "cd4c797461cb3f8d1ddc782de766a30635c115c299afe024e1c2b8f5145a8637",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-csm.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-csm"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-diffusemap.chunk",
+          "sha256": "95f990873b3d2b3801db1af8d00df263a10e6a62e89835a01a705c7b18117404",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-diffusemap.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-diffusemap"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-environment.chunk",
+          "sha256": "8273b6ec59dd18b67fe67b8410145fc747ad4a0232084643cc1fe2109f26d755",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-environment.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-environment"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-forward-light.chunk",
+          "sha256": "a61051ee880a67f5e857b470d4117e9e9208e9618ad56ba430874d18a192720f",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-forward-light.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-forward-light"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-global.chunk",
+          "sha256": "4036cab1daf2dbaa906ac5b934a608ac66836478a96c9e94d51025f44a5f75b6",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-global.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-global"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-light-map.chunk",
+          "sha256": "4922961861969acc4f87991219fcc20575c0c15d5ccd07b00a83e9e8391318d1",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-light-map.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-light-map"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-local.chunk",
+          "sha256": "e7ee504b5dd91c441574490e1b27d63c04fdb198b7703d175692f05c5710aceb",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-local.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-local"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-local-batched.chunk",
+          "sha256": "763a6b0ad0b26f1ad6114fe15d444de2cc82ae0115057a862d6ee5a608c77503",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-local-batched.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-local-batched"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-morph.chunk",
+          "sha256": "cf38599aedbf9db4b9edcc168a2e6a94bcda0c385858f067447f93d59df0a265",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-morph.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-morph"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-reflection-probe.chunk",
+          "sha256": "754861e6eb899fb07b2f1c56aede3844214070ec36312ff8b30ec3b0a515d143",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-reflection-probe.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-reflection-probe"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-sh.chunk",
+          "sha256": "8d742b86e4e92aea1482740960f2619e92a5a317ba14882e4862eb285002207f",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-sh.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-sh"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-shadow.chunk",
+          "sha256": "3218d3d2787d46938df66bebb40148a9660d2a9884656a86b1252e332d0a8bb5",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-shadow.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-shadow"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-shadow-map.chunk",
+          "sha256": "dba252944aa1589d5fb297eed39ea67b9d9cfd2fe42b329b3211d90ce9dc13bd",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-shadow-map.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-shadow-map"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-skinning.chunk",
+          "sha256": "b1429c387d5c556ea6af3cba2707fb745a6efd82273645746d9688bb97ede49f",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-skinning.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-skinning"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/color/aces.chunk",
+          "sha256": "9ab59a61959926d87c20a4efbb180616ad7961f51b07885abd5cff9207e7ab5a",
+          "sourceReference": "engine/editor/assets/chunks/common/color/aces.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/color/aces"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/color/gamma.chunk",
+          "sha256": "58e8a46747db5c2e15fa88bd9e383aa3d693fd550a56486b8eb3c26f7b3b62a6",
+          "sourceReference": "engine/editor/assets/chunks/common/color/gamma.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/color/gamma"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/color/tone-mapping.chunk",
+          "sha256": "7085a89c7d731bfc889783620d6bce30b7c3a517a82d8e72f56e29af51b8f94a",
+          "sourceReference": "engine/editor/assets/chunks/common/color/tone-mapping.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/color/tone-mapping"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/common-define.chunk",
+          "sha256": "abe3f169e995672d4b904fbe89a6af3e498309b8a61932bd51723aed3059ebbd",
+          "sourceReference": "engine/editor/assets/chunks/common/common-define.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/common-define"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/data/packing.chunk",
+          "sha256": "d7f8da3964692ffccf098c79ed4b513dc7f7a15aad2a4dfe04fef878152ed2e8",
+          "sourceReference": "engine/editor/assets/chunks/common/data/packing.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/data/packing"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/data/unpack.chunk",
+          "sha256": "88fe68850825ca851211642b08fcbf0089f2cce0a62a4940b6bb7dfbbbae7910",
+          "sourceReference": "engine/editor/assets/chunks/common/data/unpack.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/data/unpack"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/debug/debug-view-define.chunk",
+          "sha256": "42578e90386d6231e3700493de2b87f9c3c71681f8c76b5bcdcc51eccea1dd55",
+          "sourceReference": "engine/editor/assets/chunks/common/debug/debug-view-define.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/debug/debug-view-define"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/effect/fog.chunk",
+          "sha256": "17a3ecec65eaa1b153888b315e2655f2b223000faaaaac221f13c7fab55a9f40",
+          "sourceReference": "engine/editor/assets/chunks/common/effect/fog.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/effect/fog"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/lighting/attenuation.chunk",
+          "sha256": "71299d2e7f7d813d2b82b79481fee25dd54ed04d22b9bfc73d9236c00dbf6357",
+          "sourceReference": "engine/editor/assets/chunks/common/lighting/attenuation.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/lighting/attenuation"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/lighting/brdf.chunk",
+          "sha256": "69d8dcd452cc85b393efa91ebb2c49297031c70aedace92d2c5749c08d17d747",
+          "sourceReference": "engine/editor/assets/chunks/common/lighting/brdf.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/lighting/brdf"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/lighting/bxdf.chunk",
+          "sha256": "df7eab11df3fe2d0aa7503d146612c99115e464eebc2ed903b7c08e09b952579",
+          "sourceReference": "engine/editor/assets/chunks/common/lighting/bxdf.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/lighting/bxdf"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/lighting/functions.chunk",
+          "sha256": "f654e4850bcedf9759a6b763d28fa7d6338c6983a60d1e95824e35d0d2d65331",
+          "sourceReference": "engine/editor/assets/chunks/common/lighting/functions.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/lighting/functions"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/lighting/light-map.chunk",
+          "sha256": "cdd34736f19da1da08eb7e9f2b7489826bb24dca82b73bf30b6ce2c13566c9b3",
+          "sourceReference": "engine/editor/assets/chunks/common/lighting/light-map.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/lighting/light-map"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/math/coordinates.chunk",
+          "sha256": "599d8262e20e173b915e1947bf47047c41460c8646ab86a5238020d6e779bc06",
+          "sourceReference": "engine/editor/assets/chunks/common/math/coordinates.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/math/coordinates"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/math/number.chunk",
+          "sha256": "59cd37ed1c432759fac91723f3b39d6755b0e56d2cec5a75556759c07c35bf0c",
+          "sourceReference": "engine/editor/assets/chunks/common/math/number.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/math/number"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/math/octahedron-transform.chunk",
+          "sha256": "b8a5b6c7410ffba5aa862bde9922f02b1f913a849e03b0577976eafa95c19f35",
+          "sourceReference": "engine/editor/assets/chunks/common/math/octahedron-transform.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/math/octahedron-transform"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/mesh/material.chunk",
+          "sha256": "c96e09a30a66b3f332deefb774000f5b0c2d1f5f8d6495970ff29cd4b7bc5502",
+          "sourceReference": "engine/editor/assets/chunks/common/mesh/material.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/mesh/material"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/shadow/native-pcf.chunk",
+          "sha256": "e41499c6ab669db86341125ba319e5964f69072c4841d1918d6a2cee6d98ef35",
+          "sourceReference": "engine/editor/assets/chunks/common/shadow/native-pcf.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/shadow/native-pcf"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/texture/cubemap.chunk",
+          "sha256": "74c66c2eb242dbe4c9ef3d9302b72f00a99153ab2df1358826b27b75f8aed751",
+          "sourceReference": "engine/editor/assets/chunks/common/texture/cubemap.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/texture/cubemap"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/texture/texture-lod.chunk",
+          "sha256": "6002cd8d8c959ded09be7074355c5f2d48ebe4c5118972ff56a8041832cada78",
+          "sourceReference": "engine/editor/assets/chunks/common/texture/texture-lod.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/texture/texture-lod"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/lighting-models/data-structures/lighting-intermediate-data.chunk",
+          "sha256": "7a85b10b4bcc078abb81e4af581f118d16d3c30983000d5a73192508fd4745da",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/data-structures/lighting-intermediate-data.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/data-structures/lighting-intermediate-data"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/lighting-models/data-structures/lighting-misc-data.chunk",
+          "sha256": "a61f8505766cf26d8ed712c0a5c3633f3034577f61ce6d605aafc123651961b6",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/data-structures/lighting-misc-data.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/data-structures/lighting-misc-data"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/lighting-models/data-structures/lighting-result.chunk",
+          "sha256": "f4e5f9ca84f0244b6b5f989bd98dcd747ed8c0a0f901a6d020a27fe512b49a56",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/data-structures/lighting-result.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/data-structures/lighting-result"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/lighting-models/default-functions/standard.chunk",
+          "sha256": "e8fc6d6d06ba213db1cd6aa76c9c12fb8ba00fc6b466fb4d5ab475ce0ca7874a",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/default-functions/standard.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/default-functions/standard"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/lighting-models/includes/common.chunk",
+          "sha256": "c5b3adebb90a245dba17c2180bd74964d8e7d5067c883b0747d1bd305873aebf",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/includes/common.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/includes/common"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/lighting-models/includes/standard.chunk",
+          "sha256": "337f4a9ead48994d5042a2cab1df992c50a3b0575feb78a97509899cee379fd0",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/includes/standard.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/includes/standard"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/lighting-models/lighting-flow/common-flow.chunk",
+          "sha256": "d67851563bf552c7a31201d538110af006a866027ff97ab9c9f70f421deb92d9",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/lighting-flow/common-flow.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/lighting-flow/common-flow"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/lighting-models/model-functions/standard.chunk",
+          "sha256": "4942dcc494ccd4749dd4dd1ba0ebe43578e940cd398d57ed75b590c7a8283524",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/model-functions/standard.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/model-functions/standard"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/lighting-models/model-functions/standard-common.chunk",
+          "sha256": "d7b2a878e7ed870f7e591e0a302a908970586dcab1b25d2d5216337bb9c9d167",
+          "sourceReference": "engine/editor/assets/chunks/lighting-models/model-functions/standard-common.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "lighting-models/model-functions/standard-common"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/shading-entries/data-structures/fs-input.chunk",
+          "sha256": "995b752f957f5f3cca1b8a57df59382794f441b2175ac28669fee220bef2aa36",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/data-structures/fs-input.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/data-structures/fs-input"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/shading-entries/data-structures/vs-fs.chunk",
+          "sha256": "3a076ee47223e6f7f759a229ad31d7175089a1e8c9a4a5694cb4650a524f4b1e",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/data-structures/vs-fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/data-structures/vs-fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/shading-entries/data-structures/vs-input.chunk",
+          "sha256": "c84c67245ced137ea249bc5d9bfd2b5aadf151d90ea0583b16d674b510f31bcc",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/data-structures/vs-input.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/data-structures/vs-input"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/shading-entries/data-structures/vs-intermediate.chunk",
+          "sha256": "8a0fcf62e848919a050c823e0495ee00ff01e25b2f3611f890be7d2dd1297f59",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/data-structures/vs-intermediate.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/data-structures/vs-intermediate"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/shading-entries/data-structures/vs-output.chunk",
+          "sha256": "9ab2e433c61026ac063191d41759b7f7fe9fa70ff2c3d583600eaebe161960d4",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/data-structures/vs-output.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/data-structures/vs-output"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-planar-shadow/fs.chunk",
+          "sha256": "a06e89e9818841ff1fb2ae587e8a6ae8ca24708456bed7dc3f5e174e59a222ad",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-planar-shadow/fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-planar-shadow/fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-planar-shadow/vs.chunk",
+          "sha256": "b6ad1bfadaa6a15e5d02151a649fdbc40dd33ece27aa6886b368e693a6c867ba",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-planar-shadow/vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-planar-shadow/vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-to-reflectmap/fs.chunk",
+          "sha256": "74c3d7908066e1ab72636487f8349a5737ccaa75859aa78f99f3159705ab8ec4",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-to-reflectmap/fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-to-reflectmap/fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-to-scene/fs.chunk",
+          "sha256": "9ba87797005f8cd9627e167db653a7516805bdea92c58351a53eb9d1bcd74280",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-to-scene/fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-to-scene/fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-to-scene/pipeline/deferred-fs.chunk",
+          "sha256": "508352ad87c47a8a3d2c80e9e1fb023bca3125dbc99cc1d9185218f48bfc53e0",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-to-scene/pipeline/deferred-fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-to-scene/pipeline/deferred-fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-to-scene/pipeline/forward-fs.chunk",
+          "sha256": "b762e534a956c23fdae7f86becc4f00edfcd28be30337ad883a25a99b2dc1de9",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-to-scene/pipeline/forward-fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-to-scene/pipeline/forward-fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-to-scene/vs.chunk",
+          "sha256": "74972dbfc363b74a76567e54bc2228ded3fc1f1d69d0aec7972df1502f6cfa41",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-to-scene/vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-to-scene/vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-to-shadowmap/fs.chunk",
+          "sha256": "77e44602ee517346904f0bec1df0bd55321593a605d2fdf8a900dfc0688591bc",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-to-shadowmap/fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-to-shadowmap/fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/shading-entries/main-functions/render-to-shadowmap/vs.chunk",
+          "sha256": "e95c046330092d1bd363a6f56a0a92a672214801ea8d9128d7ea14c898e42b28",
+          "sourceReference": "engine/editor/assets/chunks/shading-entries/main-functions/render-to-shadowmap/vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "shading-entries/main-functions/render-to-shadowmap/vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/surfaces/data-structures/standard.chunk",
+          "sha256": "8e6a22b7560cc48cdbe7c9ec0e721ca2f431f8122becd03c3ffaffefc4171ec9",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/data-structures/standard.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/data-structures/standard"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/surfaces/default-functions/common-vs.chunk",
+          "sha256": "3816422a99462eb6c11bf925b5beabc363c6a5708b3ef5756248a24b65fbedb6",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/default-functions/common-vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/default-functions/common-vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/surfaces/default-functions/standard-fs.chunk",
+          "sha256": "70d61a2431f32da069cb256733176ff6f646d662e53e8d18ba2fb19eff1dcbc8",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/default-functions/standard-fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/default-functions/standard-fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/surfaces/effect-macros/common-macros.chunk",
+          "sha256": "baddb21a7b13cde39cbcfd121a24fb821cbf547a0a356fe54f4390d27160cae3",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/effect-macros/common-macros.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/effect-macros/common-macros"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/surfaces/effect-macros/render-planar-shadow.chunk",
+          "sha256": "5ddabeb45426125e9d4c4b45334cc1355b3202a3a59fe63006013dbfc0bd8f93",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/effect-macros/render-planar-shadow.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/effect-macros/render-planar-shadow"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/surfaces/effect-macros/render-to-shadowmap.chunk",
+          "sha256": "5ddabeb45426125e9d4c4b45334cc1355b3202a3a59fe63006013dbfc0bd8f93",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/effect-macros/render-to-shadowmap.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/effect-macros/render-to-shadowmap"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/surfaces/includes/common-fs.chunk",
+          "sha256": "6124e7fdd2555e70197b2af27c543721f270dbdebd24d3f8d44d1117380696b4",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/includes/common-fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/includes/common-fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/surfaces/includes/common-vs.chunk",
+          "sha256": "d66289523ec0459f438ccb230d88d94771ac33bec3011c19ab108f25dcb60dd8",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/includes/common-vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/includes/common-vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/surfaces/includes/standard-fs.chunk",
+          "sha256": "3e5083504fae0dda0e742dc95d47d0a025ee1a83ce9209232344e448991158af",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/includes/standard-fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/includes/standard-fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/surfaces/includes/standard-vs.chunk",
+          "sha256": "4b487388f4e0d00c568420c4e48dc4f50fc0db042a57d26705381896f6a76ea4",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/includes/standard-vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/includes/standard-vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/surfaces/module-functions/common-vs.chunk",
+          "sha256": "8bf84c1301545e31a8149257f0cb6a633d39b8bdda54614e3968f7c11f351788",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/module-functions/common-vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/module-functions/common-vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/surfaces/module-functions/debug-view.chunk",
+          "sha256": "b63e7f25646619416517c1b2fee9b62fc355134f71d62a81718a70d52fa25441",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/module-functions/debug-view.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/module-functions/debug-view"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/surfaces/module-functions/standard-fs.chunk",
+          "sha256": "148cc255567d47af937d32ac24b93b0f778a4ef825fda339e2e5057f39dbd494",
+          "sourceReference": "engine/editor/assets/chunks/surfaces/module-functions/standard-fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "surfaces/module-functions/standard-fs"
+        }
+      ],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "8e67025f39f5ca9a11b0627ec554b15e5628a9fc8231ff84a6c473a568b18aaf",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/material/default.mtl",
+          "sha256": "6535a416157b0c913d2a295784b5658520cea3843fd7f730704fcb88e9431517",
+          "sourceReference": "engine/editor/assets/default_file_content/material/default.mtl"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/material/default.mtl.meta",
+          "sha256": "72740287db8a6f862fbccb09437af5918195eba2223e39a3f2f0488ba9a92929",
+          "sourceReference": "engine/editor/assets/default_file_content/material/default.mtl.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "name": "task41-material"
+        },
+        "invalid": {
+          "technique": -1
+        },
+        "expectedPublic": {
+          "/name": "task41-material",
+          "/technique": 0
+        }
+      },
+      "initialPublic": {
+        "/name": "",
+        "/technique": 0
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "material",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/_name": "task41-material"
+      }
+    },
+    {
+      "id": "creator-3.8.7-physicsMaterial-task41",
+      "creatorVersion": "3.8.7",
+      "assetKind": "physicsMaterial",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/json-asset-document.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "e6c0ba8a0a5f8cef0cfd8a1257dd8d8ad37e2853903245eee2b14103c75dda09",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/physicsMaterial/default.pmtl",
+          "sha256": "bcc878c3c9a366a971619bbb79660ce8512119a5e5a419f90754d673d3cbe76e",
+          "sourceReference": "engine/editor/assets/default_file_content/physics-material/default.pmtl"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/physicsMaterial/default.pmtl.meta",
+          "sha256": "a912e087406e941c5664084d4ccb6c6976ac46190455d00be9efc81ede43c85a",
+          "sourceReference": "engine/editor/assets/default_file_content/physics-material/default.pmtl.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "name": "task41-physics",
+          "friction": 0.7,
+          "rollingFriction": 0.2,
+          "spinningFriction": 0.3,
+          "restitution": 0.4
+        },
+        "invalid": {
+          "friction": -1
+        },
+        "expectedPublic": {
+          "/name": "task41-physics",
+          "/friction": 0.7,
+          "/rollingFriction": 0.2,
+          "/spinningFriction": 0.3,
+          "/restitution": 0.4
+        }
+      },
+      "initialPublic": {
+        "/name": "",
+        "/friction": 0.5,
+        "/rollingFriction": 0,
+        "/spinningFriction": 0,
+        "/restitution": 0.1
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "physics-material",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {
+        "name": {
+          "serializedName": "_name",
+          "writable": true,
+          "initial": "",
+          "expected": "task41-physics",
+          "patch": {
+            "name": "task41-physics"
+          },
+          "invalidPatch": {
+            "name": false
+          }
+        },
+        "friction": {
+          "serializedName": "_friction",
+          "writable": true,
+          "initial": 0.5,
+          "expected": 0.7,
+          "patch": {
+            "friction": 0.7
+          },
+          "invalidPatch": {
+            "friction": "invalid"
+          }
+        },
+        "rollingFriction": {
+          "serializedName": "_rollingFriction",
+          "writable": true,
+          "initial": 0,
+          "expected": 0.2,
+          "patch": {
+            "rollingFriction": 0.2
+          },
+          "invalidPatch": {
+            "rollingFriction": "invalid"
+          }
+        },
+        "spinningFriction": {
+          "serializedName": "_spinningFriction",
+          "writable": true,
+          "initial": 0,
+          "expected": 0.3,
+          "patch": {
+            "spinningFriction": 0.3
+          },
+          "invalidPatch": {
+            "spinningFriction": "invalid"
+          }
+        },
+        "restitution": {
+          "serializedName": "_restitution",
+          "writable": true,
+          "initial": 0.1,
+          "expected": 0.4,
+          "patch": {
+            "restitution": 0.4
+          },
+          "invalidPatch": {
+            "restitution": "invalid"
+          }
+        }
+      },
+      "serializedPatchAssertions": {
+        "/_name": "task41-physics",
+        "/_friction": 0.7,
+        "/_rollingFriction": 0.2,
+        "/_spinningFriction": 0.3,
+        "/_restitution": 0.4
+      }
+    },
+    {
+      "id": "creator-3.8.7-renderPipeline-task41",
+      "creatorVersion": "3.8.7",
+      "assetKind": "renderPipeline",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/render-pipeline.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "ab862e6f8eea186da940ce0e9116a869dbf7e533194c7c06f1fbf9c115c136ff",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/renderPipeline/default.rpp",
+          "sha256": "271452105e48e629c5e844fe3b16e94997ab8676e5423ff5a3852b4835af8e05",
+          "sourceReference": "engine/editor/assets/default_file_content/render-pipeline/default.rpp"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/renderPipeline/default.rpp.meta",
+          "sha256": "ce078e9c43496cb903aea6928ecb3c4a24583e6ae68385d0bd92cf6596fbb930",
+          "sourceReference": "engine/editor/assets/default_file_content/render-pipeline/default.rpp.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "name": "task41-pipeline",
+          "tag": 1
+        },
+        "invalid": {
+          "tag": -1
+        },
+        "expectedPublic": {
+          "/name": "task41-pipeline",
+          "/tag": 1,
+          "/flows": []
+        }
+      },
+      "initialPublic": {
+        "/name": "",
+        "/tag": 0,
+        "/flows": []
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "render-pipeline",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/_name": "task41-pipeline",
+        "/_tag": 1
+      }
+    },
+    {
+      "id": "creator-3.8.7-renderFlow-task41",
+      "creatorVersion": "3.8.7",
+      "assetKind": "renderFlow",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/json-asset-document.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [
+        {
+          "kind": "patch-stage-reference",
+          "fixtureId": "creator-3.8.7-renderStage-task41",
+          "uuid": "d648dbaf-8a80-5f99-9786-d2e3fbc87fd6"
+        }
+      ],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "e6c0ba8a0a5f8cef0cfd8a1257dd8d8ad37e2853903245eee2b14103c75dda09",
+      "construction": "由精确版本原生序列化字段声明和既有产品 codec 构造；须由离线测试及二进制格式独立检查证明，不作为原生导入证据。",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/renderFlow/default.flow",
+          "sha256": "278978a870d55b62a626310e0ccd32d266556ac61225513113ab3e65aaea86e7"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/renderFlow/default.flow.meta",
+          "sha256": "7dd84084e3d9fad415034d24495655511543a911b642439891f79a5a2540c89e",
+          "sourceReference": "产品 codec 新建 meta；版本 importer 表与原生声明核对，非 AssetDB 登记结果"
+        }
+      },
+      "generatedMeta": {
+        "importer": "render-flow",
+        "uuid": "471538a9-0372-5133-9bd0-24b4a79782fd"
+      },
+      "patch": {
+        "valid": {
+          "name": "task41-flow",
+          "priority": 2,
+          "tag": 1,
+          "stageUuids": [
+            "d648dbaf-8a80-5f99-9786-d2e3fbc87fd6"
+          ]
+        },
+        "invalid": {
+          "priority": 0.5
+        },
+        "expectedPublic": {
+          "/name": "task41-flow",
+          "/priority": 2,
+          "/tag": 1,
+          "/type": "RenderFlow",
+          "/stageUuids": [
+            "d648dbaf-8a80-5f99-9786-d2e3fbc87fd6"
+          ]
+        }
+      },
+      "initialPublic": {
+        "/name": "",
+        "/priority": 0,
+        "/tag": 0,
+        "/type": "RenderFlow",
+        "/stageUuids": []
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "render-flow",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {
+        "type": {
+          "serializedName": "__type__",
+          "writable": false,
+          "initial": "RenderFlow",
+          "expected": "RenderFlow",
+          "patch": null,
+          "invalidPatch": {
+            "type": "InvalidStageType"
+          }
+        },
+        "name": {
+          "serializedName": "_name",
+          "writable": true,
+          "initial": "",
+          "expected": "task41-flow",
+          "patch": {
+            "name": "task41-flow"
+          },
+          "invalidPatch": {
+            "name": false
+          }
+        },
+        "priority": {
+          "serializedName": "_priority",
+          "writable": true,
+          "initial": 0,
+          "expected": 2,
+          "patch": {
+            "priority": 2
+          },
+          "invalidPatch": {
+            "priority": "invalid"
+          }
+        },
+        "tag": {
+          "serializedName": "_tag",
+          "writable": true,
+          "initial": 0,
+          "expected": 1,
+          "patch": {
+            "tag": 1
+          },
+          "invalidPatch": {
+            "tag": "invalid"
+          }
+        },
+        "stageUuids": {
+          "serializedName": "_stages",
+          "writable": true,
+          "initial": [],
+          "expected": [
+            "d648dbaf-8a80-5f99-9786-d2e3fbc87fd6"
+          ],
+          "patch": {
+            "stageUuids": [
+              "d648dbaf-8a80-5f99-9786-d2e3fbc87fd6"
+            ]
+          },
+          "invalidPatch": {
+            "stageUuids": [
+              false
+            ]
+          }
+        }
+      },
+      "serializedPatchAssertions": {
+        "/_name": "task41-flow",
+        "/_priority": 2,
+        "/_tag": 1,
+        "/_stages": [
+          {
+            "__uuid__": "d648dbaf-8a80-5f99-9786-d2e3fbc87fd6"
+          }
+        ]
+      }
+    },
+    {
+      "id": "creator-3.8.7-renderStage-task41",
+      "creatorVersion": "3.8.7",
+      "assetKind": "renderStage",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/json-asset-document.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "e6c0ba8a0a5f8cef0cfd8a1257dd8d8ad37e2853903245eee2b14103c75dda09",
+      "construction": "由精确版本原生序列化字段声明和既有产品 codec 构造；须由离线测试及二进制格式独立检查证明，不作为原生导入证据。",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/renderStage/default.stg",
+          "sha256": "8aa3e11ca284cb4d142648a64e5a219d8772ef90b92e7bf7dc9ba9c2a77b83ae"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/renderStage/default.stg.meta",
+          "sha256": "7183130107314e150e4eb74bb58cb8608be419ef764f8111d7af115779ae8081",
+          "sourceReference": "产品 codec 新建 meta；版本 importer 表与原生声明核对，非 AssetDB 登记结果"
+        }
+      },
+      "generatedMeta": {
+        "importer": "render-stage",
+        "uuid": "d648dbaf-8a80-5f99-9786-d2e3fbc87fd6"
+      },
+      "patch": {
+        "valid": {
+          "name": "task41-stage",
+          "priority": 2,
+          "tag": 1
+        },
+        "invalid": {
+          "priority": 0.5
+        },
+        "expectedPublic": {
+          "/name": "task41-stage",
+          "/priority": 2,
+          "/tag": 1,
+          "/type": "RenderStage"
+        }
+      },
+      "initialPublic": {
+        "/name": "",
+        "/priority": 0,
+        "/tag": 0,
+        "/type": "RenderStage"
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "render-stage",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {
+        "type": {
+          "serializedName": "__type__",
+          "writable": false,
+          "initial": "RenderStage",
+          "expected": "RenderStage",
+          "patch": null,
+          "invalidPatch": {
+            "type": "InvalidStageType"
+          }
+        },
+        "name": {
+          "serializedName": "_name",
+          "writable": true,
+          "initial": "",
+          "expected": "task41-stage",
+          "patch": {
+            "name": "task41-stage"
+          },
+          "invalidPatch": {
+            "name": false
+          }
+        },
+        "priority": {
+          "serializedName": "_priority",
+          "writable": true,
+          "initial": 0,
+          "expected": 2,
+          "patch": {
+            "priority": 2
+          },
+          "invalidPatch": {
+            "priority": "invalid"
+          }
+        },
+        "tag": {
+          "serializedName": "_tag",
+          "writable": true,
+          "initial": 0,
+          "expected": 1,
+          "patch": {
+            "tag": 1
+          },
+          "invalidPatch": {
+            "tag": "invalid"
+          }
+        }
+      },
+      "serializedPatchAssertions": {
+        "/_name": "task41-stage",
+        "/_priority": 2,
+        "/_tag": 1
+      }
+    },
+    {
+      "id": "creator-3.8.7-renderTexture-task41",
+      "creatorVersion": "3.8.7",
+      "assetKind": "renderTexture",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/render-texture.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "5fb8b33634fa498bcf9623529da57c3219893696190c978cc94b9261b67dc521",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/renderTexture/default.rt",
+          "sha256": "d68eb23d8a8fa7a107a19789129721eeabf88ffc3efe001be87154696de34a8f",
+          "sourceReference": "engine/editor/assets/default_file_content/render-texture/default.rt"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/renderTexture/default.rt.meta",
+          "sha256": "55b454aae6b2bd613ba78130da0594a71682215fb3fbba9c2aefbbce1698b020",
+          "sourceReference": "engine/editor/assets/default_file_content/render-texture/default.rt.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "width": 128,
+          "height": 64
+        },
+        "invalid": {
+          "width": 0
+        },
+        "expectedPublic": {
+          "/width": 128,
+          "/height": 64
+        }
+      },
+      "initialPublic": {
+        "/width": 256,
+        "/height": 256
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "render-texture",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/content/w": 128,
+        "/content/h": 64
+      }
+    },
+    {
+      "id": "creator-3.8.7-prefab-task41",
+      "creatorVersion": "3.8.7",
+      "assetKind": "prefab",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/hierarchy/prefab-document.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "a021ddbcc73544f06dafe2cba8fc1ccb207c85f27e8e4ffb37d0e7e1e20f2fbc",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/prefab/default.prefab",
+          "sha256": "9e0d26ad575111c24b2be5b307c2d6a4b8eec69dab93c4b90a5ab572459a1aee",
+          "sourceReference": "engine/editor/assets/default_file_content/prefab/default.prefab"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/prefab/default.prefab.meta",
+          "sha256": "4f381f0db322b78c917ee2a5e294190dc983aee9c419261a42d6f7717a00c026",
+          "sourceReference": "engine/editor/assets/default_file_content/prefab/default.prefab.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "active": false
+        },
+        "invalid": {
+          "active": "invalid"
+        },
+        "expectedPublic": {
+          "/node/active": false
+        }
+      },
+      "nodePath": "/default",
+      "initialPublic": {
+        "/node/active": true
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "prefab",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/1/_active": false
+      }
+    },
+    {
+      "id": "creator-3.8.7-scene-task41",
+      "creatorVersion": "3.8.7",
+      "assetKind": "scene",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/hierarchy/prefab-document.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "a021ddbcc73544f06dafe2cba8fc1ccb207c85f27e8e4ffb37d0e7e1e20f2fbc",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/scene/scene-2d.scene",
+          "sha256": "2971097b9b2b6331ee2d0cdcbbf55e0930104870280eb60c23cdcb3f4eec78e9",
+          "sourceReference": "engine/editor/assets/default_file_content/scene/scene-2d.scene"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/scene/scene-2d.scene.meta",
+          "sha256": "8d989b1d1d2c4bb4f4d9073147d34dd95d5b65809458a2a8d931db4592e5727d",
+          "sourceReference": "engine/editor/assets/default_file_content/scene/scene-2d.scene.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "patch": {
+        "valid": {
+          "active": false
+        },
+        "invalid": {
+          "active": "invalid"
+        },
+        "expectedPublic": {
+          "/node/active": false
+        }
+      },
+      "nodePath": "/scene-2d",
+      "initialPublic": {
+        "/node/active": true
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator serialized JSON",
+        "metaImporter": "scene",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {},
+      "serializedPatchAssertions": {
+        "/1/_active": false
+      }
+    },
+    {
+      "id": "creator-3.8.7-terrain-task41",
+      "creatorVersion": "3.8.7",
+      "assetKind": "terrain",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/terrain.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "e6d2c6706eb17d606a0c8dc028c84b4dcc7622d29190c5641b1e65777a2b21e5",
+      "construction": "由精确版本原生序列化字段声明和既有产品 codec 构造；须由离线测试及二进制格式独立检查证明，不作为原生导入证据。",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/terrain/flat.terrain",
+          "sha256": "3614bf5ed63fee2df67c15969f25a95d5e52ad2a0e74db8aa5ae32c4363bec6c"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/terrain/flat.terrain.meta",
+          "sha256": "da3d1fe20da8242278838997404d4c7ddc81b502cbc3d5f779c8f22da179aa12",
+          "sourceReference": "产品 codec 新建 meta；版本 importer 表与原生声明核对，非 AssetDB 登记结果"
+        }
+      },
+      "generatedMeta": {
+        "importer": "terrain",
+        "uuid": "a56dc6a7-bf72-5227-9cd5-6690712bf5d6"
+      },
+      "patch": {
+        "valid": {
+          "flatHeight": 2,
+          "tileSize": 2
+        },
+        "invalid": {
+          "tileSize": 0
+        },
+        "expectedPublic": {
+          "/tileSize": 2,
+          "/blockCount": [
+            1,
+            1
+          ],
+          "/heightMin": 2,
+          "/heightMax": 2,
+          "/layerInfos": []
+        }
+      },
+      "initialPublic": {
+        "/tileSize": 1,
+        "/blockCount": [
+          1,
+          1
+        ],
+        "/heightMin": 0,
+        "/heightMax": 0,
+        "/layerInfos": []
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator terrain VERSION8 binary",
+        "metaImporter": "terrain",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {}
+    },
+    {
+      "id": "creator-3.8.7-effect-task41",
+      "creatorVersion": "3.8.7",
+      "assetKind": "effect",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/effect.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/fog.chunk",
+          "sha256": "7c6a691b9ad36e90a075bde22c9fe8c8503af99f000db1078c9d0288f7b71b0b",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/fog.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/fog"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/morph-animation.chunk",
+          "sha256": "f2f13d331445c514ab86c9214afa528eac9f8541655950c0047f20c8b88bb5c3",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/morph-animation.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/morph-animation"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/shadow-map.chunk",
+          "sha256": "15ae137f9206b292fe8286ca77ab2b504ac52201df2ae23deff4c9ff84945b6f",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/shadow-map.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/shadow-map"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/skinning-animation-lbs.chunk",
+          "sha256": "c84ab5f88c601a1a69ddcfaecb25f1707403ba549b9a1b7b8d609332a853ddc8",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/skinning-animation-lbs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/skinning-animation-lbs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/functionalities/world-transform.chunk",
+          "sha256": "14f0d3d066a04424360d94d8123a0a64f1fa13245cce4c812a42bdbee32d2bf8",
+          "sourceReference": "engine/editor/assets/chunks/builtin/functionalities/world-transform.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/functionalities/world-transform"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-csm.chunk",
+          "sha256": "cd4c797461cb3f8d1ddc782de766a30635c115c299afe024e1c2b8f5145a8637",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-csm.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-csm"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-global.chunk",
+          "sha256": "4036cab1daf2dbaa906ac5b934a608ac66836478a96c9e94d51025f44a5f75b6",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-global.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-global"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-local.chunk",
+          "sha256": "e7ee504b5dd91c441574490e1b27d63c04fdb198b7703d175692f05c5710aceb",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-local.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-local"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-local-batched.chunk",
+          "sha256": "763a6b0ad0b26f1ad6114fe15d444de2cc82ae0115057a862d6ee5a608c77503",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-local-batched.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-local-batched"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-morph.chunk",
+          "sha256": "cf38599aedbf9db4b9edcc168a2e6a94bcda0c385858f067447f93d59df0a265",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-morph.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-morph"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-shadow.chunk",
+          "sha256": "3218d3d2787d46938df66bebb40148a9660d2a9884656a86b1252e332d0a8bb5",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-shadow.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-shadow"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-shadow-map.chunk",
+          "sha256": "dba252944aa1589d5fb297eed39ea67b9d9cfd2fe42b329b3211d90ce9dc13bd",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-shadow-map.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-shadow-map"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-skinning.chunk",
+          "sha256": "b1429c387d5c556ea6af3cba2707fb745a6efd82273645746d9688bb97ede49f",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-skinning.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-skinning"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/color/gamma.chunk",
+          "sha256": "58e8a46747db5c2e15fa88bd9e383aa3d693fd550a56486b8eb3c26f7b3b62a6",
+          "sourceReference": "engine/editor/assets/chunks/common/color/gamma.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/color/gamma"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/common-define.chunk",
+          "sha256": "abe3f169e995672d4b904fbe89a6af3e498309b8a61932bd51723aed3059ebbd",
+          "sourceReference": "engine/editor/assets/chunks/common/common-define.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/common-define"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/data/packing.chunk",
+          "sha256": "d7f8da3964692ffccf098c79ed4b513dc7f7a15aad2a4dfe04fef878152ed2e8",
+          "sourceReference": "engine/editor/assets/chunks/common/data/packing.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/data/packing"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/data/unpack.chunk",
+          "sha256": "88fe68850825ca851211642b08fcbf0089f2cce0a62a4940b6bb7dfbbbae7910",
+          "sourceReference": "engine/editor/assets/chunks/common/data/unpack.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/data/unpack"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/effect/fog.chunk",
+          "sha256": "17a3ecec65eaa1b153888b315e2655f2b223000faaaaac221f13c7fab55a9f40",
+          "sourceReference": "engine/editor/assets/chunks/common/effect/fog.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/effect/fog"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/math/coordinates.chunk",
+          "sha256": "599d8262e20e173b915e1947bf47047c41460c8646ab86a5238020d6e779bc06",
+          "sourceReference": "engine/editor/assets/chunks/common/math/coordinates.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/math/coordinates"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/common/shadow/native-pcf.chunk",
+          "sha256": "e41499c6ab669db86341125ba319e5964f69072c4841d1918d6a2cee6d98ef35",
+          "sourceReference": "engine/editor/assets/chunks/common/shadow/native-pcf.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "common/shadow/native-pcf"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/main-functions/general-vs.chunk",
+          "sha256": "5f96aafa2995b3a6d623031464051b2042e56d892acf419a475c063f25d0be75",
+          "sourceReference": "engine/editor/assets/chunks/legacy/main-functions/general-vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "general-vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/decode-base.chunk",
+          "sha256": "4787a7db395b6bf2cf701008fe6814518cd2f177c6487b940be195a38912fd82",
+          "sourceReference": "engine/editor/assets/chunks/legacy/decode-base.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/decode-base"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/decode-standard.chunk",
+          "sha256": "01545a317c907fa9f89f14a27498dd6db7e1e0fec92d254e69c5f63d31fad49c",
+          "sourceReference": "engine/editor/assets/chunks/legacy/decode-standard.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/decode-standard"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/fog-base.chunk",
+          "sha256": "54160468d055bd3cc0b832e550556e2ba98ac216a16aa84654ff5993f4f4cec7",
+          "sourceReference": "engine/editor/assets/chunks/legacy/fog-base.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/fog-base"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/fog-fs.chunk",
+          "sha256": "7ea30cdaea20423a1db8951c3a35c87e02890b1cac64106300ae81d4acf944dd",
+          "sourceReference": "engine/editor/assets/chunks/legacy/fog-fs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/fog-fs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/fog-vs.chunk",
+          "sha256": "a065cc2a528dad0fba466ec0149b8ead4898fbe2aa64bfc9ee82aa95a774112d",
+          "sourceReference": "engine/editor/assets/chunks/legacy/fog-vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/fog-vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/input-standard.chunk",
+          "sha256": "ca34ef850015792f54254aa0cbe9a99d2f45477c03130d176f2a8654c456f719",
+          "sourceReference": "engine/editor/assets/chunks/legacy/input-standard.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/input-standard"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/local-batch.chunk",
+          "sha256": "2058a68d2d97b365a02bbc25c440fbf1311544f707b0a35bf94c428392b207fa",
+          "sourceReference": "engine/editor/assets/chunks/legacy/local-batch.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/local-batch"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/main-functions/general-vs.chunk",
+          "sha256": "5f96aafa2995b3a6d623031464051b2042e56d892acf419a475c063f25d0be75",
+          "sourceReference": "engine/editor/assets/chunks/legacy/main-functions/general-vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/main-functions/general-vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/morph.chunk",
+          "sha256": "c4e352252c261a0534a43b88fe3baaaa87eff731bc42961766ce4b4eb406859a",
+          "sourceReference": "engine/editor/assets/chunks/legacy/morph.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/morph"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/output.chunk",
+          "sha256": "89a57d193d446477e5db77d20e51b0b879dc781815317296caf6c1a53a867ebc",
+          "sourceReference": "engine/editor/assets/chunks/legacy/output.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/output"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/shadow-map-base.chunk",
+          "sha256": "f688e8696b55f4ccbd8394d8758d2a38498099a275328f68f7065e5a72ab74a9",
+          "sourceReference": "engine/editor/assets/chunks/legacy/shadow-map-base.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/shadow-map-base"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/shadow-map-vs.chunk",
+          "sha256": "254623c4ac0f07675777160f42a47347dd9c4ad49f1ba268fa55763f603ef8a5",
+          "sourceReference": "engine/editor/assets/chunks/legacy/shadow-map-vs.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/shadow-map-vs"
+        },
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/legacy/skinning.chunk",
+          "sha256": "88661202838911530e1b5d1e51fc3142bc0230b72256a47508ca8287adbe5fc5",
+          "sourceReference": "engine/editor/assets/chunks/legacy/skinning.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "legacy/skinning"
+        }
+      ],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "e50d66e15ff8a84ed3f3473e590c5344eb38f3eec978d95296742e96f812e2a8",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/effect/default.effect",
+          "sha256": "b5809361ef0736ef431f68e789343f151b2db1d98eaeaf737326d2e4f6617412",
+          "sourceReference": "engine/editor/assets/default_file_content/effect/default.effect"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/effect/default.effect.meta",
+          "sha256": "5ba171b6243350c32840b1a87b3d9f46d75ba986bd2481cab3cefd4aa4f28fe1",
+          "sourceReference": "engine/editor/assets/default_file_content/effect/default.effect.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "builtinSymbolPolicy": "shader 及材质默认纹理符号由该版本引擎提供；不伪造外部纹理 UUID；必须在实机核对原生解析与原始日志。",
+      "patch": {
+        "valid": {
+          "source": "// Effect Syntax Guide: https://docs.cocos.com/creator/manual/zh/shader/index.html\n\nCCEffect %{\n  techniques:\n  - name: opaque\n    passes:\n    - vert: legacy/main-functions/general-vs:vert # builtin header\n      frag: unlit-fs:frag\n      properties: &props\n        mainTexture:    { value: white }\n        mainColor:      { value: [1, 1, 1, 1], editor: { type: color } }\n  - name: transparent\n    passes:\n    - vert: general-vs:vert # builtin header\n      frag: unlit-fs:frag\n      blendState:\n        targets:\n        - blend: true\n          blendSrc: src_alpha\n          blendDst: one_minus_src_alpha\n          blendSrcAlpha: src_alpha\n          blendDstAlpha: one_minus_src_alpha\n      properties: *props\n}%\n\nCCProgram unlit-fs %{\n  precision highp float;\n  #include <legacy/output>\n  #include <legacy/fog-fs>\n\n  in vec2 v_uv;\n  in vec3 v_position;\n\n  uniform sampler2D mainTexture;\n\n  uniform Constant {\n    vec4 mainColor;\n  };\n\n  vec4 frag () {\n    vec4 col = mainColor * texture(mainTexture, v_uv);\n    CC_APPLY_FOG(col, v_position);\n    return CCFragOutput(col);\n  }\n}%\n\n// task41: valid comment-only Inspector source edit\n"
+        },
+        "invalid": {
+          "unsupported": true
+        },
+        "expectedPublic": {
+          "/effectYaml": "\n  techniques:\n  - name: opaque\n    passes:\n    - vert: legacy/main-functions/general-vs:vert # builtin header\n      frag: unlit-fs:frag\n      properties: &props\n        mainTexture:    { value: white }\n        mainColor:      { value: [1, 1, 1, 1], editor: { type: color } }\n  - name: transparent\n    passes:\n    - vert: general-vs:vert # builtin header\n      frag: unlit-fs:frag\n      blendState:\n        targets:\n        - blend: true\n          blendSrc: src_alpha\n          blendDst: one_minus_src_alpha\n          blendSrcAlpha: src_alpha\n          blendDstAlpha: one_minus_src_alpha\n      properties: *props\n"
+        }
+      },
+      "initialPublic": {
+        "/effectYaml": "\n  techniques:\n  - name: opaque\n    passes:\n    - vert: legacy/main-functions/general-vs:vert # builtin header\n      frag: unlit-fs:frag\n      properties: &props\n        mainTexture:    { value: white }\n        mainColor:      { value: [1, 1, 1, 1], editor: { type: color } }\n  - name: transparent\n    passes:\n    - vert: general-vs:vert # builtin header\n      frag: unlit-fs:frag\n      blendState:\n        targets:\n        - blend: true\n          blendSrc: src_alpha\n          blendDst: one_minus_src_alpha\n          blendSrcAlpha: src_alpha\n          blendDstAlpha: one_minus_src_alpha\n      properties: *props\n"
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator effect/chunk source",
+        "metaImporter": "effect",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {}
+    },
+    {
+      "id": "creator-3.8.7-effectChunk-task41",
+      "creatorVersion": "3.8.7",
+      "assetKind": "effectChunk",
+      "provenanceReference": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/source-provenance.json",
+      "publicContractReference": "packages/engine/modules/lumen/source/standalone/effect.ts",
+      "runtimeAcceptance": "not performed; Creator must not be launched for task 4.1",
+      "dependencies": [
+        {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/dependencies/editor/assets/chunks/builtin/uniforms/cc-global.chunk",
+          "sha256": "4036cab1daf2dbaa906ac5b934a608ac66836478a96c9e94d51025f44a5f75b6",
+          "sourceReference": "engine/editor/assets/chunks/builtin/uniforms/cc-global.chunk",
+          "kind": "builtin-shader-chunk",
+          "include": "builtin/uniforms/cc-global"
+        }
+      ],
+      "stagingPolicy": {
+        "identity": "后续实机在已登记工程分配新根 UUID；自身子资源 UUID、redirect、imageUuidOrDatabaseUri 一致重映射；Scene 根 _id 与新 meta UUID 一致。所有 imported 状态重置、导入输出 files 清空，输出由精确版本原生 importer 生成。不得重映射外部内置或同版本夹具依赖 UUID。",
+        "source": "保持此目录的冻结输入不变；仅在临时目录或后续已登记工程中应用 patch。"
+      },
+      "publicContractSha256": "e50d66e15ff8a84ed3f3473e590c5344eb38f3eec978d95296742e96f812e2a8",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/effectChunk/default.chunk",
+          "sha256": "fb1bfb9cad3278ceb8cdd53002ec9c20aa944a845101ff3098f96eef76fd4d5b",
+          "sourceReference": "engine/editor/assets/default_file_content/effect-header/chunk"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.7/native-minimal/effectChunk/default.chunk.meta",
+          "sha256": "1ca902cbace3c4c222e4529ab637590a4435af6d4419b10f7e71226ef80d300e",
+          "sourceReference": "engine/editor/assets/default_file_content/effect-header/chunk.meta"
+        }
+      },
+      "construction": "精确版本官方新建模板，逐字节复制；空列表是官方默认状态，不声称动画播放或渲染。",
+      "builtinSymbolPolicy": "shader 及材质默认纹理符号由该版本引擎提供；不伪造外部纹理 UUID；必须在实机核对原生解析与原始日志。",
+      "patch": {
+        "valid": {
+          "source": "// you can write GLSL code directly in here\n\n#include <builtin/uniforms/cc-global>\n\n#define iResolution cc_screenSize\n#define iTime cc_time.x\n#define iTimeDelta cc_time.y\n#define iFrame cc_time.z\n\n// shadertoy template\nvoid mainImage (out vec4 fragColor, in vec2 fragCoord) {\n  // Normalized pixel coordinates (from 0 to 1)\n  vec2 uv = fragCoord / iResolution.xy;\n  // Time varying pixel color\n  vec3 col = 0.5 + 0.5 * cos(iTime + uv.xyx + vec3(0, 2, 4));\n  // Output to screen\n  fragColor = vec4(col, 1.0);\n}\n\n// task41: valid comment-only chunk edit\n"
+        },
+        "invalid": {
+          "source": false
+        },
+        "expectedPublic": {
+          "/source": "// you can write GLSL code directly in here\n\n#include <builtin/uniforms/cc-global>\n\n#define iResolution cc_screenSize\n#define iTime cc_time.x\n#define iTimeDelta cc_time.y\n#define iFrame cc_time.z\n\n// shadertoy template\nvoid mainImage (out vec4 fragColor, in vec2 fragCoord) {\n  // Normalized pixel coordinates (from 0 to 1)\n  vec2 uv = fragCoord / iResolution.xy;\n  // Time varying pixel color\n  vec3 col = 0.5 + 0.5 * cos(iTime + uv.xyx + vec3(0, 2, 4));\n  // Output to screen\n  fragColor = vec4(col, 1.0);\n}\n\n// task41: valid comment-only chunk edit\n"
+        }
+      },
+      "initialPublic": {
+        "/source": "// you can write GLSL code directly in here\n\n#include <builtin/uniforms/cc-global>\n\n#define iResolution cc_screenSize\n#define iTime cc_time.x\n#define iTimeDelta cc_time.y\n#define iFrame cc_time.z\n\n// shadertoy template\nvoid mainImage (out vec4 fragColor, in vec2 fragCoord) {\n  // Normalized pixel coordinates (from 0 to 1)\n  vec2 uv = fragCoord / iResolution.xy;\n  // Time varying pixel color\n  vec3 col = 0.5 + 0.5 * cos(iTime + uv.xyx + vec3(0, 2, 4));\n  // Output to screen\n  fragColor = vec4(col, 1.0);\n}\n"
+      },
+      "serializedReadback": {
+        "sourceFormat": "Creator effect/chunk source",
+        "metaImporter": "*",
+        "patchIdentity": "根 UUID 保持；RenderTexture 同步根尺寸及自身子资源尺寸；外部依赖引用保持，Flow 的 patch 仅加入同版本 Stage 引用"
+      },
+      "fieldCases": {}
+    }
+  ]
+}

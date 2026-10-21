@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -110,11 +110,13 @@ test('stable Creator bootstrap confirms a healthy Host and restores the previous
         coordinator.stage(candidateRoot, descriptor);
         coordinator.applyStagedAtExit();
         const editor = { App: { on() {} } };
-        const bootstrap = createHostBootstrap({ extensionRoot, projectPath, getEditor: () => editor });
+        const bootstrap = createHostBootstrap({ extensionRoot, projectPath, getEditor: () => editor, waitForAssetDbReady: async () => {} });
 
         try {
-            const health = await bootstrap.load();
+            await bootstrap.load();
+            const health = await bootstrap.methods.queryStatus();
             assert.equal(health.ready, true);
+            assert.equal(health.bootstrapExtensionRoot, extensionRoot);
             if (failCandidate) {
                 assert.equal(health.artifacts.host.version, '0.2.0');
                 assert.equal(coordinator.status().state, 'rolled_back');
@@ -138,13 +140,111 @@ test('stable Creator bootstrap delegates the initial package entry to the bundle
     mkdirSync(extensionRoot, { recursive: true });
     mkdirSync(projectPath, { recursive: true });
     writeRuntimePackage(extensionRoot, '0.2.0', false);
-    const bootstrap = createHostBootstrap({ extensionRoot, projectPath, getEditor: () => ({ App: { on() {} } }) });
+    const bootstrap = createHostBootstrap({ extensionRoot, projectPath, getEditor: () => ({ App: { on() {} } }), waitForAssetDbReady: async () => {} });
 
     try {
-        const health = await bootstrap.load();
+        await bootstrap.load();
+        const health = await bootstrap.methods.queryStatus();
         assert.equal(health.ready, true);
         assert.equal(health.artifacts.host.version, '0.2.0');
         assert.equal(new HostUpdateCoordinator({ extensionRoot, projectPath }).status().state, 'idle');
+    } finally {
+        await bootstrap.unload();
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('normal Creator enable yields before runtime initialization and gates Host methods until ready', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'pod-lite-host-deferred-startup-'));
+    const extensionRoot = join(root, 'extensions', 'peanut-pod-lite-host');
+    const projectPath = join(root, 'project');
+    mkdirSync(extensionRoot, { recursive: true });
+    mkdirSync(projectPath, { recursive: true });
+    const moduleMarker = join(root, 'runtime-module-required');
+    writeRuntimePackage(extensionRoot, '0.2.0', false, 'await new Promise(resolve => setTimeout(resolve, 40));',
+        `require('node:fs').writeFileSync(${JSON.stringify(moduleMarker)}, 'loaded');`);
+    let releaseAssetDbReady;
+    const assetDbReady = new Promise(resolve => { releaseAssetDbReady = resolve; });
+    const bootstrap = createHostBootstrap({ extensionRoot, projectPath, getEditor: () => ({ App: { on() {} } }), waitForAssetDbReady: () => assetDbReady });
+    let runtimeReady = false;
+
+    try {
+        await bootstrap.load();
+        assert.equal(existsSync(moduleMarker), false);
+        assert.equal(typeof bootstrap.methods.queryStatus, 'function');
+        const health = bootstrap.methods.queryStatus().then(result => { runtimeReady = true; return result; });
+        assert.equal(runtimeReady, false);
+        assert.equal(existsSync(moduleMarker), false);
+        releaseAssetDbReady();
+        assert.equal((await health).ready, true);
+        assert.equal(runtimeReady, true);
+        assert.equal(existsSync(moduleMarker), true);
+    } finally {
+        await bootstrap.unload();
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('Creator bootstrap waits for the asset-db ready broadcast when query-ready is false', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'pod-lite-host-asset-db-ready-'));
+    const extensionRoot = join(root, 'extensions', 'peanut-pod-lite-host');
+    const projectPath = join(root, 'project');
+    mkdirSync(extensionRoot, { recursive: true });
+    mkdirSync(projectPath, { recursive: true });
+    writeRuntimePackage(extensionRoot, '0.2.0', false);
+    const listeners = new Map();
+    const editor = {
+        App: { on() {} },
+        Message: {
+            addBroadcastListener(name, callback) { listeners.set(name, callback); },
+            removeBroadcastListener(name, callback) { if (listeners.get(name) === callback) listeners.delete(name); },
+            async request(target, method) {
+                assert.equal(target, 'asset-db');
+                assert.equal(method, 'query-ready');
+                return false;
+            },
+        },
+    };
+    const bootstrap = createHostBootstrap({ extensionRoot, projectPath, getEditor: () => editor });
+
+    try {
+        await bootstrap.load();
+        let settled = false;
+        const health = bootstrap.methods.queryStatus().then(result => { settled = true; return result; });
+        await new Promise(resolve => setImmediate(resolve));
+        assert.equal(settled, false);
+        assert.equal(typeof listeners.get('asset-db:ready'), 'function');
+        listeners.get('asset-db:ready')();
+        assert.equal((await health).ready, true);
+        assert.equal(listeners.has('asset-db:ready'), false);
+    } finally {
+        await bootstrap.unload();
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('Creator bootstrap cancels pending startup when unloaded before asset-db readiness', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'pod-lite-host-asset-db-cancel-'));
+    const extensionRoot = join(root, 'extensions', 'peanut-pod-lite-host');
+    const projectPath = join(root, 'project');
+    mkdirSync(extensionRoot, { recursive: true });
+    mkdirSync(projectPath, { recursive: true });
+    writeRuntimePackage(extensionRoot, '0.2.0', false);
+    let listenerCount = 0;
+    const editor = {
+        App: { on() {} },
+        Message: {
+            addBroadcastListener() { listenerCount += 1; },
+            removeBroadcastListener() { listenerCount -= 1; },
+            async request() { return false; },
+        },
+    };
+    const bootstrap = createHostBootstrap({ extensionRoot, projectPath, getEditor: () => editor });
+
+    try {
+        await bootstrap.load();
+        await bootstrap.unload();
+        assert.equal(listenerCount, 0);
     } finally {
         await bootstrap.unload();
         rmSync(root, { recursive: true, force: true });
@@ -164,7 +264,7 @@ test('explicit Host restart switches the staged package immediately before Creat
     const coordinator = new HostUpdateCoordinator({ extensionRoot, projectPath });
     let quitRequested = false;
     const editor = { App: { on() {}, quit() { quitRequested = true; } } };
-    const bootstrap = createHostBootstrap({ extensionRoot, projectPath, getEditor: () => editor });
+    const bootstrap = createHostBootstrap({ extensionRoot, projectPath, getEditor: () => editor, waitForAssetDbReady: async () => {} });
 
     try {
         await bootstrap.load();
@@ -199,18 +299,20 @@ function writeHostPackage(root, version, mainSource) {
     writeFileSync(join(root, 'panel', 'plugin-manager', 'index.js'), `// ${version}\n`);
 }
 
-function writeRuntimePackage(root, version, failLoad) {
+function writeRuntimePackage(root, version, failLoad, loadBody = '', moduleBody = '') {
     writeHostPackage(root, version, '');
     writeFileSync(join(root, 'dist', 'cpm-package-store.js'), readFileSync(new URL('../src/cpm-package-store.js', import.meta.url)));
     writeFileSync(join(root, 'dist', 'main.js'), `
         const path = require('path');
         const { CpmPackageStore } = require('./cpm-package-store');
+        ${moduleBody}
+        let bootstrapExtensionRoot;
         module.exports = {
-            async load() { ${failLoad ? "throw new Error('candidate_load_failed');" : ''} },
+            async load(options) { bootstrapExtensionRoot = options.extensionRoot; ${loadBody} ${failLoad ? "throw new Error('candidate_load_failed');" : ''} },
             async unload() {},
             methods: {
                 queryStatus() {
-                    return { ready: true, artifacts: { host: {
+                    return { ready: true, bootstrapExtensionRoot, artifacts: { host: {
                         version: '${version}',
                         packageDigest: CpmPackageStore.hostPackageDigest(path.join(__dirname, '..')),
                     } } };

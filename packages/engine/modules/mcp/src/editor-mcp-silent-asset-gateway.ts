@@ -141,7 +141,7 @@ export class EditorMcpSilentAssetGateway {
      * @param input 未校验输入。
      * @returns 复制结果，附带刷新回执。
      */
-    public async _executeAssetCopy(input: ContractPayload | undefined): Promise<unknown> {
+    public async _executeAssetCopy(input: ContractPayload | undefined, prepared?: import('@peanut/pod-engine/assets').ISilentAssetClosureCopyPreparation): Promise<unknown> {
         const request = this._readAssetCopyInput(input);
         const projectRoot = await this._host.requireProjectPath();
         const lockKey = normalizeResourceDirectoryLockKey(request.targetDirectory);
@@ -150,7 +150,7 @@ export class EditorMcpSilentAssetGateway {
                 projectRoot,
                 seedRelativePaths: request.paths,
                 targetDirectoryRelative: request.targetDirectory,
-            });
+            }, prepared);
             FileAssetDependencyIndex.invalidate(projectRoot);
             const copiedPaths = [...new Set(result.items.map((item: ISilentAssetClosureCopyItem) => item.toPath))];
             const dirReady = await this._awaitNewAssetReadyWithoutForceRefresh([request.targetDirectory]);

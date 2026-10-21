@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 1,
+  "creatorVersion": "3.8.3",
+  "origin": "Cocos Creator 3.8.3 installed engine editor assets; read-only source audit",
+  "installationIdentity": {
+    "appVersion": "3.8.3",
+    "appInfoPlistSha256": "8b86235bc485bd5cc6c7836f8f084a72bcab96d8f5722c10e85d5517d4f5db41",
+    "engineVersion": "3.8.3",
+    "enginePackageSha256": "9f5d065eb57e69c9f62c805eecbb668d85c4416f372ecf75e3dc0d5a713b5d63"
+  },
+  "license": {
+    "spdx": "MIT",
+    "reference": "tests/fixtures/editor-stability/serialized/3.8.3/CREATOR-ENGINE-LICENSE.md",
+    "sourceReference": "engine/LICENSE.md",
+    "sha256": "e8799a9198184e8cc31e45e66521b1cca52f9099a932de7a56abb9d212311318"
+  },
+  "nativeContracts": {
+    "animationClip": [
+      {
+        "reference": "engine/cocos/animation/animation-clip.ts",
+        "sha256": "020b432bbf600d5b31f8f96e3a64d6afcd941aa2e39b317b103cd206128f4cd9",
+        "requiredMarkers": [
+          "@ccclass('cc.AnimationClip')",
+          "public sample = 60",
+          "public speed = 1"
+        ],
+        "excerpts": [
+          {
+            "line": 100,
+            "text": " */"
+          },
+          {
+            "line": 101,
+            "text": "@ccclass('cc.AnimationClip')"
+          },
+          {
+            "line": 102,
+            "text": "export class AnimationClip extends Asset {"
+          },
+          {
+            "line": 132,
+            "text": "    @serializable"
+          },
+          {
+            "line": 133,
+            "text": "    public sample = 60;"
+          },
+          {
+            "line": 134,
+            "text": ""
+          },
+          {
+            "line": 139,
+            "text": "    @serializable"
+          },
+          {
+            "line": 140,
+            "text": "    public speed = 1;"
+          },
+          {
+            "line": 141,
+            "text": ""
+          }
+        ]
+      }
+    ],
+    "animationGraph": [
+      {
+        "reference": "engine/cocos/animation/marionette/animation-graph.ts",
+        "sha256": "73e7d7119d3b9bc70be164670303d9af7f75cdee9bbd3136ec6ed98814a052c1",
+        "requiredMarkers": [
+          "@ccclass('cc.animation.AnimationGraph')",
+          "@ccclass('cc.animation.Layer')",
+          "@ccclass('cc.animation.StateMachine')",
+          "private _layers",
+          "private _variables",
+          "public weight = 1.0"
+        ],
+        "excerpts": [
+          {
+            "line": 272,
+            "text": ""
+          },
+          {
+            "line": 273,
+            "text": "@ccclass('cc.animation.StateMachine')"
+          },
+          {
+            "line": 274,
+            "text": "export class StateMachine extends EditorExtendable {"
+          },
+          {
+            "line": 792,
+            "text": ""
+          },
+          {
+            "line": 793,
+            "text": "@ccclass('cc.animation.Layer')"
+          },
+          {
+            "line": 794,
+            "text": "export class Layer implements OwnedBy<AnimationGraph> {"
+          },
+          {
+            "line": 803,
+            "text": "    @serializable"
+          },
+          {
+            "line": 804,
+            "text": "    public weight = 1.0;"
+          },
+          {
+            "line": 805,
+            "text": ""
+          },
+          {
+            "line": 877,
+            "text": ""
+          },
+          {
+            "line": 878,
+            "text": "@ccclass('cc.animation.AnimationGraph')"
+          },
+          {
+            "line": 879,
+            "text": "export class AnimationGraph extends AnimationGraphLike implements AnimationGraphRunTime {"
+          },
+          {
+            "line": 882,
+            "text": "    @serializable"
+          },
+          {
+            "line": 883,
+            "text": "    private _layers: Layer[] = [];"
+          },
+          {
+            "line": 884,
+            "text": ""
+          },
+          {
+            "line": 885,
+            "text": "    @serializable"
+          },
+          {
+            "line": 886,
+            "text": "    private _variables: Record<string, VariableDescription> = {};"
+          },
+          {
+            "line": 887,
+            "text": ""
+          }
+        ]
+      },
+      {
+        "reference": "engine/cocos/animation/marionette/state-machine/state.ts",
+        "sha256": "f55ddd508d556221ce979039fa99a0a153a6d853c7bab16dce026928d9c4261b",
+        "requiredMarkers": [
+          "@ccclass('cc.animation.State')"
+        ],
+        "excerpts": [
+          {
+            "line": 38,
+            "text": ""
+          },
+          {
+            "line": 39,
+            "text": "@ccclass('cc.animation.State')"
+          },
+          {
+            "line": 40,
+            "text": "export class State extends EditorExtendable implements OwnedBy<Layer | StateMachine> {"
+          }
+        ]
+      }
+    ],
+    "animationMask": [
+      {
+        "reference": "engine/cocos/animation/marionette/animation-mask.ts",
+        "sha256": "209830c54fc0a9ed123858aed139659d042e72b358cede34d6d06e912872ac71",
+        "requiredMarkers": [
+          "@ccclass(`${CLASS_NAME_PREFIX_ANIM}AnimationMask`)",
+          "private _jointMasks",
+          "get joints"
+        ],
+        "excerpts": [
+          {
+            "line": 45,
+            "text": ""
+          },
+          {
+            "line": 46,
+            "text": "@ccclass(`${CLASS_NAME_PREFIX_ANIM}AnimationMask`)"
+          },
+          {
+            "line": 47,
+            "text": "export class AnimationMask extends Asset {"
+          },
+          {
+            "line": 48,
+            "text": "    @serializable"
+          },
+          {
+            "line": 49,
+            "text": "    private _jointMasks: JointMask[] = [];"
+          },
+          {
+            "line": 50,
+            "text": ""
+          },
+          {
+            "line": 52,
+            "text": "    @type(JointMask)"
+          },
+          {
+            "line": 53,
+            "text": "    get joints (): Iterable<JointMaskInfo> {"
+          },
+          {
+            "line": 54,
+            "text": "        // TODO: editor currently treats this property as (and expects it to be) an array."
+          }
+        ]
+      },
+      {
+        "reference": "engine/cocos/animation/define.ts",
+        "sha256": "2bc8690b9b2909d11ec2d0199a2bfb7c7c97222c08b18776da7d6fd919c43930",
+        "requiredMarkers": [
+          "export const CLASS_NAME_PREFIX_ANIM = 'cc.animation.';"
+        ],
+        "excerpts": [
+          {
+            "line": 24,
+            "text": ""
+          },
+          {
+            "line": 25,
+            "text": "export const CLASS_NAME_PREFIX_ANIM = 'cc.animation.';"
+          },
+          {
+            "line": 26,
+            "text": ""
+          }
+        ]
+      }
+    ]
+  },
+  "evidenceLimit": "Read-only source provenance and static declarations, not Creator runtime import or playback evidence."
+}

@@ -612,6 +612,7 @@ export class LumenPrefabDocument {
      * @returns 组件下标
      */
     public attachBuiltinComponent(nodePath: string, componentType: string): number {
+        LumenNativeComponentBinding.assertLifecycle(this, nodePath, componentType, this._propertySchema, 'attach');
         this._propertySchema.assertBuiltinAttachAllowed(componentType);
         const nodeIndex = this.findNodeIndex(nodePath);
         const host = this._entries[nodeIndex];
@@ -638,7 +639,7 @@ export class LumenPrefabDocument {
         if (suggested != null) {
             node._layer = suggested;
         } else {
-            LumenNodeConventions.assertLayerCompatible(componentType, currentLayer);
+            LumenNodeConventions.assertLayerCompatible(componentType, currentLayer, existingTypes);
         }
         return this._attachComponent(nodeIndex, this._createBuiltinComponent(componentType, nodeIndex));
     }
@@ -684,6 +685,7 @@ export class LumenPrefabDocument {
      * @param typeOrCompressedId 组件类型或脚本 compressedUuid
      */
     public removeComponent(nodePath: string, typeOrCompressedId: string): void {
+        LumenNativeComponentBinding.assertLifecycle(this, nodePath, typeOrCompressedId, this._propertySchema, 'remove');
         const nodeIndex = this.findNodeIndex(nodePath);
         const componentIndex = this.findComponentIndex(nodeIndex, typeOrCompressedId);
         const node = this._entries[nodeIndex];
@@ -717,6 +719,8 @@ export class LumenPrefabDocument {
      * @param patch 公开属性补丁，如 `{ string: "Hello", fontSize: 28 }`
      */
     public setComponentProperty(nodePath: string, componentType: string, patch: Readonly<Record<string, unknown>>): void {
+        LumenNativeComponentBinding.validate(this, componentType, this._propertySchema,
+            document => document._writeComponentProperty(nodePath, componentType, patch));
         if (LumenButtonColorBinding.apply(this, nodePath, componentType, this._propertySchema,
             document => document._writeComponentProperty(nodePath, componentType, patch))) {
             return;
@@ -1441,6 +1445,7 @@ export class LumenPrefabDocument {
             node: { __id__: nodeIndex },
             _enabled: true,
             _id: '',
+            ...LumenNativeComponentBinding.defaults(this, componentType, nodeIndex, this._propertySchema),
         };
         if (componentType === 'cc.UITransform') {
             return {

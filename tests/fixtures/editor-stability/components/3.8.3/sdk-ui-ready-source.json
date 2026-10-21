@@ -1,0 +1,23 @@
+{
+  "creatorVersion": "3.8.3",
+  "origin": "evidence/task-5.1/ui-sources-383-20261016/sdk-window-ready-sources.json",
+  "complete": true,
+  "methods": [
+    {
+      "path": "node_modules/@editor/panel/lib/element.ccc/query",
+      "source": "query(e){const t=name2panel[e];return t?0===t.length?t[0]:t:null}",
+      "sha256": "7547de1e9755bd9a8e22be3b7fbc4873bf0c67882fa7b5ee2883f1d6dcc70dbc"
+    },
+    {
+      "path": "modules/editor-extensions/extensions/hierarchy/dist/panel.ccc/methods/ready",
+      "source": "async ready(){vm&&(Editor.Metrics.trackTimeStart(\"hierarchy:render-tree\"),vm.sceneReady=!0,await exports.methods.unstaging(),vm&&(await vm.refresh(),vm)&&panelData.$.tree.reselected(),Editor.Metrics.trackTimeEnd(\"hierarchy:render-tree\",{output:!0}))}",
+      "sha256": "fa0ed17e2f7a5d5d3630d974800dcb9bde348e7a95cc61d0a7a04ad629820060"
+    },
+    {
+      "path": "builtin/scene/dist/panel/message/broadcast.ccc/apply",
+      "source": "function apply(e){let c=\"\";e[\"i18n:change\"]=()=>{panel.updateIcon()},e[\"scene:ready\"]=()=>{window.__InitializationTimeEnd__&&(Editor.Metrics.trackTimeEnd(\"main-window:ready\"),console.debug(`main-window:ready: ${((Date.now()-window.__InitializationTimeEnd__)/1e3).toFixed(2)} s`)),hideLoading()},e[\"scene:close\"]=()=>{showLoading()},e[\"scene:show-loading\"]=()=>{showLoading()},e[\"scene:hide-loading\"]=()=>{hideLoading()},e[\"asset-db:ready\"]=()=>{$scene&&$scene.depend.finish(\"asset-db-ready\"),\"xxx\"in window&&window.xxx._refreshScenes()},e[\"asset-db:close\"]=()=>{$scene&&$scene.depend.reset(\"asset-db-ready\")},e[\"selection:select\"]=async(e,n)=>{\"node\"===e&&($scene.callSceneMethod(\"selectNode\",[n]),panel.uiToolsVM&&(e=await $scene.callSceneMethod(\"querySelection\"),panel.uiToolsVM.selection=e),c=n)},e[\"selection:unselect\"]=async(e,n)=>{\"node\"===e&&($scene.callSceneMethod(\"unselectNode\",[n]),panel.uiToolsVM&&(e=await $scene.callSceneMethod(\"querySelection\"),panel.uiToolsVM.selection=e),c===n)&&(c=\"\")},e[\"asset-db:asset-add\"]=async(e,n,c)=>{if(null!==$scene&&void 0!==$scene&&$scene.managerReady)switch(n&&n.importer){case\"typescript\":case\"javascript\":$scene.callSceneMethod(\"loadScript\",[e],!0);break;case\"effect\":$scene.callSceneMethod(\"registerEffects\",[[e]],!0);default:$scene.callSceneMethod(\"assetChange\",[e,n,c],!0)}},e[\"asset-db:asset-change\"]=async(e,n,c)=>{if(null!==$scene&&void 0!==$scene&&$scene.managerReady&&n.imported&&!n.invalid){switch($scene.callSceneMethod(\"releaseAsset\",[e],!0),n&&n.importer){case\"render-pipeline\":break;case\"typescript\":case\"javascript\":$scene.callSceneMethod(\"scriptChange\",[n],!0);break;case\"effect\":$scene.callSceneMethod(\"updateEffect\",[e],!0)}$scene.callSceneMethod(\"assetChange\",[e,n,c],!0)}},e[\"asset-db:asset-delete\"]=(e,n,c)=>{if(null!==$scene&&void 0!==$scene&&$scene.managerReady){switch(n&&n.importer){case\"typescript\":case\"javascript\":$scene.callSceneMethod(\"removeScript\",[n],!0);break;case\"effect\":$scene.callSceneMethod(\"removeEffects\",[[e]],!0);break;case\"terrain\":$scene.callSceneMethod(\"onRemoveTerrain\",[e,n],!0)}$scene.callSceneMethod(\"assetDelete\",[e,n],!0)}},e[\"programming:pack-build-end\"]=e=>{\"editor\"===e&&$scene&&($scene.depend.finish(\"packer-driver-ready\"),$scene.isSceneManagerReady)&&$scene.callSceneMethod(\"investigatePackerDriver\")},e[\"project:change-design-resolution\"]=e=>{$scene.ipc.send(\"call-method\",{module:\"Startup\",handler:\"initDesignResolution\",params:[e.width,e.height],queue:!0,timeout:!1})},e[\"project:change-custom-layer\"]=e=>{$scene.ipc.send(\"call-method\",{module:\"Startup\",handler:\"initCustomLayer\",params:[e],queue:!0,timeout:!1})},e[\"project:change-sorting-layer\"]=e=>{$scene.ipc.send(\"call-method\",{module:\"Startup\",handler:\"initSortingLayer\",params:[e],queue:!0,timeout:!1})},e[\"project:update-physics-group\"]=()=>{$scene.callSceneMethod(\"updatePhysicsGroup\",[],!0)},e[\"project:change-high-quality\"]=e=>{$scene.callSceneMethod(\"changeHighQuality\",[e],!0)},e[\"engine:engine-modules-config-changed\"]=e=>{$scene.callSceneMethod(\"changeProjectMode\",[e.includes(\"3d\")?\"3d\":\"2d\"],!0)}}",
+      "sha256": "9104fd9001138adeabcccc8b20b85d95f2f5d0c66efc4f568b18c0f062535e3d"
+    }
+  ],
+  "nativeAcceptance": false
+}

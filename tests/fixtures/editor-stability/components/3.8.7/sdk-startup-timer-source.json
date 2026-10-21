@@ -1,0 +1,22 @@
+{
+  "creatorVersion": "3.8.7",
+  "source": "Actual isolated SDK worker function text from evidence/task-5.1/sdk-worker-safe-387-20261016-2257869/sdk-worker-source-observation.ndjson",
+  "methods": {
+    "_preStartDB": {
+      "source": "async _preStartDB(a){const r={afterScan:afterScan};return new Promise(async(e,t)=>{const s={name:a.options.name,afterPreImportResolve:()=>{console.error(`Start database ${a.options.name} failed!`),s.finish&&s.finish()}};r.afterPreImport=async()=>(await afterPreImport(a),console.debug(`Preimport db ${name} success`),e(s),new Promise(e=>{s.afterPreImportResolve=e})),r.afterStart=()=>{s.finish&&s.finish()},a.start({hooks:r}).catch(e=>{t(e)}),this.assetDBInfo[a.options.name].state=\"start\"})}",
+      "sha256": "a41fe8780641cd6ef0fe461042b1f1f29fe1ea0b900b92452a8badeef209bc17"
+    },
+    "_startupDB": {
+      "source": "async _startupDB(t){console.debug(`Start up the '${t.name}' database...`),Editor.Metrics.trackTimeStart(`asset-db: startup '${t.name}' database...`),await new Promise(async e=>{t.finish=e,t.afterPreImportResolve()}),Editor.Metrics.trackTimeEnd(`asset-db:worker-startup-database[${t.name}]`,{output:!0}),console_1.newConsole.trackMemoryEnd(`asset-db:worker-startup-database[${t.name}]`),this.assetDBInfo[t.name].state=\"startup\";var e=this.assetDBMap[t.name];this.emit(\"db-started\",e),Editor.Metrics.trackTimeEnd(`asset-db: startup '${t.name}' database...`)}",
+      "sha256": "e64333f68fd5b27e834d3a9091adfbe3b58b6538256d2f92121b093e5505996d"
+    },
+    "_startDB": {
+      "source": "async _startDB(e){const t=this.assetDBMap[e];Editor.Metrics.trackTimeStart(`asset-db:worker-startup-database[${t.options.name}]`),console_1.newConsole.trackMemoryStart(`asset-db:worker-startup-database[${t.options.name}]`),this.assetDBInfo[e].state=\"start\";var s=getPreImporterHandler(this.assetDBInfo[e].preImportExtList),s=(s&&(t.preImporterHandler=s),{afterScan:afterScan});s.afterPreImport=async()=>{await afterPreImport(t)},console.debug(`start asset-db(${e})...`),await t.start({hooks:s}),this.assetDBInfo[e].state=\"startup\",this.emit(\"db-started\",t),Editor.Metrics.trackTimeEnd(`asset-db:worker-startup-database[${t.options.name}]`,{output:!0}),console_1.newConsole.trackMemoryEnd(`asset-db:worker-startup-database[${t.options.name}]`)}",
+      "sha256": "17ca21aa6daadc8a48b730c22e9aa8864888e7380888b768083340c7a5c3d9c1"
+    },
+    "trackTimeStart": {
+      "source": "trackTimeStart(t){return publicModule.adapter.trackTimeStart(t)}",
+      "sha256": "4fcbe419ba23a2b08918d539b8ac7f4558bb154fe18a3332c8855e2874cc3d4f"
+    }
+  }
+}

@@ -80,11 +80,14 @@ export class LumenNodeConventions {
     }
 
     /**
-     * @description 根据拟挂组件列表选择默认 Layer（3D 优先于 UI）。
+     * @description 根据拟挂组件列表选择默认 Layer；UI模型桥接节点使用UI层，其余3D优先。
      * @param componentTypes 组件类型列表
      * @returns Layer 位值
      */
     public static preferredLayerForComponents(componentTypes: readonly string[]): number {
+        if (componentTypes.includes('cc.UIMeshRenderer')) {
+            return LumenNodeLayer.UI_2D;
+        }
         for (const type of componentTypes) {
             if (LumenNodeConventions.layerRoleForComponent(type) === 'world3d') {
                 return LumenNodeLayer.DEFAULT;
@@ -114,7 +117,8 @@ export class LumenNodeConventions {
             if (existing === componentType) {
                 continue;
             }
-            if (LumenNodeConventions.isRendererExclusive(existing)) {
+            if (LumenNodeConventions.isRendererExclusive(existing)
+                && !LumenNodeConventions._isUIModelPair(componentType, existing)) {
                 throw new Error(
                     `lumen_renderer_exclusive:${componentType}:conflicts=${existing}:hint=split_to_child_node`,
                 );
@@ -131,6 +135,10 @@ export class LumenNodeConventions {
         if (renderers.length <= 1) {
             return;
         }
+        if (renderers.length === 2 && renderers[0] != null && renderers[1] != null
+            && LumenNodeConventions._isUIModelPair(renderers[0], renderers[1])) {
+            return;
+        }
         throw new Error(
             `lumen_renderer_exclusive_batch:${renderers.join('+')}:hint=one_renderer_per_node`,
         );
@@ -140,9 +148,10 @@ export class LumenNodeConventions {
      * @description 校验渲染类组件与节点 Layer 是否匹配；非渲染组件不强制。
      * @param componentType 拟挂类型
      * @param nodeLayer 当前节点 `_layer`
+     * @param existingComponentTypes 同节点已有组件，用于UI模型载体的层语义。
      */
-    public static assertLayerCompatible(componentType: string, nodeLayer: number): void {
-        const needed = LumenNodeConventions.layerRoleForComponent(componentType);
+    public static assertLayerCompatible(componentType: string, nodeLayer: number, existingComponentTypes: readonly string[] = []): void {
+        const needed = LumenNodeConventions._effectiveLayerRole(componentType, existingComponentTypes);
         if (needed == null) {
             return;
         }
@@ -170,7 +179,7 @@ export class LumenNodeConventions {
         nodeLayer: number,
         existingComponentTypes: readonly string[],
     ): number | null {
-        const needed = LumenNodeConventions.layerRoleForComponent(componentType);
+        const needed = LumenNodeConventions._effectiveLayerRole(componentType, existingComponentTypes);
         if (needed == null) {
             return null;
         }
@@ -179,19 +188,45 @@ export class LumenNodeConventions {
             return null;
         }
         const hasOtherRenderer = existingComponentTypes.some(
-            (type) => type !== componentType && LumenNodeConventions.isRendererExclusive(type),
+            (type) => type !== componentType && LumenNodeConventions.isRendererExclusive(type)
+                && !LumenNodeConventions._isUIModelPair(componentType, type),
         );
         if (hasOtherRenderer) {
             return null;
         }
         const hasBlockingRole = existingComponentTypes.some((type) => {
             const role = LumenNodeConventions.layerRoleForComponent(type);
-            return role != null && role !== needed && LumenNodeConventions.isRendererExclusive(type);
+            return role != null && role !== needed && LumenNodeConventions.isRendererExclusive(type)
+                && !LumenNodeConventions._isUIModelPair(componentType, type);
         });
         if (hasBlockingRole) {
             return null;
         }
         return preferred;
+    }
+
+    /**
+     * @description SDK的UI模型桥接器是Component，必须与真实模型或粒子载体共用节点；不放行其它渲染组合。
+     * @param left 一侧组件类型。
+     * @param right 另一侧组件类型。
+     * @returns 是否为官方支持的桥接器与载体组合。
+     */
+    private static _isUIModelPair(left: string, right: string): boolean {
+        return (left === 'cc.UIMeshRenderer' && ['cc.MeshRenderer', 'cc.ParticleSystem'].includes(right))
+            || (right === 'cc.UIMeshRenderer' && ['cc.MeshRenderer', 'cc.ParticleSystem'].includes(left));
+    }
+
+    /**
+     * @description 同节点UI模型的载体随桥接器进入UI批次，其余组件保持目录层语义。
+     * @param componentType 当前组件。
+     * @param existingComponentTypes 同节点已有组件。
+     * @returns 当前节点中的实际层角色。
+     */
+    private static _effectiveLayerRole(componentType: string, existingComponentTypes: readonly string[]): LumenLayerRole | null {
+        if (existingComponentTypes.some(type => LumenNodeConventions._isUIModelPair(componentType, type))) {
+            return 'ui2d';
+        }
+        return LumenNodeConventions.layerRoleForComponent(componentType);
     }
 
     /**
@@ -219,6 +254,7 @@ export class LumenNodeConventions {
             },
             rules: [
                 'same_node_at_most_one_cc.Renderer_subclass',
+                'UIMeshRenderer_requires_same_node_MeshRenderer_or_ParticleSystem_and_UI_2D_layer',
                 'ui_nodes_use_layer_UI_2D_1<<25',
                 'world3d_nodes_use_layer_DEFAULT_1<<30',
                 'camera_visibility_must_include_node_layer',

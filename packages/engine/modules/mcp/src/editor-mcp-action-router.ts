@@ -1,6 +1,7 @@
 import { EditorMcpTextWriteBatch } from './editor-mcp-text-write-batch.js';
 import type { IResourceOperationBatchContext } from './resource-operation-contracts.js';
 import { existsSync, realpathSync } from 'fs';
+import { normalize } from 'path';
 import type {
     ContractPayload,
     EditorMcpActionId,
@@ -32,6 +33,7 @@ import { EditorMcpSilentAssetGateway } from './editor-mcp-silent-asset-gateway.j
 import { EditorMcpEditorGateway } from './editor-mcp-editor-gateway.js';
 import { EditorMcpLumenCommitFacade } from './editor-mcp-lumen-commit-facade.js';
 import { EditorMcpLumenGateway } from './editor-mcp-lumen-gateway.js';
+import { EditorMcpLumenInputCodec } from './editor-mcp-lumen-input-codec.js';
 import { EditorMcpPreviewGateway } from './editor-mcp-preview-gateway.js';
 import { EditorMcpSceneGateway } from './editor-mcp-scene-gateway.js';
 import { EditorMcpPrefabOfflineGateway } from './editor-mcp-prefab-offline-gateway.js';
@@ -212,6 +214,7 @@ export class EditorMcpActionRouter {
         this._textWriter = new EditorMcpTextWriteGateway((input, beforeWrite, execution) =>
             this._silentAssets._executeAssetWriteText(input, beforeWrite, execution));
         this._resourceTaskExecutor = new ResourceOperationTaskExecutor({
+            trustedInProcessFieldPreparation: true,
             plan: async (operation, input) => this.planManagedResourceOperation(operation as EditorMcpOperationId, input),
             revalidate: async (operation, input, plan) =>
                 this.revalidateManagedResourceOperation(operation as EditorMcpOperationId, input, plan),
@@ -398,6 +401,7 @@ export class EditorMcpActionRouter {
         operation: EditorMcpOperationId,
         input: Readonly<Record<string, unknown>>,
     ): Promise<ReturnType<ResourceOperationPlanner['plan']>> {
+        if (operation === 'lumen.assetSet') await this._lumen.prepareAssetSet(this._stripHubControlFields(input), input);
         const projectRoot = await this._requireProjectPath();
         const preparedTextWrite = operation === 'asset.writeText' ? this._textWriter.prepare(projectRoot, input) : undefined;
         const plan = this._taskPlanner.plan(projectRoot, operation, input, preparedTextWrite);
@@ -474,7 +478,7 @@ export class EditorMcpActionRouter {
         const projectRoot = await this._requireProjectPath();
         const postflightMonitor = new ProjectLogPostflightMonitor();
         const logCheckpoint = postflightMonitor.checkpoint(projectRoot);
-        const result = await this._executeDirect(request, context, plan?.preparedTextWrite);
+        const result = await this._executeDirect(request, context, plan?.preparedTextWrite, undefined, plan);
         const creation = this._readRequiredCreationEvidence(operation, input, result.data);
         const postflight = postflightMonitor.readDelta(logCheckpoint);
         if (!postflight.logChecked || postflight.newErrorCount > 0 || postflight.newWarningCount > 0) {
@@ -660,7 +664,7 @@ export class EditorMcpActionRouter {
             case 'asset.copy':
                 return {
                     operation: request.operation,
-                    data: await this._silentAssets._executeAssetCopy(request.input),
+                    data: await this._silentAssets._executeAssetCopy(request.input, plan?.preparedCopy),
                 };
             case 'asset.move':
                 return {
@@ -1424,7 +1428,7 @@ export class EditorMcpActionRouter {
             !creator2x &&
             this._runtime.message != null &&
             this._lumenCreationCoordinationEnabled &&
-            /\.(?:prefab|scene)$/iu.test(scaffoldPath)
+            /\.(?:prefab|scene|mtl|anim|pmtl|rt|animgraph|animgraphvari|animask|rpp|terrain)$/iu.test(scaffoldPath)
         );
         if (!required) {
             return null;
@@ -1436,10 +1440,19 @@ export class EditorMcpActionRouter {
             throw new Error(`editor_mcp_asset_create_evidence_missing:${operation}`);
         }
         const cleanup = this._isRecord(value.cleanup) ? value.cleanup : null;
+        const target = operation === 'prefab.createFromNode' && typeof input.prefabPath === 'string' ? input.prefabPath : scaffoldPath;
+        const decoded = operation === 'lumen.scaffold'
+            ? new EditorMcpLumenInputCodec().readScaffoldInput(this._stripHubControlFields(input)).prefabRelativePath
+            : new EditorMcpLumenInputCodec().readAssetPath({ assetRelativePath: target });
+        const normalized = normalize(decoded).replace(/\\/gu, '/');
+        const extension = normalized.split('.').pop()?.toLowerCase() ?? '';
+        const expectedType = ({ prefab: 'prefab', scene: 'scene', mtl: 'material', anim: 'animationClip', pmtl: 'physicsMaterial',
+            rt: 'renderTexture', animgraph: 'animationGraph', animgraphvari: 'animationGraphVariant', animask: 'animationMask',
+            rpp: 'renderPipeline', terrain: 'terrain' } as Readonly<Record<string, string>>)[extension];
         if (
             value.phase !== 'verified' ||
-            (value.resourceType !== 'prefab' && value.resourceType !== 'scene') ||
-            typeof value.targetDbPath !== 'string' || !value.targetDbPath.startsWith('db://assets/') ||
+            expectedType == null || value.resourceType !== expectedType ||
+            typeof value.targetDbPath !== 'string' || value.targetDbPath !== `db://${normalized}` || !value.targetDbPath.startsWith('db://assets/') ||
             typeof value.uuid !== 'string' || value.uuid.trim().length === 0 ||
             value.metaPresent !== true ||
             value.parentRegistered !== true ||

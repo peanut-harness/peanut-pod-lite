@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import { platform } from 'node:process';
 
 import { extractWriteResources, normalizeResourceKey } from '@peanut/pod-engine/policy';
+import { SilentAssetClosureCopy, type ISilentAssetClosureCopyPreparation } from '@peanut/pod-engine/assets';
 
 import type { IEditorMcpPreparedTextWrite } from './editor-mcp-text-write-gateway.js';
 import type { IResourceOperationTaskPlan } from './resource-operation-contracts.js';
@@ -44,11 +45,14 @@ export class ResourceOperationPlanner {
         const requiresProjectWriter = this._requiresProjectWriter(operation, safeInput);
         const creationTarget = this._deriveCreationTarget(operation, safeInput);
         const includeAssetSidecars = requiresProjectWriter || operation === 'lumen.scaffold' || creationTarget != null;
+        const preparedCopy = operation === 'asset.copy' ? this._prepareCopy(projectRoot, safeInput) : undefined;
         const derivedResources = [
             ...extractWriteResources(operation, safeInput),
             ...(preparedTextWrite?.files.map((file) => file.path) ?? []),
             ...this._deriveDestinationResources(operation, safeInput),
             ...this._deriveUuidResources(safeInput),
+            ...(preparedCopy?.order ?? []),
+            ...Object.values(preparedCopy?.pathMap ?? {}),
         ];
         const closure = this._closureResolver.resolve(projectRoot, derivedResources);
         const resourceKeys = new Set<string>();
@@ -74,12 +78,26 @@ export class ResourceOperationPlanner {
             requiresProjectWriter,
             closure,
             ...(preparedTextWrite == null ? {} : { preparedTextWrite }),
+            ...(preparedCopy == null ? {} : { preparedCopy }),
             ...(creationTarget == null ? {} : { workerManagedCommitWindow: true }),
         });
     }
 
     /**
-     * @description 识别必须走 AssetDB 首次创建屏障的六类序列化目标。
+     * @description 复用实际复制器的完整只读准备，包括目录后代、真实依赖和精确输出。
+     * @param projectRoot 当前工程根。
+     * @param input 实际公开业务输入。
+     * @returns 不可变复制准备。
+     */
+    private _prepareCopy(projectRoot: string, input: Readonly<Record<string, unknown>>): ISilentAssetClosureCopyPreparation {
+        if (!Array.isArray(input.paths) || input.paths.length === 0 || !input.paths.every((path): path is string => typeof path === 'string')
+            || typeof input.targetDirectory !== 'string') throw new Error('editor_mcp_asset_copy_input_invalid');
+        return new SilentAssetClosureCopy().prepare({ projectRoot, seedRelativePaths: input.paths,
+            targetDirectoryRelative: input.targetDirectory });
+    }
+
+    /**
+     * @description 识别必须走 AssetDB 首次创建屏障的固定序列化目标。
      * @param operation operation。
      * @param input 已校验输入。
      * @returns 创建目标或 null。
@@ -95,7 +113,7 @@ export class ResourceOperationPlanner {
             return null;
         }
         const target = this._readString(input.prefabRelativePath) ?? this._readString(input.assetRelativePath);
-        if (target == null || !/\.(?:prefab|scene|mtl|anim|pmtl|rt)$/iu.test(target)) {
+        if (target == null || !/\.(?:prefab|scene|mtl|anim|pmtl|rt|animgraph|animgraphvari|animask|rpp|terrain)$/iu.test(target)) {
             return null;
         }
         return target;

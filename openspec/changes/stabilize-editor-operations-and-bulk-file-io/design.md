@@ -68,11 +68,19 @@
 
 原始项目日志和进程 stdout/stderr均留存并交叉核对，独立 raw validator 不依赖现有 postflight 噪声过滤器。分类可辅助诊断，但不得抹掉计数。无法消除的原生 warning 是本目标实际阻塞，不能将全量任务打勾。
 
+### 5.1 组件原生验收的精确能力挂接
+
+按用户2026-10-14授权，在默认只读公开级别下仅挂接 lumen.compAdd、lumen.compRm、lumen.compSet、lumen.commit、scene.open、preview.refresh。项目名单与资源边界独立持久化、可撤销并在重启后恢复，catalog和执行共用同一授权；不使用all，不新增业务operation或改变目录分母。
+
+实际业务路径、申报resources、引用UUID的AssetDB源及真实父目录均限制在assets/components和assets/fixtures。拒绝穿越、链接逃逸、伪造resources、范围外引用、自动commit和全assets刷新。一次性令牌与破坏确认保留；受管任务在原writer窗口重新检查挂接及路径，撤销使尚未写入的请求拒绝。精确挂接的写操作不支持显式批次，保持既有调度器。
+
+组件修改先离线写盘，再按精确路径lumen.commit，preview.refresh仅刷新预览且refreshAssets=false。scene.open只在修改持久化后用于原生重开观测。新候选和实机证据重新绑定，不能沿用510400c证明新产品实现。
+
 ### 8. DAG、所有权与验收顺序
 
 共享协议、目录/schema、manifest、生成物、Git index、知识同步与最终打包由 checkpoint owner 串行持有。DAG 为契约与覆盖清单 → 生命周期诊断 / bulk I/O / 资源夹具 / 组件代码夹具 → 集成 → 新候选 → 两版顺序全量验收与长稳 → 本地 checkpoint → integration owner 远端交付。
 
-契约确定后，bulk I/O 实现与纯数据夹具 lane 可有独立 owned paths；只有收到逐 task packet、确认至少两条安全 ready lane 且无共享可变状态时才评估临时子 Agent。所有实机、安装、性能测量及共享构建串行。规划阶段不分派实现 Agent。
+契约确定后，bulk I/O 实现与纯数据夹具 lane 可有独立 owned paths；只有收到逐 task packet、确认至少两条安全 ready lane 且无共享可变状态时才评估临时子 Agent。按2026-10-19用户最新收口，停止扩验证工具，4.3尚缺适配的485项保持单列，不再作为5.1前置；先集中运行现有组件功能及其真正必需的原生资源读取/预览安全，实际失败统一修复复验。此前2.2/4.3双线的扩展计划由此覆盖；3.8.7原生错误仍阻止该会话通过，但不阻止独立3.8.3执行。当前工作树仍由唯一owner持有，临时执行lane不创建持久session、不操作Git或共享产物；各lane源码范围互斥，候选输入冻结后才启动实机。共享源码修复、安装候选准备、构建、Git index、知识与OpenSpec修改均由协调owner串行持有；任何候选改变都使受影响实机证据失效。性能测量与最终6.2/6.3长稳仍串行。
 
 定向验收采用实际根工作区脚本和源测试文件，不沿用 README 中已失效的内部 workspace 名。最终先生成并构建、pack Core prerequisite，再运行 canonical verify/pack；必要产物顺序显式记录。既有 669 测试和旧候选不能替代新 tree 检查。
 

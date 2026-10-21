@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "purpose": "3.8.3 source text/json lifecycle; only16 executable/2 patch blocked, no native acceptance",
+  "fixtures": [
+    {
+      "id": "creator383-source-text",
+      "creatorVersion": "3.8.3",
+      "assetKind": "text",
+      "runtimeAcceptance": false,
+      "dependencies": [],
+      "dependencyPolicy": "Reviewed plain data/UTF8; actual SDK query-asset-info(uuid,[depends]) must return [] or the case blocks.",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-source/text/creator-engine-license.txt",
+          "sha256": "e8799a9198184e8cc31e45e66521b1cca52f9099a932de7a56abb9d212311318"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-source/text/creator-engine-license.txt.meta",
+          "sha256": "5e51d159c7c5306c74f23e082053d9bae457183649c10fffe2ccb0eb3abb4195"
+        }
+      },
+      "initialPublic": {
+        "/source": "MIT License\n\nCopyright (c) 2013-2016 Chukong Technologies Inc.\nCopyright (c) 2017-2023 Xiamen Yaji Software Co., Ltd.\n\nhttp://www.cocos.com\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
+        "/sourceSha256": "e8799a9198184e8cc31e45e66521b1cca52f9099a932de7a56abb9d212311318",
+        "/importer": "text",
+        "/assetType": "cc.TextAsset"
+      },
+      "patch": {
+        "valid": {},
+        "expectedPublic": {},
+        "blocked": "no_writable_fields; empty props is not accepted as a meaningful patch"
+      },
+      "fieldCases": {}
+    },
+    {
+      "id": "creator383-source-json",
+      "creatorVersion": "3.8.3",
+      "assetKind": "json",
+      "runtimeAcceptance": false,
+      "dependencies": [],
+      "dependencyPolicy": "Reviewed plain data/UTF8; actual SDK query-asset-info(uuid,[depends]) must return [] or the case blocks.",
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/animation-source-provenance.json",
+          "sha256": "434b317f2d32005a74b14911491173b2a07d4d8c38c5586237bcf81c912175dc"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-source/json/animation-source-provenance.json.meta",
+          "sha256": "5a7ce23213e7107c5420aa0a902e1795e8c26d2c0e8a77b7d2a6cb4e3939c6c2"
+        }
+      },
+      "initialPublic": {
+        "/source": "{\n  \"schemaVersion\": 1,\n  \"creatorVersion\": \"3.8.3\",\n  \"origin\": \"Cocos Creator 3.8.3 installed engine editor assets; read-only source audit\",\n  \"installationIdentity\": {\n    \"appVersion\": \"3.8.3\",\n    \"appInfoPlistSha256\": \"8b86235bc485bd5cc6c7836f8f084a72bcab96d8f5722c10e85d5517d4f5db41\",\n    \"engineVersion\": \"3.8.3\",\n    \"enginePackageSha256\": \"9f5d065eb57e69c9f62c805eecbb668d85c4416f372ecf75e3dc0d5a713b5d63\"\n  },\n  \"license\": {\n    \"spdx\": \"MIT\",\n    \"reference\": \"tests/fixtures/editor-stability/serialized/3.8.3/CREATOR-ENGINE-LICENSE.md\",\n    \"sourceReference\": \"engine/LICENSE.md\",\n    \"sha256\": \"e8799a9198184e8cc31e45e66521b1cca52f9099a932de7a56abb9d212311318\"\n  },\n  \"nativeContracts\": {\n    \"animationClip\": [\n      {\n        \"reference\": \"engine/cocos/animation/animation-clip.ts\",\n        \"sha256\": \"020b432bbf600d5b31f8f96e3a64d6afcd941aa2e39b317b103cd206128f4cd9\",\n        \"requiredMarkers\": [\n          \"@ccclass('cc.AnimationClip')\",\n          \"public sample = 60\",\n          \"public speed = 1\"\n        ],\n        \"excerpts\": [\n          {\n            \"line\": 100,\n            \"text\": \" */\"\n          },\n          {\n            \"line\": 101,\n            \"text\": \"@ccclass('cc.AnimationClip')\"\n          },\n          {\n            \"line\": 102,\n            \"text\": \"export class AnimationClip extends Asset {\"\n          },\n          {\n            \"line\": 132,\n            \"text\": \"    @serializable\"\n          },\n          {\n            \"line\": 133,\n            \"text\": \"    public sample = 60;\"\n          },\n          {\n            \"line\": 134,\n            \"text\": \"\"\n          },\n          {\n            \"line\": 139,\n            \"text\": \"    @serializable\"\n          },\n          {\n            \"line\": 140,\n            \"text\": \"    public speed = 1;\"\n          },\n          {\n            \"line\": 141,\n            \"text\": \"\"\n          }\n        ]\n      }\n    ],\n    \"animationGraph\": [\n      {\n        \"reference\": \"engine/cocos/animation/marionette/animation-graph.ts\",\n        \"sha256\": \"73e7d7119d3b9bc70be164670303d9af7f75cdee9bbd3136ec6ed98814a052c1\",\n        \"requiredMarkers\": [\n          \"@ccclass('cc.animation.AnimationGraph')\",\n          \"@ccclass('cc.animation.Layer')\",\n          \"@ccclass('cc.animation.StateMachine')\",\n          \"private _layers\",\n          \"private _variables\",\n          \"public weight = 1.0\"\n        ],\n        \"excerpts\": [\n          {\n            \"line\": 272,\n            \"text\": \"\"\n          },\n          {\n            \"line\": 273,\n            \"text\": \"@ccclass('cc.animation.StateMachine')\"\n          },\n          {\n            \"line\": 274,\n            \"text\": \"export class StateMachine extends EditorExtendable {\"\n          },\n          {\n            \"line\": 792,\n            \"text\": \"\"\n          },\n          {\n            \"line\": 793,\n            \"text\": \"@ccclass('cc.animation.Layer')\"\n          },\n          {\n            \"line\": 794,\n            \"text\": \"export class Layer implements OwnedBy<AnimationGraph> {\"\n          },\n          {\n            \"line\": 803,\n            \"text\": \"    @serializable\"\n          },\n          {\n            \"line\": 804,\n            \"text\": \"    public weight = 1.0;\"\n          },\n          {\n            \"line\": 805,\n            \"text\": \"\"\n          },\n          {\n            \"line\": 877,\n            \"text\": \"\"\n          },\n          {\n            \"line\": 878,\n            \"text\": \"@ccclass('cc.animation.AnimationGraph')\"\n          },\n          {\n            \"line\": 879,\n            \"text\": \"export class AnimationGraph extends AnimationGraphLike implements AnimationGraphRunTime {\"\n          },\n          {\n            \"line\": 882,\n            \"text\": \"    @serializable\"\n          },\n          {\n            \"line\": 883,\n            \"text\": \"    private _layers: Layer[] = [];\"\n          },\n          {\n            \"line\": 884,\n            \"text\": \"\"\n          },\n          {\n            \"line\": 885,\n            \"text\": \"    @serializable\"\n          },\n          {\n            \"line\": 886,\n            \"text\": \"    private _variables: Record<string, VariableDescription> = {};\"\n          },\n          {\n            \"line\": 887,\n            \"text\": \"\"\n          }\n        ]\n      },\n      {\n        \"reference\": \"engine/cocos/animation/marionette/state-machine/state.ts\",\n        \"sha256\": \"f55ddd508d556221ce979039fa99a0a153a6d853c7bab16dce026928d9c4261b\",\n        \"requiredMarkers\": [\n          \"@ccclass('cc.animation.State')\"\n        ],\n        \"excerpts\": [\n          {\n            \"line\": 38,\n            \"text\": \"\"\n          },\n          {\n            \"line\": 39,\n            \"text\": \"@ccclass('cc.animation.State')\"\n          },\n          {\n            \"line\": 40,\n            \"text\": \"export class State extends EditorExtendable implements OwnedBy<Layer | StateMachine> {\"\n          }\n        ]\n      }\n    ],\n    \"animationMask\": [\n      {\n        \"reference\": \"engine/cocos/animation/marionette/animation-mask.ts\",\n        \"sha256\": \"209830c54fc0a9ed123858aed139659d042e72b358cede34d6d06e912872ac71\",\n        \"requiredMarkers\": [\n          \"@ccclass(`${CLASS_NAME_PREFIX_ANIM}AnimationMask`)\",\n          \"private _jointMasks\",\n          \"get joints\"\n        ],\n        \"excerpts\": [\n          {\n            \"line\": 45,\n            \"text\": \"\"\n          },\n          {\n            \"line\": 46,\n            \"text\": \"@ccclass(`${CLASS_NAME_PREFIX_ANIM}AnimationMask`)\"\n          },\n          {\n            \"line\": 47,\n            \"text\": \"export class AnimationMask extends Asset {\"\n          },\n          {\n            \"line\": 48,\n            \"text\": \"    @serializable\"\n          },\n          {\n            \"line\": 49,\n            \"text\": \"    private _jointMasks: JointMask[] = [];\"\n          },\n          {\n            \"line\": 50,\n            \"text\": \"\"\n          },\n          {\n            \"line\": 52,\n            \"text\": \"    @type(JointMask)\"\n          },\n          {\n            \"line\": 53,\n            \"text\": \"    get joints (): Iterable<JointMaskInfo> {\"\n          },\n          {\n            \"line\": 54,\n            \"text\": \"        // TODO: editor currently treats this property as (and expects it to be) an array.\"\n          }\n        ]\n      },\n      {\n        \"reference\": \"engine/cocos/animation/define.ts\",\n        \"sha256\": \"2bc8690b9b2909d11ec2d0199a2bfb7c7c97222c08b18776da7d6fd919c43930\",\n        \"requiredMarkers\": [\n          \"export const CLASS_NAME_PREFIX_ANIM = 'cc.animation.';\"\n        ],\n        \"excerpts\": [\n          {\n            \"line\": 24,\n            \"text\": \"\"\n          },\n          {\n            \"line\": 25,\n            \"text\": \"export const CLASS_NAME_PREFIX_ANIM = 'cc.animation.';\"\n          },\n          {\n            \"line\": 26,\n            \"text\": \"\"\n          }\n        ]\n      }\n    ]\n  },\n  \"evidenceLimit\": \"Read-only source provenance and static declarations, not Creator runtime import or playback evidence.\"\n}\n",
+        "/sourceSha256": "434b317f2d32005a74b14911491173b2a07d4d8c38c5586237bcf81c912175dc",
+        "/importer": "json",
+        "/assetType": "cc.JsonAsset"
+      },
+      "patch": {
+        "valid": {},
+        "expectedPublic": {},
+        "blocked": "no_writable_fields; empty props is not accepted as a meaningful patch"
+      },
+      "fieldCases": {}
+    }
+  ]
+}

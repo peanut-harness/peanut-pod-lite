@@ -1,0 +1,18 @@
+{
+  "creatorVersion": "3.8.7",
+  "source": "Actual loaded SDK cce.Component methods; read-only native observation sdk-source-387-20261016-bd8a7c7",
+  "methods": {
+    "init": {
+      "source": "init(){this.registerCompMgrEvents()}",
+      "sha256": "db2ae3b174d137ab6a9340b4d1f10dca65ec547b6c13e5ffb37eadfcbf700b91"
+    },
+    "registerCompMgrEvents": {
+      "source": "registerCompMgrEvents(){this._onCompAdded=this.add.bind(this),CompMgr.on(\"add\",this._onCompAdded),this._onCompRemoved=this.remove.bind(this),CompMgr.on(\"remove\",this._onCompRemoved)}",
+      "sha256": "7ae0204f1176a4be8d581a33c645597185d8bb0015b8c75e17a7690274bd6864"
+    },
+    "unregisterCompMgrEvents": {
+      "source": "unregisterCompMgrEvents(){this._onCompAdded&&CompMgr.off(\"add\",this._onCompAdded),this._onCompRemoved&&CompMgr.off(\"remove\",this._onCompRemoved)}",
+      "sha256": "ac9dc6cf0c724d2dd84cb07fdb5037cc8d19071a3c2ad4a4e3b59ce7c8f86a45"
+    }
+  }
+}

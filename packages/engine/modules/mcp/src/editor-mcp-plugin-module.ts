@@ -1,3 +1,4 @@
+import { EditorMcpResourceFieldRefusal } from './editor-mcp-resource-field-refusal.js';
 import { EditorMcpTextWriteFailure } from './editor-mcp-text-write-failure.js';
 import type { EditorMcpActionId, EditorMcpOperationId, IEditorMcpActionPlan, IEditorMcpActionResult, IEditorMcpCapabilityDescriptor } from '@peanut/pod-protocol';
 import { AssetCatalogFastLookupApi, type IAssetCatalogFastLookup } from '@peanut/pod-engine/assets';
@@ -189,6 +190,7 @@ export class EditorMcpPluginModule extends PluginModuleBase {
             const decoded = this._executionCodec.decode(this._isRecord(input) ? input : {});
             const requestInput = decoded.input;
             const plan = router.plan({ operation, input: requestInput });
+            if (operation === 'lumen.assetSet' && managedTasks == null) throw new Error('resource_field_host_preparation_required');
             const result = plan.readOnly || managedTasks == null
                 ? await router.dispatch('cocos.call', { operation, input: requestInput }, invocation)
                 : await this._executeManagedCapability(operation, requestInput, invocation, managedTasks, decoded.execution);
@@ -249,7 +251,7 @@ export class EditorMcpPluginModule extends PluginModuleBase {
         }
         const taskResult = await managedTasks.wait<Record<string, unknown>>(receipt.taskId);
         if (taskResult == null || !taskResult.ok || taskResult.status !== 'succeeded') {
-            throw EditorMcpTextWriteFailure.fromTaskResult(taskResult, receipt.taskId,
+            throw EditorMcpResourceFieldRefusal.fromTaskResult(taskResult, receipt.taskId) ?? EditorMcpTextWriteFailure.fromTaskResult(taskResult, receipt.taskId,
                 taskResult?.error?.code ?? 'editor_mcp_managed_task_failed');
         }
         const data = taskResult.data;
@@ -270,6 +272,9 @@ export class EditorMcpPluginModule extends PluginModuleBase {
      * @returns 兼容后的异常。
      */
     private _asHostCompatibleClientRejection(error: unknown): Error {
+        if (error instanceof EditorMcpResourceFieldRefusal) return error;
+        // 已执行失败且缺少真实准备证明时必须保留unknown，兼容前缀不能洗掉任务状态。
+        if (error instanceof Error && Object.getOwnPropertyDescriptor(error, 'projectState')?.value === 'unknown') return error;
         const message = error instanceof Error ? error.message : String(error);
         if (message.startsWith('editor_mcp_lumen_operation_unsupported:')) {
             return error instanceof Error ? error : new Error(message);

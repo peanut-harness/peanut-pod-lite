@@ -1,0 +1,390 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { ResourceStabilityRunner } from '../scripts/resource-stability-runner.mts';
+import { ResourceStabilitySafeFailure } from '../scripts/resource-stability-safe-failure.mts';
+import { ResourceStabilityEvidenceValidator } from '../scripts/resource-stability-evidence.mts';
+import type { IResourceCampaignExpectation, IResourceCampaignPlan, IResourceCampaignPort, IResourceCaseObservation,
+    IResourceCasePlan, IResourceCallOutcome, IResourceCommand, IResourceNativeReference, IResourceSessionIdentity, IResourceSnapshot } from '../scripts/resource-stability-contracts.mts';
+import { createHash } from 'node:crypto';
+
+const namespace = 'assets/fixtures/resource-stability/synthetic-test';
+const source = `${namespace}/source.anim`;
+const uuid = '11111111-2222-4333-8444-555555555555';
+const destinationUuid = '99999999-2222-4333-8444-555555555555';
+const identity: IResourceSessionIdentity = {
+    projectPath: '/private/tmp/synthetic-resource-project', projectName: 'peanut-resource-stability', runId: 'synthetic-resource-run',
+    creatorPid: 123, creatorStartedAt: '2026-10-13T00:00:00Z',
+    creatorVersion: '3.8.7', owner: 'unit-test-owner', change: 'stabilize-editor-operations-and-bulk-file-io',
+    hostSha256: 'a'.repeat(64), coreSha256: 'b'.repeat(64), sourceCommit: 'c'.repeat(40),
+};
+const snapshot = (relativePath = source, value = 1): IResourceSnapshot => ({ path: relativePath, exists: true,
+    metaUuid: uuid, assetDbUuid: uuid, subassets: [], unresolvedReferences: [], semantic: { value }, readbackOrigin: 'creator-native' });
+const absent = (relativePath = source): IResourceSnapshot => ({ ...snapshot(relativePath), exists: false,
+    metaUuid: null, assetDbUuid: null, semantic: {}, subassets: [] });
+const command = (): IResourceCommand => ({ name: 'peanut.editor-mcp.lumen-asset-set',
+    input: { assetRelativePath: source, props: { value: 2 }, autoCommit: true }, write: true, destructive: false });
+const row = (action = 'patch'): IResourceCasePlan => ({ caseId: `3.8.7|asset:animationClip|${action}`, action,
+    setup: [], command: command(), beforePath: source, afterPath: source, expectedSemantic: { '/value': 2 },
+    expectedRejection: ['reject_invalid', 'reject_write'].includes(action), rejectionCodes: ['field_value_invalid'] });
+const expectation = (rows: readonly IResourceCasePlan[]): IResourceCampaignExpectation => ({ ...identity,
+    namespace, inventorySha256: 'd'.repeat(64), requiredCaseIds: rows.map((r) => r.caseId), fixtureSources: {} });
+const plan = (rows: readonly IResourceCasePlan[]): IResourceCampaignPlan => ({ namespace, creatorVersion: '3.8.7',
+    inventorySha256: 'd'.repeat(64), cases: rows });
+const observation = (r: IResourceCasePlan, overrides: Partial<IResourceCaseObservation> = {}): IResourceCaseObservation => ({
+    caseId: r.caseId, action: r.action, before: snapshot(r.beforePath), after: snapshot(r.afterPath, 2),
+    rejected: false, failure: null, postflightVerified: true,
+    beforeSourceSha256: 'e'.repeat(64), afterSourceSha256: 'f'.repeat(64),
+    preservedSource: null, preservedSourceSha256: null, obsoletePath: null, ...overrides,
+});
+
+test('semantic authority binds exact native reader/version/source and cannot relabel importer data as runtime', () => {
+    const authority = { kind: 'runtime-object' as const, creatorVersion: '3.8.7' as const,
+        sourceSha256: 'a'.repeat(64), readerId: 'sdk-387:clip.sample' };
+    const r = { ...row(), expectedAuthorities: { '/value': authority } };
+    ResourceStabilityRunner.validatePlan(plan([r]), expectation([r]));
+    const observed = observation(r, { after: { ...snapshot(source, 2), authorities: { '/value': authority } } });
+    assert.deepEqual(ResourceStabilityRunner.validateObservation(r, observed), []);
+    for (const wrong of [undefined, { ...authority, kind: 'importer-meta' as const },
+        { ...authority, sourceSha256: 'b'.repeat(64) }, { ...authority, creatorVersion: '3.8.3' as const },
+        { ...authority, readerId: 'different-reader' }]) {
+        const after: IResourceSnapshot = { ...snapshot(source, 2), authorities: wrong ? { '/value': wrong } : {} };
+        assert.ok(ResourceStabilityRunner.validateObservation(r, observation(r, { after })).includes('semantic_authority_mismatch:/value'));
+    }
+    const partial = { ...r, expectedSemantic: { '/value': 2, '/another': 3 } };
+    assert.throws(() => ResourceStabilityRunner.validatePlan(plan([partial]), expectation([partial])), /authority_contract_invalid/);
+});
+
+/**
+ * @description 纯内存端口，仅验证 runner 状态机；不构成 Creator 原生结果。
+ */
+class SyntheticPort implements IResourceCampaignPort {
+    public fixtureHash = 'e'.repeat(64);
+    public async fixtureSourceSha256(_absolutePath: string): Promise<string> { return this.fixtureHash; }
+    public calls = 0;
+    public recorded: IResourceCaseObservation[] = [];
+    public failures: string[] = [];
+    public session = { ...identity };
+    public state = snapshot();
+    public outcome: IResourceCallOutcome = { status: 'succeeded', rejectionCode: null, postflightVerified: true };
+    public throwCall = false;
+    public async preflight(): Promise<IResourceSessionIdentity> { return this.session; }
+    public async call(_command: IResourceCommand, _namespace: string): Promise<IResourceCallOutcome> {
+        this.calls += 1;
+        if (this.throwCall) throw new Error('synthetic transport failure with private body');
+        if (this.outcome.status === 'succeeded') this.state = snapshot(source, 2);
+        return this.outcome;
+    }
+    public async snapshot(relative: string): Promise<IResourceSnapshot> { return { ...structuredClone(this.state), path: relative }; }
+    public async sourceHashes(_relative: string): Promise<string> { return this.state.semantic.value === 1 ? 'e'.repeat(64) : 'f'.repeat(64); }
+    public async recordObservation(value: IResourceCaseObservation): Promise<void> { this.recorded.push(structuredClone(value)); }
+    public async recordFailure(caseId: string, code: string): Promise<void> { this.failures.push(`${caseId}:${code}`); }
+}
+
+test('explicit bounded commit completes before native readback and its failure stops the case', async () => {
+    const commit: IResourceCommand = { name: 'peanut.editor-mcp.lumen-commit',
+        input: { assetRelativePath: source, paths: [source] }, write: true, destructive: false };
+    const r = { ...row(), afterCommands: [commit] }; const port = new SyntheticPort();
+    await ResourceStabilityRunner.run(plan([r]), expectation([r]), port);
+    assert.equal(port.calls, 2);
+    const failed = new SyntheticPort();
+    failed.call = async (command) => {
+        if (command === commit) return { status: 'succeeded', rejectionCode: null, postflightVerified: false };
+        failed.state = snapshot(source, 2); return failed.outcome;
+    };
+    await assert.rejects(ResourceStabilityRunner.run(plan([r]), expectation([r]), failed), /incomplete_or_failed/u);
+    assert.equal(failed.recorded.length, 0);
+});
+
+test('rejection cases cannot append commit or another hidden mutation', () => {
+    const r = { ...row('reject_invalid'), afterCommands: [command()] };
+    assert.throws(() => ResourceStabilityRunner.validatePlan(plan([r]), expectation([r])), /rejection_after_commands/u);
+});
+
+test('synthetic runner executes one exact scope and records the actual observation before returning', async () => {
+    const r = row(); const port = new SyntheticPort();
+    const observations = await ResourceStabilityRunner.run(plan([r]), expectation([r]), port);
+    assert.equal(port.calls, 1);
+    assert.equal(port.recorded.length, 1);
+    assert.deepEqual(observations[0]?.after.semantic, { value: 2 });
+});
+
+test('context drift between initial preflight and execution stops before mutation and is recorded', async () => {
+    const r = row(); const port = new SyntheticPort(); let reads = 0;
+    port.preflight = async () => ({ ...identity, owner: ++reads === 1 ? identity.owner : 'new-owner' });
+    await assert.rejects(ResourceStabilityRunner.run(plan([r]), expectation([r]), port), /incomplete_or_failed/u);
+    assert.equal(port.calls, 0); assert.equal(port.failures.length, 1);
+});
+
+for (const key of ['creatorVersion', 'owner', 'change', 'hostSha256', 'coreSha256', 'sourceCommit'] as const) {
+    test(`session mismatch refuses before mutation: ${key}`, async () => {
+        const r = row(); const port = new SyntheticPort(); port.session[key] = 'mismatch';
+        await assert.rejects(ResourceStabilityRunner.run(plan([r]), expectation([r]), port), /session_mismatch/u);
+        assert.equal(port.calls, 0);
+    });
+}
+
+for (const modify of [
+    (r: IResourceCasePlan): IResourceCasePlan => ({ ...r, beforePath: 'assets/user-content.anim' }),
+    (r: IResourceCasePlan): IResourceCasePlan => ({ ...r, afterPath: `${namespace}/../other.anim` }),
+    (r: IResourceCasePlan): IResourceCasePlan => ({ ...r, command: { ...r.command, input: { approvalToken: 'private' } } }),
+    (r: IResourceCasePlan): IResourceCasePlan => ({ ...r, command: { ...r.command, input: { props: { secret: 'private' } } } }),
+    (r: IResourceCasePlan): IResourceCasePlan => ({ ...r, command: { ...r.command, name: 'peanut.editor-mcp.builder-build' } }),
+    (r: IResourceCasePlan): IResourceCasePlan => ({ ...r, command: { ...r.command, name: 'peanut.editor-mcp.asset-reimport', input: {} } }),
+    (r: IResourceCasePlan): IResourceCasePlan => ({ ...r, command: { ...r.command, name: 'peanut.editor-mcp.asset-import', input: { target: 'db://assets/outside' } } }),
+]) {
+    test('out-of-scope, unbounded commands and credentials refuse before the port is invoked', async () => {
+        const r = row(); const port = new SyntheticPort();
+        await assert.rejects(ResourceStabilityRunner.run(plan([modify(r)]), expectation([r]), port));
+        assert.equal(port.calls, 0);
+    });
+}
+
+test('missing, duplicated and injected cases cannot reduce or extend the scope', () => {
+    const r = row(); const expected = expectation([r]);
+    for (const rows of [[], [r, r], [{ ...r, caseId: '3.8.7|asset:other|patch' }]]) {
+        assert.throws(() => ResourceStabilityRunner.validatePlan(plan(rows), expected), /scope_mismatch/u);
+    }
+});
+
+test('every write requires explicit bounded targets, including empty lists and rename traversal', () => {
+    const r = row();
+    const invalid: IResourceCommand[] = [
+        { name: 'peanut.editor-mcp.asset-delete', write: true, destructive: true, input: {} },
+        { name: 'peanut.editor-mcp.asset-delete', write: true, destructive: true, input: { paths: [] } },
+        { name: 'peanut.editor-mcp.asset-move', write: true, destructive: false, input: { from: source } },
+        { name: 'peanut.editor-mcp.asset-rename', write: true, destructive: false, input: { path: source, newName: '..' } },
+        { ...command(), input: { props: { value: 2 } } },
+        { name: 'peanut.editor-mcp.lumen-scaffold', write: true, destructive: false, input: { assetRelativePath: source, reset: true } },
+    ];
+    for (const command of invalid) assert.throws(() => ResourceStabilityRunner.validatePlan(plan([{ ...r, command }]), expectation([r])));
+});
+
+test('import requires reviewed full closure and actual source hashes immediately before calling the port', async () => {
+    const fixture = '/private/tmp/reviewed-synthetic.anim';
+    const r: IResourceCasePlan = { ...row('import'), command: { name: 'peanut.editor-mcp.asset-import',
+        write: true, destructive: false, input: { sources: [fixture], target: namespace, expandClosure: false } } };
+    const expected: IResourceCampaignExpectation = { ...expectation([r]), fixtureSources: { [fixture]: 'e'.repeat(64) } };
+    assert.doesNotThrow(() => ResourceStabilityRunner.validatePlan(plan([r]), expected));
+    assert.throws(() => ResourceStabilityRunner.validatePlan(plan([r]), expectation([r])), /source_unapproved/u);
+    for (const extra of [{ expandClosure: true }, { allowMissingDependencies: true }, { dependencyMap: {} }]) {
+        assert.throws(() => ResourceStabilityRunner.validatePlan(plan([{ ...r, command: { ...r.command,
+            input: { ...r.command.input, ...extra } } }]), expected), /source_unapproved/u);
+    }
+    const port = new SyntheticPort(); port.fixtureHash = '0'.repeat(64);
+    await assert.rejects(ResourceStabilityRunner.run(plan([r]), expected, port), /incomplete_or_failed/u);
+    assert.equal(port.calls, 0);
+    assert.equal(port.failures.length, 1);
+});
+
+test('refresh cannot lose or duplicate registered subassets while preserving the root UUID', () => {
+    const r = row('refresh');
+    const subassets = [{ metaUuid: `${uuid}@child`, assetDbUuid: `${uuid}@child` }];
+    const before = { ...snapshot(), subassets };
+    assert.ok(ResourceStabilityRunner.validateObservation(r, observation(r, { before })).includes('subasset_identity_changed'));
+    const after = { ...snapshot(source, 2), subassets: [...subassets, ...subassets] };
+    assert.ok(ResourceStabilityRunner.validateObservation(r, observation(r, { before, after })).includes('subasset_registration_duplicate'));
+});
+
+test('read-only observations cannot hide file mutation or native state changes', () => {
+    for (const action of ['query', 'inspect', 'read']) {
+        const r = { ...row(action), expectedSemantic: { '/value': 1 } };
+        const good = observation(r, { after: snapshot(), afterSourceSha256: 'e'.repeat(64) });
+        assert.deepEqual(ResourceStabilityRunner.validateObservation(r, good), []);
+        assert.ok(ResourceStabilityRunner.validateObservation(r, { ...good, afterSourceSha256: 'f'.repeat(64) }).includes('read_changed_source'));
+        assert.ok(ResourceStabilityRunner.validateObservation(r, { ...good, after: snapshot(source, 2) }).includes('read_changed_source'));
+    }
+});
+
+for (const [name, value] of [
+    ['missing AssetDB registration', { ...snapshot(source, 2), assetDbUuid: null }],
+    ['wrong UUID', { ...snapshot(source, 2), metaUuid: destinationUuid, assetDbUuid: destinationUuid }],
+    ['missing subasset', { ...snapshot(source, 2), subassets: [{ metaUuid: `${uuid}@sub`, assetDbUuid: null }] }],
+    ['unresolved reference', { ...snapshot(source, 2), unresolvedReferences: ['missing-texture'] }],
+    ['serialized-only Inspector', { ...snapshot(source, 2), readbackOrigin: 'serialized-only' as const }],
+    ['incorrect semantic value', snapshot(source, 0)],
+] as const) {
+    test(`independent observation fails: ${name}`, () => {
+        const r = row();
+        assert.ok(ResourceStabilityRunner.validateObservation(r, observation(r, { after: value })).length > 0);
+    });
+}
+
+test('copy requires a new UUID and independently rechecks the unchanged original', () => {
+    const r = { ...row('copy'), afterPath: `${namespace}/copy.anim` };
+    const after = { ...snapshot(r.afterPath, 2), metaUuid: destinationUuid, assetDbUuid: destinationUuid };
+    const good = observation(r, { after, preservedSource: snapshot(), preservedSourceSha256: 'e'.repeat(64) });
+    assert.deepEqual(ResourceStabilityRunner.validateObservation(r, good), []);
+    assert.ok(ResourceStabilityRunner.validateObservation(r, { ...good, preservedSourceSha256: '0'.repeat(64) }).includes('copy_changed_source'));
+    assert.ok(ResourceStabilityRunner.validateObservation(r, { ...good, after: snapshot(r.afterPath, 2) }).includes('copy_reused_uuid'));
+});
+
+for (const action of ['move', 'rename']) {
+    test(`${action} fails when the old path remains registered`, () => {
+        const r = { ...row(action), afterPath: `${namespace}/destination.anim`,
+            ...(action === 'rename' ? { expectedSourceContentSha256: 'a'.repeat(64) } : {}) };
+        const good = observation(r, { obsoletePath: absent(), ...(action === 'rename'
+            ? { beforeSourceContentSha256: 'a'.repeat(64), afterSourceContentSha256: 'a'.repeat(64) } : {}) });
+        assert.deepEqual(ResourceStabilityRunner.validateObservation(r, good), []);
+        assert.ok(ResourceStabilityRunner.validateObservation(r, { ...good, obsoletePath: snapshot() }).includes('old_path_still_registered'));
+    });
+}
+
+test('delete checks both source registration and all destination metadata/AssetDB residue', () => {
+    const r = { ...row('delete'), command: { ...command(), name: 'peanut.editor-mcp.asset-delete', input: { paths: [source] }, destructive: true } };
+    assert.deepEqual(ResourceStabilityRunner.validateObservation(r, observation(r, { after: absent() })), []);
+    assert.ok(ResourceStabilityRunner.validateObservation(r, observation(r, { after: { ...absent(), assetDbUuid: uuid } })).includes('delete_residue'));
+});
+
+test('rename binds approved static source bytes before and after; missing proof or reader fails closed', async () => {
+    const fixture = '/private/tmp/reviewed-synthetic.anim'; const approved = 'e'.repeat(64);
+    const r: IResourceCasePlan = { ...row('rename'), afterPath: `${namespace}/renamed.anim`, expectedSourceContentSha256: approved,
+        setup: [{ name: 'peanut.editor-mcp.asset-import', write: true, destructive: false,
+            input: { sources: [fixture], target: `db://${namespace}`, expandClosure: false } }],
+        command: { name: 'peanut.editor-mcp.asset-rename', write: true, destructive: false,
+            input: { path: source, newName: 'renamed.anim' } } };
+    const expected = { ...expectation([r]), fixtureSources: { [fixture]: approved } };
+    assert.doesNotThrow(() => ResourceStabilityRunner.validatePlan(plan([r]), expected));
+    for (const proof of [undefined, 'bad', 'f'.repeat(64)]) {
+        assert.throws(() => ResourceStabilityRunner.validatePlan(plan([{ ...r, expectedSourceContentSha256: proof }]), expected), /rename_source_proof_invalid/u);
+    }
+    const good = observation(r, { obsoletePath: absent(), beforeSourceContentSha256: approved, afterSourceContentSha256: approved });
+    assert.deepEqual(ResourceStabilityRunner.validateObservation(r, good), []);
+    for (const digest of [undefined, 'bad', '0'.repeat(64)]) {
+        assert.ok(ResourceStabilityRunner.validateObservation(r, { ...good, afterSourceContentSha256: digest }).includes('rename_source_content_mismatch'));
+        assert.ok(ResourceStabilityRunner.validateObservation(r, { ...good, beforeSourceContentSha256: digest }).includes('rename_source_content_mismatch'));
+    }
+    for (const mode of ['valid', 'missing-reader', 'changed-before', 'changed-after']) {
+        const port: IResourceCampaignPort & SyntheticPort = new SyntheticPort();
+        if (mode !== 'missing-reader') port.sourceContentSha256 = async () =>
+            mode === 'changed-before' || mode === 'changed-after' && port.calls >= 2 ? '0'.repeat(64) : approved;
+        port.snapshot = async path => path === source && port.calls >= 2 ? absent(source) : snapshot(path, port.calls >= 2 ? 2 : 1);
+        if (mode === 'valid') {
+            await ResourceStabilityRunner.run(plan([r]), expected, port); assert.equal(port.recorded[0]?.afterSourceContentSha256, approved);
+        } else {
+            await assert.rejects(ResourceStabilityRunner.run(plan([r]), expected, port), /case_incomplete_or_failed/u);
+            assert.equal(port.calls, mode === 'changed-after' ? 2 : 1);
+        }
+    }
+});
+
+test('field rejection needs the precise input error and unchanged snapshot/source/meta hashes', () => {
+    const r = row('reject_invalid');
+    const good = observation(r, { rejected: true, failure: 'field_value_invalid', after: snapshot(), afterSourceSha256: 'e'.repeat(64), postflightVerified: false });
+    assert.deepEqual(ResourceStabilityRunner.validateObservation(r, good), []);
+    assert.ok(ResourceStabilityRunner.validateObservation(r, { ...good, failure: 'approval_required' }).includes('expected_rejection_missing'));
+    assert.ok(ResourceStabilityRunner.validateObservation(r, { ...good, afterSourceSha256: '0'.repeat(64) }).includes('rejection_changed_source'));
+});
+
+test('postflight failure and transport uncertainty persist failure and never retry a write', async () => {
+    for (const transportFailure of [false, true]) {
+        const r = row(); const port = new SyntheticPort();
+        port.throwCall = transportFailure; port.outcome = { ...port.outcome, postflightVerified: false };
+        await assert.rejects(ResourceStabilityRunner.run(plan([r]), expectation([r]), port), /case_incomplete_or_failed/u);
+        assert.equal(port.calls, 1);
+        assert.equal(port.failures.length, 1);
+        if (!transportFailure) assert.equal(port.recorded.length, 1);
+    }
+});
+
+test('HTTP failure evidence and runner preserve safe native cause without copying response secrets or retrying', async () => {
+    const taskId = 'peanut.editor-mcp:editor-mcp-host:asset.copy:23:23';
+    const summary = ResourceStabilitySafeFailure.http(400, '/mcp', {
+        error: 'lumen_asset_db_registration_pending:db://assets/private?token=secret', token: 'secret',
+        failure: { taskId, taskStatus: 'failed', body: 'secret' },
+    });
+    assert.equal(summary.code, 'lumen_asset_db_registration_pending');
+    assert.equal(summary.httpStatus, 400); assert.equal(summary.taskId, taskId); assert.equal(summary.taskStatus, 'failed');
+    assert.equal(ResourceStabilitySafeFailure.http(400, '/mcp', { failure: { taskId: 'private response secret' } }).taskId, null);
+    assert.ok(!JSON.stringify(summary).includes('secret')); assert.ok(!JSON.stringify(summary).includes('db://'));
+    assert.equal(ResourceStabilitySafeFailure.http(500, '/mcp', { error: 'private response secret' }).code,
+        'resource_campaign_unclassified_failure');
+    const r = row(); const port = new SyntheticPort(); let calls = 0;
+    port.call = async () => { calls += 1; throw new Error('lumen_asset_db_registration_pending:private response secret'); };
+    await assert.rejects(ResourceStabilityRunner.run(plan([r]), expectation([r]), port), (error: unknown) => {
+        assert.ok(error instanceof Error); assert.match(error.message, /lumen_asset_db_registration_pending$/u);
+        assert.ok(error.cause instanceof Error); assert.equal(error.cause.message, 'lumen_asset_db_registration_pending');
+        assert.ok(!String(error.stack).includes('secret')); return true;
+    });
+    assert.equal(calls, 1); assert.deepEqual(port.failures, [`${r.caseId}:lumen_asset_db_registration_pending`]);
+});
+
+const cleanLifecycle = () => ({ runId: identity.runId, projectName: identity.projectName, hostSha256: identity.hostSha256,
+    coreSha256: identity.coreSha256, stages: ['startup', 'operation', 'cooldown', 'exit', 'delayed_diagnostics'].map((name, index) => ({
+        name, startedAt: new Date(Date.UTC(2026, 9, 13, 0, index)).toISOString(), endedAt: new Date(Date.UTC(2026, 9, 13, 0, index + 1)).toISOString(),
+        logs: ['stdout', 'stderr', 'project.log'].map((channel) => ({ channel, reference: `raw/${channel}.log`, offsetStart: 0, offsetEnd: 0,
+            capturedAt: new Date(Date.UTC(2026, 9, 13, 0, index + 1)).toISOString(), byteLength: 0,
+            sha256: createHash('sha256').update('').digest('hex'), bytes: Buffer.alloc(0) })),
+    })) });
+
+test('evidence validator recomputes all rows and raw phases; caller passed flags are irrelevant', () => {
+    const r = row(); const body = { session: identity, inventorySha256: 'd'.repeat(64), observations: [observation(r)], lifecycle: cleanLifecycle() };
+    const checked = ResourceStabilityEvidenceValidator.validate(plan([r]), expectation([r]), body);
+    assert.equal(checked.ok, true);
+    assert.equal(checked.passed, 1);
+    assert.equal(ResourceStabilityEvidenceValidator.validate(plan([r]), expectation([r]), { ...body, observations: [] }).ok, false);
+    assert.equal(ResourceStabilityEvidenceValidator.validate(plan([r]), expectation([r]), { ...body, observations: [observation(r), observation(r)] }).ok, false);
+    assert.equal(ResourceStabilityEvidenceValidator.validate(plan([r]), expectation([r]), { ...body, lifecycle: {} }).passed, 0);
+    assert.equal(ResourceStabilityEvidenceValidator.validate(plan([r]), expectation([r]), { ...body,
+        lifecycle: { ...cleanLifecycle(), runId: 'previous-native-run' } }).passed, 0);
+    assert.equal(ResourceStabilityEvidenceValidator.validate(plan([r]), expectation([r]), { ...body,
+        session: { ...identity, projectPath: '/private/tmp/another-project' } }).passed, 0);
+});
+
+test('raw diagnostics and delayed warnings invalidate every claimed resource pass', () => {
+    const r = row(); const lifecycle = cleanLifecycle(); const bytes = Buffer.from('Warning: delayed synthetic diagnostic\n');
+    const log = lifecycle.stages[4]?.logs[2]; assert.ok(log);
+    Object.assign(log, { bytes, byteLength: bytes.length, offsetEnd: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') });
+    const checked = ResourceStabilityEvidenceValidator.validate(plan([r]), expectation([r]), { session: identity,
+        inventorySha256: 'd'.repeat(64), observations: [observation(r)], lifecycle });
+    assert.equal(checked.ok, false); assert.equal(checked.passed, 0);
+});
+
+
+test('dynamic native references require pinned real source identity and null bounded placeholders', () => {
+    const authority = { kind: 'runtime-object' as const, creatorVersion: '3.8.7' as const,
+        sourceSha256: 'a'.repeat(64), readerId: 'sdk.effect.type' };
+    const reference = { assetPath: `${namespace}/effect.effect`, expectedType: 'cc.EffectAsset', expectedAuthority: authority };
+    const r: IResourceCasePlan = { ...row(), expectedSemantic: { '/effect': null }, expectedReferences: { '/effect': reference },
+        command: { ...command(), input: { assetRelativePath: source, props: { effect: null }, resources: [source, reference.assetPath] },
+            nativeBindings: { '/props/effect': reference } } };
+    ResourceStabilityRunner.validatePlan(plan([r]), expectation([r]));
+    const native: IResourceSnapshot = { ...snapshot(reference.assetPath), semantic: { type: 'cc.EffectAsset' }, authorities: { '/type': authority } };
+    const observed = observation(r, { referenceSnapshots: { '/effect': native }, after: { ...snapshot(), semantic: { effect: uuid } } });
+    assert.deepEqual(ResourceStabilityRunner.validateObservation(r, observed), []);
+    for (const bad of [undefined, { ...native, assetDbUuid: destinationUuid }, { ...native, readbackOrigin: 'serialized-only' as const },
+        { ...native, semantic: { type: 'cc.Material' } }, { ...native, authorities: {} }, { ...native, path: source }]) {
+        assert.throws(() => ResourceStabilityRunner.referenceUuid(reference, bad), /reference_/u);
+    }
+    assert.ok(ResourceStabilityRunner.validateObservation(r, { ...observed, referenceSnapshots: {} }).includes('reference_identity_invalid:/effect'));
+    const invalidBindings: readonly Readonly<Record<string, IResourceNativeReference>>[] = [
+        { '/assetRelativePath': reference }, { '/props/__proto__': reference },
+        { '/props/effect': { ...reference, assetPath: 'assets/outside.effect' } }];
+    for (const nativeBindings of invalidBindings) {
+        const bad = { ...r, command: { ...r.command, nativeBindings } };
+        assert.throws(() => ResourceStabilityRunner.validatePlan(plan([bad]), expectation([bad])), /resource_campaign_/u);
+    }
+    const missing = { ...r, command: { ...r.command, input: { ...r.command.input, resources: [source] } } };
+    assert.throws(() => ResourceStabilityRunner.validatePlan(plan([missing]), expectation([missing])), /binding_placeholder/u);
+    const excessive = { ...r, command: { ...r.command, input: { ...r.command.input, resources: [source, reference.assetPath, 'assets/outside.effect'] } } };
+    assert.throws(() => ResourceStabilityRunner.validatePlan(plan([excessive]), expectation([excessive])), /path_out_of_scope/u);
+    const textReference = { ...reference, expectedAuthority: { ...authority, kind: 'source-text' as const } };
+    assert.throws(() => ResourceStabilityRunner.referenceUuid(textReference, { ...native, authorities: { '/type': textReference.expectedAuthority } }), /reference_identity/u);
+    const mislabeled = { ...r, expectedReferences: { '/effect': textReference } };
+    assert.throws(() => ResourceStabilityRunner.validatePlan(plan([mislabeled]), expectation([mislabeled])), /reference_authority/u);
+    const nonnull = { ...r, expectedSemantic: { '/effect': uuid } };
+    assert.throws(() => ResourceStabilityRunner.validatePlan(plan([nonnull]), expectation([nonnull])), /reference_placeholder/u);
+});
+
+test('runner captures actual dynamic source snapshots after setup and before the business call', async () => {
+    const authority = { kind: 'runtime-object' as const, creatorVersion: '3.8.7' as const,
+        sourceSha256: 'a'.repeat(64), readerId: 'sdk.effect.type' };
+    const reference = { assetPath: `${namespace}/effect.effect`, expectedType: 'cc.EffectAsset', expectedAuthority: authority };
+    const r = { ...row(), expectedSemantic: { '/value': null }, expectedReferences: { '/value': reference } };
+    const port = new SyntheticPort();
+    port.snapshot = async (path) => path === reference.assetPath
+        ? { ...snapshot(path), semantic: { type: reference.expectedType }, authorities: { '/type': authority } }
+        : { ...snapshot(path), semantic: { value: port.calls ? uuid : null } };
+    const result = await ResourceStabilityRunner.run(plan([r]), expectation([r]), port);
+    assert.equal(result[0]?.referenceSnapshots?.['/value']?.metaUuid, uuid);
+    assert.equal(port.calls, 1);
+});

@@ -1,0 +1,20 @@
+{
+  "creatorVersion": "3.8.3",
+  "source": "app.asar/extension/cocos-service/utils/config.js",
+  "sourceSha256": "555c423b13189f2bc0a49fc41b0e11f03db0455bc1d32a307f5433a8214a0c3a",
+  "methods": [
+    "updateConfigFile",
+    "writeBindGame",
+    "writeConfigSet",
+    "readConfigSets",
+    "readConfigSet",
+    "readEnableServices"
+  ],
+  "legacyInput": "settings/service.json",
+  "migrationVersion": "2.0.0",
+  "enabledServices": [],
+  "contractTest": "实际3.8.3 config.js在受限VM执行updateConfigFile和readEnableServices；同realm数组/内存Profile/固定legacy JSON，不导入SDK模块或外部写入；实际cscv2.0.0、appConfigMaps一致、services空",
+  "nativeVerified": false,
+  "accountBound": false,
+  "sdkModified": false
+}

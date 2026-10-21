@@ -1,0 +1,89 @@
+{
+  "creatorVersion": "3.8.3",
+  "sourceOnly": true,
+  "nativeAcceptance": false,
+  "creationContractSource": "evidence/task-5.1/physx-owned-quit-383-20261016/sdk-cube-contract-before-postflight.json",
+  "contract": {
+    "handler": "texture-cube",
+    "label": "i18n:ENGINE.assets.newCubeMap",
+    "fullFileName": "cubemap.cubemap",
+    "template": ""
+  },
+  "registeredImporter": "texture-cube",
+  "input": {
+    "path": "tests/fixtures/editor-stability/components/3.8.3/default-cube/cubemap.cubemap",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "defaultImageUuids": {
+    "front": "86eb75aa-3b2f-4c7b-b59e-bdc2e3984665",
+    "back": "03721795-84b1-4dcd-8eb3-c8e6b88ee535",
+    "left": "61ac0181-00bd-4c17-97f0-5fc7f4bafb3d",
+    "right": "80aabd92-9942-4765-b685-8577a1c88b4e",
+    "top": "6c895e98-967e-4a6d-8c08-bf6b035fa2c1",
+    "bottom": "e049bea9-db6b-463b-8502-61bf426357a1"
+  },
+  "sdkSources": [
+    {
+      "path": "package.json",
+      "sha256": "9f5d065eb57e69c9f62c805eecbb668d85c4416f372ecf75e3dc0d5a713b5d63"
+    },
+    {
+      "path": "editor/inspector/assets/texture-cube.js",
+      "sha256": "9980d1e682afe5528d3c21cdff9dc4b17abc6094f5757ccc9f0583003b5b1d06"
+    },
+    {
+      "path": "cocos/asset/assets/texture-cube.ts",
+      "sha256": "2e0d4058a81efb9bc09b4a477105e5d52133ea832e8d30f077b0ef16aa98ae60"
+    },
+    {
+      "path": "editor/assets/default_cubemap/front.jpg",
+      "sha256": "b1e12390c4240578db8ca03e783319811cae7186bdd52f589b6c4ea4a331874b"
+    },
+    {
+      "path": "editor/assets/default_cubemap/front.jpg.meta",
+      "sha256": "ed5c24492bea4086c049930609f58189d4b2e0791ba730d65950ab026ce77e00"
+    },
+    {
+      "path": "editor/assets/default_cubemap/back.jpg",
+      "sha256": "c4d6c4592dbebc2c6b8cb4dfd10d729fb0ae51bc132c3af6ccfa47e1d9baadf3"
+    },
+    {
+      "path": "editor/assets/default_cubemap/back.jpg.meta",
+      "sha256": "305e1479332f6bf72c70c5d852967e07718363e25df8d979f9cd880506dadda1"
+    },
+    {
+      "path": "editor/assets/default_cubemap/left.jpg",
+      "sha256": "c7ec2b72b5b98206b944884ea206395bfac976befc5d1318397cc870b8d9d179"
+    },
+    {
+      "path": "editor/assets/default_cubemap/left.jpg.meta",
+      "sha256": "bcd1d43f9882f3c7e73f12f3fb65b94a1166373554d256e979cebf0b6e4b15d7"
+    },
+    {
+      "path": "editor/assets/default_cubemap/right.jpg",
+      "sha256": "f266b19d6d4df104616eefb9ef488ce9118de02cb32b7eff06696b23b43b0eb8"
+    },
+    {
+      "path": "editor/assets/default_cubemap/right.jpg.meta",
+      "sha256": "5a3fb310e014187af535be8bbd53ceeb53488189035decb7bb2250ae90a06c37"
+    },
+    {
+      "path": "editor/assets/default_cubemap/top.jpg",
+      "sha256": "2ccac5485e1aef74d357b6449c39c109067725dffc445c7bb9fc852f9446ff5a"
+    },
+    {
+      "path": "editor/assets/default_cubemap/top.jpg.meta",
+      "sha256": "658b609ad9e15b76f6e03ddbea23d0bbe48a2a84191ca2f6b5b0b992bba57519"
+    },
+    {
+      "path": "editor/assets/default_cubemap/bottom.jpg",
+      "sha256": "6df6fee6c944fcbbfd7fe45407f1be6271947a0ed7f3b20e9f35a4dd65d786b4"
+    },
+    {
+      "path": "editor/assets/default_cubemap/bottom.jpg.meta",
+      "sha256": "d76b5fbbf92a12e41e6bae3e41a96fe2e6d54a385492c9b7ea99a1edf4da7d74"
+    }
+  ],
+  "manual": "https://docs.cocos.com/creator/3.8/manual/zh/concepts/scene/skybox.html",
+  "scope": "Exact SDK blank CubeMap creation template; actual importer must create six distinct valid image faces and GPU texture; no metadata or library cache fabricated"
+}

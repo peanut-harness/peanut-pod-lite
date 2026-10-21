@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "revision": "peanut-task42-media/1.0.0",
+  "origin": "本 task 原始程序化创作：像素、字形 A、正弦音、三角形及单关节动画、地图与纯色视频；未复制第三方媒体内容。",
+  "generator": {
+    "path": "build-fixtures.py",
+    "sha256": "0dd1dd2ba81ea4fa2c5876a63f31baf14d5ff41a7d4c5aa37e798fab007c3a9e"
+  },
+  "formats": {
+    "png": {
+      "version": "PNG third edition, common RGBA8 subset",
+      "url": "https://www.w3.org/TR/2025/REC-png-3-20250624/"
+    },
+    "wav": {
+      "version": "RIFF WAVE, PCM format 1",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/xaudio2/resource-interchange-file-format--riff-"
+    },
+    "gltf": {
+      "version": "glTF 2.0",
+      "url": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html"
+    },
+    "bmfont": {
+      "version": "BMFont text format",
+      "url": "https://www.angelcode.com/products/bmfont/doc/file_format.html"
+    },
+    "tiled": {
+      "version": "TMX/TSX 1.10",
+      "url": "https://doc.mapeditor.org/en/stable/reference/tmx-map-format/"
+    },
+    "mp4": {
+      "version": "MP4 / H.264, yuv420p",
+      "encoder": "ffmpeg version 9.0.1 Copyright (c) 2000-2026 the FFmpeg developers"
+    },
+    "gltf-buffer": {
+      "version": "glTF 2.0 binary buffer; accessor layouts in triangle.gltf",
+      "url": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html"
+    }
+  },
+  "files": [
+    {
+      "path": "assets/audio/tone.wav",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "wav",
+      "byteLength": 16044,
+      "sha256": "6717131135a4419e6b936a8c57f8f17b8e2b6d8a3bf45ff2ac9c3b40df55bc33",
+      "dependencies": []
+    },
+    {
+      "path": "assets/bundle/checker.png",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "png",
+      "byteLength": 90,
+      "sha256": "5dd37b0e2023a6fb9a50f4c10b2004ca06287895e43ab2accfd0acc565c9187b",
+      "dependencies": []
+    },
+    {
+      "path": "assets/font/glyph.png",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "png",
+      "byteLength": 94,
+      "sha256": "f6efbdaf3a5d30f93c0666a26af173506ce57424b5ebfea0814851d56a89ed9a",
+      "dependencies": []
+    },
+    {
+      "path": "assets/font/one-glyph.fnt",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "bmfont",
+      "byteLength": 311,
+      "sha256": "39ee476fa50a71799230837f2da37d2c1c1a8db864ffc0ae73c8b04e85f78ec1",
+      "dependencies": [
+        "assets/font/glyph.png"
+      ]
+    },
+    {
+      "path": "assets/image/checker.png",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "png",
+      "byteLength": 90,
+      "sha256": "5dd37b0e2023a6fb9a50f4c10b2004ca06287895e43ab2accfd0acc565c9187b",
+      "dependencies": []
+    },
+    {
+      "path": "assets/map/one-tile.tsx",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "tiled",
+      "byteLength": 206,
+      "sha256": "87051f75295d60c5bcdec8c6b26a68c73decc83119e9e3913d43886001cbcd64",
+      "dependencies": [
+        "assets/image/checker.png"
+      ]
+    },
+    {
+      "path": "assets/map/two-by-two.tmx",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "tiled",
+      "byteLength": 349,
+      "sha256": "5182f447579349e256770c53530a12aa0660652c77773525911cc59f693e8cc7",
+      "dependencies": [
+        "assets/map/one-tile.tsx"
+      ]
+    },
+    {
+      "path": "assets/model/triangle.bin",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "gltf-buffer",
+      "byteLength": 272,
+      "sha256": "28fae5e3fc248c91bf1e930a2c895e6cff4cae314bdd54d80f12798fa9b3fb27",
+      "dependencies": []
+    },
+    {
+      "path": "assets/model/triangle.gltf",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "gltf",
+      "byteLength": 3540,
+      "sha256": "32c8b6733229d16e3df46977c86d51776afcb34be5fc475b0148dd5f79572daf",
+      "dependencies": [
+        "assets/model/triangle.bin",
+        "assets/image/checker.png"
+      ]
+    },
+    {
+      "path": "assets/video/blue.mp4",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "mp4",
+      "byteLength": 1662,
+      "sha256": "c2bd0209243b6c6005f73844398aea89f80c95449d1dc846d0980ce19e618f7c",
+      "dependencies": []
+    }
+  ],
+  "assetCandidates": {
+    "image": "assets/image/checker.png",
+    "audio": "assets/audio/tone.wav",
+    "model": "assets/model/triangle.gltf",
+    "bitmapFont": "assets/font/one-glyph.fnt",
+    "tiledMap": "assets/map/two-by-two.tmx",
+    "video": "assets/video/blue.mp4",
+    "buffer": "assets/model/triangle.bin",
+    "directory": "assets/bundle"
+  },
+  "candidateDependencyClosures": {
+    "image": [
+      "assets/image/checker.png"
+    ],
+    "audio": [
+      "assets/audio/tone.wav"
+    ],
+    "model": [
+      "assets/image/checker.png",
+      "assets/model/triangle.bin",
+      "assets/model/triangle.gltf"
+    ],
+    "bitmapFont": [
+      "assets/font/glyph.png",
+      "assets/font/one-glyph.fnt"
+    ],
+    "tiledMap": [
+      "assets/image/checker.png",
+      "assets/map/one-tile.tsx",
+      "assets/map/two-by-two.tmx"
+    ],
+    "video": [
+      "assets/video/blue.mp4"
+    ],
+    "buffer": [
+      "assets/model/triangle.bin"
+    ],
+    "directory": [
+      "assets/bundle/checker.png"
+    ]
+  },
+  "creatorEvidence": {
+    "3.8.3": null,
+    "3.8.7": null
+  },
+  "limitations": "格式结构与文件依赖闭包可检查；Creator 同版 importer 注册、原生 UUID/子资源、Importer 字段值与原日志仍未验证。"
+}

@@ -32,20 +32,30 @@ import type {
 } from "./editor-mcp-asset-db-creation-coordinator.js";
 import { EditorMcpPrefabCreationPublisher } from "./editor-mcp-prefab-creation-publisher.js";
 
-/** @description Creator 会弹确认框、卡住无头自动化的 scene 持久化消息。 */
+/**
+ * @description Creator 会弹确认框、卡住无头自动化的 scene 持久化消息。
+ */
 const CREATOR_SCENE_SAVE_MESSAGES = new Set<string>(SCENE_HOST_SAVE_MESSAGES);
 
 /**
  * @description 场景 / Prefab 实例薄层结果。
  */
 export interface IEditorMcpSceneOpResult {
-  /** @description 是否调用成功。 */
+  /**
+   * @description 是否调用成功。
+   */
   readonly available: boolean;
-  /** @description 说明或错误码。 */
+  /**
+   * @description 说明或错误码。
+   */
   readonly message: string;
-  /** @description Agent 可观测：live / fallback / refused。 */
+  /**
+   * @description Agent 可观测：live / fallback / refused。
+   */
   readonly availability: EditorMcpThinLayerAvailability;
-  /** @description 可选宿主原始结果。 */
+  /**
+   * @description 可选宿主原始结果。
+   */
   readonly data?: unknown;
   readonly recommendedNext?: {
     readonly operation: string;
@@ -62,15 +72,21 @@ export class EditorMcpSceneGateway {
    */
   private readonly _inputReader = new EditorMcpSceneInputReader();
 
-  /** @description 授权 runtime。 */
+  /**
+   * @description 授权 runtime。
+   */
   private readonly _runtime: IGrantedRuntimeClientSet;
-  /** @description 打开场景路径守卫。 */
+  /**
+   * @description 打开场景路径守卫。
+   */
   private readonly _guard: EditorResourceGuard;
   /**
    * @description AssetDB 场景打开兜底。
    */
   private readonly _assetDbOpener: EditorMcpSceneAssetDbOpener;
-  /** @description Router 共享的首次创建协调器。 */
+  /**
+   * @description Router 共享的首次创建协调器。
+   */
   private _creationCoordinator: EditorMcpAssetDbCreationCoordinator | null = null;
 
   /**
@@ -126,44 +142,6 @@ export class EditorMcpSceneGateway {
       });
     }
     return this._openSceneByUuid(uuid, dbPath);
-  }
-
-  /**
-   * @description Scene 消息已受理但层次未加载时，改用 AssetDB 再触发一次打开。
-   * @param input 已校验的场景输入。
-   * @returns AssetDB 投递结果。
-   */
-  public async retryOpenViaAssetDb(
-    input: ISceneOpenMcpInput,
-  ): Promise<IEditorMcpSceneOpResult> {
-    const raw = input.path.trim();
-    const dbPath = this._isAssetUuid(raw) ? undefined : this._toDbAssetsPath(raw);
-    if (dbPath != null && !this._guard.canOpenAsScene(dbPath)) {
-      return this._finalize({
-        available: false,
-        message: "scene_open_blocked:invalid_or_blocked_path",
-      });
-    }
-    const uuid = this._isAssetUuid(raw) ? raw : await this._resolveSceneUuid(dbPath!);
-    if (uuid == null) {
-      return this._finalize({
-        available: false,
-        message: "scene_open_unavailable:uuid_unresolved",
-        data: { dbPath },
-      });
-    }
-    const result = await this._assetDbOpener.open(uuid);
-    return {
-      ...result,
-      data: {
-        ...(result.data != null && typeof result.data === "object"
-          ? (result.data as Record<string, unknown>)
-          : { raw: result.data }),
-        uuid,
-        ...(dbPath != null ? { dbPath } : {}),
-        openVia: "asset-db:open-asset",
-      },
-    };
   }
 
   /**
@@ -972,14 +950,18 @@ export class EditorMcpSceneGateway {
   }
 
   /**
-   * @description open-scene 后轮询层次，直到有节点或超时（场景进程异步加载）。
+   * @description 打开后只读轮询目标场景身份与层次，不能把旧场景非空层次视为成功。
+   * @param timeoutMs 有界等待时长。
+   * @param expectedSceneUuid 本次打开已解析的资产UUID。
    * @returns 沉降结果摘要。
    */
-  public async waitForHierarchySettle(timeoutMs = 8000): Promise<{
+  public async waitForHierarchySettle(timeoutMs = 8000, expectedSceneUuid?: string): Promise<{
     readonly waitedMs: number;
     readonly nodeCount: number;
     readonly settled: boolean;
     readonly sceneReady?: boolean;
+    readonly expectedSceneUuid?: string;
+    readonly actualSceneUuid?: string | null;
   }> {
     if (this._runtime.scene == null) {
       return { waitedMs: 0, nodeCount: 0, settled: false };
@@ -987,32 +969,41 @@ export class EditorMcpSceneGateway {
     const message = this._runtime.message;
     const deadline = Date.now() + timeoutMs;
     let nodeCount = 0;
-    let sceneReady = false;
+    let sceneReady: boolean | undefined;
+    let actualSceneUuid: string | null = null;
     const started = Date.now();
     while (Date.now() < deadline) {
-      if (message != null && !sceneReady) {
+      if (message != null) {
         try {
           const ready = await EditorMcpMessageDeadline.wait(
             message.request("scene", "query-is-ready"),
             EditorMcpMessageDeadline.sceneProbeMs,
             "creator_scene_ready_probe_timeout",
           );
-          sceneReady = ready === true;
+          sceneReady = typeof ready === 'boolean' ? ready : undefined;
         } catch {
           // 旧 Creator 可能无此消息。
         }
       }
       try {
+        const current: unknown = await EditorMcpMessageDeadline.wait(
+          this._runtime.scene.getCurrent(), EditorMcpMessageDeadline.sceneProbeMs,
+          'creator_scene_identity_probe_timeout',
+        );
+        actualSceneUuid = typeof current === 'string' ? current :
+          current != null && typeof current === 'object' && 'uuid' in current && typeof current.uuid === 'string' ? current.uuid : null;
         const hierarchy = await this.getHierarchyWithFallback({
           includeEditorNodes: false,
         });
         nodeCount = hierarchy.nodes.length;
-        if (nodeCount > 0) {
+        if (nodeCount > 0 && sceneReady !== false && (expectedSceneUuid == null || actualSceneUuid === expectedSceneUuid)) {
           return {
             waitedMs: Date.now() - started,
             nodeCount,
             settled: true,
             sceneReady,
+            expectedSceneUuid,
+            actualSceneUuid,
           };
         }
       } catch {
@@ -1027,6 +1018,8 @@ export class EditorMcpSceneGateway {
       nodeCount,
       settled: false,
       sceneReady,
+      expectedSceneUuid,
+      actualSceneUuid,
     };
   }
 
@@ -1232,7 +1225,9 @@ export class EditorMcpSceneGateway {
     return type.trim();
   }
 
-  /** @description 宿主场景脚本包名候选（按优先级）。 */
+  /**
+   * @description 宿主场景脚本包名候选（按优先级）。
+   */
   private static readonly _SCENE_SCRIPT_PACKAGES = [
     "peanut-pod",
     "peanut.plugin-host",

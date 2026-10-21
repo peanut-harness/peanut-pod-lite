@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "task": "5.1",
+  "status": "local-native-field-checkpoint; independent presentation and whole-session evidence consolidation remain",
+  "validatedCodeCandidate": "be32104caf977c593a0b385a3c6058b3430ef261",
+  "fullVerification": {
+    "productSourceCommit": "0804dc0",
+    "tests": 1268,
+    "exitCode": 0,
+    "reuse": "Product packages/tools/manifests unchanged; affected fixture/native checks separately completed"
+  },
+  "fixtureTests": 170,
+  "strictTargetedTypes": true,
+  "sourceConformance": true,
+  "nativeMilestones": [
+    {
+      "runId": "tiled-inline-383-20261016",
+      "creatorVersion": "3.8.3",
+      "candidateSourceCommit": "1a06c39928ec7704cc02962229e138d0fd66983c",
+      "conclusionPath": "evidence/task-5.1/tiled-inline-383-20261016/tiled-final-conclusion.json",
+      "conclusionSha256": "79a2fc4626319be1144a8219eb3e440ceef37ac9fe78052383e8b7fe8484904e",
+      "accepted": true,
+      "rawSources": 5,
+      "errors": 0,
+      "warnings": 0,
+      "normalClose": {
+        "pid": 77192,
+        "owner": "01a14256-aaae-70c0-a49e-449556d45c1e",
+        "runId": "tiled-inline-383-20261016",
+        "requestedAt": "2026-10-16T13:52:29.760Z",
+        "observedExitedAt": "2026-10-16T13:52:30.363Z",
+        "originalProcessGone": true,
+        "forced": false
+      }
+    },
+    {
+      "runId": "tiled-inline-387-20261016",
+      "creatorVersion": "3.8.7",
+      "candidateSourceCommit": "1a06c39928ec7704cc02962229e138d0fd66983c",
+      "conclusionPath": "evidence/task-5.1/tiled-inline-387-20261016/tiled-final-conclusion.json",
+      "conclusionSha256": "90637e9d64d1f2a48f3579c9862ae8048ba98d4e7a3df4df90140d70da701005",
+      "accepted": true,
+      "rawSources": 5,
+      "errors": 0,
+      "warnings": 0,
+      "normalClose": {
+        "pid": 84322,
+        "owner": "01a14256-aaae-70c0-a49e-449556d45c1e",
+        "runId": "tiled-inline-387-20261016",
+        "requestedAt": "2026-10-16T13:56:11.008Z",
+        "observedExitedAt": "2026-10-16T13:56:11.612Z",
+        "originalProcessGone": true,
+        "forced": false
+      }
+    },
+    {
+      "runId": "skinned-source-383-20261016",
+      "creatorVersion": "3.8.3",
+      "candidateSourceCommit": "fd64cd31d7bacf8be45ed7410ce280e40830b0d3",
+      "conclusionPath": "evidence/task-5.1/skinned-source-383-20261016/skinned-final-conclusion.json",
+      "conclusionSha256": "fd3b8719a25810c5aad3996a04cf825e1f5be40b4014c0506cb661f055d9c38f",
+      "accepted": true,
+      "rawSources": 5,
+      "errors": 0,
+      "warnings": 0,
+      "normalClose": {
+        "pid": 97438,
+        "owner": "01a14256-aaae-70c0-a49e-449556d45c1e",
+        "runId": "skinned-source-383-20261016",
+        "requestedAt": "2026-10-16T14:04:00.255Z",
+        "observedExitedAt": "2026-10-16T14:04:00.864Z",
+        "originalProcessGone": true,
+        "forced": false
+      }
+    },
+    {
+      "runId": "physx-clean-383-20261016",
+      "creatorVersion": "3.8.3",
+      "candidateSourceCommit": "be32104caf977c593a0b385a3c6058b3430ef261",
+      "conclusionPath": "evidence/task-5.1/physx-clean-383-20261016/physx-final-conclusion.json",
+      "conclusionSha256": "57b1509b86fff66ab4d92dadf36bde4ee489268b2032f2233f88f62c231c4019",
+      "accepted": true,
+      "rawSources": 5,
+      "errors": 0,
+      "warnings": 0,
+      "normalClose": {
+        "pid": 21354,
+        "owner": "01a14256-aaae-70c0-a49e-449556d45c1e",
+        "runId": "physx-clean-383-20261016",
+        "requestedAt": "2026-10-16T15:53:10.958Z",
+        "observedExitedAt": "2026-10-16T15:53:12.144Z",
+        "originalProcessGone": true,
+        "forced": false
+      }
+    },
+    {
+      "runId": "cube-source-383-20261016",
+      "creatorVersion": "3.8.3",
+      "candidateSourceCommit": "be32104caf977c593a0b385a3c6058b3430ef261",
+      "conclusionPath": "evidence/task-5.1/cube-source-383-20261016/cube-reflection-final-conclusion.json",
+      "conclusionSha256": "84151240a4175aea7498add814cc6c3c5e9f389a6625f021bfaa40ed771e515f",
+      "accepted": true,
+      "rawSources": 5,
+      "errors": 0,
+      "warnings": 0,
+      "normalClose": {
+        "pid": 37952,
+        "owner": "01a14256-aaae-70c0-a49e-449556d45c1e",
+        "runId": "cube-source-383-20261016",
+        "requestedAt": "2026-10-16T16:02:26.552Z",
+        "observedExitedAt": "2026-10-16T16:02:27.726Z",
+        "originalProcessGone": true,
+        "forced": false
+      }
+    },
+    {
+      "runId": "post-tiled-clean-387-20261017",
+      "creatorVersion": "3.8.7",
+      "candidateSourceCommit": "be32104caf977c593a0b385a3c6058b3430ef261",
+      "conclusionPath": "evidence/task-5.1/post-tiled-clean-387-20261017/post-tiled-final-conclusion.json",
+      "conclusionSha256": "5f248d257cf171a8bf3501085d1fb620eddcac544fb04603e6c63e612d774187",
+      "accepted": true,
+      "rawSources": 5,
+      "errors": 0,
+      "warnings": 0,
+      "normalClose": {
+        "pid": 49507,
+        "owner": "01a14256-aaae-70c0-a49e-449556d45c1e",
+        "runId": "post-tiled-clean-387-20261017",
+        "requestedAt": "2026-10-16T16:10:11.043Z",
+        "observedExitedAt": "2026-10-16T16:10:11.650Z",
+        "originalProcessGone": true,
+        "forced": false
+      }
+    }
+  ],
+  "fieldLedgers": [
+    {
+      "creatorVersion": "3.8.3",
+      "path": "evidence/task-5.1/native-field-evidence-ledger-20261017/3.8.3.json",
+      "sha256": "9a036eff0ba45832d03783b1c0cc4a82ba8a66d7bd1892da4004ab30feb85716",
+      "componentDenominator": 99,
+      "fieldDenominator": 795,
+      "fieldFactsAccounted": 795,
+      "versionUnavailableFields": 4,
+      "versionUnavailableComponents": [
+        "cc.Sorting2D",
+        "cc.UISkew"
+      ],
+      "historicalNonpassingObservations": 13,
+      "excludedNonAcceptedCampaigns": 9,
+      "wholeSessionAcceptance": false
+    },
+    {
+      "creatorVersion": "3.8.7",
+      "path": "evidence/task-5.1/native-field-evidence-ledger-20261017/3.8.7.json",
+      "sha256": "a7ed883b8da5a028e0691d03dff55172fd58901273f6db1ff50f1bce21cf9e3b",
+      "componentDenominator": 99,
+      "fieldDenominator": 795,
+      "fieldFactsAccounted": 795,
+      "versionUnavailableFields": 0,
+      "versionUnavailableComponents": [],
+      "historicalNonpassingObservations": 66,
+      "excludedNonAcceptedCampaigns": 6,
+      "wholeSessionAcceptance": false
+    }
+  ],
+  "coverageFaultInjection": {
+    "excludedSource": "cube-source-383-20261016/matrix-reflection-cube-report.json",
+    "expectedExitCode": 1,
+    "observedExitCode": 1,
+    "missingField": "field:component:cc.ReflectionProbe:cubemap",
+    "originalNativeReportsModified": false
+  },
+  "retainedRejectedSessions": [
+    {
+      "runId": "remaining-default-383-20261016",
+      "fieldCampaign": "51 components/365 fields: 358 readbacks +7 public refusals",
+      "wholeAcceptance": false,
+      "rawErrors": 2,
+      "rawWarnings": 0,
+      "reason": "GuestInstance6 only during OS normal quit; original report retained"
+    },
+    {
+      "runId": "post-tiled-383-20261016",
+      "wholeAcceptance": false,
+      "reason": "Fixture still refused3.8.3 Blit active-material context; no native field acceptance"
+    },
+    {
+      "runId": "post-owned-quit-383-20261016",
+      "wholeAcceptance": false,
+      "reason": "One Cube input gap and SDK quit raw-ASAR check refused before quit; OS normal recovery receipt retained"
+    },
+    {
+      "runId": "physx-owned-quit-383-20261016",
+      "wholeAcceptance": false,
+      "rawErrors": 0,
+      "rawWarnings": 6,
+      "reason": "Importer metadata query diagnostic; no field matrix; unsafe query removed; source-only response retained"
+    }
+  ],
+  "allEnabled": false,
+  "pushed": false,
+  "published": false,
+  "remoteVerified": false,
+  "renderedAcceptance": false,
+  "task51Complete": false,
+  "knowledgeSynchronization": {
+    "syncPath": "tests/fixtures/editor-stability/components/native-verification-20261017/sync.json",
+    "syncSha256": "dacd0545a9df85920f76891fa69c33a6f7e73cb2ab4ce49f7a4a2748cb5eb68f",
+    "checkSyncExitCode": 0,
+    "chunkCount": 24,
+    "fileCount": 15,
+    "scopeExclusion": "evidence (does not match source or coverage globs; raw artifacts retained)",
+    "toolFailure": "Hub listFiles spread overflow at 120715 evidence files; scoped traversal excludes unrelated artifacts without changing Hub code or knowledge globs"
+  }
+}

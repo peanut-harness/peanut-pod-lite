@@ -8,6 +8,8 @@
 - **Hub MCP 工具（一级铺平）：** 每个 operation 一个带命名空间的一级工具 `peanut.editor-mcp.<op-kebab>`（如 `editor-query-version`、`asset-import`、`lumen-comp-set`、`lumen-node-rm`），各带精确 `inputSchema`；**不再有** `capabilities/plan/query/call` 通用入口，也不再把 operation 藏进 payload。MCP 客户端直接按工具名调用，输入即该 operation 的原始入参（写/删的 `confirmDestructive`、批准 `approvalToken` 一并放在该工具输入里）。
 - 操作：… **preview query/refresh/errors**、**queryCompatibleTypes**、builder、lumen、导入账本
 - **验收路径：** `validateRefs` → `preview.refresh` → `preview.queryErrors`
+
+`preview.query` 只读，不启动预览。`preview.refresh` 先检查当前 Creator 的实际预览连接；已有连接时只刷新。零连接时还须确认当前工程在 Creator 所选浏览器中的标签不存在，才请求一次打开。平台和 `program.browserV2` 按 Creator 的 local → global → default 优先级读取；只有未指定浏览器路径时才解析系统默认浏览器。macOS 检查只读取所选浏览器的标签，不枚举其它浏览器，也不激活或启动浏览器。窗口读取权限不足、配置未知、平台不支持或刷新中断线都保持未知，不盲目重开。并发请求串行，同一宿主会话的打开请求至多一次，失败也不自动重试。`refreshAssets:false` 仅控制 AssetDB 刷新，不是开窗开关。
 - **整包规划：** [`docs/LUMEN-ROADMAP.md`](./docs/LUMEN-ROADMAP.md)
 
 ## 资产目录快查（给 AI 用）
@@ -108,3 +110,11 @@ Creator 实机步骤见 [`docs/CREATOR-VERIFY.md`](./docs/CREATOR-VERIFY.md)；A
 目前完成证据支持 `web-desktop` / `web-mobile`：同一任务返回 `state: success`、`stage: build`，其实际 `options.dest` 必须位于当前工程内，且存在本次提交后写入的非空 `index.html`。符号链接逃逸、旧产物、只有目录提示均不通过；其它平台缺少制品验证规则时返回 `blocked`。此检查证明构建入口产物存在，不替代浏览器运行验收。
 
 post-build hook 仅对已验证完成触发。`scripts/probe-builder-build-live.mjs` 额外独立检查文件存在、大小、修改时间与工程边界，并要求 `availability: live` 和破坏性确认拒绝测试通过。离线 mocked 回归只验证此协议，不计作宿主实机完成。
+
+### 隔离资源验收的精确挂接
+
+默认公开档位仍为 `read_only`。资源验收可以按名称挂接既有的 `asset-import`、`asset-copy`、`asset-move`、`asset-rename`、`asset-create-folder`、`asset-delete`、`asset-reimport`、`asset-open`、`lumen-scaffold`、`lumen-asset-set`、`lumen-node-set`、`lumen-commit`，名称均带 `peanut.editor-mcp.` 前缀。挂接记录的 `resourceRoots` 必须只有一个 `assets/fixtures/resource-stability/<run>`；它不能与组件六项名单或组件两个根混用，也不能扩大为全 `assets`。这是公开级别之外的独立具名授权，每次写仍消费当前连接的精确一次性令牌。
+
+导入源只允许同工程 `.peanut-ai/resource-stability-inputs/<run>/` 的普通文件；源只读，禁止链接、其它运行目录或外部磁盘。输入必须显式提供完整 `sources`、`target`、`expandClosure:false`、`allowMissingDependencies:false`，不允许覆盖模式、隐含依赖表或全局刷新。输入源、目标目录和实际输出都需在本次 `resources` 中。移动、重命名、复制与删除仅限该运行目录；打开资源必须提供路径，不能仅给 UUID。
+
+启用资源操作前，运行目录及其祖先目录和 `.meta` 必须已存在并登记；缺失时拒绝，不能让写器在授权根外隐含补写父目录。原 writer 锁内重新计算资源闭包；新增未持锁资源、范围外依赖及无法解析的 UUID 会在首项变化前拒绝。复制准备复用实际复制算法，覆盖目录子项、传递依赖和精确输出，并在真正写入前再次核对源与祖先摘要。撤销在异步引用查询结束后再次核验；保存重启恢复和目录检查沿用原工程授权记录，不开启 `all`。准入检查、离线测试或部分原生资源通过不能替代完整资源矩阵验收。

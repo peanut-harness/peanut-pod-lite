@@ -68,6 +68,11 @@ export type PluginManagedTaskRequest = Omit<ITaskRequest, "pluginId">;
  */
 export interface IPluginTaskExecutorContext {
   /**
+   * @description 当前Host任务专属的固定字段准备口；不接受Error、回调或可序列化证明。
+   * 原request/input/signal及真实工程根必须完全匹配；写后、取消、复制context和重放拒绝。
+   */
+  prepareResourceField?(request: Readonly<ITaskRequest>, projectRoot: string, input: unknown, signal: AbortSignal): Promise<void>;
+  /**
    * @description 任务受理时固定的 owner，不能由业务输入覆盖。
    */
   readonly owner: ITaskOwner;
@@ -75,6 +80,13 @@ export interface IPluginTaskExecutorContext {
    * @description 可中止步骤使用的受控信号，不强制中断不可逆 commit。
    */
   readonly signal: AbortSignal;
+  /**
+   * @description Host从受信MCP invocation捕获的范围守卫，原writer窗口核对同一任务的实际输入。
+   * @param request 必须是当前executor的同一受理任务。
+   * @param closure 原writer中独立重算的资源闭包，不能由业务输入提供。
+   * @returns 挂接、资源与引用重新校验完成时结束；撤销或越界时拒绝。
+   */
+  assertScopedWrite?(request: Readonly<ITaskRequest>, closure?: readonly string[]): Promise<void>;
   /**
    * @description 资源等待完成后进入不可逆 commit；任务已取消或超时时返回 false。
    */

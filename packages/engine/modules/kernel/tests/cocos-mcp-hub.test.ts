@@ -1,5 +1,5 @@
 import assert from 'assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, realpathSync, symlinkSync } from 'fs';
 import { request as httpRequest } from 'node:http';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -12,6 +12,328 @@ import { EditorMcpToolCatalog } from '../../mcp/src/editor-mcp-tool-catalog.js';
 import { PluginManagerApp } from '../src/app/plugin-manager-app';
 import { MacOsKeychainPluginProtectedKeyProvider, type IMacOsKeychainCommandRunner } from '../src/shared/plugin-protected-key-api';
 import { ProjectRevisionClock, ProjectWriterBarrier, RuntimeFacade } from '@peanut/pod-engine/runtime';
+import { McpScopedResourceBoundary } from '../src/mcp/mcp-scoped-resource-boundary.js';
+import { McpScopedCapabilityAttachments } from '../src/mcp/mcp-scoped-capability-attachments.js';
+import { McpResourceCampaignBoundary } from '../src/mcp/mcp-resource-campaign-boundary.js';
+import { PluginTaskApi } from '../src/shared/plugin-task-api.js';
+
+/**
+ * @description 经实际HTTP认证端口验证精确授权和单次令牌，不打开整体写档位。
+ */
+class ScopedHubFixture {
+    /**
+     * @description 临时工程的真实根。
+     */
+    public readonly project = realpathSync(mkdtempSync(join(tmpdir(), 'peanut-scoped-hub-')));
+    /**
+     * @description 当前实际插件注册表提供者。
+     */
+    public readonly manager = new PluginManagerApp(new RuntimeFacade('3.8.7'));
+    /**
+     * @description 真实认证Hub实例。
+     */
+    public readonly hub: CocosMcpHub;
+    /**
+     * @description 未获准调用不能使此计数增加。
+     */
+    public writes = 0;
+    /**
+     * @description 合法连接身份。
+     */
+    public readonly connectionId = 'f'.repeat(32);
+    /**
+     * @description 可控制实际AssetDB查询结果以验证引用来源。
+     */
+    public assetInfo: unknown = null;
+
+    /**
+     * @description 登记六项具名写能力和一项不得因挂接公开的写能力。
+     */
+    public constructor() {
+        mkdirSync(join(this.project, 'temp/logs'), { recursive: true }); writeFileSync(join(this.project, 'temp/logs/project.log'), '');
+        mkdirSync(join(this.project, 'assets/components'), { recursive: true }); mkdirSync(join(this.project, 'assets/fixtures'), { recursive: true });
+        const registry = this.manager.getMcpCapabilityRegistry();
+        for (const name of [...McpScopedResourceBoundary.names, 'peanut.editor-mcp.asset-delete']) registry.register('peanut.editor-mcp', {
+            name, description: '精确挂接边界测试。', category: 'cocos', inputSchema: { type: 'object', additionalProperties: true },
+            readOnly: false, risk: name.endsWith('comp-rm') ? 'destructive' : 'write',
+        }, async () => { this.writes += 1; return { changed: true }; });
+        this.hub = new CocosMcpHub(() => this.manager, { projectPath: this.project,
+            repairMessage: { request: async () => this.assetInfo } });
+    }
+
+    /**
+     * @description 认证后发送控制或业务请求并返回纯JSON记录。
+     * @param payload 请求。
+     * @returns 原始结构化响应。
+     */
+    public async request(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+        const descriptor: unknown = JSON.parse(readFileSync(join(this.project, '.peanut-ai/cocos-mcp.json'), 'utf8'));
+        assert.ok(descriptor && typeof descriptor === 'object');
+        const port = Reflect.get(descriptor, 'port'); const token = Reflect.get(descriptor, 'token'); assert.equal(typeof port, 'number'); assert.equal(typeof token, 'string');
+        const response = await fetch(`http://127.0.0.1:${port}/mcp`, { method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-peanut-mcp-token': token }, body: JSON.stringify({ connectionId: this.connectionId, ...payload }) });
+        const body: unknown = await response.json(); assert.ok(body && typeof body === 'object'); return Object.fromEntries(Object.entries(body));
+    }
+
+    /**
+     * @description 生成绑定当前工程的精确授权请求。
+     * @param action 挂接或撤销。
+     * @returns 明确六项请求。
+     */
+    public attachment(action = 'attachCapabilities'): Record<string, unknown> {
+        return { action, owner: 'scoped-test-owner', projectPath: this.project,
+            capabilities: McpScopedResourceBoundary.names, resourceRoots: McpScopedResourceBoundary.roots };
+    }
+
+    /**
+     * @description 创建本单元测试独立根和祖先meta，不将磁盘夹具冒充SDK登记。
+     * @returns 测试专属namespace。
+     */
+    public resourceNamespace(): string {
+        const namespace = 'assets/fixtures/resource-stability/one';
+        mkdirSync(join(this.project, namespace), { recursive: true });
+        for (const path of ['assets/fixtures', 'assets/fixtures/resource-stability', namespace]) {
+            writeFileSync(join(this.project, `${path}.meta`), '{}');
+        }
+        return namespace;
+    }
+
+    /**
+     * @description 生成明确组件写输入。
+     * @returns 场景与精确资源输入。
+     */
+    public input(): Record<string, unknown> {
+        return { prefabRelativePath: 'assets/components/sample.scene', nodePath: '/Root', componentType: 'cc.Sprite',
+            props: { grayscale: true }, resources: ['db://assets/components/sample.scene'] };
+    }
+
+    /**
+     * @description 正常停止认证端口并删除仅本测试创建的目录。
+     * @returns 清理完成时结束。
+     */
+    public async close(): Promise<void> { await this.hub.stop(); rmSync(this.project, { recursive: true, force: true }); }
+}
+
+test('resource campaign attachment stays in one namespace, persists, requires a writer closure and revokes', async () => {
+    const f = new ScopedHubFixture(); await f.hub.start();
+    const namespace = f.resourceNamespace();
+    const capability = 'peanut.editor-mcp.asset-delete';
+    const attachment = { ...f.attachment(), capabilities: [capability], resourceRoots: [namespace] };
+    try {
+        mkdirSync(join(f.project, namespace), { recursive: true });
+        assert.equal((await f.request(attachment)).ok, true);
+        const registry = f.manager.getMcpCapabilityRegistry();
+        assert.equal(registry.getPluginExposure('peanut.editor-mcp'), 'read_only');
+        assert.deepEqual(f.hub.getStatus().writeEnabledPluginIds, []);
+        assert.equal(registry.getDefinition('peanut.editor-mcp.lumen-comp-set'), null);
+        const restored = new McpScopedCapabilityAttachments(f.project, null);
+        assert.deepEqual(restored.snapshot()?.resourceRoots, [namespace]);
+        const input = { paths: [`${namespace}/one.png`], resources: [`${namespace}/one.png`] };
+        const guard = restored.captureGuard(capability, input);
+        await assert.rejects(guard(input), /resource_closure_required/);
+        await assert.rejects(guard(input, ['assets/another/hidden.png']), /resource_out_of_scope/);
+        await guard(input, [`${namespace}/one.png`, `${namespace}/one.png.meta`]);
+        assert.throws(() => restored.validate(capability, { ...input, paths: ['assets/components/other.scene'] }), /resource_out_of_scope/);
+        assert.throws(() => restored.validate(capability, { ...input, paths: ['assets/fixtures/resource-stability/two/one.png'] }), /resource_out_of_scope/);
+        restored.dispatch({ ...attachment, action: 'detachCapabilities' }, registry);
+        restored.dispatch(attachment, registry);
+        await assert.rejects(guard(input, [`${namespace}/one.png`]), /attachment_revoked/);
+        assert.equal((await f.request({ ...attachment, action: 'detachCapabilities' })).ok, true);
+        assert.equal(registry.getDefinition(capability), null);
+    } finally { await f.close(); }
+});
+
+test('resource campaign profile refuses widened roots, mixed component names and target aliases', () => {
+    const f = new ScopedHubFixture(); const namespace = f.resourceNamespace();
+    try {
+        const registry = f.manager.getMcpCapabilityRegistry();
+        const scoped = new McpScopedCapabilityAttachments(f.project, null);
+        assert.throws(() => scoped.dispatch({ ...f.attachment(), capabilities: ['peanut.editor-mcp.asset-delete'], resourceRoots: ['assets/fixtures/resource-stability'] }, registry), /attachment_names_invalid/);
+        assert.throws(() => scoped.dispatch({ ...f.attachment(), resourceRoots: [namespace] }, registry), /attachment_names_invalid/);
+        assert.equal(scoped.snapshot(), null);
+        const boundary = new McpResourceCampaignBoundary(f.project, null, namespace);
+        const resources = [`${namespace}/one.mtl`, `${namespace}/two.mtl`];
+        assert.throws(() => boundary.validate('peanut.editor-mcp.lumen-asset-set', { assetRelativePath: resources[0], prefabRelativePath: resources[1], resources }), /target_alias_mismatch/);
+        assert.throws(() => boundary.validate('peanut.editor-mcp.asset-open', { uuid: 'anything', resources }), /path_required/);
+        assert.throws(() => boundary.validate('peanut.editor-mcp.asset-reimport', { resources }), /actual_target_required/);
+        assert.throws(() => boundary.validate('peanut.editor-mcp.asset-rename', { path: resources[0], newName: '../escape', resources }), /path_invalid/);
+        assert.throws(() => boundary.validate('peanut.editor-mcp.lumen-commit', { paths: [resources[0]], assetRelativePath: resources[1], resources }), /target_alias_mismatch/);
+    } finally { rmSync(f.project, { recursive: true, force: true }); }
+});
+
+test('resource import reads only same-run private ordinary inputs and never permits writing them', async () => {
+    const f = new ScopedHubFixture(); const namespace = f.resourceNamespace();
+    const source = '.peanut-ai/resource-stability-inputs/one/input.json';
+    try {
+        mkdirSync(join(f.project, '.peanut-ai/resource-stability-inputs/one'), { recursive: true });
+        writeFileSync(join(f.project, source), '{}');
+        const boundary = new McpResourceCampaignBoundary(f.project, null, namespace);
+        const input = { sources: [join(f.project, source)], target: namespace, expandClosure: false,
+            allowMissingDependencies: false, overwrite: false, resources: [join(f.project, source), namespace, `${namespace}/input.json`] };
+        boundary.validate('peanut.editor-mcp.asset-import', input);
+        await boundary.validateClosure([join(f.project, source), `${namespace}/input.json`, `${namespace}.meta`], true, []);
+        assert.throws(() => boundary.validate('peanut.editor-mcp.asset-import', { ...input, expandClosure: true }), /import_contract_invalid/);
+        assert.throws(() => boundary.validate('peanut.editor-mcp.asset-import', { ...input, sources: ['/private/tmp/foreign.json'] }), /path_invalid|out_of_scope/);
+        assert.throws(() => boundary.validate('peanut.editor-mcp.asset-delete', { paths: [join(f.project, source)], resources: [join(f.project, source)] }), /resource_out_of_scope/);
+        await assert.rejects(boundary.validateClosure([join(f.project, source)], false, []), /resource_out_of_scope/);
+        const linked = '.peanut-ai/resource-stability-inputs/one/linked.json'; symlinkSync(join(f.project, source), join(f.project, linked));
+        assert.throws(() => boundary.validate('peanut.editor-mcp.asset-import', { ...input, sources: [join(f.project, linked)] }), /resource_identity_invalid/);
+        rmSync(join(f.project, 'assets/fixtures.meta'));
+        assert.throws(() => boundary.validate('peanut.editor-mcp.asset-create-folder', { path: `${namespace}/new`, resources: [`${namespace}/new`] }), /ancestor_registration_required/);
+        assert.equal(existsSync(join(f.project, 'assets/fixtures.meta')), false);
+    } finally { rmSync(f.project, { recursive: true, force: true }); }
+});
+
+test('resource UUID closure uses real AssetDB identity and revocation wins during an awaited query', async () => {
+    const f = new ScopedHubFixture(); const namespace = f.resourceNamespace();
+    const registry = f.manager.getMcpCapabilityRegistry();
+    const name = 'peanut.editor-mcp.lumen-asset-set';
+    registry.register('peanut.editor-mcp', { name, description: 'resource scope race test', category: 'cocos',
+        readOnly: false, risk: 'write', inputSchema: { type: 'object', additionalProperties: true } }, async () => ({}));
+    const uuid = '12345678-1234-4234-8234-123456789abc'; const path = `${namespace}/one.mtl`;
+    let resume: (() => void) | undefined; let entered: (() => void) | undefined;
+    const waiting = new Promise<void>(resolve => { entered = resolve; });
+    const gate = new Promise<void>(resolve => { resume = resolve; });
+    const lookup = async () => { entered?.(); await gate; return { uuid, imported: true, url: `db://${path}` }; };
+    const scoped = new McpScopedCapabilityAttachments(f.project, lookup);
+    const attachment = { ...f.attachment(), capabilities: [name], resourceRoots: [namespace] };
+    try {
+        scoped.dispatch(attachment, registry);
+        const input = { assetRelativePath: path, props: { material: uuid }, resources: [path] };
+        const running = scoped.captureGuard(name, input)(input, [path, `uuid:${uuid}`]);
+        const rejected = assert.rejects(running, /attachment_revoked/);
+        await waiting; scoped.dispatch({ ...attachment, action: 'detachCapabilities' }, registry);
+        scoped.dispatch(attachment, registry); resume?.(); await rejected;
+        const boundary = new McpResourceCampaignBoundary(f.project, lookup, namespace);
+        await boundary.validateClosure([path, `uuid:${uuid}`], false, [path]);
+        await assert.rejects(boundary.validateClosure([`uuid:${uuid}`], false, []), /reference_not_approved/);
+    } finally { rmSync(f.project, { recursive: true, force: true }); }
+});
+
+test('scoped attachment exposes only six names, persists across restart and revokes without all', async () => {
+    const f = new ScopedHubFixture(); await f.hub.start();
+    try {
+        assert.equal(f.manager.getMcpCapabilityRegistry().getCatalog().capabilities.length, 0);
+        assert.equal((await f.request(f.attachment())).ok, true);
+        assert.equal(f.manager.getMcpCapabilityRegistry().getCatalog().capabilities.length, 6);
+        assert.equal(f.manager.getMcpCapabilityRegistry().getPluginExposure('peanut.editor-mcp'), 'read_only');
+        assert.deepEqual(f.hub.getStatus().writeEnabledPluginIds, []);
+        assert.equal(f.manager.getMcpCapabilityRegistry().getDefinition('peanut.editor-mcp.asset-delete'), null);
+        const before = f.manager.getMcpCapabilityRegistry().getCatalog().revision;
+        await f.hub.stop(); const reloaded = new CocosMcpHub(() => f.manager, { projectPath: f.project }); await reloaded.start();
+        assert.equal(f.manager.getMcpCapabilityRegistry().getCatalog().capabilities.length, 6); await reloaded.stop(); await f.hub.start();
+        assert.equal((await f.request(f.attachment('detachCapabilities'))).ok, true);
+        assert.equal(f.manager.getMcpCapabilityRegistry().getCatalog().capabilities.length, 0);
+        assert.ok(f.manager.getMcpCapabilityRegistry().getCatalog().revision > before);
+    } finally { await f.close(); }
+});
+
+test('scoped attachment rejects unapproved names, widened roots and another project atomically', async () => {
+    const f = new ScopedHubFixture(); await f.hub.start();
+    try {
+        for (const patch of [{ capabilities: ['peanut.editor-mcp.asset-delete'] }, { resourceRoots: ['assets'] }, { projectPath: '/other-project' }]) {
+            const body = await f.request({ ...f.attachment(), ...patch }); assert.equal(body.ok, false);
+            assert.equal(f.manager.getMcpCapabilityRegistry().getCatalog().capabilities.length, 0);
+        }
+    } finally { await f.close(); }
+});
+
+test('scoped write requires a fresh exact token even when test direct writes are enabled', async () => {
+    const f = new ScopedHubFixture(); await f.hub.start();
+    try {
+        await f.request(f.attachment()); await f.hub.setDirectWriteEnabled(true);
+        const name = 'peanut.editor-mcp.lumen-comp-set'; const input = f.input();
+        assert.equal((await f.request({ action: 'call', name, input })).ok, true); assert.equal(f.writes, 0);
+        const issued = await f.request({ action: 'issueApprovalToken', operations: [name], resources: input.resources, maxRisk: 'write' });
+        assert.ok(issued.result && typeof issued.result === 'object'); const approvalToken = Reflect.get(issued.result, 'approvalToken');
+        assert.equal((await f.request({ action: 'call', name, input: { ...input, approvalToken } })).ok, true); assert.equal(f.writes, 1);
+        await f.request({ action: 'call', name, input: { ...input, approvalToken } }); assert.equal(f.writes, 1);
+        await f.request(f.attachment('detachCapabilities'));
+        assert.equal((await f.request({ action: 'call', name, input: { ...input, approvalToken } })).ok, false); assert.equal(f.writes, 1);
+    } finally { await f.close(); }
+});
+
+test('scoped write refuses forged resources, traversal, symlink escape and unapproved UUID references before invocation', async () => {
+    const f = new ScopedHubFixture(); await f.hub.start();
+    try {
+        await f.request(f.attachment()); const name = 'peanut.editor-mcp.lumen-comp-set'; const input = f.input();
+        symlinkSync(join(f.project, 'assets/fixtures'), join(f.project, 'assets/components/linked'));
+        const uuid = '12345678-1234-1234-1234-123456789abc'; f.assetInfo = { uuid, imported: true, invalid: false, url: 'db://assets/outside.png/spriteFrame' };
+        for (const patch of [{ prefabRelativePath: 'assets/outside.scene' }, { prefabRelativePath: 'assets/components/../outside.scene' },
+            { prefabRelativePath: 'assets/components/linked/test.scene', resources: ['db://assets/components/linked/test.scene'] }, { props: { spriteFrame: uuid } }]) {
+            const body = await f.request({ action: 'call', name, input: { ...input, ...patch } }); assert.equal(body.ok, false); assert.equal(f.writes, 0);
+        }
+        assert.equal((await f.request({ action: 'call', name: 'peanut.editor-mcp.lumen-commit', input: { resources: input.resources } })).ok, false);
+        assert.equal((await f.request({ action: 'call', name: 'peanut.editor-mcp.preview-refresh', input: { resources: input.resources, refreshAssets: true } })).ok, false);
+        assert.equal(readFileSync(join(f.project, 'temp/logs/project.log'), 'utf8'), '');
+    } finally { await f.close(); }
+});
+
+test('scoped guard rejects queued writes after detach and reattach, and validates actual task input', async () => {
+    const project = realpathSync(mkdtempSync(join(tmpdir(), 'peanut-scoped-task-')));
+    const runtime = new RuntimeFacade('3.8.7'); const manager = new PluginManagerApp(runtime); const registry = manager.getMcpCapabilityRegistry();
+    const scoped = new McpScopedCapabilityAttachments(project, null); registry.bindScopedAttachments(scoped);
+    const tasks = new PluginTaskApi('peanut.editor-mcp', runtime, project, (invocation) => registry.resolveInvocationOwner('peanut.editor-mcp', invocation));
+    let release: (() => void) | null = null; const blocker = new Promise<void>((done) => { release = done; }); let writes = 0;
+    let began: (() => void) | null = null; const started = new Promise<void>((done) => { began = done; });
+    const dispose = tasks.managed.registerExecutor('scoped-test', async (request, context) => {
+        began?.(); await blocker; assert.ok(context.assertScopedWrite); await context.assertScopedWrite(request); writes += 1; return {};
+    });
+    const name = 'peanut.editor-mcp.lumen-comp-set';
+    registry.register('peanut.editor-mcp', { name, description: 'Host守卫受理验证。', category: 'cocos',
+        inputSchema: { type: 'object', additionalProperties: true }, readOnly: false, risk: 'write' }, async (input, invocation) => {
+        const { resources: _resources, ...actual } = input;
+        const receipt = await tasks.managed.enqueue({ requestId: 'scoped-queued', scope: 'project', priority: 'normal', kind: 'scoped-test',
+            mergePolicy: 'none', payload: { operation: 'lumen.compSet', input: actual } }, invocation);
+        return tasks.managed.wait(receipt.taskId);
+    });
+    const attachment = { action: 'attachCapabilities', schemaVersion: 1, projectPath: project, owner: 'scoped-test-owner',
+        capabilities: [name], resourceRoots: McpScopedResourceBoundary.roots };
+    try {
+        scoped.dispatch(attachment, registry);
+        const input = { prefabRelativePath: 'assets/components/sample.scene', props: {}, resources: ['assets/components/sample.scene'] };
+        const guard = scoped.captureGuard(name, input);
+        await assert.rejects(() => guard({ prefabRelativePath: 'assets/outside.scene', props: {} }), /resource_out_of_scope/);
+        const result = registry.invoke(name, input, { connectionId: 'a'.repeat(32), hasLocalApproval: true }); await started;
+        scoped.dispatch({ ...attachment, action: 'detachCapabilities' }, registry); scoped.dispatch(attachment, registry);
+        assert.ok(release); release(); const taskResult = await result;
+        assert.ok(taskResult && typeof taskResult === 'object'); assert.equal(Reflect.get(taskResult, 'ok'), false); assert.equal(writes, 0);
+    } finally { dispose(); await tasks.deactivate(); rmSync(project, { recursive: true, force: true }); }
+});
+
+test('scoped UI plan execution requires its new single-use token and destructive confirmation', async () => {
+    const f = new ScopedHubFixture(); await f.hub.start();
+    try {
+        await f.request(f.attachment()); const name = 'peanut.editor-mcp.lumen-comp-set'; const input = f.input();
+        const planned = await f.request({ action: 'plan', name, input }); assert.ok(planned.result && typeof planned.result === 'object');
+        const planId = Reflect.get(planned.result, 'planId'); assert.equal(typeof planId, 'string');
+        const approval = f.hub.approvePlanAndIssueToken(planId, ['db://assets/components/sample.scene']); assert.ok(approval);
+        assert.equal((await f.request({ action: 'execute', planId })).ok, false); assert.equal(f.writes, 0);
+        assert.equal((await f.request({ action: 'execute', planId, approvalToken: approval.approvalToken })).ok, true); assert.equal(f.writes, 1);
+        assert.equal((await f.request({ action: 'execute', planId, approvalToken: approval.approvalToken })).ok, false); assert.equal(f.writes, 1);
+        const removed = await f.request({ action: 'plan', name: 'peanut.editor-mcp.lumen-comp-rm', input });
+        assert.ok(removed.result && typeof removed.result === 'object'); const removeId = Reflect.get(removed.result, 'planId');
+        const destructive = f.hub.approvePlanAndIssueToken(removeId, ['db://assets/components/sample.scene']); assert.ok(destructive);
+        assert.equal((await f.request({ action: 'execute', planId: removeId, approvalToken: destructive.approvalToken })).ok, false); assert.equal(f.writes, 1);
+    } finally { await f.close(); }
+});
+
+test('scoped imported UUID binding rejects a larger token resource set and accepts exactly approved source identity', async () => {
+    const f = new ScopedHubFixture(); await f.hub.start();
+    try {
+        await f.request(f.attachment()); const name = 'peanut.editor-mcp.lumen-comp-set'; const input = f.input();
+        const uuid = '12345678-1234-1234-1234-123456789abc'; const url = 'db://assets/fixtures/checker.png/spriteFrame';
+        f.assetInfo = { uuid, url, imported: true, invalid: false };
+        const bound = { ...input, props: { spriteFrame: uuid }, resources: ['db://assets/components/sample.scene', url] };
+        const issued = await f.request({ action: 'issueApprovalToken', operations: [name], resources: [...bound.resources, 'db://assets/fixtures/unrelated.png'] });
+        assert.ok(issued.result && typeof issued.result === 'object'); const wide = Reflect.get(issued.result, 'approvalToken');
+        await f.request({ action: 'call', name, input: { ...bound, approvalToken: wide } }); assert.equal(f.writes, 0);
+        const exact = await f.request({ action: 'issueApprovalToken', operations: [name], resources: bound.resources });
+        assert.ok(exact.result && typeof exact.result === 'object');
+        assert.equal((await f.request({ action: 'call', name, input: { ...bound, approvalToken: Reflect.get(exact.result, 'approvalToken') } })).ok, true);
+        assert.equal(f.writes, 1);
+    } finally { await f.close(); }
+});
 
 /**
  * @description 使用真实屏障和版本时钟验证调用租约的结算边界。

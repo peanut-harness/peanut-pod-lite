@@ -1,0 +1,166 @@
+{
+  "schemaVersion": "peanut.resource-native-local-acceptance.v1",
+  "localTechnicalAcceptance": true,
+  "overallDeliveryComplete": false,
+  "remoteVerified": false,
+  "candidateSourceCommit": "d93a3e9abb17195e3b401d17c45ccf24c1c27386",
+  "metadataOnlyCheckpointMayFollow": true,
+  "fullVerification": {
+    "tests": 1461,
+    "pass": 1461,
+    "fail": 0,
+    "skipped": 0,
+    "logSha256": "088f0c52b910b61159704baceed5dd74686d6fd95dbbee3d05cec361165304aa"
+  },
+  "independentAuditSha256": "3ef3ab64405a6ca02f188501d434f1653d7d37cfc39e86e70b2f3abecf6c5577",
+  "independentAudit": {
+    "methodCorrections": [
+      "v1 incorrectly assumed blocked reason text unchanged; exact remaining case IDs match, while text/json patch reasons correctly become native_no_writable_fields.",
+      "v1 read Core manifest relative to output instead of project; corrected to actual installed project path. Original audit retained; product evidence unchanged."
+    ],
+    "auditChecksPassed": true,
+    "diagnosticOnly": true,
+    "accepted": false,
+    "task43Complete": false,
+    "task22Complete": false,
+    "runId": "parallel-383-20261019-resource-k-source-text",
+    "sourceCommit": "d93a3e9abb17195e3b401d17c45ccf24c1c27386",
+    "nativeRequestsSent": 0,
+    "checks": [
+      {
+        "name": "111actual distinct observations exactly match selected plan/event trace",
+        "ok": true
+      },
+      {
+        "name": "606denominator unchanged; exact prior95 plus new16;495blocked exact difference",
+        "ok": true
+      },
+      {
+        "name": "16source observations all independently verified with proper authorities",
+        "ok": true
+      },
+      {
+        "name": "pure canonical validator independently replayed for all111captured observations",
+        "ok": true
+      },
+      {
+        "name": "prior95actual source/meta physical regression and correct UUID/action transitions",
+        "ok": true
+      },
+      {
+        "name": "five exact preparation refusal markers real failed-task binding before writer",
+        "ok": true
+      },
+      {
+        "name": "25ranges continuous; full+segment SHA; complete byte coverage at delayed phase",
+        "ok": true
+      },
+      {
+        "name": "complete raw0 independent scan matches final delayed full-source report",
+        "ok": true
+      },
+      {
+        "name": "ordinary owned SDKquit+physicalgone; one args-only transition preserved",
+        "ok": true
+      },
+      {
+        "name": "official fixed d93candidate archive identity independently verified",
+        "ok": true
+      },
+      {
+        "name": "actual installed full Host/Core tree manifest/index equals d93candidate",
+        "ok": true
+      },
+      {
+        "name": "same-run actual smoke19/0/21 and proof hash",
+        "ok": true
+      },
+      {
+        "name": "source/SDK/fixture pins unchanged since observed source preaudit",
+        "ok": true
+      },
+      {
+        "name": "ordinary quit lifecycle records reported exactly without invented hooks",
+        "ok": true
+      }
+    ],
+    "selectedObserved": 111,
+    "prior95Verified": true,
+    "newSource16Verified": 16,
+    "totalCaseIds": 606,
+    "blocked": 495,
+    "diagnostics": [],
+    "raw": [
+      {
+        "source": "stdout.log",
+        "bytes": 23408,
+        "sha256": "513dbead52d90b9319995bc96fc216ac02b285e6f9eb0ddee96783beeb31bcc8"
+      },
+      {
+        "source": "stderr.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "source": "launcher-stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "source": "launcher-stderr.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "source": "project/temp/logs/project.log",
+        "bytes": 890,
+        "sha256": "5ecf638e2dd3a30e227ade7dd4519e9e96cce5441a231f6142007266c86eca55"
+      }
+    ],
+    "candidate": {
+      "sourceCommit": "d93a3e9abb17195e3b401d17c45ccf24c1c27386",
+      "hostSha256": "7c0866d9b99ad04a891613e155cc745836c5fcb90c7601c5b08cf88f8dc928ae",
+      "coreSha256": "4f7cbc3df5cc58f67dc83d5bc7ac7588de52bea187e8a670a5bc94cc4ecabadc"
+    },
+    "timing": {
+      "quitRequested": "2026-10-19T07:49:52.869Z",
+      "transition": {
+        "at": "2026-10-19T07:49:53.565Z",
+        "observed": "31494     1 Mon Oct 19 15:43:44 2026     (CocosCreator)"
+      },
+      "physicalGone": "2026-10-19T07:49:55.819Z",
+      "cooldownPhaseDeltaMs": 18752,
+      "exitToDelayedPhaseDeltaMs": 18049
+    },
+    "evidenceSha256": {
+      "resource-native-shard-result.json": "28e8aa6ddcffb0b8845017197805e30464c1f85536522362cb559600cc238f8a",
+      "resource-native-staging.json": "a709ea44ca459dc902aeaf8b938d1d9daaa1efdedb2a936487bcccd58dc9e6e5",
+      "resource-native-events.ndjson": "ddea2e73cfd420d40642f313908b9c449b64edc8dbbf6b7cc9e99b4b4a18bfd1",
+      "owned-normal-close-receipt.json": "3b8e4750fe33eff71cec954943384294fcfbeb7d4146d946510505c8feffca3e",
+      "delayed-whole-raw-log-scan-final.json": "3e5ad8cb8cad028ef2a457c49b13cd22dd50ca94a42fd79dc2d3104ba16857c5",
+      "guest-phase-startup.json": "49d2aeda92657bda3d5517bd6a278783bd89b623bf86eafb00f1833e1cc45223",
+      "guest-phase-operation.json": "320be3670906a3520d6e0a3a1e7766a902073c83113e481992372bae5798c0c7",
+      "guest-phase-cooldown.json": "ede48d62044893ff3905f3b8771b66df335deff0365f376779d435225540b76d",
+      "guest-phase-exit.json": "d45d13dea9d8e4ff0873723df908cedd3c3dd6b42a77ca7ba842898d2214dfd3",
+      "guest-phase-delayed_diagnostics.json": "8daa3fb7ba97e8d8acda540d4f83157451fac06b3c750b037d8645df1c4b9b81"
+    },
+    "source16AuditSha256": "62d34320f6d8c01be02851f33bd4a827b64114cb89c28642c1a816f0789647d1",
+    "limitations": [
+      "111 selected actual observations do not complete606 cases;495 remain blocked.",
+      "Source text/hash=source-text; importer=importer-meta; type=asset-db, not runtime-object/render acceptance.",
+      "Normal quit has only baseline lifecycle row and installed snapshot; no own unload hook inferred.",
+      "One samePID/PPID/start args-only exit transition retained; no unsupported PID reuse/defunct classification.",
+      "Open-wait launcher exit0 is separate from native physical-gone proof; root independently reports outer86081 and close-helper70446 exit0.",
+      "Selected delayed wait8s is not exact checkpoint delta.",
+      "All pre-close audit reports preserved; no SDK/UI/native request, source/tool/run-evidence mutation or token output."
+    ]
+  },
+  "constraints": {
+    "allEnabled": false,
+    "errorsFiltered": false,
+    "sdkInstallationModified": false,
+    "pushOrPublish": false,
+    "previewScreenshotsUsed": 0
+  },
+  "scope": "4.3.3 fixed text/json source lifecycle group; full4.3/2.2/5.1 remain incomplete"
+}

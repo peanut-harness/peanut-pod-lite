@@ -1,0 +1,15 @@
+{
+  "creatorVersion": "3.8.3",
+  "source": {
+    "path": "tests/fixtures/editor-stability/media/assets/audio/tone.wav",
+    "sha256": "6717131135a4419e6b936a8c57f8f17b8e2b6d8a3bf45ff2ac9c3b40df55bc33"
+  },
+  "meta": {
+    "path": "tests/fixtures/editor-stability/media/native-audio/3.8.3/tone.wav.meta",
+    "sha256": "f3901d523eb747518484cf1f1ed86e8f575dc37a55402fe06eb26911b356ac2e"
+  },
+  "metaOrigin": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/native-persistence-url-383-20261015-13e46db/project/assets/fixtures/media/assets/audio/tone.wav.meta",
+  "metaPolicy": "actual historical same-SDK template only; fresh UUID/imported/files staging and real SDK observation required",
+  "authorityPolicy": "binary hash is content identity only; semantic AssetDB type and raw importer-meta values; no runtime/name/play/source-text",
+  "nativeAcceptance": false
+}

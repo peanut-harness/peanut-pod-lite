@@ -1,0 +1,64 @@
+{
+  "creatorVersion": "3.8.3",
+  "nativeRun": "evidence/task-5.1/tiled-source-383-20261016",
+  "sourceRootUuid": "9ab61684-88ea-4e99-b766-5d714b56147d",
+  "nativePrefabSubId": "36e19",
+  "nativeMeshSubId": "bcca5",
+  "nativeSkeletonSubId": "438fe",
+  "nativeAnimationSubId": "9bfcd",
+  "nativeMaterialSubId": "f7779",
+  "jointPaths": [
+    "Joint"
+  ],
+  "files": [
+    {
+      "file": "gltf-skinned-source.prefab.json",
+      "sha256": "9466cb4769567c40c4bc21ee3ceceab3c1f563323fa3256c235daa178cea242b",
+      "source": "evidence/task-5.1/tiled-source-383-20261016/project/library/9a/9ab61684-88ea-4e99-b766-5d714b56147d@36e19.json"
+    },
+    {
+      "file": "gltf-skinned-source.meta.json",
+      "sha256": "5bb24fb94353b34bb11d09f7280c5cf3c9ca26590442901e8fa5ffe65ebcf02e",
+      "source": "evidence/task-5.1/tiled-source-383-20261016/project/assets/fixtures/media/assets/model/triangle.gltf.meta"
+    }
+  ],
+  "input": {
+    "path": "tests/fixtures/editor-stability/media/assets/model/triangle.gltf",
+    "sha256": "32c8b6733229d16e3df46977c86d51776afcb34be5fc475b0148dd5f79572daf"
+  },
+  "sdkSources": [
+    {
+      "path": "package.json",
+      "sha256": "9f5d065eb57e69c9f62c805eecbb668d85c4416f372ecf75e3dc0d5a713b5d63"
+    },
+    {
+      "path": "cocos/3d/skinned-mesh-renderer/skinned-mesh-renderer.ts",
+      "sha256": "ef19765feb72affa0a22a44c13a4cf6ae81f95510cfa2dc02b6e729d18d81bc9"
+    },
+    {
+      "path": "cocos/3d/skinned-mesh-renderer/skinned-mesh-batch-renderer.ts",
+      "sha256": "ce9f77df1089bfe5a228af25c5b45f54b20007c66eea4251de67e944a255a0be"
+    },
+    {
+      "path": "cocos/3d/skeletal-animation/skeletal-animation.ts",
+      "sha256": "5c373bf1cb31dd7a932d9e1add26f93fcfb98c443f53e1b40dc32fbb6fbe81cc"
+    },
+    {
+      "path": "cocos/3d/framework/mesh-renderer.ts",
+      "sha256": "d2aa34ec7bde6b0bbd5328c43e6744357d49b010697e489218af3de66c12742c"
+    },
+    {
+      "path": "cocos/core/math/mat4.ts",
+      "sha256": "c852a311bca4323885b5f9d5db410fae7453d3a52e64d9a80233a92f3defca0c"
+    }
+  ],
+  "nativeAcceptance": false,
+  "scope": "Read-only actual 3.8.3 SDK import source from rejected cache session; fresh project must independently pass resources, joints, lifecycle and all raw diagnostics",
+  "nativeSkeletonSource": {
+    "path": "evidence/task-5.1/tiled-source-383-20261016/project/library/9a/9ab61684-88ea-4e99-b766-5d714b56147d@438fe.json",
+    "sha256": "8f987718feb9c0b387eb7284b179260e4af6c6b562a35d5157d3c4d9a930e55d",
+    "jointPaths": [
+      "Joint"
+    ]
+  }
+}

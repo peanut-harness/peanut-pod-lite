@@ -33,6 +33,8 @@ await build({
         '@peanut/pod-hosts': resolve(repositoryRoot, 'packages/hosts/dist/index.js'),
         '@peanut/pod-engine/kernel': resolve(repositoryRoot, 'packages/engine/modules/kernel/dist/index.js'),
         '@peanut/pod-engine/runtime': resolve(repositoryRoot, 'packages/engine/modules/runtime/dist/index.js'),
+        '@peanut/pod-engine/mcp': resolve(repositoryRoot, 'packages/engine/modules/mcp/dist/index.js'),
+        '@peanut/pod-engine/lumen': resolve(repositoryRoot, 'packages/engine/modules/lumen/dist/index.js'),
         '@peanut/pod-engine/installation': resolve(repositoryRoot, 'packages/engine/modules/installation/dist/index.js'),
         '@peanut/pod-protocol': resolve(repositoryRoot, 'packages/protocol/dist/index.js'),
         '@peanut/pod-sdk': resolve(repositoryRoot, 'packages/sdk/dist/index.js'),
@@ -50,7 +52,7 @@ await build({
         },
     ],
     // Creator Electron provides electron; keep it external.
-    external: ['electron', 'canvas'],
+    external: ['electron', 'canvas', '@editor/package'],
 });
 const bundledMain = await readFile(mainBundlePath, 'utf8');
 const normalizedMain = stripNodeBuiltinProtocol(bundledMain);
@@ -68,8 +70,17 @@ await build({
     outfile: resolve(outputDirectory, 'dist/bootstrap.js'),
     legalComments: 'none',
 });
+for (const entry of ['sdk-startup-timer-worker']) {
+    const outfile = resolve(outputDirectory, 'dist', `${entry}.js`);
+    await build({ bundle: true, entryPoints: [resolve(extensionRoot, 'src', `${entry}.ts`)],
+        format: 'cjs', platform: 'node', target: 'node14', outfile, legalComments: 'none' });
+    const bytes = stripNodeBuiltinProtocol(await readFile(outfile, 'utf8'));
+    assertCreator383BundleCompatibility(bytes);
+    await writeFile(outfile, bytes, 'utf8');
+}
 await copyFile(resolve(extensionRoot, 'src/cpm-package-store.js'), resolve(outputDirectory, 'dist/cpm-package-store.js'));
 await cp(resolve(extensionRoot, 'package.json'), resolve(outputDirectory, 'package.json'));
+await cp(resolve(repositoryRoot, 'packages/engine/modules/lumen/bundled/schema'), resolve(outputDirectory, 'bundled/schema'), { recursive: true });
 await cp(resolve(extensionRoot, 'panel'), resolve(outputDirectory, 'panel'), { recursive: true });
 await build({
     entryPoints: [resolve(extensionRoot, 'panel/plugin-workbench/index.cts')],

@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
 
 const require = createRequire(import.meta.url);
 const host = require('../src/main.js');
+const { HostStartupDiagnostics } = require('../src/host-startup-diagnostics.ts');
+const originalFromSdk = HostStartupDiagnostics.fromSdk;
 const TOOL_NAME = 'peanut.editor-mcp.test-managed';
 
 test('Creator Bridge keeps managed task control connection-scoped', async () => {
@@ -20,7 +23,9 @@ test('Creator Bridge keeps managed task control connection-scoped', async () => 
         writeInstalledIndex(projectRoot, [core]);
         writeFileSync(join(projectRoot, 'package.json'), JSON.stringify({ creator: { version: '3.8.7' } }));
         globalThis.Editor = createEditor(projectRoot);
-        await host.load();
+        HostStartupDiagnostics.fromSdk = (_editor, options) => new HostStartupDiagnostics({ ...options, events: new EventEmitter(),
+            messages: { addBroadcastListener() {}, removeBroadcastListener() {}, request: async () => false } });
+        await host.load({ extensionRoot: resolve(import.meta.dirname, '..') });
 
         const synchronous = await host.methods.invokeTool(TOOL_NAME, { execution: { mode: 'sync' }, delayMs: 1 }, owner);
         assert.equal(synchronous.taskStatus, 'succeeded');
@@ -45,6 +50,7 @@ test('Creator Bridge keeps managed task control connection-scoped', async () => 
         assert.equal((await waitForTerminal(completed.taskId, owner)).status, 'succeeded');
     } finally {
         await host.unload();
+        HostStartupDiagnostics.fromSdk = originalFromSdk;
         delete globalThis.Editor;
         rmSync(projectRoot, { recursive: true, force: true });
     }
@@ -131,9 +137,11 @@ function createEditor(projectRoot) {
         encryptString: (value) => Buffer.from(`encrypted:${value}`, 'utf8'),
         decryptString: (value) => value.toString('utf8').slice('encrypted:'.length),
     };
+    const timerMap = new Map();
     return {
         Project: { path: projectRoot, name: 'host-test' },
         App: { version: '3.8.7', safeStorage },
+        Metrics: { trackTimeStart() {}, trackTimeEnd() {}, __protected__: { getTrackTimeStartMap: () => timerMap } },
         Selection: { getSelected: () => [] },
         Message: { request: async () => ({}) },
         log: () => {},

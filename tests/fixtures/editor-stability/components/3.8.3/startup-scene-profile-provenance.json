@@ -1,0 +1,13 @@
+{
+  "creatorVersion": "3.8.3",
+  "source": "app.asar/builtin/scene/package.json",
+  "sha256": "6203449cd9d616828476eba6b314a87bba22d57fbcdd4e7c5e645cab2cbb9ae5",
+  "projectCurrentScene": {
+    "type": "boolean",
+    "default": ""
+  },
+  "profilePackage": "scene",
+  "profileKey": "current-scene",
+  "scope": "SDK公开声明启动场景键；官方type标为boolean但default为空字符串，实际UUID用途仍须新工程启动原生读回验证",
+  "nativePassed": false
+}

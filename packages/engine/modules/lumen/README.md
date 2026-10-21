@@ -31,6 +31,14 @@ Cocos 内容组装会话（品牌名 **lumen**）。**Creator 平台能力，非
 
 与 ui-prefab 分工：ui-prefab 消费设计文档（UIF），经 MCP `lumen-compile-recipe` 编 Prefab；lumen CLI / `LumenSession` 做离线结构化 CRUD。二者都在 `products/cocos`，都不是 Agent Tool。
 
+3.8.3 / 3.8.7 原生组件映射由 `LumenNativeComponentPropertySchema` 统一装配：Billboard.rotation 以度公开、以弧度持久化；FixedConstraint / HingeConstraint 的 JSON 字段遵循对应 SDK 的 `formerlySerializedAs`，原生探针另用实际成员名读取。三类组件先在独立内存文档验证完整补丁，类型失败不留下部分变化。未知版本保留既有映射。Label.actualFontSize 是排版计算值，保留目录但在整补丁写入前拒绝持久化；Mask 图片绑定必须使用 SPRITE_STENCIL（3），与现有 Sprite 不兼容的模式切换原子拒绝。
+
+同一精确版本下，ParticleSystem.dataCulling 与旧 enableCulling 公开别名共用 SDK 实际读取的 `enableCulling` JSON 字段，避免写入 `_dataCulling` 后原生仍保持默认 false。回归覆盖两个别名的 true/false 往返及未知版本保持原映射。
+
+TextureAnimationModule.numTilesX/numTilesY同样按3.8.3/3.8.7实际`formerlySerializedAs`写入无下划线JSON名字，映射递归应用于ParticleSystem内嵌模块，原生读取仍使用实际成员。粒子完整补丁先在独立内存文档校验，无效嵌套字段不留下部分修改；未知版本保留旧映射。新别名已有非默认值保存重开回归，原生实机仍须新候选复验。
+
+这两版实际SDK也不存在PointLight.intensity、PointLight.size、RangedDirectionalLight.intensity对应的原生成员；SafeArea.symmetric仅3.8.3缺失，3.8.7保持正常写入。完整目录保留这四项，以现有native_unsupported边界在写入前拒绝；有效字段与拒绝字段混合时保持文档原样。光度参数不猜测别名，未知版本保持原行为；新增边界仍待新候选原生拒绝验证。
+
 ## 布局
 
 ```text
@@ -222,6 +230,8 @@ const sync = LumenDefaultTemplateRoot.ensurePluginCache(pluginCacheDir);
 
 在实际验证的 Creator 3.8.3 / 3.8.7 中，`cc.UITransform.priority` 是已弃用的运行时排序属性，不经原生场景序列化持久化。完整属性目录仍保留该字段并标记 `writable: false`、`writeRefusedReason: native_runtime_only`；`comp-set` 在任何补丁变化和保存前拒绝它（包括混合补丁）。尺寸与锚点的六个公开属性保持可写。运行时排序应使用引擎的节点 sibling 顺序；本条不声明已实现新的原生排序操作。
 
+3.8.3 / 3.8.7 精确 SDK 的 AnimationController 图引用从 JSON `graph` 读取；DragonBones 的公开 `playTimes` 与旧私有 `_playTimes` 是不同成员，写入与检视使用前者。两类动画映射先校验整补丁，失败不留下部分修改。ReflectionProbe 的 `_probeId` 由原生注册表分配，启用/重开时可能重新分配；完整目录保留 `probeId`，以 `native_unsupported` 在整补丁修改前拒绝持久化写入。未知版本保留既有行为。两版动画映射与探针ID拒绝已在13e46db候选完成原生保存/重开定向验证；此结论不覆盖其他组件或完整矩阵。
+
 SpriteAtlas XML `.plist` 导入会从 `frames` / `metadata` 中的 `textureFileName`、`realTextureFileName` 发现同目录贴图，先导入贴图并等待原生就绪，再导入图集。默认依赖闭包无需调用方重复提供这张依赖表；声明的贴图缺失、越界路径或未知 XML 实体会在原生调用前拒绝。这里仅支持同目录文件名和 XML 内建/数值文本实体，不读取外部 DTD，不将粒子 plist 当作图集，也不声明所有 plist 格式或贴图字段已经过原生验收。
 
 在实测 Creator 3.8.3 / 3.8.7 中，`cc.Mask.spriteFrame` 的原生 getter 读取同节点 Sprite。Lumen 在整补丁校验后复用唯一自有 Sprite，或通过原挂载流程创建载体，将图片引用存入 Sprite 的序列化字段；不留下不能驱动该 getter 的 Mask 影子字段。检视读取真实载体，外部所有者或重复 Sprite 在变更前拒绝。完整 Mask 五字段目录保留；本条不承诺所有遮罩类型、像素裁剪效果或未实测版本。
@@ -253,3 +263,13 @@ Creator 3.8.3 / 3.8.7 的 MeshRenderer `receiveShadow` 保留公开 boolean，�
 实际 Creator 3.8.7 的 `cc.PolygonCollider2D.threshold` 是运行时辅助属性：公开 source/library 保存0.5后，真正 Scene 加载实例仍恢复默认1。完整8字段目录保留该项并标记 `writable: false`、`writeRefusedReason: native_runtime_only`；single/mixed补丁在任何变化、保存或提交前拒绝，MCP沿原受信Host版本契约防调用方切旧版绕过。其余7字段及Box/Circle字段保持原行为。本条只覆盖已实测3.8.7；3.8.3安装缺失与其他未知版本仍保留验证缺口，不据静态声明外推。原生 Polygon public `worldPoints` 不含offset，而shape/AABB/raycast包含offset，按各公开对象的实际身份分别核对，不改官方引擎或输入点造一致。
 
 公开 `asset.ensureSpriteFramesBatch` 的本批新帧在原 writer/资源锁窗口内，保存、刷新和就绪后使用与 FNT/TMX 相同的强制原生规范化职责：一次 `reimport-asset`，冻结完整磁盘 meta 语义、PNG 字节/物理身份、主和已有 Texture 子 UUID，并验证真实 SpriteFrame 登记，再报告 ensured。只接受原生输出，不在产品中排序或改写 meta。inline 与 refreshRoot 两条路线均覆盖；already、skipped 和原逐项 legacy DTO/counts 保持。新增必需 ready/query/reimport 错误直接传播原对象，不经旧 alias 重试或错误字符串转录；未知状态仍由原任务模型保守处理，不回滚或重放。离线公开协议测试不作 native 通过，首次冷导入须另绑定确切新包和暖态原字节实测。
+
+Creator 3.8.3 / 3.8.7 的 SpriteRenderer 及其继承声明均没有目录 sortLayer、sortOrder 对应成员；3.8.3 原生读回也确认缺失。两项保留在完整目录，标记 writable:false、writeRefusedReason:native_unsupported；单独及混合补丁在任何改动前拒绝，不猜测为其它排序参数。未知版本保持原行为；新候选的原生拒绝验证仍待执行。
+
+UIMeshRenderer在3.8.3/3.8.7中是需要同节点ModelRenderer的Component，不能按普通互斥渲染器拒绝其必需载体。节点约定允许其与官方说明的MeshRenderer或ParticleSystem精确配对，组合节点采用UI_2D层；单独载体保持原有世界层行为，额外渲染器和其它UI渲染组合仍拒绝。5.1夹具在桥接器加载前准备真实载体，展示使用完整SDK模型；新的候选及原生呈现仍待验证。
+
+Creator 3.8.3/3.8.7 的两类蒙皮渲染器继承 MeshRenderer 的接收阴影枚举：公开 receiveShadow 仍为 boolean，写入 _shadowReceivingMode 的0/1，保留各自五字段目录。向已有骨骼动画层次添加蒙皮渲染器时，仅在祖先链有唯一 SkeletalAnimation 才恢复 skinningRoot；多控制器先拒绝。合批初始单元仅从同一动画根、同源 glTF 资源且相对变换均为单位变换的真实子模型取得，其他相对变换明确拒绝自动合批，不猜测矩阵或生成资产；没有源模型不会伪造单元。该准备逻辑不代表新候选已通过实机或实际呈现。
+
+Creator 3.8.3、3.8.7 分别取得的 Tiled 原生重开证据确认 `cc.TiledLayer.enableCulling` 由父地图重建，`cc.TiledObjectGroup.premultiplyAlpha` 不序列化；两字段在整补丁变化前返回 `lumen_property_not_persistent`。带有效 TMX 引用的父 `TiledMap` 拥有其 Layer/ObjectGroup，移除返回 `lumen_component_source_owned`；内部 `TiledUserNodeData` 的手工增删同样拒绝，用户节点应通过 SDK `TiledLayer.addUserNode` 登记。图层颜色与 `TiledTile` 坐标、生命周期保留。此边界仅绑定分别证实的 3.8.3、3.8.7，不外推其他版本；派生TMX兼容输入及完整SDK诊断须独立重验。
+
+Creator 3.8.3 的实际 SDK 没有 `cc.Sorting2D` 与 `cc.UISkew`，公开挂载在改变节点、依赖或序列化内容前拒绝，代码为 `lumen_component_not_supported`；3.8.7 保留正常增删。版本化策展目录仍保留完整分母，原生缺失类不会计作字段写入通过。

@@ -1,0 +1,36 @@
+{
+  "creatorVersion": "3.8.3",
+  "nativeMetaOrigin": "evidence/task-5.1/native-clean-log-383-20261015-c30/project/assets/fixtures/media/assets/map/two-by-two.tmx.meta",
+  "nativeMetaLoadProof": "evidence/task-5.1/native-clean-log-383-20261015-c30/native-resource-loads.json",
+  "metaSha256": "45f192740c06a68b308909f79a600bf4a4e5bad2f6d7fb469d2b91f386617f74",
+  "inputSha256": "be7965c67c6cc67a79d17f352a5c8382d421b8539ad5785424e2eccc8f86d7e1",
+  "sdkSources": [
+    {
+      "path": "package.json",
+      "sha256": "9f5d065eb57e69c9f62c805eecbb668d85c4416f372ecf75e3dc0d5a713b5d63"
+    },
+    {
+      "path": "cocos/tiledmap/tiled-map.ts",
+      "sha256": "e82d419e22b9d3b0c4941718332b4062f5e4dfe3d03de4dfbcebcc41cef81d00"
+    },
+    {
+      "path": "cocos/tiledmap/tiled-layer.ts",
+      "sha256": "609791c1b12c4d82580fb7058a18df928de0f0855d80c905b7750174ef406d87"
+    },
+    {
+      "path": "cocos/tiledmap/tiled-object-group.ts",
+      "sha256": "5f2c4e142883a967953a1838980e882c831eef869fcd83e7c1153aeb90bd2060"
+    },
+    {
+      "path": "cocos/tiledmap/tiled-tile.ts",
+      "sha256": "de13b9855f2b192f414af84b9d19bd80578407a793826ae206a1a64c8f45bbbd"
+    },
+    {
+      "path": "cocos/tiledmap/tmx-xml-parser.ts",
+      "sha256": "864da2f5f6deff18a2cd278f1aeafb18616b2de15af8c508964eecb9f599d7d6"
+    }
+  ],
+  "nativePassed": false,
+  "derivation": "使用3.8.3实际导入且实际加载为TiledMapAsset的meta配置；独立TMX新增Objects输入仍须新工程真实导入及SDK初始化，不外推3.8.7验收；只在独立派生输入将根version改为两版SDK明示支持的1.4.0，并按组件夹具标准暂存路径修正外部TSX相对引用；原始4.2输入不改；外部TSX导入短名与XML路径实际不匹配，派生输入改为真正内嵌tileset，仅依赖原checker图片，避免路径别名或SDK修改",
+  "declaredSupportedVersion": "1.4.0"
+}

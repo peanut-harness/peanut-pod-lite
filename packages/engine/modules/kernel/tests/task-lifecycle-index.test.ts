@@ -5,6 +5,57 @@ import type { ITaskReclaimedEvent, ICocosRuntime, IExecutionRuntimeService } fro
 
 import { McpTaskControl } from '../src/mcp/mcp-task-control.js';
 import { PluginTaskApi } from '../src/shared/plugin-task-api.js';
+import { RuntimeFacade, ExecutionRuntimeService } from '@peanut/pod-engine/runtime';
+import { mkdtempSync, realpathSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+test('Host field preparation binds original task, context, input, signal, one use and writer phase', async () => {
+    for (const variant of ['valid', 'request-copy', 'input-copy', 'signal-copy', 'context-copy', 'wrong-root', 'replay',
+        'concurrent', 'after-writer', 'cancelled', 'batch', 'copy-error']) {
+        const root = realpathSync(mkdtempSync(join(tmpdir(), 'host-field-task-'))); const runtime = new RuntimeFacade('3.8.3');
+        await runtime.project.configure(root, 'HostFieldTask'); let producerCalls = 0; const code = 'lumen_property_type:friction:number>=0';
+        const producer = { prepare: async (_root: string, input: unknown): Promise<void> => {
+            producerCalls++; if (variant === 'replay') return;
+            const error = new Error(code); ExecutionRuntimeService.recordResourceFieldPreparationRefusal(error, input); throw error;
+        } };
+        assert.throws(() => new PluginTaskApi('other-plugin', runtime, root, null, producer), /producer_plugin_invalid/u);
+        const api = new PluginTaskApi('peanut.editor-mcp', runtime, root, null, producer);
+        let releaseCancel: () => void = () => {};
+        const cancelGate = new Promise<void>(resolve => { releaseCancel = resolve; });
+        const remove = api.managed.registerExecutor('editor-mcp.resource-operation', async (request, context) => {
+            const input = (request.payload as { input: object }).input;
+            if (variant === 'batch') { assert.equal(context.prepareResourceField, undefined); throw new Error('batch_field_preparation_unavailable'); }
+            assert.ok(context.prepareResourceField);
+            if (variant === 'after-writer') assert.equal(context.enterCommitWindow(), true);
+            if (variant === 'cancelled') {
+                await cancelGate; assert.equal(context.signal.aborted, true);
+            }
+            const invoke = () => context.prepareResourceField!.call(variant === 'context-copy' ? { ...context } : context,
+                variant === 'request-copy' ? { ...request } : request, variant === 'wrong-root' ? tmpdir() : root,
+                variant === 'input-copy' ? { ...input } : input, variant === 'signal-copy' ? new AbortController().signal : context.signal);
+            if (variant === 'concurrent') {
+                const attempts = await Promise.allSettled([invoke(), invoke()]);
+                assert.equal(attempts[1]?.status, 'rejected');
+                if (attempts[0]?.status === 'rejected') throw attempts[0].reason;
+                throw new Error('concurrent_preparation_unexpected_success');
+            }
+            try { await invoke(); if (variant === 'replay') await invoke(); }
+            catch (error) { if (variant === 'copy-error') throw new Error((error as Error).message); throw error; }
+            throw new Error('preparation_unexpected_success');
+        }, { concurrency: 'executor_managed' });
+        try {
+            const receipt = await api.managed.enqueue({ requestId: variant, scope: 'project', priority: 'normal', kind: 'editor-mcp.resource-operation',
+                mergePolicy: variant === 'batch' ? 'batch_commit' : 'none', payload: { operation: 'lumen.assetSet', input: {
+                    assetRelativePath: 'assets/one.pmtl', props: { friction: 'invalid' } } } });
+            if (variant === 'cancelled') { await api.cancel(receipt.taskId); releaseCancel(); }
+            const result = await api.managed.wait(receipt.taskId);
+            assert.equal(producerCalls, ['valid', 'replay', 'concurrent', 'copy-error'].includes(variant) ? 1 : 0);
+            if (['valid', 'concurrent'].includes(variant)) assert.ok(result?.data?.assetFieldPreparationRefusal);
+            else assert.equal(result?.data?.assetFieldPreparationRefusal, undefined);
+        } finally { releaseCancel(); remove(); await api.deactivate(); runtime.execution.dispose(); rmSync(root, { recursive: true, force: true }); }
+    }
+});
 
 interface IFakeExecution extends IExecutionRuntimeService {
     emitReclaimed(event: ITaskReclaimedEvent): void;

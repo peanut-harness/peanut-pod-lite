@@ -1,11 +1,16 @@
 # peanut-pod-lite
 
+SDK续查：d7560ca完整verify1256/1256、117项组件回归及候选通过；项目内精确3.8.7监听器幂等兼容已实机通过10轮增删改保存重开、42次注册始终1/1，阈值10、零MaxListeners警告。ba91afc完整verify1256/1256、123项夹具及候选通过；冷启动遗漏start已在真实入口修复，两个数据库实机各1/1配对。发送端真实调用栈将重开计时定位到SDK Scene面板scene:ready广播处理器和hierarchy异步ready，待原文适配修复，完整原始失败保留。3.8.7 PhysXWorld只读实机确认，单项上下文已保留SDK默认false标志并显式固化有效Builtin默认宏，8e7562f完整Profile/宏与PhysXWorld已实机核验，正常退出全段零诊断；2控制器17字段未验。正常退出另外出现SDK WindowSender向已销毁WebContents发送的原始错误及project警告，保留失败并追踪，5.1仍未完成。
+
+计时定位增加显式登记的透明Map事件、IPC参数与renderer发送端调用栈观测，原样转发实际Map操作，旁观真实显式耗时、时间值和调用栈，不补造start、不更改结果或日志；工作进程实证冷启动_preStartDB遗漏worker-startup的start、_startupDB却end；新显式项目内启动兼容在真实入口补齐SDK start，严格绑定3.8.7及实机方法摘要，实机配对已通过，整段仍有52条原始错误，不能据此宣布零诊断。IPC观察者按原引用成对移除，不替换原处理器。
+
+5.1诊断续查（2026-10-16）：GPU修复c9a5b1c完整verify1256/1256、113项组件回归及官方候选通过。BlitScreen由通用standard改为同版全屏专用材质，原生实际材质/相机/管线确认后，GL错误从2降至0，正常关闭自有PID18592后的完整日志仍有4条SDK计时器错误、零警告，整轮仍拒绝。另有界复现定位监听器注册于SDK CompManager/NodeManager，保存重开增长，两种顺序对照无效；metric冷启动也未解决SDK启动错误。全部原始证据保留，5.1受零诊断门禁阻塞。详情见editor-native-operations.md。
+
 Cocos Creator 编辑器产品。当前源码契约为 84 项免费操作（39 读、45 写/破坏性），保留旧 83 项映射并新增只读 `asset.readText`；可登录并升级订阅，但不执行付费能力。任务 1.1 完成 DTO/policy/schema/目录：默认 32 文件、每文件 1 MiB、输入/输出各 4 MiB；读取项用 `byteCount`，写入前 `beforeSha256` 区分真实摘要/absent/未知 null，`sha256` 为真实后验摘要。Core 已校验 oneOf/数组容量/哈希模式，Kernel 接纳校验已在任务 3.1 实现，实际文本读取及共享屏障/revision 已在任务 3.2 离线验收，任务 3.3 已实现全批准备与 writer 内重验，3.4 已实现逐项读回及 UUID/meta 后验和保守部分失败；3.5 已接入原有控制面安全机制并强化文本写入 AI 成功判据；Runtime 幂等索引仅存剔除审批凭据后的 SHA-256 工作摘要，源码正文不进入控制面记录；Runtime 100 项及 MCP Host/写入安全 82 项定向测试通过。Creator 多平台验收延后，实机矩阵和全量零日志验收尚未完成。 任务 1.2 已提供绑定产品与两版安装源码的覆盖草稿/严格校验：3.8.7 为 1220 目标/4119 用例，3.8.3 为 1229/4128；每版 4 个动态注册未解析项保留待运行时对照，全部 8247 用例 pending、可用性 unverified，32 项合成读取/校验测试通过。真实夹具、运行时目录和原生日志读取端口仍待后续，静态分母不代表实机覆盖。 任务 3.1 已验收无副作用的真实路径/物理别名/严格 UTF-8/JSON 字节 guard 与 Kernel 新关键词；77 项离线回归、两模块类型检查、两项文件竞态和非枚举 getter/祖先 serializer 零调用探针通过。任务 3.2 已接真实 Hub/Creator Host 的 read gateway、共享资源锁及多文件 revision；观察异常后仅以受信 owner 做一次当前 Runtime 终态确认，未知仍保持屏障，终态复用只释放一次且不重执行。早到终态缓存仅保留真实 managed receipt 窗口。源 223 项定向回归通过；总管独立 46 项与 4 项原始探针通过，覆盖重叠不相加。31 项既有 Kernel 测试严格类型诊断未变，无新增租约错误；Node25 执行、ES2017 构建未证明 Node14 或新 Creator 运行。
 
 ## Architecture v2
 
-- `packages/protocol`：稳定 DTO 与 `ICreatorContext`，零内部依赖。
-- `packages/sdk`：插件作者 API，只依赖 protocol。
+- `packages/protocol` 提供稳定 DTO 与 `ICreatorContext`，零内部依赖；`packages/sdk` 提供插件作者 API，只依赖 protocol。
 - `packages/engine`：runtime、installation、assets、Lumen、MCP、policy、kernel。
 - `packages/hosts`：Creator 壳、进程与版本画像；宿主只解析一次上下文。
 - `apps/panel`：静态面板应用，不依赖 engine/hosts。
@@ -21,15 +26,7 @@ Cocos Creator 编辑器产品。当前源码契约为 84 项免费操作（39 �
 - 3.8.3 与 3.8.7：host/project 版本都存在且一致时 full，可写；其它 3.8 补丁版本保持只读，直到逐版本完成实机证据。
 - 最低宿主兼容、实机证据与任务调度事实见 [creator-profiles.md](creator-profiles.md)。
 - 未知、缺失或不一致版本全部 fail-closed。
-- 旧 83 项 Creator 3.8.x 迁移验收按五个互斥域固定分母：Editor/Scene/Prefab 21、Asset read 15、Asset write 12、Preview/Builder/Reference 9、Lumen 26；legacy schema/readOnly/risk parity fixture 已覆盖旧 83 项，但不替代 Creator 实机证据。
-- 2026-09-20 在 Creator 3.8.3 工程 `billiards-practice-clean` 完成当前 Host/Core pack 的真实 Bridge 验证：宿主与工程版本均为 3.8.3，Host/Core 产物身份与状态报告一致，`asset.writeText` 经 Hub 写租约完成 AssetDB settle、`.meta` 生成和 postflight 校验，随后经 destructive 租约删除且无残留；3.8.3 现纳入 verified/write-enabled 精确画像。
-- Creator 3.8 实机报告同时记录宿主入口 SHA-256、打包 Host 目录包 digest、Lite CPM package digest/packedAt 与可选 Pro package digest；`query-status`、`host-status.json`、`smoke-results.json` 三方身份必须一致，旧报告不能冒充当前 release；live 脚本带 `--release-descriptor` 时再经 `CpmPackageStore.compareReleaseIdentity` 核对 descriptor。目录包 digest 规范按码元序拼接，校验端兼容旧 localeCompare 清单。
-- Creator 3.x 新建 Prefab/Scene 已改为单一 AssetDB 原子创建状态机：目标与 sidecar/父目录先纳入资源闭包，Lumen 在内存生成主内容，父目录登记探针清理完成后才进入 commit 窗口，再通过 `create-asset` 或 Creator 原生 Prefab 发布器写入并确认真实 UUID、`.meta` 与子资源。pending、身份不一致、探针残留或新增日志 error/warn 均阻止成功；无法证明回滚时返回 `may_have_changed`。
-- MCP 写调用默认进入进程内共享的项目调度器：同工程 Router 共享 AssetDB/editor writer 屏障，同资源按 FIFO 串行，不同资源的离线 Lumen 编辑与不同工程可以并行；多资源锁必须一次性原子预约，空锁集合降级为项目锁而不是绕锁。
-- 当前资源规划已覆盖 operation 推导资源、copy/rename/首次创建目标、主资源和父目录 `.meta`、序列化引用、传递依赖及 UUID/子资源闭包。纯磁盘 copy/createFolder 使用注册探针与 refresh/settle；首次创建使用专用发布状态机，创建身份由唯一 postflight 消费。共享任务控制面提供 connection-scoped 状态/取消/证据、超时与幂等，成功还要求 `project.log` 增量零错误零警告。自动重试与跨调用批次事务仍待后续阶段，设计见 `docs/MCP-TASK-QUEUE-DESIGN.md`。
-- MCP Hub 失败响应在兼容 `error` 字段外统一追加 `failure` v1：包含稳定 `code`、`category`、受控 `reason`、`retryable`、项目 `state` 与 `recommendedAction`；已入队写任务再附 `taskId/taskStatus/operation`。普通 JSON 与 NDJSON 流式响应使用同一结构。真实发布链路由 policy `CoreCocosMcpToolDefinitionCatalog` 生成契约，Creator 3.8 host 与 Hub summary 必须原样透传 `outputSchema/aiHandling`，registry 在注册时 fail-closed 校验其结构。一般写操作必须同时满足 `taskStatus=succeeded` 与 `postflight.verified=true`；`asset.writeText` 还要求 `result.ok=true`、`result.projectState=verified` 且每项 `result.files[*].status=verified`；状态为 `unknown`/`may_have_changed` 时 AI 必须先查询目标再决定是否重试，禁止盲目重放写入。
-- Creator 宿主网关解包 Router `data` 时必须把 `taskId/taskStatus` 合并进公开结果，不能在 Core dispatcher 边界丢失任务证据。2026-09-19 在 Creator 3.8.7 工程 `D:\mcp-test` 使用 CPM `PackagingApp` 安装当前目录包后，保留 `assets/mcp-scheduler-live/ParallelA.ts` 与 `ParallelB.ts`：不同资源并发和同资源 FIFO 均返回独立成功任务 ID，最终内容分别为 `fifo-second` / `parallel`；`lumen.commit` 返回 `assetdb_registered`、两项真实 UUID/`.meta`，对应 `project.log` 增量为 0 字节、零 error/warn。
-- 2026-09-21，AssetDB 原子创建候选在 Creator 3.8.3 与 3.8.7 通过 v2 实机矩阵：Host/Core digest 为 `5312e5db4c4287fc5f51294eb9758f828e36cb52df61428733405827c0b96e6b` / `68c6721913b494c5cfabe05ead19db00ec96074f48033a31d728ba856ddd645f`。Prefab/Scene 真实 UUID 与 `.meta`、同目标一成一败无覆盖、发布前取消零残留、创建任务唯一 `assetdb_settle` 与所有成功任务唯一 postflight 均通过；两端探针残留与日志增量均为零。报告摘要为 `db615d8ed8929ea5c7ccde93a19eef76e3ab54c27bdd0681633db7e650444850`（3.8.3）与 `30c2fcaa2de077cd2a26c8ed81add00d3b17a916c523d16ee8e2cc02e80daa1f`（3.8.7）。
+- 原生资源、调度与组件矩阵边界见 [editor-native-operations.md](editor-native-operations.md)；8045b84完整verify1256项与候选通过；e90fb77两版WebView/Sprite实际可见及有界关闭整会话零诊断。Sorting2D单项模块UI对照成功，新空模板缺engine.json的首次创建修复已过92项及真实SDK离线暂存，仍待新检查点实机。99/795分母与5.1未完成状态保留。
 
 ## Hard Rules
 
@@ -47,3 +44,5 @@ Cocos Creator 编辑器产品。当前源码契约为 84 项免费操作（39 �
 ## Verification
 
 根目录执行 `npm run verify` 和 `npm run pack`。旧 checkout 的 ignored 顶层生成物确认无源码后移出仓库，不放宽结构门禁。结构说明见 `docs/ARCHITECTURE.md`，产品契约见 Hub `contracts/pod-product.md`。
+
+2026-10-16：空模板修复0f8e3fd完整verify1256项及本地候选通过；原生验证工具正在迁移为设备登记与当前会话身份核对，拒绝旧owner工程和租约。Sorting2D新工程实机及其余5.1仍待完成。

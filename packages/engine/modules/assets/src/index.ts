@@ -42,6 +42,7 @@ export type {
 export { SilentAssetClosureCopy } from './silent-asset-closure-copy';
 export type {
     ISilentAssetClosureCopyItem,
+    ISilentAssetClosureCopyPreparation,
     ISilentAssetClosureCopyRequest,
     ISilentAssetClosureCopyResult,
 } from './silent-asset-closure-copy';

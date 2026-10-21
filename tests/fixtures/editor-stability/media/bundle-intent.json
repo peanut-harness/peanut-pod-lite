@@ -1,0 +1,10 @@
+{
+  "folder": "assets/bundle",
+  "inspectorPatch": {
+    "isBundle": true,
+    "bundleName": "peanut-media-fixture",
+    "priority": 1
+  },
+  "nativeMetadata": null,
+  "gap": "两版 Creator directory/Bundle .meta、UUID 与原生登记尚无本次证据；这里只声明设置意图。"
+}

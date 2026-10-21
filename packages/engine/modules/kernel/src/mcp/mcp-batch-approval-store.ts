@@ -8,6 +8,10 @@ import type { McpCapabilityRisk } from '@peanut/pod-protocol';
  * @description 批次授权令牌内容。
  */
 export interface IMcpApprovalTokenRecord {
+    /**
+     * @description 精确挂接令牌仅允许一次完整资源集合消费；旧租约保持可复用。
+     */
+    readonly oneTime: boolean;
     /** @description 令牌标识。 */
     readonly token: string;
     /** @description 发起连接。 */
@@ -34,6 +38,10 @@ export interface IMcpApprovalTokenRecord {
  * @description 校验令牌时的请求上下文。
  */
 export interface IMcpApprovalConsumeRequest {
+    /**
+     * @description 精确挂接不能使用旧可复用或宽泛令牌。
+     */
+    readonly requireOneTime?: boolean;
     /** @description 连接标识。 */
     readonly connectionId: string;
     /** @description 工具名。 */
@@ -74,6 +82,7 @@ export class McpBatchApprovalStore {
         readonly maxHoldMs?: number;
         /** @description 为 true 时使用会话级租约（可被显式 idle/max 覆盖）。 */
         readonly sessionBound?: boolean;
+        readonly oneTime?: boolean;
     }): { readonly token: string; readonly expiresAt: number; readonly idleLeaseMs: number; readonly maxHoldMs: number } {
         this.sweep();
         const connectionId = this._readNonEmpty(input.connectionId, 'connectionId');
@@ -99,6 +108,7 @@ export class McpBatchApprovalStore {
                 : Math.max(idleLeaseMs, defaultMax);
         const token = toHex(randomBytes(16));
         const record: IMcpApprovalTokenRecord = {
+            oneTime: input.oneTime === true,
             token,
             connectionId,
             resources,
@@ -148,6 +158,9 @@ export class McpBatchApprovalStore {
             if (record.connectionId !== request.connectionId) {
                 return false;
             }
+            if (request.requireOneTime === true && !record.oneTime) return false;
+            if (record.oneTime && (record.operations.size !== 1 || !record.operations.has(request.operation)
+                || records.includes(record))) return false;
             if (request.risk !== 'read') {
                 if (request.risk === 'destructive' && record.maxRisk !== 'destructive') {
                     return false;
@@ -159,11 +172,12 @@ export class McpBatchApprovalStore {
                 if (requested.size === 0 || [...requested].some((resource) => !record.resources.has(resource))) {
                     return false;
                 }
+                if (record.oneTime && requested.size !== record.resources.size) return false;
             }
             records.push(record);
         }
         for (const record of records) {
-            record.lastUsedAt = now;
+            if (record.oneTime) this._tokens.delete(record.token); else record.lastUsedAt = now;
         }
         return true;
     }

@@ -90,6 +90,57 @@ test('resolveAuthorizedResources: declared cannot replace derived (越权拒)', 
     assert.ok(auth.includes('db://assets/ui'));
 });
 
+test('component writes authorize their asset file while node selectors stay inside it', async () => {
+    const leases = new McpApprovalLeaseStore();
+    let calls = 0;
+    const operations = ['lumen.compAdd', 'lumen.compSet', 'lumen.compRm'];
+    const dispatcher = new CoreCocosMcpExecutionDispatcher([
+        { operations, execute: async () => ++calls },
+    ], leases);
+    const resources = ['db://assets/components/cc.Sprite.scene'];
+    for (const operation of operations) {
+        const input = {
+            prefabRelativePath: 'assets/components/cc.Sprite.scene', nodePath: '/Root/Canvas/Target',
+            ...(operation === 'lumen.compAdd' ? { builtinType: 'cc.UIOpacity' } : { componentType: 'cc.UIOpacity' }),
+            ...(operation === 'lumen.compSet' ? { props: { opacity: 128 } } : {}),
+            resources, confirmDestructive: true,
+        };
+        const context = { connectionId: 'scoped-component', resources: resolveAuthorizedResources(operation, input, resources) };
+        assert.deepEqual(context.resources, resources);
+        const lease = leases.issue({ ...context, operations: [operation], maxRisk: 'destructive' });
+        await dispatcher.execute(operation, { ...input, approvalToken: lease.token }, context);
+        const wrong = { ...input, prefabRelativePath: 'assets/other/cc.Sprite.scene' };
+        await assert.rejects(dispatcher.execute(operation, { ...wrong, approvalToken: lease.token }, {
+            ...context, resources: resolveAuthorizedResources(operation, wrong, resources),
+        }), /approval_required/u);
+    }
+    assert.equal(calls, 3);
+    assert.deepEqual(extractWriteResources('lumen.compAdd', {
+        prefabRelativePath: 'assets/components/cc.Sprite.scene', scriptName: 'assets/components/Bound.ts',
+    }), [...resources, 'db://assets/components/Bound.ts']);
+});
+
+test('preview refresh without asset refresh uses explicit resources and keeps default authorization', async () => {
+    const leases = new McpApprovalLeaseStore();
+    let calls = 0;
+    const dispatcher = new CoreCocosMcpExecutionDispatcher([
+        { operations: ['preview.refresh'], execute: async () => ++calls },
+    ], leases);
+    const resources = ['db://assets/components/cc.Sprite.scene'];
+    const context = { connectionId: 'scoped-preview', resources };
+    const lease = leases.issue({ ...context, operations: ['preview.refresh'] });
+    const input = { refreshAssets: false, resources, approvalToken: lease.token };
+    assert.deepEqual(resolveAuthorizedResources('preview.refresh', input, resources), resources);
+    await dispatcher.execute('preview.refresh', input, context);
+    assert.deepEqual(extractWriteResources('preview.refresh', {}), ['preview']);
+    assert.deepEqual(extractWriteResources('preview.refresh', { refreshAssets: true }), ['preview']);
+    await assert.rejects(dispatcher.execute('preview.refresh', { ...input, refreshAssets: true }, {
+        ...context, resources: resolveAuthorizedResources('preview.refresh', { refreshAssets: true }, resources),
+    }), /approval_required/u);
+    await assert.rejects(dispatcher.execute('preview.refresh', input, { ...context, resources: [] }), /approval_required/u);
+    assert.equal(calls, 1);
+});
+
 test('dispatcher: wrong bind / 越权 declared+path refused; normalized bind passes', async () => {
     let calls = 0;
     const leases = new McpApprovalLeaseStore();
