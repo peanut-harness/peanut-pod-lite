@@ -186,3 +186,7 @@ export { VersionResolver } from "./cocos/version/version-resolver.js";
 export type { IEditorApiAssetBridgeProvider } from "./cocos/adapters/core/editor-api-asset-bridge-provider.js";
 export type { IEditorApiSceneBridgeProvider } from "./cocos/adapters/core/editor-api-scene-bridge-provider.js";
 export { EditorApiHostAssetBridgeProvider } from "./cocos/adapters/adapter-38/editor-api-host-asset-bridge-provider.js";
+
+export { ProjectLogDiagnostics } from './cocos/foundation/editor-resource/project-log-diagnostics.js';
+export type { IProjectLogQuery, IProjectLogQueryResult, IProjectLogLine, IProjectLogMatch, ProjectLogQueryMode } from '@peanut/pod-protocol';
+export { ProjectLogDiagnosticsPolicy } from './cocos/foundation/editor-resource/project-log-diagnostics-policy.js';

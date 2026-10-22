@@ -21,6 +21,16 @@ export interface EditorMcpCapabilitySeed {
 
 export const EDITOR_MCP_CAPABILITY_SEEDS: readonly EditorMcpCapabilitySeed[] = [
     {
+        operation: 'diagnostics.queryLogs',
+        readOnly: true,
+        risk: 'read',
+        description: {
+            'en-US': 'Observe the current project.log with bounded tail, delta or literal search and raw context. No acceptance verdict; inspect complete, truncated and resetDetected.',
+            'zh-CN': '有界查询当前工程日志尾部、增量或字面关键词及原始上下文；不作为验收通过判据，须检查complete/truncated/resetDetected。',
+        },
+        requiresInput: true,
+    },
+    {
         operation: 'editor.queryVersion',
         readOnly: true,
         risk: 'read',

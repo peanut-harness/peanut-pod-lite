@@ -70,6 +70,15 @@ export class CoreCocosMcpReadToolSchemaCatalog {
      */
     private static buildSchemas(): ReadonlyMap<CoreCocosMcpOperation, ICoreMcpJsonSchema> {
         const schemas = new Map<CoreCocosMcpOperation, ICoreMcpJsonSchema>();
+        schemas.set('diagnostics.queryLogs', this.object({
+                mode: this.enum(['tail', 'delta', 'search'], '读取方向：尾部向前分页、增量或从头搜索。'),
+                cursor: this.string('签名游标；nextCursor同模式分页，followCursor用于delta，重启或轮转后重置。'),
+                contains: this.string('区分大小写的字面关键词，不接受正则。'),
+                levels: this.stringArray('error/warn/info/debug/trace/unknown，保留未知级别。'),
+                limit: this.integer('默认及最大100个匹配；响应最多64KiB。'),
+                contextBefore: this.integer('前文行数，默认2、最大10。'),
+                contextAfter: this.integer('后文行数，默认2、最大10。'),
+            }, ['mode']));
         schemas.set('editor.queryVersion', this.empty());
         schemas.set('editor.queryProject', this.empty());
         schemas.set('editor.querySelection', this.empty());

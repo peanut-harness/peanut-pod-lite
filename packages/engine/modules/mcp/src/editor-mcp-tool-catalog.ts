@@ -9,6 +9,7 @@ import type {
 import {
     CoreCocosMcpOperationThroughputProfileCatalog,
     CoreTextFileIoContract,
+    CoreCocosMcpReadToolSchemaCatalog,
     type ICoreMcpJsonSchema,
 } from '@peanut/pod-engine/policy';
 
@@ -123,12 +124,16 @@ export class EditorMcpToolCatalog {
      */
     private _descriptionWithAiContract(description: LocalizedText, readOnly: boolean, operation: EditorMcpOperationId): LocalizedText {
         const englishRule = readOnly
-            ? ' Treat the call as successful only when response.ok=true. On response.ok=false, inspect failure.code, failure.category, and failure.recommendedAction.'
+            ? operation === 'diagnostics.queryLogs'
+                ? ' Observation succeeds only when response.ok=true and result.ok=true. Inspect failureCode on result.ok=false, and resetDetected, truncated, complete and pendingLine before continuing. An empty search is not project acceptance.'
+                : ' Treat the call as successful only when response.ok=true. On response.ok=false, inspect failure.code, failure.category, and failure.recommendedAction.'
             : operation === 'asset.writeText'
                 ? ' Accept success only when taskStatus=succeeded, postflight.verified=true, result.ok=true, result.projectState=verified, and every result.files[*].status=verified. On failure inspect the structured failure object; when failure.state is unknown or may_have_changed, query the target state before retrying. Never retry a write blindly.'
                 : ' Accept success only when taskStatus=succeeded and postflight.verified=true. On failure inspect the structured failure object; when failure.state is unknown or may_have_changed, query the target state before retrying. Never retry a write blindly.';
         const chineseRule = readOnly
-            ? ' 仅当 response.ok=true 时判定成功；response.ok=false 时必须读取 failure.code、failure.category 与 failure.recommendedAction。'
+            ? operation === 'diagnostics.queryLogs'
+                ? ' 仅response.ok=true且result.ok=true表示观测成功；失败读取failureCode，并检查resetDetected/truncated/complete/pendingLine；空搜索不代表工程验收通过。'
+                : ' 仅当 response.ok=true 时判定成功；response.ok=false 时必须读取 failure.code、failure.category 与 failure.recommendedAction。'
             : operation === 'asset.writeText'
                 ? ' 文本写入仅当 taskStatus=succeeded、postflight.verified=true、result.ok=true、result.projectState=verified 且每个 result.files[*].status=verified 时判定成功。失败时读取结构化 failure；failure.state 为 unknown 或 may_have_changed 时必须先查询目标状态再重试，禁止盲目重放写操作。'
                 : ' 仅当 taskStatus=succeeded 且 postflight.verified=true 时判定成功。失败时读取结构化 failure；failure.state 为 unknown 或 may_have_changed 时必须先查询目标状态再重试，禁止盲目重放写操作。';
@@ -152,7 +157,9 @@ export class EditorMcpToolCatalog {
             schemaVersion: 1,
             successSignals: Object.freeze(
                 readOnly
-                    ? operation === 'asset.readText'
+                    ? operation === 'diagnostics.queryLogs'
+                        ? ['response.ok=true', 'result.ok=true']
+                        : operation === 'asset.readText'
                         ? ['response.ok=true', 'result.ok=true', 'result.consistent=true', 'result.files[*].status=read']
                         : ['response.ok=true']
                     : operation === 'asset.writeText'
@@ -226,6 +233,9 @@ export class EditorMcpToolCatalog {
     private _buildSchemas(): ReadonlyMap<EditorMcpOperationId, IMcpJsonSchema> {
         const map = new Map<EditorMcpOperationId, IMcpJsonSchema>();
 
+        const logSchema = new CoreCocosMcpReadToolSchemaCatalog().find('diagnostics.queryLogs');
+        if (logSchema == null) throw new Error('editor_mcp_log_schema_missing');
+        map.set('diagnostics.queryLogs', this._textFileSchema(logSchema));
         map.set('editor.queryVersion', this._empty());
         map.set('editor.queryProject', this._empty());
         map.set('editor.querySelection', this._empty());

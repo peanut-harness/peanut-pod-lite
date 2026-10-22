@@ -30,6 +30,7 @@ export type CoreCocosMcpOperation =
     | 'scene.queryNode'
     | 'prefab.getInfo'
     | 'preview.query'
+    | 'diagnostics.queryLogs'
     | 'preview.queryErrors'
     | 'builder.queryPlatforms'
     | 'builder.querySchema'
@@ -86,6 +87,7 @@ export class CoreCocosMcpCapabilityCatalog {
         'scene.queryNode',
         'prefab.getInfo',
         'preview.query',
+        'diagnostics.queryLogs',
         'preview.queryErrors',
         'builder.queryPlatforms',
         'builder.querySchema',

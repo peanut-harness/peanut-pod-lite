@@ -732,8 +732,8 @@ test('matrix: scene.open hard-blocks db:// args to open-scene', async () => {
 test('matrix: flat tools expose one tool per operation with correct readOnly/risk', async () => {
     const { definitions } = await activateRouter();
     const catalog = [...definitions.values()];
-    assert.equal(catalog.length, 84);
-    assert.equal(catalog.filter((definition) => definition.readOnly).length, 39);
+    assert.equal(catalog.length, 85);
+    assert.equal(catalog.filter((definition) => definition.readOnly).length, 40);
     assert.equal(catalog.filter((definition) => !definition.readOnly).length, 45);
     const readText = definitions.get('peanut.editor-mcp.asset-read-text');
     assert.ok(readText);

@@ -6,13 +6,13 @@ import {
     CoreCocosMcpToolDefinitionCatalog,
 } from '../dist/index.js';
 
-test('throughput profiles cover the Lite 84 exactly and preserve 39 read / 45 write classification', () => {
+test('throughput profiles cover the Lite 85 exactly and preserve 40 read / 45 write classification', () => {
     const profiles = new CoreCocosMcpOperationThroughputProfileCatalog().list();
     const definitions = new CoreCocosMcpToolDefinitionCatalog().list();
 
-    assert.equal(profiles.length, 84);
-    assert.equal(new Set(profiles.map((profile) => profile.operation)).size, 84);
-    assert.equal(profiles.filter((profile) => profile.readOnly).length, 39);
+    assert.equal(profiles.length, 85);
+    assert.equal(new Set(profiles.map((profile) => profile.operation)).size, 85);
+    assert.equal(profiles.filter((profile) => profile.readOnly).length, 40);
     assert.equal(profiles.filter((profile) => !profile.readOnly).length, 45);
     assert.deepEqual(
         profiles.map((profile) => profile.operation).sort(),

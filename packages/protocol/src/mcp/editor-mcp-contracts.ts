@@ -137,6 +137,7 @@ export type EditorMcpOperationId =
     | 'prefab.getInfo'
     | 'preview.query'
     | 'preview.refresh'
+    | 'diagnostics.queryLogs'
     | 'preview.queryErrors'
     | 'preview.capture'
     | 'builder.queryPlatforms'

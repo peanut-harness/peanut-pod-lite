@@ -151,7 +151,9 @@ export class CoreCocosMcpToolDefinitionCatalog {
             schemaVersion: 1,
             successSignals: Object.freeze(
                 readOnly
-                    ? operation === 'asset.readText'
+                    ? operation === 'diagnostics.queryLogs'
+                        ? ['response.ok=true', 'result.ok=true']
+                        : operation === 'asset.readText'
                         ? ['response.ok=true', 'result.ok=true', 'result.consistent=true', 'result.files[*].status=read']
                         : ['response.ok=true']
                     : ['response.ok=true', 'result.taskStatus=succeeded', 'result.postflight.verified=true'],

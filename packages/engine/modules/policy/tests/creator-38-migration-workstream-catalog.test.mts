@@ -7,7 +7,7 @@ import {
     type Creator38MigrationWorkstream,
 } from '../dist/index.js';
 
-test('Creator 3.8.7 workstreams partition all 84 Lite operations exactly once', () => {
+test('Creator 3.8.7 workstreams partition all 85 Lite operations exactly once', () => {
     const definitions = new CoreCocosMcpToolDefinitionCatalog().list();
     const entries = new Creator38MigrationWorkstreamCatalog().list();
     const counts = new Map<Creator38MigrationWorkstream, number>();
@@ -16,8 +16,8 @@ test('Creator 3.8.7 workstreams partition all 84 Lite operations exactly once', 
         counts.set(entry.workstream, (counts.get(entry.workstream) ?? 0) + 1);
     }
 
-    assert.equal(entries.length, 84);
-    assert.equal(new Set(entries.map((entry) => entry.operation)).size, 84);
+    assert.equal(entries.length, 85);
+    assert.equal(new Set(entries.map((entry) => entry.operation)).size, 85);
     assert.deepEqual(
         [...entries].map((entry) => entry.operation).sort(),
         [...definitions].map((definition) => definition.operation).sort(),
@@ -26,7 +26,7 @@ test('Creator 3.8.7 workstreams partition all 84 Lite operations exactly once', 
         'editor-scene-prefab': 21,
         'asset-read': 16,
         'asset-write': 12,
-        'preview-builder-reference': 9,
+        'preview-builder-reference': 10,
         lumen: 26,
     });
 });
