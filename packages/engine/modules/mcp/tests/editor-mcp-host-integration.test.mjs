@@ -68,7 +68,7 @@ test('Editor MCP plugin should expose 88 Lite operations without a Pro plugin', 
 
     const connectionId = 'a'.repeat(32);
     const managedDefinitions = mcpCapabilityRegistry.getCatalog().capabilities.filter((definition) => definition.executionModel === 'managed_task');
-    assert.equal(managedDefinitions.length, 45);
+    assert.equal(managedDefinitions.length, 47);
     const selectionTool = 'peanut.editor-mcp.editor-set-selection';
     const synchronous = await mcpCapabilityRegistry.invoke(selectionTool, { clear: true }, { connectionId });
     assert.equal(synchronous.taskStatus, 'succeeded');

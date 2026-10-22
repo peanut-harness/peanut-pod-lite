@@ -787,7 +787,7 @@ test('matrix: flat tools expose one tool per operation with correct readOnly/ris
     assert.match(refresh.description['en-US'], /Never retry a write blindly/u);
     assert.deepEqual(version.aiHandling.successSignals, ['response.ok=true']);
     assert.equal(version.executionModel, undefined);
-    assert.equal(catalog.filter((definition) => definition.executionModel === 'managed_task').length, 45);
+    assert.equal(catalog.filter((definition) => definition.executionModel === 'managed_task').length, 47);
     assert.deepEqual(refresh.inputSchema.properties.execution.properties.mode.enum, ['sync', 'async']);
     const nodeRm = definitions.get('peanut.editor-mcp.lumen-node-rm');
     assert.ok(nodeRm, 'lumen-node-rm');
