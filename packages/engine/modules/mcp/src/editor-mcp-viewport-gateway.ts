@@ -229,14 +229,12 @@ export class EditorMcpViewportGateway {
      * @description 以原生层级快照把每个目标唯一解析为UUID。
      */
     private async _resolveTargets(targets: readonly string[]): Promise<{ ok: true; uuids: readonly string[] } | { ok: false; failureCode: string }> {
-        const scene = this._runtime.scene;
-        if (scene == null) return { ok: false, failureCode: 'creator_scene_unavailable' };
+        const message = this._runtime.message;
+        if (message == null) return { ok: false, failureCode: 'creator_message_unavailable' };
         try {
-            const snapshot = await scene.execute<unknown>('peanut-pod-lite-host', 'queryViewportHierarchy', []);
-            if (!Array.isArray(snapshot)) return { ok: false, failureCode: 'creator_hierarchy_response_invalid' };
-            const nodes = snapshot.filter((candidate): candidate is Record<string, unknown> =>
-                typeof candidate === 'object' && candidate != null && !Array.isArray(candidate),
-            );
+            const snapshot = await message.request<unknown>('scene', 'query-node-tree');
+            const nodes = this._readSceneTree(snapshot);
+            if (nodes == null) return { ok: false, failureCode: 'creator_hierarchy_response_invalid' };
             const uuids: string[] = [];
             for (const target of targets) {
                 const matches = nodes.filter((node) => node.uuid === target || node.id === target || node.path === target);
@@ -247,6 +245,42 @@ export class EditorMcpViewportGateway {
             }
             return { ok: true, uuids };
         } catch { return { ok: false, failureCode: 'creator_hierarchy_query_failed' }; }
+    }
+
+    /**
+     * @description 解析 Creator INode 属性包装树或兼容扁平节点列表。
+     */
+    private _readSceneTree(value: unknown): readonly Record<string, unknown>[] | null {
+        const nodes: Record<string, unknown>[] = [];
+        const visited = new Set<object>();
+        const readProperty = (node: Record<string, unknown>, key: string): unknown => {
+            const candidate = node[key];
+            if (typeof candidate !== 'object' || candidate == null || Array.isArray(candidate)) return candidate;
+            return 'value' in candidate ? candidate.value : candidate;
+        };
+        if (Array.isArray(value)) {
+            return value.filter((item): item is Record<string, unknown> =>
+                typeof item === 'object' && item != null && !Array.isArray(item),
+            );
+        }
+        if (typeof value !== 'object' || value == null) return null;
+        const visit = (candidate: unknown, parentPath: string): void => {
+            if (typeof candidate !== 'object' || candidate == null || Array.isArray(candidate) || visited.has(candidate)) return;
+            if (nodes.length >= 10000) throw new Error('creator_hierarchy_too_large');
+            visited.add(candidate);
+            const node = candidate as Record<string, unknown>;
+            const nameValue = readProperty(node, 'name');
+            const uuidValue = readProperty(node, 'uuid');
+            const name = typeof nameValue === 'string' ? nameValue : '';
+            const path = parentPath.length === 0 ? name : `${parentPath}/${name}`;
+            if (typeof uuidValue === 'string' && uuidValue.length > 0) {
+                nodes.push({ uuid: uuidValue, id: uuidValue, name, path });
+            }
+            const children = node.children;
+            if (Array.isArray(children)) for (const child of children) visit(child, path);
+        };
+        visit(value, '');
+        return nodes;
     }
 
     /**

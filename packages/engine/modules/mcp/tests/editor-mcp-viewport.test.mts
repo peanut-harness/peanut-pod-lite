@@ -18,7 +18,7 @@ interface IFixture {
 /**
  * @oopException 测试夹具工厂仅负责可复用的原生消息桩。
  */
-function createFixture(version = '3.8.7', nodes: readonly Record<string, unknown>[] = [{ uuid: 'node-a', path: '/Root/A' }]): IFixture {
+function createFixture(version = '3.8.7', nodes: readonly Record<string, unknown>[] = [{ uuid: 'node-a', path: 'Root/A' }]): IFixture {
     const runtime = new RuntimeFacade(version);
     const calls: string[] = [];
     let mode = false;
@@ -33,6 +33,15 @@ function createFixture(version = '3.8.7', nodes: readonly Record<string, unknown
             let result: unknown;
             if (name === 'query-is2D') result = mode;
             else if (name === 'query-is-grid-visible') result = grid;
+            else if (name === 'query-node-tree') result = {
+                uuid: { value: 'root' },
+                name: { value: 'Root' },
+                children: nodes.map((node) => ({
+                    uuid: { value: node.uuid },
+                    name: { value: typeof node.path === 'string' ? node.path.split('/').at(-1) : 'A' },
+                    children: [],
+                })),
+            };
             else if (name === 'change-is2D') { mode = args[0] === true; result = undefined; }
             else if (name === 'set-grid-visible') { if (failGrid) throw new Error('grid setter rejected'); grid = args[0] === true; result = undefined; }
             else if (name === 'focus-camera') { if (cameraMoves) camera.viewCenter.x = 5; result = undefined; }
@@ -101,21 +110,21 @@ test('setState reports a per-field partial failure without hiding the successful
 
 test('focusNodes resolves exact targets and calls camera focus without changing selection', async () => {
     const { gateway, calls } = createFixture();
-    const result = await gateway.focusNodes(['/Root/A']);
+    const result = await gateway.focusNodes(['Root/A']);
     assert.equal(result.status, 'verified');
     assert.ok(calls.includes('focus-camera'));
     assert.equal(calls.some((name) => name.includes('select')), false);
 });
 
 test('focus refuses ambiguous nodes and leaves void-only focus acceptance unverified', async () => {
-    const ambiguous = createFixture('3.8.7', [{ uuid: 'one', path: '/Root/A' }, { uuid: 'two', path: '/Root/A' }]);
-    const refused = await ambiguous.gateway.focusNodes(['/Root/A']);
+    const ambiguous = createFixture('3.8.7', [{ uuid: 'one', path: 'Root/A' }, { uuid: 'two', path: 'Root/A' }]);
+    const refused = await ambiguous.gateway.focusNodes(['Root/A']);
     assert.equal(refused.status, 'refused');
     assert.equal(ambiguous.calls.includes('focus-camera'), false);
 
     const unchanged = createFixture();
     unchanged.setCameraMovement(false);
-    const accepted = await unchanged.gateway.focusNodes(['/Root/A']);
+    const accepted = await unchanged.gateway.focusNodes(['Root/A']);
     assert.equal(accepted.status, 'accepted_unverified');
     assert.equal(accepted.ok, false);
 });

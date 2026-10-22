@@ -66,7 +66,6 @@ await build({
     format: 'cjs',
     platform: 'node',
     target: 'node14',
-    external: ['cc'],
     outfile: resolve(outputDirectory, 'dist/scene.js'),
     legalComments: 'none',
 });
