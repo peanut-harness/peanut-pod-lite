@@ -17,7 +17,7 @@ class CreatorViewportCameraQuery {
      * @description 返回经过字段筛选的 Creator 内部相机状态，供视口验证读取。
      * @returns 仅含有限数字的 JSON 相机快照。
      */
-    public async execute(): Promise<Record<string, unknown>> {
+    public execute(): Record<string, unknown> {
         const manager = globalThis.cce?.Camera;
         if (manager?.getCurCameraInfo == null) {
             throw new Error('creator_viewport_camera_unavailable');
