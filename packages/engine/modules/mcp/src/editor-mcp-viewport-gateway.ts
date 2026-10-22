@@ -232,7 +232,11 @@ export class EditorMcpViewportGateway {
         const scene = this._runtime.scene;
         if (scene == null) return { ok: false, failureCode: 'creator_scene_unavailable' };
         try {
-            const nodes = await scene.getHierarchy();
+            const snapshot = await scene.execute<unknown>('peanut-pod-lite-host', 'queryViewportHierarchy', []);
+            if (!Array.isArray(snapshot)) return { ok: false, failureCode: 'creator_hierarchy_response_invalid' };
+            const nodes = snapshot.filter((candidate): candidate is Record<string, unknown> =>
+                typeof candidate === 'object' && candidate != null && !Array.isArray(candidate),
+            );
             const uuids: string[] = [];
             for (const target of targets) {
                 const matches = nodes.filter((node) => node.uuid === target || node.id === target || node.path === target);

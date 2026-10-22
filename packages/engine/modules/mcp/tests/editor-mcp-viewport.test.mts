@@ -45,8 +45,9 @@ function createFixture(version = '3.8.7', nodes: readonly Record<string, unknown
     const scene = {
         getManifestField: () => 'contributions.scene.script' as const,
         getCurrent: async () => null,
-        getHierarchy: async () => nodes,
+        getHierarchy: async () => [],
         execute: async <TData = unknown>(_package: string, method: string): Promise<TData> => {
+            if (method === 'queryViewportHierarchy') return structuredClone(nodes) as TData;
             if (method !== 'queryViewportCamera') throw new Error('unexpected_scene_script_method');
             if (cameraQueryFailure != null) throw cameraQueryFailure;
             return structuredClone(camera) as TData;

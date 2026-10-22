@@ -5,6 +5,20 @@ interface ICreatorCameraNamespace {
     getCurCameraInfo?: () => unknown;
 }
 
+interface ICreatorSceneNode {
+    readonly uuid?: string;
+    readonly name?: string;
+    readonly active?: boolean;
+    readonly activeInHierarchy?: boolean;
+    readonly children?: readonly ICreatorSceneNode[];
+}
+
+interface ICreatorSceneNamespace {
+    readonly director?: { getScene?: () => ICreatorSceneNode | null };
+}
+
+declare const require: (moduleName: 'cc') => ICreatorSceneNamespace;
+
 declare global {
     var cce: { Camera?: ICreatorCameraNamespace } | undefined;
 }
@@ -34,6 +48,27 @@ class CreatorViewportCameraQuery {
             contentRect: this._readRect(record.contentRect),
             scale: this._readNumber(record.scale),
         };
+    }
+
+    /**
+     * @description 从 Creator 当前活动场景复制有界、JSON安全的节点路径快照。
+     * @returns 当前场景的深度优先节点列表。
+     */
+    public queryHierarchy(): readonly Record<string, unknown>[] {
+        const root = require('cc').director?.getScene?.();
+        if (root == null) throw new Error('creator_viewport_scene_unavailable');
+        const nodes: Record<string, unknown>[] = [];
+        const visit = (node: ICreatorSceneNode, parentPath: string): void => {
+            if (nodes.length >= 10000) throw new Error('creator_viewport_scene_too_large');
+            const name = typeof node.name === 'string' ? node.name : '';
+            const path = parentPath.length === 0 ? name : `${parentPath}/${name}`;
+            if (typeof node.uuid === 'string' && node.uuid.length > 0) {
+                nodes.push({ uuid: node.uuid, id: node.uuid, name, path, active: node.activeInHierarchy ?? node.active ?? true });
+            }
+            for (const child of node.children ?? []) visit(child, path);
+        };
+        visit(root, '');
+        return nodes;
     }
 
     /**
@@ -78,4 +113,5 @@ class CreatorViewportCameraQuery {
 const viewportCameraQuery = new CreatorViewportCameraQuery();
 export const methods = {
     queryViewportCamera: viewportCameraQuery.execute.bind(viewportCameraQuery),
+    queryViewportHierarchy: viewportCameraQuery.queryHierarchy.bind(viewportCameraQuery),
 };
