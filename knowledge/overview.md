@@ -46,3 +46,5 @@ Cocos Creator 编辑器产品。当前源码契约为 84 项免费操作（39 �
 根目录执行 `npm run verify` 和 `npm run pack`。旧 checkout 的 ignored 顶层生成物确认无源码后移出仓库，不放宽结构门禁。结构说明见 `docs/ARCHITECTURE.md`，产品契约见 Hub `contracts/pod-product.md`。
 
 2026-10-16：空模板修复0f8e3fd完整verify1256项及本地候选通过；原生验证工具正在迁移为设备登记与当前会话身份核对，拒绝旧owner工程和租约。Sorting2D新工程实机及其余5.1仍待完成。
+
+2026-10-22：Creator 3.8.3/3.8.7 新增有界 `diagnostics.queryLogs`（尾读、字面检索、上下文、增量游标；限制在当前工程日志）和 `viewport.queryState` / `focusNodes` / `setState`。视口写入要求本地精确授权并用 Creator 原生回读验证；聚焦解析当前场景节点且不改选区。两版实机切换/恢复与单/多节点聚焦通过，Creator 错误/警告增量为零，场景与 meta 摘要不变。详见 `docs/LOG-DIAGNOSTICS.md`、`docs/VIEWPORT-CONTROL.md` 与 OpenSpec 验收证据。
