@@ -251,3 +251,4 @@ export type {
 } from './plugin/plugin-package-operation-contracts.js';
 
 export type { IProjectLogQuery, IProjectLogQueryResult, IProjectLogLine, IProjectLogMatch, ProjectLogQueryMode } from './mcp/log-diagnostics-contracts.js';
+export type { IViewportCameraSnapshot, IViewportMutationResult, IViewportSetStateInput, IViewportState } from './mcp/viewport-contracts.js';

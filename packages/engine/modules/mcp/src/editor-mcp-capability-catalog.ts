@@ -30,6 +30,9 @@ export const EDITOR_MCP_CAPABILITY_SEEDS: readonly EditorMcpCapabilitySeed[] = [
         },
         requiresInput: true,
     },
+    { operation: 'viewport.queryState', readOnly: true, risk: 'read', description: { 'en-US': 'Read current Creator viewport mode, grid and camera state.', 'zh-CN': '读取Creator视口模式、网格和相机状态。' }, requiresInput: false },
+    { operation: 'viewport.focusNodes', readOnly: false, risk: 'write', description: { 'en-US': 'Focus the Creator camera on exact scene node UUIDs or paths; inspect camera readback status.', 'zh-CN': '将Creator相机聚焦到明确场景节点UUID或路径，并检查相机回读状态。' }, requiresInput: true },
+    { operation: 'viewport.setState', readOnly: false, risk: 'write', description: { 'en-US': 'Set Creator 2D mode and/or grid visibility with native readback.', 'zh-CN': '设置Creator 2D模式和/或网格可见性并回读验证。' }, requiresInput: true },
     {
         operation: 'editor.queryVersion',
         readOnly: true,

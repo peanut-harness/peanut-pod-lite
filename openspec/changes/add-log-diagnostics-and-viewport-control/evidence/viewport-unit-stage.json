@@ -1,0 +1,20 @@
+{
+  "stage": "viewport-unit-and-catalog-acceptance",
+  "status": "passed",
+  "checks": [
+    { "name": "queryState reads current mode, grid and camera", "result": "passed" },
+    { "name": "setState verifies mode and grid independently", "result": "passed" },
+    { "name": "partial field failure is preserved", "result": "passed" },
+    { "name": "focus resolves exact targets and does not modify selection", "result": "passed" },
+    { "name": "ambiguous targets are refused", "result": "passed" },
+    { "name": "void focus response without camera movement stays accepted_unverified", "result": "passed" },
+    { "name": "unsupported host version refuses viewport operations", "result": "passed" },
+    { "name": "Core and Editor MCP query schemas match", "result": "passed" },
+    { "name": "writes require local approval and use managed_task", "result": "passed" },
+    { "name": "88-operation catalog, 41 read / 47 write profile and version matrix", "result": "passed" }
+  ],
+  "testCommand": "npx tsx --test packages/engine/modules/mcp/tests/editor-mcp-log-diagnostics.test.mts packages/engine/modules/mcp/tests/editor-mcp-viewport.test.mts packages/engine/modules/policy/tests/core-cocos-mcp-operation-throughput-profile-catalog.test.mts packages/engine/modules/policy/tests/creator-38-migration-workstream-catalog.test.mts packages/engine/modules/policy/tests/creator-operation-availability-matrix.test.mts packages/engine/modules/policy/tests/editor-mcp-gateway-adapter.test.mts",
+  "testOutput": "/private/tmp/pod-viewport-unit-final.log",
+  "counts": { "tests": 20, "passed": 20, "failed": 0 },
+  "realCreatorAcceptance": "pending both Creator 3.8.3 and 3.8.7"
+}

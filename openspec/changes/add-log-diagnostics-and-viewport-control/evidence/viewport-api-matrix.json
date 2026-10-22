@@ -1,0 +1,51 @@
+{
+  "stage": "creator-api-probe",
+  "status": "passed",
+  "probeType": "installed Creator 3.8.3 and 3.8.7 package declarations and built-in scene declarations; no editor state changed",
+  "versions": {
+    "3.8.3": {
+      "publicMessages": {
+        "scene.query-is2D": "boolean",
+        "scene.change-is2D": "void(boolean)",
+        "scene.query-is-grid-visible": "boolean",
+        "scene.set-grid-visible": "void(boolean)",
+        "scene.focus-camera": "void(string[])",
+        "scene.execute-scene-script": "any({name, method, args})"
+      },
+      "cameraReadback": "cce.Camera.getCurCameraInfo(): EditorCameraInfo",
+      "cameraModeReadback": "cce.Camera.is2D: boolean",
+      "gridReadback": "cce.Camera.isGridVisible(): boolean",
+      "focusWrite": "cce.Camera.focus(nodes?: string[], editorCameraInfo?: EditorCameraInfo, immediate?: boolean): void"
+    },
+    "3.8.7": {
+      "publicMessages": {
+        "scene.query-is2D": "boolean",
+        "scene.change-is2D": "void(boolean)",
+        "scene.query-is-grid-visible": "boolean",
+        "scene.set-grid-visible": "void(boolean)",
+        "scene.focus-camera": "void(string[])",
+        "scene.execute-scene-script": "any({name, method, args})"
+      },
+      "cameraReadback": "cce.Camera.getCurCameraInfo(): EditorCameraInfo",
+      "cameraModeReadback": "cce.Camera.is2D: boolean",
+      "gridReadback": "cce.Camera.isGridVisible(): boolean",
+      "focusWrite": "cce.Camera.focus(nodes?: string[], editorCameraInfo?: EditorCameraInfo, immediate?: boolean): void"
+    }
+  },
+  "decisions": [
+    "Use official scene messages for mode, grid, and focus requests.",
+    "Use the already declared host scene-script bridge for camera information readback; return only JSON-safe camera data.",
+    "Gate camera readback and all viewport writes to the exact probed versions 3.8.3 and 3.8.7.",
+    "A void focus response is acceptance only; require a subsequent camera-info readback before reporting verified."
+  ],
+  "evidenceSources": [
+    "Creator app.asar builtin/scene/@types/message.d.ts",
+    "Creator app.asar builtin/scene/@types/public.d.ts EditorCameraInfo",
+    "Creator app.asar builtin/scene/@types/scene.d.ts internal cce.Camera declaration",
+    "Creator app.asar builtin/scene/@types/cce/3d/manager/camera/index.d.ts"
+  ],
+  "notes": [
+    "Creator's cce.Camera declaration is in scene.d.ts, explicitly marked as internal and not exposed externally; use it only inside the existing scene-script boundary and only for the exact probed Creator versions.",
+    "No viewport visibility or camera persistence setting is changed by these probes."
+  ]
+}

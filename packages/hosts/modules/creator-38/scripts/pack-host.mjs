@@ -60,7 +60,15 @@ assertCreator383BundleCompatibility(normalizedMain);
 if (normalizedMain !== bundledMain) {
     await writeFile(mainBundlePath, normalizedMain, 'utf8');
 }
-await writeFile(resolve(outputDirectory, 'dist/scene.js'), "'use strict';\nmodule.exports = {};\n", 'utf8');
+await build({
+    bundle: true,
+    entryPoints: [resolve(extensionRoot, 'src/scene.ts')],
+    format: 'cjs',
+    platform: 'node',
+    target: 'node14',
+    outfile: resolve(outputDirectory, 'dist/scene.js'),
+    legalComments: 'none',
+});
 await build({
     bundle: true,
     entryPoints: [resolve(extensionRoot, 'src/host-bootstrap.ts')],

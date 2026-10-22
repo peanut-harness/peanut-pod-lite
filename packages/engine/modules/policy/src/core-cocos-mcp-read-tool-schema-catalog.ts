@@ -79,6 +79,7 @@ export class CoreCocosMcpReadToolSchemaCatalog {
                 contextBefore: this.integer('前文行数，默认2、最大10。'),
                 contextAfter: this.integer('后文行数，默认2、最大10。'),
             }, ['mode']));
+        schemas.set('viewport.queryState', this.empty());
         schemas.set('editor.queryVersion', this.empty());
         schemas.set('editor.queryProject', this.empty());
         schemas.set('editor.querySelection', this.empty());

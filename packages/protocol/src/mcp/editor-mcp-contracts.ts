@@ -42,6 +42,7 @@ export class EditorMcpExecutionLaneResolver {
         }
         if (
             operation.startsWith('scene.') ||
+            operation.startsWith('viewport.') ||
             operation.startsWith('prefab.') ||
             operation.startsWith('editor.') ||
             operation === 'asset.open'
@@ -138,6 +139,9 @@ export type EditorMcpOperationId =
     | 'preview.query'
     | 'preview.refresh'
     | 'diagnostics.queryLogs'
+    | 'viewport.queryState'
+    | 'viewport.focusNodes'
+    | 'viewport.setState'
     | 'preview.queryErrors'
     | 'preview.capture'
     | 'builder.queryPlatforms'

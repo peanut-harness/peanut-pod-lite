@@ -558,7 +558,7 @@ test('Editor MCP plugin should list, plan, and execute supported operations', as
         input: {},
     });
 
-    assert.equal(capabilities.length, 85);
+    assert.equal(capabilities.length, 88);
     assert.equal(capabilityAlias.length, capabilities.length);
     const byOp = Object.fromEntries(capabilities.map((c) => [c.operation, c]));
     assert.equal(byOp['asset.replaceReferences'].lane, 'lumen-offline');

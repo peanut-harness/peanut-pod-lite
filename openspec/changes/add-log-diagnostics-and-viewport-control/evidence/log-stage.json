@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "status": "log-stage-accepted",
+  "creatorVersion": "3.8.7",
+  "artifactIdentity": {
+    "host": {
+      "id": "peanut-pod-lite-host",
+      "version": "0.2.0",
+      "mainDigest": "b9dce4c6a50c96bf91f84eeb5e77eb8a38969836674aca0416e489bf156e2f78",
+      "packageDigest": "c6b800c3d3f6eeef9f9c7b88b1392397527ba14c2542a000555eca6828da71e6"
+    },
+    "core": {
+      "id": "peanut.pod-lite",
+      "version": "0.2.0",
+      "packageDigest": "a05305c3a7e450ca726038f770ae555113d44eef40d9a05e503df725cf4a4fcd",
+      "packedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "pro": null
+  },
+  "checks": {
+    "catalogReadOnly": true,
+    "tail": true,
+    "literalSearch": true,
+    "rawContextMatches": true,
+    "delta": true,
+    "arbitraryPathRefused": true,
+    "noAcceptanceVerdict": true,
+    "responseBounded": true
+  },
+  "logSha256": "52d61e48d8007e49d608d836814cb88a42b416c07b631a72755a8b10943b8293",
+  "localPackageWarning": "package_signature_missing; local installation only, not public signed release",
+  "unitTests": 10,
+  "routerTests": 2,
+  "policyTests": 59,
+  "mcpRegressionGroups": [
+    134,
+    103
+  ],
+  "creatorPluginTests": 4,
+  "fullVerify": "initial runs exposed old catalog-count assertions; targeted fixes passed; full integration will rerun after viewport",
+  "rawEvidence": "retained under ignored evidence/log-diagnostics-20261022; no tokens copied"
+}

@@ -39,6 +39,8 @@ export class ProductLineMcpPolicy {
         'scene.save',
         'scene.reload',
         'scene.focusNode',
+        'viewport.focusNodes',
+        'viewport.setState',
         'scene.createNode',
         'prefab.createFromNode',
         'prefab.apply',

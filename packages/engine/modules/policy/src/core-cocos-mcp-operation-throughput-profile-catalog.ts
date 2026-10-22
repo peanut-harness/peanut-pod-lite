@@ -78,6 +78,7 @@ const readOverrides: Readonly<Record<CoreCocosMcpOperation, IReadOverrides>> = O
     'prefab.getInfo': { costClass: 'read_heavy', coalescing: 'project' },
     'preview.query': { costClass: 'read_light' },
     'diagnostics.queryLogs': { costClass: 'read_heavy', coalescing: 'none', cache: 'none' },
+    'viewport.queryState': { costClass: 'read_light', coalescing: 'none', cache: 'none' },
     'preview.queryErrors': { costClass: 'read_heavy' },
     'builder.queryPlatforms': { costClass: 'read_light', coalescing: 'project', cache: 'revision_lru', consistency: 'revision_validated' },
     'builder.querySchema': { costClass: 'read_light', coalescing: 'project', cache: 'revision_lru', consistency: 'revision_validated' },
@@ -117,7 +118,7 @@ const automaticBatchEligibleWrites = new Set<CoreCocosNativeWriteOperation>([
 ]);
 
 /**
- * @description 由 40 读与 45 写权威账本生成吞吐画像，并在构造时校验完整性。
+ * @description 由 41 读与 47 写权威账本生成吞吐画像，并在构造时校验完整性。
  * 默认值保持保守：读等待 writer、无缓存/合并；写不允许合批，只有显式 allow-list 才放宽。
  */
 export class CoreCocosMcpOperationThroughputProfileCatalog {
@@ -199,7 +200,7 @@ export class CoreCocosMcpOperationThroughputProfileCatalog {
                 throw new Error(`core_cocos_mcp_throughput_profile_missing:${operation}`);
             }
         }
-        if (profiles.length !== 85 || readCount !== 40 || writeCount !== 45) {
+        if (profiles.length !== 88 || readCount !== 41 || writeCount !== 47) {
             throw new Error(`core_cocos_mcp_throughput_profile_count_mismatch:${profiles.length}:${readCount}:${writeCount}`);
         }
     }

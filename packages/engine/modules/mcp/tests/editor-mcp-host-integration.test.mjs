@@ -12,7 +12,7 @@ import { McpTaskControl } from '../../kernel/dist/mcp/mcp-task-control.js';
 import { EditorMcpToolCatalog } from '../dist/editor-mcp-tool-catalog.js';
 import { createPluginModule, createEditorMcpExecuteOperation, EditorMcpActionRouter } from '../dist/index.js';
 
-test('Editor MCP plugin should expose 85 Lite operations without a Pro plugin', async () => {
+test('Editor MCP plugin should expose 88 Lite operations without a Pro plugin', async () => {
     const projectPath = mkdtempSync(join(tmpdir(), 'peanut-editor-mcp-managed-host-'));
     mkdirSync(join(projectPath, 'temp', 'logs'), { recursive: true });
     writeFileSync(join(projectPath, 'temp', 'logs', 'project.log'), '', 'utf8');
@@ -43,7 +43,7 @@ test('Editor MCP plugin should expose 85 Lite operations without a Pro plugin', 
 
     mcpCapabilityRegistry.setPluginExposure(pluginModule.manifest.id, 'all');
     const fullNames = mcpCapabilityRegistry.getCatalog().capabilities.map((capability) => capability.name);
-    assert.equal(fullNames.length, 85);
+    assert.equal(fullNames.length, 88);
     assert.equal(fullNames.includes('peanut.editor-mcp.asset-import'), true);
     assert.equal(fullNames.includes('peanut.editor-mcp.lumen-comp-set'), true);
     assert.equal(fullNames.includes('peanut.editor-mcp.lumen-node-rm'), true);

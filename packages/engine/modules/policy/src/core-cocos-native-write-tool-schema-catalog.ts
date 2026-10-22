@@ -38,6 +38,8 @@ export class CoreCocosNativeWriteToolSchemaCatalog {
         schemas.set('scene.save', this.object({ path: this.string('可选场景路径；省略时保存当前打开场景。'), ...control() }));
         schemas.set('scene.reload', this.object({ soft: this.boolean('是否软重载；默认 true。'), ...control() }));
         schemas.set('scene.focusNode', this.object({ path: this.string('节点路径或 uuid。'), ...control() }, ['path']));
+        schemas.set('viewport.focusNodes', this.object({ targets: this.stringArray('精确场景节点UUID或完整路径列表，最多32个。'), ...control() }, ['targets']));
+        schemas.set('viewport.setState', this.object({ is2D: this.boolean('可选2D模式。'), gridVisible: this.boolean('可选网格可见性。'), ...control() }));
         schemas.set('scene.createNode', this.object({ parentPath: this.string('父节点路径；省略时挂场景根。'), name: this.string('节点名。'), type: this.string('类型提示：empty / Camera / Light 等。'), ...control() }));
         schemas.set('prefab.createFromNode', this.object({ nodePath: this.string('源节点路径或 uuid。'), prefabPath: this.string('目标 Prefab db://assets/.../*.prefab。'), ...control() }, ['nodePath', 'prefabPath']));
         schemas.set('prefab.apply', this.object({ nodePath: this.string('实例根节点路径或 uuid。'), ...control() }, ['nodePath']));
