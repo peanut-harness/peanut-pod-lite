@@ -18,4 +18,4 @@
 
 ## 4. 集成与交付
 
-- [ ] 4.1 `[peanut-pod-lite] [paths: docs/**, README.md, openspec/changes/add-log-diagnostics-and-viewport-control/**] [depends: 3.3] [serial] [owner: coordinator] [requirements: log-diagnostics#Bounded project log observation, viewport-control#Authorized verified viewport mutation] [non-goals: 不发布正式版本]` 更新文档，运行联合流程、OpenSpec strict、npm run verify、npm run pack及知识同步，提交推送并回读目标SHA，保留未完成证据。；验收：执行本项所列测试/探测并保留退出码与结果，全部场景有证据才勾选。
+- [x] 4.1 `[peanut-pod-lite] [paths: docs/**, README.md, openspec/changes/add-log-diagnostics-and-viewport-control/**] [depends: 3.3] [serial] [owner: coordinator] [requirements: log-diagnostics#Bounded project log observation, viewport-control#Authorized verified viewport mutation] [non-goals: 不发布正式版本]` 更新文档，运行联合流程、OpenSpec strict、npm run verify、npm run pack及知识同步，提交推送并回读目标SHA，保留未完成证据。；验收：执行本项所列测试/探测并保留退出码与结果，全部场景有证据才勾选。定向集合21/21、联合集成/安全83/83、npm run verify通过（/private/tmp/pod-lite-verify-final-4.log）、npm run pack通过（/private/tmp/pod-lite-pack-final.log）、OpenSpec strict与Lite scoped RAG check-sync通过；初次推送已回读SHA 24b3d0e5c1090bc8569752964804f68526c5894e。
