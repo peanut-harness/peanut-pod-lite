@@ -118,8 +118,8 @@ export class EditorMcpViewportGateway {
                 const value = await this._readCamera();
                 camera = value;
                 fields.camera = { supported: true, available: true, failureCode: null };
-            } catch {
-                fields.camera = { supported: true, available: false, failureCode: 'creator_camera_query_failed' };
+            } catch (error) {
+                fields.camera = { supported: true, available: false, failureCode: this._cameraFailureCode(error) };
             }
         }
         return { creatorVersion, is2D, gridVisible, camera, fields };
@@ -201,6 +201,23 @@ export class EditorMcpViewportGateway {
             contentRect: this._rect(record.contentRect),
             scale: this._number(record.scale),
         };
+    }
+
+    /**
+     * @description 将场景脚本错误归一为有限的诊断代码，避免原始错误信息外泄。
+     */
+    private _cameraFailureCode(error: unknown): string {
+        const allowedCodes = new Set([
+            'creator_scene_unavailable',
+            'creator_viewport_camera_unavailable',
+            'creator_viewport_camera_info_invalid',
+            'creator_viewport_vector_invalid',
+            'creator_viewport_rect_invalid',
+            'creator_viewport_number_invalid',
+            'creator_camera_response_invalid',
+        ]);
+        const code = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+        return allowedCodes.has(code) ? code : 'creator_camera_query_failed';
     }
 
     /**

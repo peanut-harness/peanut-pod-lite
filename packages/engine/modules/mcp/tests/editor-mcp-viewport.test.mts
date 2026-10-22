@@ -11,6 +11,7 @@ interface IFixture {
     readonly gateway: EditorMcpViewportGateway;
     readonly calls: string[];
     readonly setCameraMovement: (enabled: boolean) => void;
+    readonly setCameraQueryFailure: (failure: Error | null) => void;
     readonly failGridSetter: (enabled: boolean) => void;
 }
 
@@ -23,6 +24,7 @@ function createFixture(version = '3.8.7', nodes: readonly Record<string, unknown
     let mode = false;
     let grid = true;
     let cameraMoves = true;
+    let cameraQueryFailure: Error | null = null;
     let failGrid = false;
     const camera = { position: { x: 0, y: 0, z: 10 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, viewCenter: { x: 0, y: 0, z: 0 }, contentRect: { x: 0, y: 0, width: 100, height: 100 }, scale: 1 };
     const message = {
@@ -46,6 +48,7 @@ function createFixture(version = '3.8.7', nodes: readonly Record<string, unknown
         getHierarchy: async () => nodes,
         execute: async <TData = unknown>(_package: string, method: string): Promise<TData> => {
             if (method !== 'queryViewportCamera') throw new Error('unexpected_scene_script_method');
+            if (cameraQueryFailure != null) throw cameraQueryFailure;
             return structuredClone(camera) as TData;
         },
     };
@@ -53,6 +56,7 @@ function createFixture(version = '3.8.7', nodes: readonly Record<string, unknown
         gateway: new EditorMcpViewportGateway({ version: runtime.version, message, scene }),
         calls,
         setCameraMovement: (enabled) => { cameraMoves = enabled; },
+        setCameraQueryFailure: (failure) => { cameraQueryFailure = failure; },
         failGridSetter: (enabled) => { failGrid = enabled; },
     };
 }
@@ -65,6 +69,14 @@ test('queryState reads current Creator mode, grid and scene-script camera snapsh
     assert.equal(result.gridVisible, true);
     assert.equal(result.camera?.viewCenter[0], 0);
     assert.equal(result.fields.camera?.available, true);
+});
+
+test('queryState preserves allowlisted camera diagnostic codes and hides unknown exception text', async () => {
+    const { gateway, setCameraQueryFailure } = createFixture();
+    setCameraQueryFailure(new Error('creator_viewport_camera_unavailable'));
+    assert.equal((await gateway.queryState()).fields.camera?.failureCode, 'creator_viewport_camera_unavailable');
+    setCameraQueryFailure(new Error('private environment detail'));
+    assert.equal((await gateway.queryState()).fields.camera?.failureCode, 'creator_camera_query_failed');
 });
 
 test('setState writes each field through official messages and verifies readback', async () => {
