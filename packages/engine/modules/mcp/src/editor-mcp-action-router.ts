@@ -1,3 +1,5 @@
+import { EditorMcpObservationGateway } from './editor-mcp-observation-gateway.js';
+import { EditorMcpViewportGateway } from './editor-mcp-viewport-gateway.js';
 import { EditorMcpTextWriteBatch } from './editor-mcp-text-write-batch.js';
 import type { IResourceOperationBatchContext } from './resource-operation-contracts.js';
 import { existsSync, realpathSync } from 'fs';
@@ -130,6 +132,13 @@ export class EditorMcpActionRouter {
     private readonly _textWriter: EditorMcpTextWriteGateway;
 
     /**
+     * @description 绑定当前工程的有界日志观测器。
+     */
+    private readonly _observation: EditorMcpObservationGateway;
+    /** @description Creator 原生视口状态与控制入口。
+     */
+    private readonly _viewport: EditorMcpViewportGateway;
+    /**
      * @description 创建一个新的 Editor MCP action router。
      * @param runtime 由插件宿主裁剪并可撤销的 runtime client 集合
      * @param catalogLookup 资产目录快查接口；测试可注入替代实现
@@ -163,6 +172,8 @@ export class EditorMcpActionRouter {
                 return null;
             }
         });
+        this._observation = new EditorMcpObservationGateway(this._preview, async () => this._requireProjectPath());
+        this._viewport = new EditorMcpViewportGateway(runtime);
         this._sceneGateway = new EditorMcpSceneGateway(runtime);
         this._lumen = lumenGateway ?? new EditorMcpLumenGateway(async () => this._requireProjectPath(), this._runtime.message ?? null, this._runtime.version.getCurrentVersion().raw);
         const assetDbTransaction = new EditorMcpAssetDbTransaction({
@@ -802,20 +813,14 @@ export class EditorMcpActionRouter {
                     data: await this._sceneGateway.getInfo(this._sceneGateway.readGetInfoInput(request.input)),
                 };
             case 'preview.query':
-                return {
-                    operation: request.operation,
-                    data: await this._preview.query(this._preview.readQueryInput(request.input)),
-                };
             case 'preview.refresh':
-                return {
-                    operation: request.operation,
-                    data: await this._preview.refresh(this._preview.readRefreshInput(request.input)),
-                };
             case 'preview.queryErrors':
-                return {
-                    operation: request.operation,
-                    data: await this._preview.queryErrors(this._preview.readErrorsInput(request.input)),
-                };
+            case 'diagnostics.queryLogs':
+                return { operation: request.operation, data: await this._observation.execute(request.operation, request.input) };
+            case 'viewport.queryState':
+            case 'viewport.focusNodes':
+            case 'viewport.setState':
+                return { operation: request.operation, data: await this._viewport.execute(request.operation, request.input) };
             case 'builder.queryPlatforms':
                 return {
                     operation: request.operation,
@@ -1000,15 +1005,10 @@ export class EditorMcpActionRouter {
         if (request.operation === 'asset.ensureSpriteFramesBatch') {
             this._silentAssets._readAssetEnsureSpriteFramesBatchInput(request.input);
         }
-        if (request.operation === 'preview.query') {
-            this._preview.readQueryInput(request.input);
+        if (request.operation.startsWith('preview.') || request.operation === 'diagnostics.queryLogs') {
+            this._observation.validate(request.operation, request.input);
         }
-        if (request.operation === 'preview.refresh') {
-            this._preview.readRefreshInput(request.input);
-        }
-        if (request.operation === 'preview.queryErrors') {
-            this._preview.readErrorsInput(request.input);
-        }
+        if (request.operation.startsWith('viewport.')) this._viewport.validate(request.operation, request.input);
         if (request.operation === 'builder.queryPlatforms') {
             this._builder.readPlatformsInput(request.input);
         }
@@ -1317,6 +1317,7 @@ export class EditorMcpActionRouter {
      * @description 判断当前操作所需的 runtime grant 是否可用。
      */
     private _isRuntimeGrantAvailable(operation: EditorMcpOperationId): boolean {
+        if (operation.startsWith('viewport.')) return this._viewport.isAvailable();
         switch (operation) {
             case 'editor.queryVersion':
                 return true;
@@ -1329,6 +1330,7 @@ export class EditorMcpActionRouter {
             case 'asset.queryInfo':
                 return this._runtime.assetRead != null;
             case 'asset.readText':
+            case 'diagnostics.queryLogs':
                 return this._runtime.projectRead != null;
             case 'asset.catalog.summary':
             case 'asset.catalog.lookup':

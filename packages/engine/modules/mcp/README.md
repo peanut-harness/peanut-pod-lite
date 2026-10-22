@@ -7,6 +7,7 @@
 - **进程内 action（`dispatchMcpAction`，测试/宿主内部用）：** `cocos.capabilities`、`cocos.plan`、`cocos.call`；兼容别名 `editor-mcp.capabilities.list`、`editor-mcp.plan`、`editor-mcp.execute`
 - **Hub MCP 工具（一级铺平）：** 每个 operation 一个带命名空间的一级工具 `peanut.editor-mcp.<op-kebab>`（如 `editor-query-version`、`asset-import`、`lumen-comp-set`、`lumen-node-rm`），各带精确 `inputSchema`；**不再有** `capabilities/plan/query/call` 通用入口，也不再把 operation 藏进 payload。MCP 客户端直接按工具名调用，输入即该 operation 的原始入参（写/删的 `confirmDestructive`、批准 `approvalToken` 一并放在该工具输入里）。
 - 操作：… **preview query/refresh/errors**、**queryCompatibleTypes**、builder、lumen、导入账本
+- **日志和视口：** `diagnostics.queryLogs` 有界查询当前工程日志；`viewport.queryState`、`viewport.focusNodes`、`viewport.setState` 读取/调整 Creator 3.8.3 或 3.8.7 的编辑器视口。相机回读、字段验证和审批边界见仓库 [`LOG-DIAGNOSTICS.md`](../../../../docs/LOG-DIAGNOSTICS.md) 与 [`VIEWPORT-CONTROL.md`](../../../../docs/VIEWPORT-CONTROL.md)。
 - **验收路径：** `validateRefs` → `preview.refresh` → `preview.queryErrors`
 
 `preview.query` 只读，不启动预览。`preview.refresh` 先检查当前 Creator 的实际预览连接；已有连接时只刷新。零连接时还须确认当前工程在 Creator 所选浏览器中的标签不存在，才请求一次打开。平台和 `program.browserV2` 按 Creator 的 local → global → default 优先级读取；只有未指定浏览器路径时才解析系统默认浏览器。macOS 检查只读取所选浏览器的标签，不枚举其它浏览器，也不激活或启动浏览器。窗口读取权限不足、配置未知、平台不支持或刷新中断线都保持未知，不盲目重开。并发请求串行，同一宿主会话的打开请求至多一次，失败也不自动重试。`refreshAssets:false` 仅控制 AssetDB 刷新，不是开窗开关。

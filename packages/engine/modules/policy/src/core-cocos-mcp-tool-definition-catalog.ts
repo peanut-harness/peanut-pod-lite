@@ -105,7 +105,7 @@ export class CoreCocosMcpToolDefinitionCatalog {
                 risk: capability.risk,
                 executionModel: 'managed_task',
                 requiresLocalApproval: true,
-                aiHandling: this.createAiHandling(false),
+                aiHandling: this.createAiHandling(false, capability.operation),
                 throughput: throughputProfiles.find(capability.operation) as ICoreCocosMcpOperationThroughputProfile,
             }));
         }
@@ -151,10 +151,16 @@ export class CoreCocosMcpToolDefinitionCatalog {
             schemaVersion: 1,
             successSignals: Object.freeze(
                 readOnly
-                    ? operation === 'asset.readText'
+                    ? operation === 'viewport.queryState'
+                        ? ['response.ok=true', 'result.fields.is2D.available=true', 'result.fields.gridVisible.available=true']
+                        : operation === 'diagnostics.queryLogs'
+                        ? ['response.ok=true', 'result.ok=true']
+                        : operation === 'asset.readText'
                         ? ['response.ok=true', 'result.ok=true', 'result.consistent=true', 'result.files[*].status=read']
                         : ['response.ok=true']
-                    : ['response.ok=true', 'result.taskStatus=succeeded', 'result.postflight.verified=true'],
+                    : operation === 'viewport.focusNodes' || operation === 'viewport.setState'
+                        ? ['response.ok=true', 'result.taskStatus=succeeded', 'result.postflight.verified=true', 'result.data.ok=true', 'result.data.status=verified', 'result.data.fields[*].verified=true']
+                        : ['response.ok=true', 'result.taskStatus=succeeded', 'result.postflight.verified=true'],
             ),
             failureField: 'failure',
             unknownStateAction: 'query_before_retry',

@@ -20,7 +20,7 @@ export interface ICreator38MigrationWorkstreamEntry {
 }
 
 /**
- * @description 将 84 项 Lite operation 划分为互不重叠的 Creator 3.8.7 验收工作流。
+ * @description 将 88 项 Lite operation 划分为互不重叠的 Creator 3.8.7 验收工作流。
  */
 export class Creator38MigrationWorkstreamCatalog {
     /**
@@ -59,13 +59,13 @@ export class Creator38MigrationWorkstreamCatalog {
      */
     private static classify(definition: ICoreCocosMcpToolDefinition): Creator38MigrationWorkstream {
         const { operation } = definition;
-        if (operation.startsWith('editor.') || operation.startsWith('scene.') || operation.startsWith('prefab.')) {
+        if (operation.startsWith('editor.') || operation.startsWith('scene.') || operation.startsWith('prefab.') || operation.startsWith('viewport.')) {
             return 'editor-scene-prefab';
         }
         if (operation.startsWith('asset.')) {
             return definition.readOnly ? 'asset-read' : 'asset-write';
         }
-        if (operation.startsWith('preview.') || operation.startsWith('builder.') || operation.startsWith('reference.')) {
+        if (operation.startsWith('diagnostics.') || operation.startsWith('preview.') || operation.startsWith('builder.') || operation.startsWith('reference.')) {
             return 'preview-builder-reference';
         }
         if (operation.startsWith('lumen.')) {

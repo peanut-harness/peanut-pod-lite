@@ -732,9 +732,9 @@ test('matrix: scene.open hard-blocks db:// args to open-scene', async () => {
 test('matrix: flat tools expose one tool per operation with correct readOnly/risk', async () => {
     const { definitions } = await activateRouter();
     const catalog = [...definitions.values()];
-    assert.equal(catalog.length, 84);
-    assert.equal(catalog.filter((definition) => definition.readOnly).length, 39);
-    assert.equal(catalog.filter((definition) => !definition.readOnly).length, 45);
+    assert.equal(catalog.length, 88);
+    assert.equal(catalog.filter((definition) => definition.readOnly).length, 41);
+    assert.equal(catalog.filter((definition) => !definition.readOnly).length, 47);
     const readText = definitions.get('peanut.editor-mcp.asset-read-text');
     assert.ok(readText);
     assert.equal(readText.readOnly, true);
@@ -787,7 +787,7 @@ test('matrix: flat tools expose one tool per operation with correct readOnly/ris
     assert.match(refresh.description['en-US'], /Never retry a write blindly/u);
     assert.deepEqual(version.aiHandling.successSignals, ['response.ok=true']);
     assert.equal(version.executionModel, undefined);
-    assert.equal(catalog.filter((definition) => definition.executionModel === 'managed_task').length, 45);
+    assert.equal(catalog.filter((definition) => definition.executionModel === 'managed_task').length, 47);
     assert.deepEqual(refresh.inputSchema.properties.execution.properties.mode.enum, ['sync', 'async']);
     const nodeRm = definitions.get('peanut.editor-mcp.lumen-node-rm');
     assert.ok(nodeRm, 'lumen-node-rm');

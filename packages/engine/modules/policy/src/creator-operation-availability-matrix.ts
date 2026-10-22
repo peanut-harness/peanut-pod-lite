@@ -29,7 +29,7 @@ export interface ICreatorOperationAvailabilityEntry {
  */
 export class CreatorOperationAvailabilityMatrix {
     /**
-     * @description 生成全部 84 项操作的状态。
+     * @description 生成全部 88 项操作的状态。
      * @param context 宿主解析后的可信 Creator 上下文
      * @returns 与公开目录一一对应的不可变矩阵
      */
@@ -37,13 +37,13 @@ export class CreatorOperationAvailabilityMatrix {
         const readEntries = CoreCocosMcpCapabilityCatalog.list().map((capability) =>
             Object.freeze({
                 operation: capability.operation,
-                availability: CreatorOperationAvailabilityMatrix._readAvailability(context),
+                availability: CreatorOperationAvailabilityMatrix._readAvailability(context, capability.operation),
             }),
         );
         const writeEntries = CoreCocosNativeWriteCapabilityCatalog.list().map((capability) =>
             Object.freeze({
                 operation: capability.operation,
-                availability: CreatorOperationAvailabilityMatrix._writeAvailability(context),
+                availability: CreatorOperationAvailabilityMatrix._writeAvailability(context, capability.operation),
             }),
         );
         return Object.freeze([...readEntries, ...writeEntries]);
@@ -54,7 +54,10 @@ export class CreatorOperationAvailabilityMatrix {
      * @param context Creator 上下文
      * @returns 可用或拒绝
      */
-    private static _readAvailability(context: ICreatorContext): CreatorOperationAvailability {
+    private static _readAvailability(context: ICreatorContext, operation: CoreCocosMcpPublicOperation): CreatorOperationAvailability {
+        if (operation.startsWith('viewport.') && !['3.8.3', '3.8.7'].includes(context.version.raw)) {
+            return 'refused';
+        }
         return context.support === 'unsupported' ? 'refused' : 'available';
     }
 
@@ -63,7 +66,10 @@ export class CreatorOperationAvailabilityMatrix {
      * @param context Creator 上下文
      * @returns 可写、只读降级或拒绝
      */
-    private static _writeAvailability(context: ICreatorContext): CreatorOperationAvailability {
+    private static _writeAvailability(context: ICreatorContext, operation: CoreCocosMcpPublicOperation): CreatorOperationAvailability {
+        if (operation.startsWith('viewport.') && !['3.8.3', '3.8.7'].includes(context.version.raw)) {
+            return 'refused';
+        }
         if (context.support === 'unsupported') {
             return 'refused';
         }

@@ -10,6 +10,7 @@ export type CoreCocosNativeWriteOperation =
     | 'asset.catalog.refresh' | 'asset.import' | 'asset.replaceReferences'
     | 'asset.open' | 'asset.copy' | 'asset.move' | 'asset.rename' | 'asset.createFolder' | 'asset.delete' | 'asset.reimport' | 'asset.writeText' | 'asset.ensureSpriteFramesBatch'
     | 'scene.restoreEditorResource' | 'scene.open' | 'scene.save' | 'scene.reload' | 'scene.focusNode' | 'scene.createNode'
+    | 'viewport.focusNodes' | 'viewport.setState'
     | 'prefab.createFromNode' | 'prefab.apply' | 'prefab.revert' | 'prefab.unpack' | 'prefab.unlink'
     | 'preview.refresh'
     | 'builder.build'
@@ -45,6 +46,7 @@ export class CoreCocosNativeWriteCapabilityCatalog {
         'asset.catalog.refresh', 'asset.import', 'asset.replaceReferences',
         'asset.open', 'asset.copy', 'asset.move', 'asset.rename', 'asset.createFolder', 'asset.delete', 'asset.reimport', 'asset.writeText', 'asset.ensureSpriteFramesBatch',
         'scene.restoreEditorResource', 'scene.open', 'scene.save', 'scene.reload', 'scene.focusNode', 'scene.createNode',
+        'viewport.focusNodes', 'viewport.setState',
         'prefab.createFromNode', 'prefab.apply', 'prefab.revert', 'prefab.unpack', 'prefab.unlink',
         'preview.refresh', 'builder.build',
         'lumen.scaffold', 'lumen.structure', 'lumen.nodeAdd', 'lumen.nodeRm', 'lumen.nodeRename', 'lumen.nodeReorder',
