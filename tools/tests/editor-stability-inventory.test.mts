@@ -109,7 +109,7 @@ test('product inventory expands nested fields and preserves all unverified nativ
     const repositoryRoot = resolve(import.meta.dirname, '../..');
     const inventory = CoverageInventoryReader.read({ repositoryRoot, creatorResourcesRoot: root, creatorVersion: '3.8.7' });
     assert.equal(inventory.targets.filter((target) => target.domain === 'asset').length, 40);
-    assert.equal(inventory.targets.filter((target) => target.id.startsWith('operation:')).length, 84);
+    assert.equal(inventory.targets.filter((target) => target.id.startsWith('operation:')).length, 85);
     assert.equal(inventory.targets.filter((target) => target.domain === 'importer').length, 2);
     assert.ok(inventory.targets.some((target) => target.id === 'field:component:cc.ParticleSystem:shapeModule:radius'));
     assert.ok(inventory.targets.some((target) => target.id === 'field:node:cc.Node:position'));
