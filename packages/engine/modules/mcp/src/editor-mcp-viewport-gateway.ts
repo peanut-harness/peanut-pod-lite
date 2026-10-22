@@ -192,7 +192,9 @@ export class EditorMcpViewportGateway {
         const scene = this._runtime.scene;
         if (scene == null) throw new Error('creator_scene_unavailable');
         const result = await scene.execute<unknown>('peanut-pod-lite-host', 'queryViewportCamera', []);
-        if (typeof result !== 'object' || result == null || Array.isArray(result)) throw new Error('creator_camera_response_invalid');
+        if (result == null) throw new Error('creator_camera_response_null');
+        if (Array.isArray(result)) throw new Error('creator_camera_response_array');
+        if (typeof result !== 'object') throw new Error('creator_camera_response_wrong_type');
         const record = result as Record<string, unknown>;
         return {
             position: this._vector3(record.position),
@@ -215,6 +217,9 @@ export class EditorMcpViewportGateway {
             'creator_viewport_rect_invalid',
             'creator_viewport_number_invalid',
             'creator_camera_response_invalid',
+            'creator_camera_response_null',
+            'creator_camera_response_array',
+            'creator_camera_response_wrong_type',
         ]);
         const code = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
         return allowedCodes.has(code) ? code : 'creator_camera_query_failed';
