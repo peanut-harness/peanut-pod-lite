@@ -76,4 +76,6 @@ class CreatorViewportCameraQuery {
 }
 
 const viewportCameraQuery = new CreatorViewportCameraQuery();
-export const queryViewportCamera = viewportCameraQuery.execute.bind(viewportCameraQuery);
+export const methods = {
+    queryViewportCamera: viewportCameraQuery.execute.bind(viewportCameraQuery),
+};
