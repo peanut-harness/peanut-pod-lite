@@ -1,0 +1,28 @@
+{
+  "creatorVersion": "3.8.7",
+  "origin": "本任务官方Creator项目设置功能裁剪默认配置，单项启用sorting-2d；取消额外动画实验选项提示",
+  "evidence": "evidence/task-5.1/native-presentation-387-20261015-e90fb77/sorting-module-ui-after.json",
+  "renderProof": "evidence/task-5.1/native-presentation-387-20261015-e90fb77/sorting2d-module-on-render-observation.json",
+  "sdkReference": "cc.config.json",
+  "sdkSha256": "05ae6308c4d94dc90a4b98f7504929e828539ff42f3c2b6ec3b066e033933655",
+  "globalConfigKey": "defaultConfig is the official engine package project-profile default, made explicit for isolation",
+  "officialReferences": [
+    "https://docs.cocos.com/creator/3.8/manual/zh/engine/rendering/sorting-2d.html",
+    "https://docs.cocos.com/creator/3.8/manual/zh/editor/extension/profile"
+  ],
+  "mcpExposureChanged": false,
+  "allEnabled": false,
+  "freshStageNativeValidationPending": true,
+  "effectiveProjectProfile": {
+    "evidence": "evidence/task-5.1/native-sorting-387-20261016-dde82cd/native-health-initial-profile-mismatch.json",
+    "diskProfileUnchanged": true,
+    "additionalGraphics": {
+      "pipeline": "custom-pipeline",
+      "custom-pipeline-post-process": false
+    },
+    "derivation": "由同一冻结配置的cache.render-pipeline._option与cache.custom-pipeline-post-process._value逐项推导；除此以外不接受任何新增、缺失或改变字段",
+    "nativeResourceTypesLoaded": 20,
+    "sortingLifecyclePassed": true,
+    "renderEvidencePending": true
+  }
+}

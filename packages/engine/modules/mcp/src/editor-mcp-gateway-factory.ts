@@ -1,3 +1,4 @@
+import { EditorMcpResourceFieldRefusal } from './editor-mcp-resource-field-refusal.js';
 import { EditorMcpTextWriteFailure } from './editor-mcp-text-write-failure.js';
 import type { EditorMcpOperationId, IEditorMcpActionResult, IMcpExecutionControl } from '@peanut/pod-protocol';
 import type { IGrantedRuntimeClientSet, IMcpCapabilityInvocation, IPluginManagedTaskApi } from '@peanut/pod-sdk';
@@ -86,6 +87,7 @@ export function createEditorMcpExecuteOperation(
         }
         const decoded = executionCodec.decode(rawInput);
         const plan = router.plan({ operation, input: decoded.input });
+        if (operation === 'lumen.assetSet' && managedTasks == null) throw new Error('resource_field_host_preparation_required');
         if (plan.readOnly || managedTasks == null) {
             const directResult = await router.dispatch('cocos.call', {
                 operation,
@@ -143,7 +145,7 @@ async function executeManaged(
     }
     const taskResult = await managedTasks.wait<Record<string, unknown>>(receipt.taskId);
     if (taskResult == null || !taskResult.ok || taskResult.status !== 'succeeded') {
-        throw EditorMcpTextWriteFailure.fromTaskResult(taskResult, receipt.taskId,
+        throw EditorMcpResourceFieldRefusal.fromTaskResult(taskResult, receipt.taskId) ?? EditorMcpTextWriteFailure.fromTaskResult(taskResult, receipt.taskId,
                 taskResult?.error?.code ?? 'editor_mcp_managed_task_failed');
     }
     const data = taskResult.data;

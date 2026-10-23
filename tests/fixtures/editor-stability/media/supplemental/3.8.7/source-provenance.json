@@ -1,0 +1,43 @@
+{
+  "creatorVersion": "3.8.7",
+  "appInfoPlistSha256": "faaa60eb411beff9d60ea4a41434aede13c2131486a6ec18885ff0ac84b10361",
+  "enginePackageSha256": "14f5c51d349123656acd76652a03468f754a76df12874e61b176b2d8419926cf",
+  "license": {
+    "path": "supplemental/3.8.7/CREATOR-ENGINE-LICENSE.md",
+    "sha256": "e8799a9198184e8cc31e45e66521b1cca52f9099a932de7a56abb9d212311318",
+    "spdx": "MIT"
+  },
+  "declarations": [
+    {
+      "kind": "spine",
+      "reference": "engine/cocos/spine/skeleton-data.ts",
+      "sha256": "94533df101117355a2cf0944268d0e44cf502f705036d9afcd5a1bb66d1885e3"
+    },
+    {
+      "kind": "dragonBones",
+      "reference": "engine/cocos/dragon-bones/DragonBonesAsset.ts",
+      "sha256": "63bfba9c7d1e9de76ca1bb1a6a6e2bb0d3bf7b5624b2c72500ace987dd29f67c"
+    },
+    {
+      "kind": "dragonBonesAtlas",
+      "reference": "engine/cocos/dragon-bones/DragonBonesAtlasAsset.ts",
+      "sha256": "d0c9c0cce610e969b549cb756ad0c47c26895e8f8671973925fd09537665d8eb"
+    },
+    {
+      "kind": "particle",
+      "reference": "engine/cocos/particle-2d/particle-system-2d.ts",
+      "sha256": "a61aba8aeba06de9064470728dac30d7ae1829341763b5048f30efd6f6db2cc4"
+    },
+    {
+      "kind": "labelAtlas",
+      "reference": "engine/editor/inspector/assets/label-atlas.js",
+      "sha256": "fd51f428f52f13ca3699dd06eae2fd7500965817a90d33c4424c9f578d60ee22"
+    },
+    {
+      "kind": "autoAtlas",
+      "reference": "engine/editor/inspector/assets/texture/auto-atlas.js",
+      "sha256": "69f5f11786e1a03e87a04d072641ada319d385f7108d76998506361e86adf77b"
+    }
+  ],
+  "assetInputSourcePolicy": "模板及 metadata bytes 为来源，不是 AssetDB 登记；原创输入源版本独立于 Creator 精确版本。"
+}

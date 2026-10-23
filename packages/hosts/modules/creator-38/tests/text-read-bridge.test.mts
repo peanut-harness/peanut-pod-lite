@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -49,6 +50,14 @@ test('actual Creator main, Core dispatcher and factory share Hub revision, prior
     const sourcePath = join(hostRoot, 'src/main.js');
     const sourceRequire = createRequire(sourcePath);
     const moduleBox: { exports: unknown } = { exports: {} };
+    const { HostStartupDiagnostics } = sourceRequire('./host-startup-diagnostics.ts');
+    let diagnosticsDone!: () => void; let diagnosticsFailed!: (error: unknown) => void;
+    const diagnostics = new Promise<void>((resolve, reject) => { diagnosticsDone = resolve; diagnosticsFailed = reject; });
+    const diagnosticFactory = { fromSdk: (_editor: unknown, options: { record: (state: string, detail?: unknown) => void; fail: (error: unknown) => void; run: () => Promise<unknown>; extensionPath: string }) => new HostStartupDiagnostics({ ...options,
+        events: new EventEmitter(), existingEnabled: { name: 'peanut-pod-lite-host', path: hostRoot },
+        messages: { addBroadcastListener() {}, removeBroadcastListener() {}, request: async () => true },
+        record: (state: string, detail: unknown) => { options.record(state, detail); if (state === 'complete') diagnosticsDone(); },
+        fail: (error: unknown) => { options.fail(error); diagnosticsFailed(error); } }) };
     const editor = {
         Project: { path: project, name: 'TextReadBridge' },
         App: { version: '3.8.7', safeStorage: {
@@ -62,7 +71,7 @@ test('actual Creator main, Core dispatcher and factory share Hub revision, prior
     };
     Reflect.set(globalThis, 'Editor', editor);
     runInNewContext(readFileSync(sourcePath, 'utf8'), {
-        require: (name: string): unknown => name === '@peanut/pod-hosts' ? { CreatorContextResolver } : name === './plugin-manager-shell' ? {
+        require: (name: string): unknown => name === './host-startup-diagnostics.ts' ? { HostStartupDiagnostics: diagnosticFactory } : name === '@peanut/pod-hosts' ? { CreatorContextResolver } : name === './plugin-manager-shell' ? {
             getPluginManagerKernel: () => manager, getPluginManagerMethods: () => ({}),
             loadPluginManagerShell: async () => {}, unloadPluginManagerShell: async () => {},
         } : sourceRequire(name),
@@ -134,7 +143,8 @@ test('actual Creator main, Core dispatcher and factory share Hub revision, prior
         }));
         writeFileSync(join(project, 'peanut-plugins/installed.json'), JSON.stringify({ schemaVersion: 2,
             plugins: [{ pluginId, activeVersion: '0.2.0', versions: [{ version: '0.2.0', installPath }] }] }));
-        await load();
+        await load({ extensionRoot: hostRoot });
+        await diagnostics;
         const coldSummary: unknown = await invoke('peanut.editor-mcp.asset-catalog-summary', {}, connection);
         assert.deepEqual(JSON.parse(JSON.stringify(coldSummary)), { available: false, availability: 'refused',
             code: 'asset_catalog_not_initialized', message: 'asset_catalog_not_initialized', recommendedAction: 'asset.catalog.refresh' });

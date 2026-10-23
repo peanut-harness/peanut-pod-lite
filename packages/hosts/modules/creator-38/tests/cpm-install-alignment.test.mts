@@ -33,7 +33,7 @@ test('packed Host loads a CPM-installed Core and reports artifacts matching the 
     await host.load();
     const indexedPluginIds = JSON.parse(readFileSync(join(projectRoot, 'peanut-plugins/installed.json'), 'utf8')).plugins.map((plugin) => plugin.pluginId);
     assert.deepEqual(indexedPluginIds, [coreId]);
-    const status = host.methods.queryStatus();
+    const status = await host.methods.queryStatus();
     assert.equal(status.ready, true, status.error);
     assert.equal(status.coreVersion, descriptor.version);
     assert.equal(status.pro.state, 'absent');
@@ -52,7 +52,7 @@ test('a failed optional Pro package stays isolated from the CPM-installed Core',
     await host.load();
     const indexedPluginIds = JSON.parse(readFileSync(join(projectRoot, 'peanut-plugins/installed.json'), 'utf8')).plugins.map((plugin) => plugin.pluginId);
     assert.deepEqual(indexedPluginIds, [coreId, proId]);
-    const status = host.methods.queryStatus();
+    const status = await host.methods.queryStatus();
     assert.equal(status.ready, true, status.error);
     assert.equal(status.pro.state, 'failed');
     assert.match(status.pro.error, /integrity_file_mismatch/u);
@@ -64,7 +64,7 @@ test('release identity comparison rejects mismatched Host or Core identities', a
     writeIndex([coreRecord()]);
     globalThis.Editor = createEditor(projectRoot);
     await host.load();
-    const { artifacts } = host.methods.queryStatus();
+    const { artifacts } = await host.methods.queryStatus();
     assert.deepEqual(compareReleaseIdentity(artifacts, { ...descriptor, version: '9.9.9' }), ['host.version', 'core.version']);
     assert.deepEqual(compareReleaseIdentity(artifacts, { ...descriptor, host: { ...descriptor.host, packageDigest: '0'.repeat(64) } }), ['host.packageDigest']);
     assert.deepEqual(compareReleaseIdentity(artifacts, { ...descriptor, core: { ...descriptor.core, packageDigest: '0'.repeat(64) } }), ['core.packageDigest']);
@@ -153,11 +153,17 @@ function createEditor(root) {
         encryptString: (value) => Buffer.from(`encrypted:${value}`, 'utf8'),
         decryptString: (value) => value.toString('utf8').slice('encrypted:'.length),
     };
+    const timerMap = new Map();
     return {
         Project: { path: root, name: 'cpm-alignment' },
         App: { version: '3.8.7', safeStorage },
+        Metrics: { trackTimeStart() {}, trackTimeEnd() {}, __protected__: { getTrackTimeStartMap: () => timerMap } },
         Selection: { getSelected: () => [] },
-        Message: { request: async () => ({}) },
+        Message: {
+            request: async (_target, method) => method === 'query-ready' ? true : ({}),
+            addBroadcastListener() {},
+            removeBroadcastListener() {},
+        },
         log: () => {},
         warn: () => {},
         error: () => {},

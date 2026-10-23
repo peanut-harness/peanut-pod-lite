@@ -48,12 +48,12 @@ async function handleRequest(context) {
     try {
         if (request.type === 'snowb-cpm:plugin-host-load') {
             const payload = readLoadRequest(request);
-            await messageApi.request(EXTENSION_NAME, 'load-plugin-into-host', payload);
+            await messageApi.request(context.hostExtensionName ?? EXTENSION_NAME, 'load-plugin-into-host', payload);
             return createResponse(request, true, payload);
         }
         if (request.type === 'snowb-cpm:plugin-host-close') {
             const payload = readSlotRequest(request);
-            await messageApi.request(EXTENSION_NAME, 'close-plugin-host', payload);
+            await messageApi.request(context.hostExtensionName ?? EXTENSION_NAME, 'close-plugin-host', payload);
             return createResponse(request, true, payload);
         }
         return createResponse(request, false, undefined, 'plugin_host_controller_request_unsupported');

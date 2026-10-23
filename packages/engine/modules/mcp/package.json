@@ -1,6 +1,6 @@
 {
     "name": "@peanut/pod-engine/mcp",
-    "description": "Editor MCP capability plugin for the 84 Lite operations and lumen asset source editing.",
+    "description": "Editor MCP capability plugin for the 88 Lite operations and lumen asset source editing.",
     "version": "0.1.116",
     "private": true,
     "type": "module",
@@ -22,7 +22,7 @@
         "build": "tsc -p tsconfig.json",
         "pack": "npm run build && node scripts/pack-plugin.mjs",
         "typecheck": "tsc -p tsconfig.json --noEmit",
-        "test": "npm run build && node --test tests/editor-mcp-plugin.test.mjs tests/editor-mcp-host-integration.test.mjs tests/editor-mcp-write-safety-matrix.test.mjs tests/editor-mcp-thin-layer-availability.test.mjs tests/editor-mcp-tableview-scaffold.test.mjs tests/editor-mcp-builder-gateway.test.mjs tests/editor-mcp-pink-p0-p3.test.mjs && tsx --test tests/editor-mcp-light-native-intensity.test.mts tests/resource-operation-task-executor.test.mts tests/editor-mcp-asset-db-transaction.test.mts tests/editor-mcp-text-read-gateway.test.mts tests/editor-mcp-text-write-gateway.test.mts && node scripts/lumen-ai-playbook.smoke.mjs tests/editor-mcp-text-write-outcome.test.mts",
+        "test": "npm run build && node --test tests/editor-mcp-plugin.test.mjs tests/editor-mcp-host-integration.test.mjs tests/editor-mcp-write-safety-matrix.test.mjs tests/editor-mcp-thin-layer-availability.test.mjs tests/editor-mcp-tableview-scaffold.test.mjs tests/editor-mcp-builder-gateway.test.mjs tests/editor-mcp-pink-p0-p3.test.mjs && tsx --test tests/editor-mcp-log-diagnostics.test.mts tests/editor-mcp-viewport.test.mts tests/editor-mcp-light-native-intensity.test.mts tests/resource-operation-task-executor.test.mts tests/editor-mcp-asset-db-transaction.test.mts tests/editor-mcp-text-read-gateway.test.mts tests/editor-mcp-text-write-gateway.test.mts tests/editor-mcp-resource-field-refusal.test.mts && node scripts/lumen-ai-playbook.smoke.mjs tests/editor-mcp-text-write-outcome.test.mts",
         "verify:mcp-safety": "node ../../../../scripts/verify-mcp-write-safety.mjs"
     },
     "devDependencies": {

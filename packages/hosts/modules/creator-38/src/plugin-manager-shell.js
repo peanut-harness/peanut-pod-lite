@@ -43,6 +43,7 @@ async function ensureLoaded(context, options = {}) {
             sceneScriptPackageName: EXTENSION_NAME,
             activateInstalledPackages: false,
             repairInstalledPackagesOnStartup: false,
+            nativeCapabilityRegistry: options.nativeCapabilityRegistry,
             readTrustedCatalog: options.readTrustedCatalog,
         });
         await pluginPanelActivator.load();

@@ -294,6 +294,14 @@ export class LumenTerrainDocument {
     }
 
     /**
+     * @description 序列化真实VERSION8二进制，由SDK create-asset分配原生meta。
+     * @returns 原始二进制Buffer，不转文本。
+     */
+    public serializeNativeSource(): Buffer {
+        return Buffer.from(LumenTerrainNativeCodec.encode(this._payload));
+    }
+
+    /**
      * @description 写回 VERSION8 原生 `.terrain` 与最小 meta。
      * @param projectRoot 项目根
      * @param writeMetaIfMissing 缺少 meta 时是否创建

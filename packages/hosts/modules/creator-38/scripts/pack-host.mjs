@@ -2,6 +2,7 @@ import { cp, copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
+import { NativeCapabilityRegistry } from '@peanut/pod-engine/kernel';
 
 import {
     assertCreator383BundleCompatibility,
@@ -32,6 +33,8 @@ await build({
         '@peanut/pod-hosts': resolve(repositoryRoot, 'packages/hosts/dist/index.js'),
         '@peanut/pod-engine/kernel': resolve(repositoryRoot, 'packages/engine/modules/kernel/dist/index.js'),
         '@peanut/pod-engine/runtime': resolve(repositoryRoot, 'packages/engine/modules/runtime/dist/index.js'),
+        '@peanut/pod-engine/mcp': resolve(repositoryRoot, 'packages/engine/modules/mcp/dist/index.js'),
+        '@peanut/pod-engine/lumen': resolve(repositoryRoot, 'packages/engine/modules/lumen/dist/index.js'),
         '@peanut/pod-engine/installation': resolve(repositoryRoot, 'packages/engine/modules/installation/dist/index.js'),
         '@peanut/pod-protocol': resolve(repositoryRoot, 'packages/protocol/dist/index.js'),
         '@peanut/pod-sdk': resolve(repositoryRoot, 'packages/sdk/dist/index.js'),
@@ -49,7 +52,7 @@ await build({
         },
     ],
     // Creator Electron provides electron; keep it external.
-    external: ['electron', 'canvas'],
+    external: ['electron', 'canvas', '@editor/package'],
 });
 const bundledMain = await readFile(mainBundlePath, 'utf8');
 const normalizedMain = stripNodeBuiltinProtocol(bundledMain);
@@ -57,7 +60,15 @@ assertCreator383BundleCompatibility(normalizedMain);
 if (normalizedMain !== bundledMain) {
     await writeFile(mainBundlePath, normalizedMain, 'utf8');
 }
-await writeFile(resolve(outputDirectory, 'dist/scene.js'), "'use strict';\nmodule.exports = {};\n", 'utf8');
+await build({
+    bundle: true,
+    entryPoints: [resolve(extensionRoot, 'src/scene.ts')],
+    format: 'cjs',
+    platform: 'node',
+    target: 'node14',
+    outfile: resolve(outputDirectory, 'dist/scene.js'),
+    legalComments: 'none',
+});
 await build({
     bundle: true,
     entryPoints: [resolve(extensionRoot, 'src/host-bootstrap.ts')],
@@ -67,9 +78,32 @@ await build({
     outfile: resolve(outputDirectory, 'dist/bootstrap.js'),
     legalComments: 'none',
 });
+for (const entry of ['sdk-startup-timer-worker']) {
+    const outfile = resolve(outputDirectory, 'dist', `${entry}.js`);
+    await build({ bundle: true, entryPoints: [resolve(extensionRoot, 'src', `${entry}.ts`)],
+        format: 'cjs', platform: 'node', target: 'node14', outfile, legalComments: 'none' });
+    const bytes = stripNodeBuiltinProtocol(await readFile(outfile, 'utf8'));
+    assertCreator383BundleCompatibility(bytes);
+    await writeFile(outfile, bytes, 'utf8');
+}
 await copyFile(resolve(extensionRoot, 'src/cpm-package-store.js'), resolve(outputDirectory, 'dist/cpm-package-store.js'));
 await cp(resolve(extensionRoot, 'package.json'), resolve(outputDirectory, 'package.json'));
+await cp(resolve(repositoryRoot, 'packages/engine/modules/lumen/bundled/schema'), resolve(outputDirectory, 'bundled/schema'), { recursive: true });
 await cp(resolve(extensionRoot, 'panel'), resolve(outputDirectory, 'panel'), { recursive: true });
+await build({
+    entryPoints: [resolve(extensionRoot, 'panel/plugin-workbench/index.cts')],
+    bundle: true,
+    format: 'cjs',
+    platform: 'node',
+    target: 'node14',
+    outfile: resolve(outputDirectory, 'panel/plugin-workbench/index.cjs'),
+});
+await rm(resolve(outputDirectory, 'panel/plugin-workbench/index.cts'));
+for (const slot of ['plugin-host-1', 'plugin-host-2', 'plugin-host-3']) {
+    await mkdir(resolve(outputDirectory, 'panel', slot), { recursive: true });
+    await writeFile(resolve(outputDirectory, 'panel', slot, 'index.cjs'), `module.exports = require('../plugin-workbench/index.cjs').createPanel('${slot}');\n`);
+}
+
 // Static Plugin Manager UI assets shared by the Creator host package.
 await cp(resolve(repositoryRoot, 'apps/panel/panels'), resolve(outputDirectory, 'panels'), { recursive: true });
 await writeFile(
@@ -77,6 +111,19 @@ await writeFile(
     '# Peanut Pod Lite Host\n\nInstall this extension before the Lite directory package.\n\n- Extension > Cocos Plugin Manager\n- Extension > Peanut Account\n',
     'utf8',
 );
+// 显式配置可选载荷；未配置时继续发布不含原生能力的 Lite Host。
+const nativeCapabilitySource = process.env.PEANUT_HOST_NATIVE_CAPABILITY_ROOT;
+if (nativeCapabilitySource != null) {
+    if (nativeCapabilitySource.trim().length === 0) throw new Error('host_native_capability_root_invalid');
+    const sourceRoot = resolve(nativeCapabilitySource);
+    const publicKey = await readFile(resolve(sourceRoot, 'public-key.pem'), 'utf8');
+    new NativeCapabilityRegistry(sourceRoot, publicKey).requireCanvas('^1.0.0');
+    const capabilityRoot = resolve(outputDirectory, 'native-capabilities');
+    const target = `${process.platform}-${process.arch}`;
+    await mkdir(resolve(capabilityRoot, 'canvas', '1.x'), { recursive: true });
+    await cp(resolve(sourceRoot, 'canvas', '1.x', target), resolve(capabilityRoot, 'canvas', '1.x', target), { recursive: true });
+    await copyFile(resolve(sourceRoot, 'public-key.pem'), resolve(capabilityRoot, 'public-key.pem'));
+}
 const releaseArtifacts = await buildLiteReleaseArtifacts(repositoryRoot);
 process.stdout.write(`${JSON.stringify({
     ok: true,

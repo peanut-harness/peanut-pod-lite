@@ -231,6 +231,14 @@ class HostUpdateCoordinator {
                 return [panelId, { ...panel, main: pathFromExtension }];
             }));
         }
+        const assetDb = manifest.contributions?.['asset-db'];
+        if (assetDb != null) {
+            if (assetDb.script !== './dist/sdk-startup-timer-worker.js') throw new Error('peanut_host_update_worker_script_invalid');
+            const worker = resolve(candidateRoot, assetDb.script);
+            if (!isContained(candidateRoot, worker) || !existsSync(worker)) throw new Error('peanut_host_update_worker_missing');
+            nextManifest.contributions = { ...manifest.contributions, 'asset-db': { ...assetDb,
+                script: relative(this.extensionRoot, worker).split(sep).join('/') } };
+        }
         return nextManifest;
     }
 

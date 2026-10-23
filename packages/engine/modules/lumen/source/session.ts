@@ -416,12 +416,12 @@ export class LumenSession {
     }
 
     /**
-     * @description 在内存中构造新的 Prefab / Scene 脚手架，不创建目录、主文件或 `.meta`。
+     * @description 在内存中构造固定独立资源脚手架，不创建目录、主文件或 `.meta`。
      * @param options 脚手架选项；目标必须尚不存在且不接受 reset。
      * @returns 可交给 AssetDB 创建屏障的规范化内容。
      */
     public serializeStandaloneScaffold(options: ILumenScaffoldPrefabOptions): Readonly<{
-        relativePath: string; kind: 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture'; content: string;
+        relativePath: string; kind: 'material' | 'animationClip' | 'physicsMaterial' | 'renderTexture' | 'animationGraph' | 'animationGraphVariant' | 'animationMask' | 'renderPipeline' | 'terrain'; content: string | Buffer;
     }> {
         const relativePath = normalize(options.prefabRelativePath).replace(/\\/g, '/');
         if (options.reset === true || existsSync(join(this._projectRoot, relativePath)) ||
@@ -433,7 +433,8 @@ export class LumenSession {
             throw new Error(`lumen_native_source_scaffold_unsupported:${relativePath}`);
         }
         if (document.kind !== 'material' && document.kind !== 'animationClip' &&
-            document.kind !== 'physicsMaterial' && document.kind !== 'renderTexture') {
+            document.kind !== 'physicsMaterial' && document.kind !== 'renderTexture' && document.kind !== 'animationGraph' &&
+            document.kind !== 'animationGraphVariant' && document.kind !== 'animationMask' && document.kind !== 'renderPipeline' && document.kind !== 'terrain') {
             throw new Error(`lumen_native_source_scaffold_unsupported:${relativePath}`);
         }
         const content = document.serializeNativeSource();

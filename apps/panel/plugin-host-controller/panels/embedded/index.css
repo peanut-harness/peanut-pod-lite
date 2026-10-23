@@ -1,72 +1,208 @@
 :root {
     color-scheme: dark;
-    font-family: system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
     background: #252525;
-    color: #ddd;
+    color: #dedede;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
 }
 
 body {
-    box-sizing: border-box;
-    max-width: 680px;
-    margin: 0 auto;
-    padding: 24px;
+    overflow: auto;
+    background: #252525;
+}
+
+.panel-shell {
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    gap: 12px;
+    width: 100%;
+    min-height: 100%;
+    padding: clamp(12px, 2vw, 24px);
+}
+
+.panel-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 0 0 12px;
+    border-bottom: 1px solid #414141;
+}
+
+.panel-mark {
+    display: grid;
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    border-radius: 5px;
+    background: #3a3a3a;
+    color: #c7dff5;
+    font-size: 15px;
+    font-weight: 700;
 }
 
 h1 {
-    margin: 0 0 8px;
-    font-size: 22px;
+    margin: 0;
+    color: #ededed;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.25;
 }
 
-p {
-    color: #aaa;
-    line-height: 1.6;
+.panel-heading p {
+    margin: 4px 0 0;
+    color: #a7a7a7;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.controller-card {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #454545;
+    border-radius: 5px;
+    background: #303030;
+}
+
+.controller-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
 }
 
 label {
-    display: block;
-    margin-top: 16px;
-    font-size: 13px;
+    display: grid;
+    min-width: 0;
+    gap: 6px;
+    color: #bcbcbc;
+    font-size: 12px;
 }
 
 input,
 select,
 button {
-    box-sizing: border-box;
     width: 100%;
-    margin-top: 6px;
-    border: 1px solid #555;
+    min-width: 0;
+    min-height: 34px;
+    border: 1px solid #565656;
     border-radius: 4px;
-    padding: 9px 10px;
-    background: #333;
-    color: #eee;
+    padding: 7px 9px;
+    background: #252525;
+    color: #e2e2e2;
     font: inherit;
+    font-size: 12px;
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+    outline: 2px solid #78a9d6;
+    outline-offset: 1px;
 }
 
 .actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
 }
 
 button {
+    width: auto;
     cursor: pointer;
-    background: #356a9a;
-    border-color: #4b84b8;
+    border-color: #606060;
+    background: #4a4a4a;
+    color: #f0f0f0;
+    font-weight: 600;
+}
+
+button:hover {
+    background: #555;
 }
 
 button.secondary {
-    background: #4a3a3a;
-    border-color: #805050;
+    background: #363636;
+    color: #d0d0d0;
+}
+
+button.secondary:hover {
+    background: #414141;
 }
 
 #status {
-    min-height: 22px;
-    margin-top: 18px;
-    color: #9d9;
+    align-self: start;
+    min-width: 0;
+    margin: 0;
+    padding: 9px 10px;
+    border-left: 2px solid #668cb0;
+    background: #2d2d2d;
+    color: #c4c4c4;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
     white-space: pre-wrap;
 }
 
 #status.error {
-    color: #e88;
+    border-color: #c86c6c;
+    color: #f0aaaa;
+}
+
+@media (max-width: 560px) {
+    .panel-shell {
+        gap: 9px;
+        padding: 10px;
+    }
+
+    .controller-card {
+        padding: 10px;
+    }
+
+    .controller-fields {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 9px;
+    }
+
+    .actions > button {
+        flex: 1 1 150px;
+    }
+}
+
+@media (max-height: 420px) {
+    .panel-shell {
+        grid-template-rows: auto auto auto;
+        gap: 8px;
+        padding-block: 8px;
+    }
+
+    .panel-heading {
+        padding-bottom: 8px;
+    }
+
+    .panel-heading p {
+        display: none;
+    }
+
+    .controller-card {
+        padding: 9px;
+    }
+
+    .actions {
+        margin-top: 8px;
+    }
 }

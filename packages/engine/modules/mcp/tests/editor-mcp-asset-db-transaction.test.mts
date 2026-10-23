@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -13,6 +13,105 @@ import {
     EditorMcpAssetDbCreationError,
 } from '../src/editor-mcp-asset-db-creation-coordinator.js';
 import { ResourceOperationClosureResolver } from '../src/resource-operation-closure-resolver.js';
+import { EditorMcpLumenGateway } from '../src/editor-mcp-lumen-gateway.js';
+import { EditorMcpActionRouter } from '../src/editor-mcp-action-router.js';
+import { EditorMcpLumenInputCodec } from '../src/editor-mcp-lumen-input-codec.js';
+
+test('Router requires exact verified creation target and type for all eleven native source kinds', () => {
+    const router = Object.assign(Object.create(EditorMcpActionRouter.prototype) as object, {
+        _runtime: { message: {} }, _lumenCreationCoordinationEnabled: true,
+    }) as { _readRequiredCreationEvidence(operation: string, input: Record<string, unknown>, data: unknown): unknown };
+    const types = { prefab: 'prefab', scene: 'scene', mtl: 'material', anim: 'animationClip', pmtl: 'physicsMaterial', rt: 'renderTexture',
+        animgraph: 'animationGraph', animgraphvari: 'animationGraphVariant', animask: 'animationMask', rpp: 'renderPipeline', terrain: 'terrain' };
+    for (const [extension, resourceType] of Object.entries(types)) {
+        const input = { assetRelativePath: `assets/Real.${extension}`, cocosVersion: '3.8.3' };
+        const creation = { phase: 'verified', targetDbPath: `db://${input.assetRelativePath}`, resourceType, uuid: 'actual-uuid',
+            metaPresent: true, parentRegistered: true, subAssetUuids: [], polls: 1, waitedMs: 5, cleanup: { complete: true }, projectState: 'changed' };
+        assert.deepEqual(router._readRequiredCreationEvidence('lumen.scaffold', input, { creation }), creation);
+        if (extension === 'prefab') {
+            for (const prefabPath of ['assets/Real.prefab', 'db://assets/Real.prefab']) {
+                assert.deepEqual(router._readRequiredCreationEvidence('prefab.createFromNode', { prefabPath }, { creation }), creation);
+            }
+        }
+        for (const alias of [`/assets/Real.${extension}`, `./assets/Real.${extension}`, `assets/./Real.${extension}`,
+            `db://assets/Real.${extension}`]) {
+            const aliased = { ...input, assetRelativePath: alias };
+            assert.ok(new EditorMcpLumenInputCodec().readScaffoldInput(aliased).prefabRelativePath.endsWith(`Real.${extension}`));
+            assert.deepEqual(router._readRequiredCreationEvidence('lumen.scaffold', aliased, { creation }), creation);
+            assert.throws(() => router._readRequiredCreationEvidence('lumen.scaffold', aliased, {
+                creation: { ...creation, targetDbPath: `db://assets/Other.${extension}` } }), /evidence_invalid/u);
+        }
+        assert.throws(() => router._readRequiredCreationEvidence('lumen.scaffold', input, {}), /evidence_missing/u);
+        for (const mismatch of [{ ...creation, targetDbPath: `db://assets/Other.${extension}` },
+            { ...creation, resourceType: resourceType === 'scene' ? 'prefab' : 'scene' }, { ...creation, phase: 'registered' }]) {
+            assert.throws(() => router._readRequiredCreationEvidence('lumen.scaffold', input, { creation: mismatch }), /evidence_invalid/u);
+        }
+    }
+});
+
+test('new graph, mask, pipeline and binary Terrain scaffolds publish through the verified SDK creation transaction', async () => {
+    for (const [kind, extension] of [['animationGraph', 'animgraph'], ['animationGraphVariant', 'animgraphvari'],
+        ['animationMask', 'animask'], ['renderPipeline', 'rpp'], ['terrain', 'terrain']] as const) {
+        const projectRoot = mkdtempSync(join(tmpdir(), 'native-source-gateway-')); const path = `assets/generated/Real.${extension}`;
+        mkdirSync(join(projectRoot, 'assets/generated'), { recursive: true });
+        const registrations = new Map<string, unknown>([['db://assets/generated', { uuid: 'parent-uuid', subAssets: {} }]]);
+        const uuid = '12345678-1234-4234-8234-123456789abc'; let publications = 0; let commits = 0;
+        const message: IEditorMcpAssetDbTransactionMessagePort = { request: async (_target, method, url, content) => {
+            if (method === 'query-ready') return true;
+            if (method === 'query-asset-info') return registrations.get(String(url)) ?? null;
+            if (method === 'create-asset') {
+                assert.equal(url, `db://${path}`); assert.equal(commits, 1);
+                assert.equal(existsSync(join(projectRoot, path)), false); assert.equal(existsSync(join(projectRoot, `${path}.meta`)), false);
+                if (kind === 'terrain') {
+                    assert.ok(Buffer.isBuffer(content)); assert.equal(content.readInt32LE(0), 0x01010008);
+                } else {
+                    assert.equal(typeof content, 'string'); const data = JSON.parse(String(content));
+                    assert.equal((Array.isArray(data) ? data[0] : data)._name, 'Real');
+                }
+                writeFileSync(join(projectRoot, path), content as string | Buffer);
+                writeFileSync(join(projectRoot, `${path}.meta`), JSON.stringify({ uuid, imported: true }));
+                registrations.set(String(url), { uuid, subAssets: {} }); publications += 1; return { uuid };
+            }
+            return null;
+        } };
+        const transaction = new EditorMcpAssetDbTransaction({ requireProjectPath: async () => projectRoot,
+            requireMessage: () => message, refreshForCommit: async () => null });
+        const coordinator = new EditorMcpAssetDbCreationCoordinator({ requireProjectPath: async () => projectRoot,
+            requireMessage: () => message, transaction });
+        const gateway = new EditorMcpLumenGateway(async () => projectRoot, message, '3.8.3'); gateway.configureCreationCoordinator(coordinator);
+        try {
+            const result = await gateway.execute('lumen.scaffold', { assetRelativePath: path, rootName: 'Real', template: 'empty', autoCommit: false },
+                { enterCommitWindow: () => { commits += 1; return true; } }) as { creation: { phase: string; resourceType: string; uuid: string } };
+            assert.equal(publications, 1); assert.equal(result.creation.phase, 'verified');
+            assert.equal(result.creation.resourceType, kind); assert.equal(result.creation.uuid, uuid);
+        } finally { rmSync(projectRoot, { recursive: true, force: true }); }
+    }
+});
+
+test('binary creation snapshots Buffer before its first await, preserving bytes while the caller mutates its input', async () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), 'native-binary-snapshot-')); mkdirSync(join(projectRoot, 'assets'));
+    const input = Buffer.from([8, 0, 1, 1, 0, 255]); const expected = Buffer.from(input); let registered = false;
+    const uuid = '12345678-1234-4234-8234-123456789abc';
+    const message: IEditorMcpAssetDbTransactionMessagePort = { request: async (_target, method, path, content) => {
+        if (method === 'query-ready') return true;
+        if (method === 'query-asset-info' && path === 'db://assets') return { uuid: 'root-uuid', subAssets: {} };
+        if (method === 'query-asset-info') return registered ? { uuid, subAssets: {} } : null;
+        if (method === 'create-asset') {
+            assert.equal(path, 'db://assets/Real.terrain'); assert.ok(Buffer.isBuffer(content)); assert.notEqual(content, input);
+            assert.deepEqual(content, expected); writeFileSync(join(projectRoot, 'assets/Real.terrain'), content);
+            writeFileSync(join(projectRoot, 'assets/Real.terrain.meta'), JSON.stringify({ uuid })); registered = true; return { uuid };
+        }
+        return null;
+    } };
+    const transaction = new EditorMcpAssetDbTransaction({ requireProjectPath: async () => projectRoot,
+        requireMessage: () => message, refreshForCommit: async () => null });
+    const coordinator = new EditorMcpAssetDbCreationCoordinator({ requireProjectPath: async () => { input.fill(42); return projectRoot; },
+        requireMessage: () => message, transaction });
+    try {
+        await coordinator.create({ targetPath: 'assets/Real.terrain', resourceType: 'terrain', content: input });
+        assert.deepEqual(readFileSync(join(projectRoot, 'assets/Real.terrain')), expected); assert.notDeepEqual(input, expected);
+    } finally { rmSync(projectRoot, { recursive: true, force: true }); }
+});
 
 test('AssetDB transaction waits for UUID, meta and sub-assets', async (): Promise<void> => {
     const projectRoot = mkdtempSync(join(tmpdir(), 'peanut-assetdb-transaction-'));

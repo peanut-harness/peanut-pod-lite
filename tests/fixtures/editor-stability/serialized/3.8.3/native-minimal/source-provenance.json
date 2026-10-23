@@ -1,0 +1,2484 @@
+{
+  "schemaVersion": 1,
+  "creatorVersion": "3.8.3",
+  "installationIdentity": {
+    "appVersion": "3.8.3",
+    "appInfoPlistSha256": "8b86235bc485bd5cc6c7836f8f084a72bcab96d8f5722c10e85d5517d4f5db41",
+    "engineVersion": "3.8.3",
+    "enginePackageSha256": "9f5d065eb57e69c9f62c805eecbb668d85c4416f372ecf75e3dc0d5a713b5d63"
+  },
+  "license": {
+    "spdx": "MIT",
+    "path": "tests/fixtures/editor-stability/serialized/3.8.3/native-minimal/CREATOR-ENGINE-LICENSE.md",
+    "sha256": "e8799a9198184e8cc31e45e66521b1cca52f9099a932de7a56abb9d212311318",
+    "sourceReference": "engine/LICENSE.md"
+  },
+  "nativeContracts": {
+    "animationClip": [
+      {
+        "reference": "engine/cocos/animation/animation-clip.ts",
+        "sha256": "020b432bbf600d5b31f8f96e3a64d6afcd941aa2e39b317b103cd206128f4cd9",
+        "excerpts": [
+          {
+            "line": 100,
+            "text": " */"
+          },
+          {
+            "line": 101,
+            "text": "@ccclass('cc.AnimationClip')"
+          },
+          {
+            "line": 102,
+            "text": "export class AnimationClip extends Asset {"
+          },
+          {
+            "line": 103,
+            "text": "    public static WrapMode = AnimationWrapMode;"
+          },
+          {
+            "line": 131,
+            "text": "     */"
+          },
+          {
+            "line": 132,
+            "text": "    @serializable"
+          },
+          {
+            "line": 133,
+            "text": "    public sample = 60;"
+          },
+          {
+            "line": 134,
+            "text": ""
+          },
+          {
+            "line": 138,
+            "text": "     */"
+          },
+          {
+            "line": 139,
+            "text": "    @serializable"
+          },
+          {
+            "line": 140,
+            "text": "    public speed = 1;"
+          },
+          {
+            "line": 141,
+            "text": ""
+          },
+          {
+            "line": 145,
+            "text": "     */"
+          },
+          {
+            "line": 146,
+            "text": "    @serializable"
+          },
+          {
+            "line": 147,
+            "text": "    public wrapMode = AnimationWrapMode.Normal;"
+          },
+          {
+            "line": 148,
+            "text": ""
+          },
+          {
+            "line": 153,
+            "text": "     */"
+          },
+          {
+            "line": 154,
+            "text": "    @serializable"
+          },
+          {
+            "line": 155,
+            "text": "    public enableTrsBlending = false;"
+          },
+          {
+            "line": 156,
+            "text": ""
+          },
+          {
+            "line": 760,
+            "text": ""
+          },
+          {
+            "line": 761,
+            "text": "    @serializable"
+          },
+          {
+            "line": 762,
+            "text": "    private _duration = 0;"
+          },
+          {
+            "line": 763,
+            "text": ""
+          },
+          {
+            "line": 764,
+            "text": "    @serializable"
+          },
+          {
+            "line": 765,
+            "text": "    private _hash = 0;"
+          },
+          {
+            "line": 766,
+            "text": ""
+          },
+          {
+            "line": 768,
+            "text": ""
+          },
+          {
+            "line": 769,
+            "text": "    @serializable"
+          },
+          {
+            "line": 770,
+            "text": "    private _tracks: Track[] = [];"
+          },
+          {
+            "line": 771,
+            "text": ""
+          },
+          {
+            "line": 772,
+            "text": "    @serializable"
+          },
+          {
+            "line": 773,
+            "text": "    private _exoticAnimation: ExoticAnimation | null = null;"
+          },
+          {
+            "line": 774,
+            "text": ""
+          },
+          {
+            "line": 778,
+            "text": ""
+          },
+          {
+            "line": 779,
+            "text": "    @serializable"
+          },
+          {
+            "line": 780,
+            "text": "    private _events: AnimationClip.IEvent[] = [];"
+          },
+          {
+            "line": 781,
+            "text": ""
+          },
+          {
+            "line": 782,
+            "text": "    @serializable"
+          },
+          {
+            "line": 783,
+            "text": "    private _embeddedPlayers: EmbeddedPlayer[] = [];"
+          },
+          {
+            "line": 784,
+            "text": ""
+          },
+          {
+            "line": 785,
+            "text": "    @serializable"
+          },
+          {
+            "line": 786,
+            "text": "    private _additiveSettings = new AdditiveSettings();"
+          },
+          {
+            "line": 787,
+            "text": ""
+          },
+          {
+            "line": 788,
+            "text": "    @serializable"
+          },
+          {
+            "line": 789,
+            "text": "    private _auxiliaryCurveEntries: AuxiliaryCurveEntry[] = [];"
+          },
+          {
+            "line": 790,
+            "text": ""
+          },
+          {
+            "line": 1020,
+            "text": ""
+          },
+          {
+            "line": 1021,
+            "text": "@ccclass('cc.AnimationClipAdditiveSettings')"
+          },
+          {
+            "line": 1022,
+            "text": "class AdditiveSettings {"
+          },
+          {
+            "line": 1023,
+            "text": "    @serializable"
+          },
+          {
+            "line": 1024,
+            "text": "    public enabled = false;"
+          },
+          {
+            "line": 1025,
+            "text": ""
+          },
+          {
+            "line": 1026,
+            "text": "    @serializable"
+          },
+          {
+            "line": 1027,
+            "text": "    public refClip: AnimationClip | null = null;"
+          },
+          {
+            "line": 1028,
+            "text": "}"
+          }
+        ]
+      }
+    ],
+    "animationGraph": [
+      {
+        "reference": "engine/cocos/animation/marionette/animation-graph.ts",
+        "sha256": "73e7d7119d3b9bc70be164670303d9af7f75cdee9bbd3136ec6ed98814a052c1",
+        "excerpts": [
+          {
+            "line": 35,
+            "text": "import { onAfterDeserializedTag } from '../../serialization/deserialize-symbols';"
+          },
+          {
+            "line": 36,
+            "text": "import { CLASS_NAME_PREFIX_ANIM } from '../define';"
+          },
+          {
+            "line": 37,
+            "text": "import { AnimationGraphLike } from './animation-graph-like';"
+          },
+          {
+            "line": 38,
+            "text": "import { createInstanceofProxy, renameObjectProperty } from '../../core/utils/internal';"
+          },
+          {
+            "line": 44,
+            "text": ""
+          },
+          {
+            "line": 45,
+            "text": "@ccclass(`${CLASS_NAME_PREFIX_ANIM}Transition`)"
+          },
+          {
+            "line": 46,
+            "text": "class Transition extends EditorExtendable implements OwnedBy<StateMachine>, Transition {"
+          },
+          {
+            "line": 47,
+            "text": "    declare [ownerSymbol]: StateMachine | undefined;"
+          },
+          {
+            "line": 51,
+            "text": "     */"
+          },
+          {
+            "line": 52,
+            "text": "    @serializable"
+          },
+          {
+            "line": 53,
+            "text": "    public from: State;"
+          },
+          {
+            "line": 54,
+            "text": ""
+          },
+          {
+            "line": 57,
+            "text": "     */"
+          },
+          {
+            "line": 58,
+            "text": "    @serializable"
+          },
+          {
+            "line": 59,
+            "text": "    public to: State;"
+          },
+          {
+            "line": 60,
+            "text": ""
+          },
+          {
+            "line": 63,
+            "text": "     */"
+          },
+          {
+            "line": 64,
+            "text": "    @serializable"
+          },
+          {
+            "line": 65,
+            "text": "    public conditions: Condition[] = [];"
+          },
+          {
+            "line": 66,
+            "text": ""
+          },
+          {
+            "line": 91,
+            "text": ""
+          },
+          {
+            "line": 92,
+            "text": "@ccclass(`${CLASS_NAME_PREFIX_ANIM}DurationalTransition`)"
+          },
+          {
+            "line": 93,
+            "text": "class DurationalTransition extends Transition {"
+          },
+          {
+            "line": 94,
+            "text": "    /**"
+          },
+          {
+            "line": 100,
+            "text": "     */"
+          },
+          {
+            "line": 101,
+            "text": "    @serializable"
+          },
+          {
+            "line": 102,
+            "text": "    public destinationStart = 0.0;"
+          },
+          {
+            "line": 103,
+            "text": ""
+          },
+          {
+            "line": 107,
+            "text": "     */"
+          },
+          {
+            "line": 108,
+            "text": "    @serializable"
+          },
+          {
+            "line": 109,
+            "text": "    public relativeDestinationStart = false;"
+          },
+          {
+            "line": 110,
+            "text": ""
+          },
+          {
+            "line": 114,
+            "text": "     */"
+          },
+          {
+            "line": 115,
+            "text": "    @serializable"
+          },
+          {
+            "line": 116,
+            "text": "    @editable"
+          },
+          {
+            "line": 117,
+            "text": "    public startEventBinding = new AnimationGraphEventBinding();"
+          },
+          {
+            "line": 122,
+            "text": "     */"
+          },
+          {
+            "line": 123,
+            "text": "    @serializable"
+          },
+          {
+            "line": 124,
+            "text": "    @editable"
+          },
+          {
+            "line": 125,
+            "text": "    public endEventBinding = new AnimationGraphEventBinding();"
+          },
+          {
+            "line": 137,
+            "text": ""
+          },
+          {
+            "line": 138,
+            "text": "@ccclass(`${CLASS_NAME_PREFIX_ANIM}AnimationTransition`)"
+          },
+          {
+            "line": 139,
+            "text": "class AnimationTransition extends DurationalTransition {"
+          },
+          {
+            "line": 140,
+            "text": "    /**"
+          },
+          {
+            "line": 144,
+            "text": "     */"
+          },
+          {
+            "line": 145,
+            "text": "    @serializable"
+          },
+          {
+            "line": 146,
+            "text": "    public duration = 0.3;"
+          },
+          {
+            "line": 147,
+            "text": ""
+          },
+          {
+            "line": 150,
+            "text": "     */"
+          },
+          {
+            "line": 151,
+            "text": "    @serializable"
+          },
+          {
+            "line": 152,
+            "text": "    public relativeDuration = false;"
+          },
+          {
+            "line": 153,
+            "text": ""
+          },
+          {
+            "line": 154,
+            "text": "    @serializable"
+          },
+          {
+            "line": 155,
+            "text": "    public exitConditionEnabled = true;"
+          },
+          {
+            "line": 156,
+            "text": ""
+          },
+          {
+            "line": 173,
+            "text": ""
+          },
+          {
+            "line": 174,
+            "text": "    @serializable"
+          },
+          {
+            "line": 175,
+            "text": "    private _exitCondition = 1.0;"
+          },
+          {
+            "line": 176,
+            "text": "}"
+          },
+          {
+            "line": 188,
+            "text": ""
+          },
+          {
+            "line": 189,
+            "text": "@ccclass(`${CLASS_NAME_PREFIX_ANIM}EmptyState`)"
+          },
+          {
+            "line": 190,
+            "text": "export class EmptyState extends State {"
+          },
+          {
+            "line": 191,
+            "text": "    public declare __brand: 'EmptyState';"
+          },
+          {
+            "line": 193,
+            "text": ""
+          },
+          {
+            "line": 194,
+            "text": "@ccclass(`${CLASS_NAME_PREFIX_ANIM}EmptyStateTransition`)"
+          },
+          {
+            "line": 195,
+            "text": "export class EmptyStateTransition extends DurationalTransition {"
+          },
+          {
+            "line": 196,
+            "text": "    /**"
+          },
+          {
+            "line": 198,
+            "text": "     */"
+          },
+          {
+            "line": 199,
+            "text": "    @serializable"
+          },
+          {
+            "line": 200,
+            "text": "    public duration = 0.3;"
+          },
+          {
+            "line": 201,
+            "text": ""
+          },
+          {
+            "line": 207,
+            "text": ""
+          },
+          {
+            "line": 208,
+            "text": "@ccclass(`${CLASS_NAME_PREFIX_ANIM}ProceduralPoseState`)"
+          },
+          {
+            "line": 209,
+            "text": "class ProceduralPoseState extends State {"
+          },
+          {
+            "line": 210,
+            "text": "    @serializable"
+          },
+          {
+            "line": 211,
+            "text": "    public graph = new PoseGraph();"
+          },
+          {
+            "line": 212,
+            "text": ""
+          },
+          {
+            "line": 217,
+            "text": "     */"
+          },
+          {
+            "line": 218,
+            "text": "    @serializable"
+          },
+          {
+            "line": 219,
+            "text": "    @editable"
+          },
+          {
+            "line": 220,
+            "text": "    public transitionInEventBinding = new AnimationGraphEventBinding();"
+          },
+          {
+            "line": 226,
+            "text": "     */"
+          },
+          {
+            "line": 227,
+            "text": "    @serializable"
+          },
+          {
+            "line": 228,
+            "text": "    @editable"
+          },
+          {
+            "line": 229,
+            "text": "    public transitionOutEventBinding = new AnimationGraphEventBinding();"
+          },
+          {
+            "line": 252,
+            "text": ""
+          },
+          {
+            "line": 253,
+            "text": "@ccclass(`${CLASS_NAME_PREFIX_ANIM}ProceduralPoseTransition`)"
+          },
+          {
+            "line": 254,
+            "text": "class ProceduralPoseTransition extends DurationalTransition {"
+          },
+          {
+            "line": 255,
+            "text": "    /**"
+          },
+          {
+            "line": 257,
+            "text": "     */"
+          },
+          {
+            "line": 258,
+            "text": "    @serializable"
+          },
+          {
+            "line": 259,
+            "text": "    public duration = 0.3;"
+          },
+          {
+            "line": 260,
+            "text": ""
+          },
+          {
+            "line": 272,
+            "text": ""
+          },
+          {
+            "line": 273,
+            "text": "@ccclass('cc.animation.StateMachine')"
+          },
+          {
+            "line": 274,
+            "text": "export class StateMachine extends EditorExtendable {"
+          },
+          {
+            "line": 275,
+            "text": "    @serializable"
+          },
+          {
+            "line": 276,
+            "text": "    private _states: State[] = [];"
+          },
+          {
+            "line": 277,
+            "text": ""
+          },
+          {
+            "line": 278,
+            "text": "    @serializable"
+          },
+          {
+            "line": 279,
+            "text": "    private _transitions: Transition[] = [];"
+          },
+          {
+            "line": 280,
+            "text": ""
+          },
+          {
+            "line": 281,
+            "text": "    @serializable"
+          },
+          {
+            "line": 282,
+            "text": "    private _entryState: State;"
+          },
+          {
+            "line": 283,
+            "text": ""
+          },
+          {
+            "line": 284,
+            "text": "    @serializable"
+          },
+          {
+            "line": 285,
+            "text": "    private _exitState: State;"
+          },
+          {
+            "line": 286,
+            "text": ""
+          },
+          {
+            "line": 287,
+            "text": "    @serializable"
+          },
+          {
+            "line": 288,
+            "text": "    private _anyState: State;"
+          },
+          {
+            "line": 289,
+            "text": ""
+          },
+          {
+            "line": 764,
+            "text": ""
+          },
+          {
+            "line": 765,
+            "text": "@ccclass('cc.animation.SubStateMachine')"
+          },
+          {
+            "line": 766,
+            "text": "export class SubStateMachine extends InteractiveState {"
+          },
+          {
+            "line": 767,
+            "text": "    constructor (allowEmptyStates?: boolean) {"
+          },
+          {
+            "line": 780,
+            "text": ""
+          },
+          {
+            "line": 781,
+            "text": "    @serializable"
+          },
+          {
+            "line": 782,
+            "text": "    private _stateMachine: StateMachine;"
+          },
+          {
+            "line": 783,
+            "text": "}"
+          },
+          {
+            "line": 784,
+            "text": ""
+          },
+          {
+            "line": 785,
+            "text": "@ccclass(`${CLASS_NAME_PREFIX_ANIM}PoseGraphStash`)"
+          },
+          {
+            "line": 786,
+            "text": "class PoseGraphStash extends EditorExtendable {"
+          },
+          {
+            "line": 787,
+            "text": "    @serializable"
+          },
+          {
+            "line": 788,
+            "text": "    public graph = new PoseGraph();"
+          },
+          {
+            "line": 789,
+            "text": "}"
+          },
+          {
+            "line": 792,
+            "text": ""
+          },
+          {
+            "line": 793,
+            "text": "@ccclass('cc.animation.Layer')"
+          },
+          {
+            "line": 794,
+            "text": "export class Layer implements OwnedBy<AnimationGraph> {"
+          },
+          {
+            "line": 795,
+            "text": "    [ownerSymbol]: AnimationGraph | undefined;"
+          },
+          {
+            "line": 796,
+            "text": ""
+          },
+          {
+            "line": 797,
+            "text": "    @serializable"
+          },
+          {
+            "line": 798,
+            "text": "    private _stateMachine: StateMachine;"
+          },
+          {
+            "line": 799,
+            "text": ""
+          },
+          {
+            "line": 800,
+            "text": "    @serializable"
+          },
+          {
+            "line": 801,
+            "text": "    public name = '';"
+          },
+          {
+            "line": 802,
+            "text": ""
+          },
+          {
+            "line": 803,
+            "text": "    @serializable"
+          },
+          {
+            "line": 804,
+            "text": "    public weight = 1.0;"
+          },
+          {
+            "line": 805,
+            "text": ""
+          },
+          {
+            "line": 806,
+            "text": "    @serializable"
+          },
+          {
+            "line": 807,
+            "text": "    public mask: AnimationMask | null = null;"
+          },
+          {
+            "line": 808,
+            "text": ""
+          },
+          {
+            "line": 809,
+            "text": "    @serializable"
+          },
+          {
+            "line": 810,
+            "text": "    public additive = false;"
+          },
+          {
+            "line": 811,
+            "text": ""
+          },
+          {
+            "line": 855,
+            "text": ""
+          },
+          {
+            "line": 856,
+            "text": "    @serializable"
+          },
+          {
+            "line": 857,
+            "text": "    private _stashes: Record<string, PoseGraphStash> = {};"
+          },
+          {
+            "line": 858,
+            "text": "}"
+          },
+          {
+            "line": 877,
+            "text": ""
+          },
+          {
+            "line": 878,
+            "text": "@ccclass('cc.animation.AnimationGraph')"
+          },
+          {
+            "line": 879,
+            "text": "export class AnimationGraph extends AnimationGraphLike implements AnimationGraphRunTime {"
+          },
+          {
+            "line": 880,
+            "text": "    public declare readonly __brand: 'AnimationGraph';"
+          },
+          {
+            "line": 881,
+            "text": ""
+          },
+          {
+            "line": 882,
+            "text": "    @serializable"
+          },
+          {
+            "line": 883,
+            "text": "    private _layers: Layer[] = [];"
+          },
+          {
+            "line": 884,
+            "text": ""
+          },
+          {
+            "line": 885,
+            "text": "    @serializable"
+          },
+          {
+            "line": 886,
+            "text": "    private _variables: Record<string, VariableDescription> = {};"
+          },
+          {
+            "line": 887,
+            "text": ""
+          }
+        ]
+      },
+      {
+        "reference": "engine/cocos/animation/marionette/state-machine/state.ts",
+        "sha256": "f55ddd508d556221ce979039fa99a0a153a6d853c7bab16dce026928d9c4261b",
+        "excerpts": [
+          {
+            "line": 27,
+            "text": "import { EditorExtendable, js, editorExtrasTag, _decorator } from '../../../core';"
+          },
+          {
+            "line": 28,
+            "text": "import { CLASS_NAME_PREFIX_ANIM } from '../../define';"
+          },
+          {
+            "line": 29,
+            "text": "import { StateMachineComponent } from './state-machine-component';"
+          },
+          {
+            "line": 30,
+            "text": "import { instantiate } from '../../../serialization/instantiate';"
+          },
+          {
+            "line": 38,
+            "text": ""
+          },
+          {
+            "line": 39,
+            "text": "@ccclass('cc.animation.State')"
+          },
+          {
+            "line": 40,
+            "text": "export class State extends EditorExtendable implements OwnedBy<Layer | StateMachine> {"
+          },
+          {
+            "line": 41,
+            "text": "    declare [ownerSymbol]: StateMachine | undefined;"
+          },
+          {
+            "line": 42,
+            "text": ""
+          },
+          {
+            "line": 43,
+            "text": "    @serializable"
+          },
+          {
+            "line": 44,
+            "text": "    public name = '';"
+          },
+          {
+            "line": 45,
+            "text": ""
+          },
+          {
+            "line": 61,
+            "text": ""
+          },
+          {
+            "line": 62,
+            "text": "@ccclass(`${CLASS_NAME_PREFIX_ANIM}InteractiveState`)"
+          },
+          {
+            "line": 63,
+            "text": "export class InteractiveState extends State {"
+          },
+          {
+            "line": 64,
+            "text": "    get components (): Iterable<StateMachineComponent> {"
+          },
+          {
+            "line": 90,
+            "text": ""
+          },
+          {
+            "line": 91,
+            "text": "    @serializable"
+          },
+          {
+            "line": 92,
+            "text": "    private _components: StateMachineComponent[] = [];"
+          },
+          {
+            "line": 93,
+            "text": "}"
+          }
+        ]
+      }
+    ],
+    "animationGraphVariant": [
+      {
+        "reference": "engine/cocos/animation/marionette/animation-graph-variant.ts",
+        "sha256": "8b9e9588936fac51a328922e710454751e2dc31d2d07e8fdbd1bb08160a3f7bb",
+        "excerpts": [
+          {
+            "line": 27,
+            "text": "import { AnimationClip } from '../animation-clip';"
+          },
+          {
+            "line": 28,
+            "text": "import { CLASS_NAME_PREFIX_ANIM } from '../define';"
+          },
+          {
+            "line": 29,
+            "text": "import { AnimationGraph } from './animation-graph';"
+          },
+          {
+            "line": 30,
+            "text": "import { AnimationGraphLike } from './animation-graph-like';"
+          },
+          {
+            "line": 45,
+            "text": ""
+          },
+          {
+            "line": 46,
+            "text": "@ccclass(`${CLASS_NAME_PREFIX_ANIM}ClipOverrideEntry`)"
+          },
+          {
+            "line": 47,
+            "text": "class ClipOverrideEntry {"
+          },
+          {
+            "line": 48,
+            "text": "    @serializable"
+          },
+          {
+            "line": 49,
+            "text": "    public original: AnimationClip = null!;"
+          },
+          {
+            "line": 50,
+            "text": ""
+          },
+          {
+            "line": 51,
+            "text": "    @serializable"
+          },
+          {
+            "line": 52,
+            "text": "    public substitution: AnimationClip = null!;"
+          },
+          {
+            "line": 53,
+            "text": "}"
+          },
+          {
+            "line": 54,
+            "text": ""
+          },
+          {
+            "line": 55,
+            "text": "@ccclass(`${CLASS_NAME_PREFIX_ANIM}AnimationGraphVariant`)"
+          },
+          {
+            "line": 56,
+            "text": "export class AnimationGraphVariant extends AnimationGraphLike implements AnimationGraphVariantRunTime {"
+          },
+          {
+            "line": 57,
+            "text": "    declare __brand: 'AnimationGraphVariant';"
+          },
+          {
+            "line": 72,
+            "text": ""
+          },
+          {
+            "line": 73,
+            "text": "    @serializable"
+          },
+          {
+            "line": 74,
+            "text": "    private _graph: AnimationGraph | null = null;"
+          },
+          {
+            "line": 75,
+            "text": ""
+          },
+          {
+            "line": 76,
+            "text": "    @serializable"
+          },
+          {
+            "line": 77,
+            "text": "    private _clipOverrides: ClipOverrideMap = new ClipOverrideMap();"
+          },
+          {
+            "line": 78,
+            "text": "}"
+          },
+          {
+            "line": 79,
+            "text": ""
+          },
+          {
+            "line": 80,
+            "text": "@ccclass(`${CLASS_NAME_PREFIX_ANIM}ClipOverrideMap`)"
+          },
+          {
+            "line": 81,
+            "text": "class ClipOverrideMap implements ReadonlyClipOverrideMap {"
+          },
+          {
+            "line": 82,
+            "text": "    get size (): number {"
+          },
+          {
+            "line": 118,
+            "text": ""
+          },
+          {
+            "line": 119,
+            "text": "    @serializable"
+          },
+          {
+            "line": 120,
+            "text": "    private _entries: ClipOverrideEntry[] = [];"
+          },
+          {
+            "line": 121,
+            "text": "}"
+          }
+        ]
+      }
+    ],
+    "animationMask": [
+      {
+        "reference": "engine/cocos/animation/marionette/animation-mask.ts",
+        "sha256": "209830c54fc0a9ed123858aed139659d042e72b358cede34d6d06e912872ac71",
+        "excerpts": [
+          {
+            "line": 28,
+            "text": "import { js } from '../../core';"
+          },
+          {
+            "line": 29,
+            "text": "import { CLASS_NAME_PREFIX_ANIM } from '../define';"
+          },
+          {
+            "line": 30,
+            "text": ""
+          },
+          {
+            "line": 31,
+            "text": "interface JointMaskInfo {"
+          },
+          {
+            "line": 36,
+            "text": ""
+          },
+          {
+            "line": 37,
+            "text": "@ccclass('cc.JointMask')"
+          },
+          {
+            "line": 38,
+            "text": "class JointMask {"
+          },
+          {
+            "line": 39,
+            "text": "    @serializable"
+          },
+          {
+            "line": 40,
+            "text": "    public path = '';"
+          },
+          {
+            "line": 41,
+            "text": ""
+          },
+          {
+            "line": 42,
+            "text": "    @serializable"
+          },
+          {
+            "line": 43,
+            "text": "    public enabled = true;"
+          },
+          {
+            "line": 44,
+            "text": "}"
+          },
+          {
+            "line": 45,
+            "text": ""
+          },
+          {
+            "line": 46,
+            "text": "@ccclass(`${CLASS_NAME_PREFIX_ANIM}AnimationMask`)"
+          },
+          {
+            "line": 47,
+            "text": "export class AnimationMask extends Asset {"
+          },
+          {
+            "line": 48,
+            "text": "    @serializable"
+          },
+          {
+            "line": 49,
+            "text": "    private _jointMasks: JointMask[] = [];"
+          },
+          {
+            "line": 50,
+            "text": ""
+          }
+        ]
+      },
+      {
+        "reference": "engine/cocos/animation/define.ts",
+        "sha256": "2bc8690b9b2909d11ec2d0199a2bfb7c7c97222c08b18776da7d6fd919c43930",
+        "excerpts": [
+          {
+            "line": 24,
+            "text": ""
+          },
+          {
+            "line": 25,
+            "text": "export const CLASS_NAME_PREFIX_ANIM = 'cc.animation.';"
+          },
+          {
+            "line": 26,
+            "text": ""
+          },
+          {
+            "line": 27,
+            "text": "export const createEvalSymbol = Symbol('CreateEval');"
+          }
+        ]
+      }
+    ],
+    "material": [
+      {
+        "reference": "engine/cocos/asset/assets/material.ts",
+        "sha256": "d61486c5991bedfd975f4cf30ea2f88d34dc1dce0de4fc81d011b207b828fac5",
+        "excerpts": [
+          {
+            "line": 85,
+            "text": " */"
+          },
+          {
+            "line": 86,
+            "text": "@ccclass('cc.Material')"
+          },
+          {
+            "line": 87,
+            "text": "export class Material extends Asset {"
+          },
+          {
+            "line": 88,
+            "text": "    /**"
+          },
+          {
+            "line": 109,
+            "text": "     */"
+          },
+          {
+            "line": 110,
+            "text": "    @serializable"
+          },
+          {
+            "line": 111,
+            "text": "    protected _techIdx = 0;"
+          },
+          {
+            "line": 112,
+            "text": ""
+          },
+          {
+            "line": 115,
+            "text": "     */"
+          },
+          {
+            "line": 116,
+            "text": "    @serializable"
+          },
+          {
+            "line": 117,
+            "text": "    protected _defines: MacroRecord[] = [];"
+          },
+          {
+            "line": 118,
+            "text": ""
+          },
+          {
+            "line": 121,
+            "text": "     */"
+          },
+          {
+            "line": 122,
+            "text": "    @serializable"
+          },
+          {
+            "line": 123,
+            "text": "    protected _states: PassOverrides[] = [];"
+          },
+          {
+            "line": 124,
+            "text": ""
+          },
+          {
+            "line": 127,
+            "text": "     */"
+          },
+          {
+            "line": 128,
+            "text": "    @serializable"
+          },
+          {
+            "line": 129,
+            "text": "    protected _props: Record<string, MaterialPropertyFull | MaterialPropertyFull[]>[] = [];"
+          },
+          {
+            "line": 130,
+            "text": ""
+          }
+        ]
+      }
+    ],
+    "physicsMaterial": [
+      {
+        "reference": "engine/cocos/physics/framework/assets/physics-material.ts",
+        "sha256": "df1969ce10256b317f1769a3091d1305f0bedf62719a8695e29da8511b96d959",
+        "excerpts": [
+          {
+            "line": 36,
+            "text": " */"
+          },
+          {
+            "line": 37,
+            "text": "@ccclass('cc.PhysicsMaterial')"
+          },
+          {
+            "line": 38,
+            "text": "export class PhysicsMaterial extends Asset {"
+          },
+          {
+            "line": 39,
+            "text": "    /**"
+          },
+          {
+            "line": 135,
+            "text": ""
+          },
+          {
+            "line": 136,
+            "text": "    @serializable"
+          },
+          {
+            "line": 137,
+            "text": "    private _friction = 0.6;"
+          },
+          {
+            "line": 138,
+            "text": ""
+          },
+          {
+            "line": 139,
+            "text": "    @serializable"
+          },
+          {
+            "line": 140,
+            "text": "    private _rollingFriction = 0.0;"
+          },
+          {
+            "line": 141,
+            "text": ""
+          },
+          {
+            "line": 142,
+            "text": "    @serializable"
+          },
+          {
+            "line": 143,
+            "text": "    private _spinningFriction = 0.0;"
+          },
+          {
+            "line": 144,
+            "text": ""
+          },
+          {
+            "line": 145,
+            "text": "    @serializable"
+          },
+          {
+            "line": 146,
+            "text": "    private _restitution = 0.0;"
+          },
+          {
+            "line": 147,
+            "text": ""
+          }
+        ]
+      }
+    ],
+    "renderPipeline": [
+      {
+        "reference": "engine/cocos/rendering/render-pipeline.ts",
+        "sha256": "b8114151825f91847dde8297e9b413989aee0b4c6eedac2974bfa2549b3d62eb",
+        "excerpts": [
+          {
+            "line": 121,
+            "text": " */"
+          },
+          {
+            "line": 122,
+            "text": "@ccclass('cc.RenderPipeline')"
+          },
+          {
+            "line": 123,
+            "text": "export abstract class RenderPipeline extends Asset implements IPipelineEvent, PipelineRuntime {"
+          },
+          {
+            "line": 124,
+            "text": "    /**"
+          },
+          {
+            "line": 147,
+            "text": "    @displayOrder(0)"
+          },
+          {
+            "line": 148,
+            "text": "    @serializable"
+          },
+          {
+            "line": 149,
+            "text": "    protected _tag = 0;"
+          },
+          {
+            "line": 150,
+            "text": ""
+          },
+          {
+            "line": 157,
+            "text": "    @type([RenderFlow])"
+          },
+          {
+            "line": 158,
+            "text": "    @serializable"
+          },
+          {
+            "line": 159,
+            "text": "    protected _flows: RenderFlow[] = [];"
+          },
+          {
+            "line": 160,
+            "text": ""
+          }
+        ]
+      }
+    ],
+    "renderFlow": [
+      {
+        "reference": "engine/cocos/rendering/render-flow.ts",
+        "sha256": "a43189a03aaa5823c6cc6b2ad4c51e6f1d0ab3c76da82286d94a764bcbb3c384",
+        "excerpts": [
+          {
+            "line": 45,
+            "text": " */"
+          },
+          {
+            "line": 46,
+            "text": "@ccclass('RenderFlow')"
+          },
+          {
+            "line": 47,
+            "text": "export abstract class RenderFlow {"
+          },
+          {
+            "line": 48,
+            "text": "    /**"
+          },
+          {
+            "line": 81,
+            "text": "    @displayOrder(0)"
+          },
+          {
+            "line": 82,
+            "text": "    @serializable"
+          },
+          {
+            "line": 83,
+            "text": "    protected _name = '';"
+          },
+          {
+            "line": 84,
+            "text": ""
+          },
+          {
+            "line": 85,
+            "text": "    @displayOrder(1)"
+          },
+          {
+            "line": 86,
+            "text": "    @serializable"
+          },
+          {
+            "line": 87,
+            "text": "    protected _priority = 0;"
+          },
+          {
+            "line": 88,
+            "text": ""
+          },
+          {
+            "line": 89,
+            "text": "    @displayOrder(2)"
+          },
+          {
+            "line": 90,
+            "text": "    @serializable"
+          },
+          {
+            "line": 91,
+            "text": "    protected _tag = 0;"
+          },
+          {
+            "line": 92,
+            "text": ""
+          },
+          {
+            "line": 94,
+            "text": "    @type([RenderStage])"
+          },
+          {
+            "line": 95,
+            "text": "    @serializable"
+          },
+          {
+            "line": 96,
+            "text": "    protected _stages: RenderStage[] = [];"
+          },
+          {
+            "line": 97,
+            "text": "    protected _pipeline!: RenderPipeline;"
+          }
+        ]
+      }
+    ],
+    "renderStage": [
+      {
+        "reference": "engine/cocos/rendering/render-stage.ts",
+        "sha256": "683fe587993d25a88df86314b779c7adf166aee5233e8cfcd536b66c1b2e8a7b",
+        "excerpts": [
+          {
+            "line": 49,
+            "text": " */"
+          },
+          {
+            "line": 50,
+            "text": "@ccclass('RenderStage')"
+          },
+          {
+            "line": 51,
+            "text": "export abstract class RenderStage {"
+          },
+          {
+            "line": 52,
+            "text": "    /**"
+          },
+          {
+            "line": 80,
+            "text": "    @displayOrder(0)"
+          },
+          {
+            "line": 81,
+            "text": "    @serializable"
+          },
+          {
+            "line": 82,
+            "text": "    protected _name = '';"
+          },
+          {
+            "line": 83,
+            "text": ""
+          },
+          {
+            "line": 88,
+            "text": "    @displayOrder(1)"
+          },
+          {
+            "line": 89,
+            "text": "    @serializable"
+          },
+          {
+            "line": 90,
+            "text": "    protected _priority = 0;"
+          },
+          {
+            "line": 91,
+            "text": ""
+          },
+          {
+            "line": 108,
+            "text": "    @displayOrder(2)"
+          },
+          {
+            "line": 109,
+            "text": "    @serializable"
+          },
+          {
+            "line": 110,
+            "text": "    protected _tag = 0;"
+          },
+          {
+            "line": 111,
+            "text": "    protected _pipeline!: RenderPipeline;"
+          }
+        ]
+      }
+    ],
+    "renderTexture": [
+      {
+        "reference": "engine/cocos/asset/assets/render-texture.ts",
+        "sha256": "c6d233025e892cd6b37d9554ab303311e44d8b71a4c90947258e44371dcd93a1",
+        "excerpts": [
+          {
+            "line": 60,
+            "text": " */"
+          },
+          {
+            "line": 61,
+            "text": "@ccclass('cc.RenderTexture')"
+          },
+          {
+            "line": 62,
+            "text": "export class RenderTexture extends TextureBase {"
+          },
+          {
+            "line": 63,
+            "text": "    private _window: RenderWindow | null = null;"
+          }
+        ]
+      }
+    ],
+    "prefab": [
+      {
+        "reference": "engine/cocos/scene-graph/prefab/prefab.ts",
+        "sha256": "8792dc5720df34f3007cf7fbff93e016633d9c5495023818f37f51f7954b932c",
+        "excerpts": [
+          {
+            "line": 73,
+            "text": " */"
+          },
+          {
+            "line": 74,
+            "text": "@ccclass('cc.Prefab')"
+          },
+          {
+            "line": 75,
+            "text": "export class Prefab extends Asset {"
+          },
+          {
+            "line": 76,
+            "text": "    /**"
+          },
+          {
+            "line": 87,
+            "text": "     */"
+          },
+          {
+            "line": 88,
+            "text": "    @serializable"
+          },
+          {
+            "line": 89,
+            "text": "    @editable"
+          },
+          {
+            "line": 90,
+            "text": "    public data: any = null;"
+          },
+          {
+            "line": 105,
+            "text": "     */"
+          },
+          {
+            "line": 106,
+            "text": "    @serializable"
+          },
+          {
+            "line": 107,
+            "text": "    @editable"
+          },
+          {
+            "line": 108,
+            "text": "    public optimizationPolicy = OptimizationPolicy.AUTO;"
+          },
+          {
+            "line": 109,
+            "text": ""
+          },
+          {
+            "line": 110,
+            "text": "    @serializable"
+          },
+          {
+            "line": 111,
+            "text": "    @editable"
+          },
+          {
+            "line": 112,
+            "text": "    public persistent = false;"
+          }
+        ]
+      },
+      {
+        "reference": "engine/cocos/scene-graph/node.ts",
+        "sha256": "89680ff6b15c8ef45ec3bb41c921c86b10872060f98eb0bab2eeafc4e0bcf630",
+        "excerpts": [
+          {
+            "line": 100,
+            "text": " */"
+          },
+          {
+            "line": 101,
+            "text": "@ccclass('cc.Node')"
+          },
+          {
+            "line": 102,
+            "text": "export class Node extends CCObject implements ISchedulable, CustomSerializable {"
+          },
+          {
+            "line": 103,
+            "text": "    // --------------------- legacy BaseNode ---------------------"
+          },
+          {
+            "line": 342,
+            "text": ""
+          },
+          {
+            "line": 343,
+            "text": "    @serializable"
+          },
+          {
+            "line": 344,
+            "text": "    protected _parent: this | null = null;"
+          },
+          {
+            "line": 345,
+            "text": ""
+          },
+          {
+            "line": 346,
+            "text": "    @serializable"
+          },
+          {
+            "line": 347,
+            "text": "    protected _children: this[] = [];"
+          },
+          {
+            "line": 348,
+            "text": ""
+          },
+          {
+            "line": 349,
+            "text": "    @serializable"
+          },
+          {
+            "line": 350,
+            "text": "    protected _active = true;"
+          },
+          {
+            "line": 351,
+            "text": ""
+          },
+          {
+            "line": 356,
+            "text": "    public getWritableComponents (): Component[] { return this._components; }"
+          },
+          {
+            "line": 357,
+            "text": "    @serializable"
+          },
+          {
+            "line": 358,
+            "text": "    protected _components: Component[] = [];"
+          },
+          {
+            "line": 359,
+            "text": ""
+          },
+          {
+            "line": 363,
+            "text": "     */"
+          },
+          {
+            "line": 364,
+            "text": "    @serializable"
+          },
+          {
+            "line": 365,
+            "text": "    protected _prefab: PrefabInfo | null = null;"
+          },
+          {
+            "line": 366,
+            "text": "    /**"
+          },
+          {
+            "line": 1508,
+            "text": "    // local transform"
+          },
+          {
+            "line": 1509,
+            "text": "    @serializable"
+          },
+          {
+            "line": 1510,
+            "text": "    protected _lpos = new Vec3();"
+          },
+          {
+            "line": 1511,
+            "text": ""
+          },
+          {
+            "line": 1512,
+            "text": "    @serializable"
+          },
+          {
+            "line": 1513,
+            "text": "    protected _lrot = new Quat();"
+          },
+          {
+            "line": 1514,
+            "text": ""
+          },
+          {
+            "line": 1515,
+            "text": "    @serializable"
+          },
+          {
+            "line": 1516,
+            "text": "    protected _lscale = new Vec3(1, 1, 1);"
+          },
+          {
+            "line": 1517,
+            "text": ""
+          },
+          {
+            "line": 1518,
+            "text": "    @serializable"
+          },
+          {
+            "line": 1519,
+            "text": "    protected _mobility = MobilityMode.Static;"
+          },
+          {
+            "line": 1520,
+            "text": ""
+          },
+          {
+            "line": 1521,
+            "text": "    @serializable"
+          },
+          {
+            "line": 1522,
+            "text": "    protected _layer = Layers.Enum.DEFAULT; // the layer this node belongs to"
+          },
+          {
+            "line": 1523,
+            "text": ""
+          },
+          {
+            "line": 1524,
+            "text": "    // local rotation in euler angles, maintained here so that rotation angles could be greater than 360 degree."
+          },
+          {
+            "line": 1525,
+            "text": "    @serializable"
+          },
+          {
+            "line": 1526,
+            "text": "    protected _euler = new Vec3();"
+          },
+          {
+            "line": 1527,
+            "text": ""
+          }
+        ]
+      }
+    ],
+    "scene": [
+      {
+        "reference": "engine/cocos/asset/assets/scene-asset.ts",
+        "sha256": "56e8c2a86d140fc211c80e3ed5c13b83e140fb044be085d9f84f4fa486bb59c4",
+        "excerpts": [
+          {
+            "line": 35,
+            "text": " */"
+          },
+          {
+            "line": 36,
+            "text": "@ccclass('cc.SceneAsset')"
+          },
+          {
+            "line": 37,
+            "text": "export class SceneAsset extends Asset {"
+          },
+          {
+            "line": 38,
+            "text": "    /**"
+          },
+          {
+            "line": 42,
+            "text": "    @editable"
+          },
+          {
+            "line": 43,
+            "text": "    @serializable"
+          },
+          {
+            "line": 44,
+            "text": "    public scene: Scene | null = null;"
+          },
+          {
+            "line": 45,
+            "text": ""
+          }
+        ]
+      },
+      {
+        "reference": "engine/cocos/scene-graph/scene.ts",
+        "sha256": "ef4b7a0ded806ad20ddfdd1929ca6e1bb14dc0b8ab7216280226190aad8692fc",
+        "excerpts": [
+          {
+            "line": 43,
+            "text": " */"
+          },
+          {
+            "line": 44,
+            "text": "@ccclass('cc.Scene')"
+          },
+          {
+            "line": 45,
+            "text": "export class Scene extends Node {"
+          },
+          {
+            "line": 46,
+            "text": "    /**"
+          },
+          {
+            "line": 62,
+            "text": "     */"
+          },
+          {
+            "line": 63,
+            "text": "    @serializable"
+          },
+          {
+            "line": 64,
+            "text": "    @editable"
+          },
+          {
+            "line": 65,
+            "text": "    public autoReleaseAssets = false;"
+          },
+          {
+            "line": 72,
+            "text": "     */"
+          },
+          {
+            "line": 73,
+            "text": "    @serializable"
+          },
+          {
+            "line": 74,
+            "text": "    public _globals = new SceneGlobals();"
+          },
+          {
+            "line": 75,
+            "text": ""
+          }
+        ]
+      }
+    ],
+    "terrain": [
+      {
+        "reference": "engine/cocos/terrain/terrain-asset.ts",
+        "sha256": "6b358b6b6e8660a0ceb80e0d79e8fee5819e9e5f518c93a5c2af5c5e8a6565c0",
+        "excerpts": [
+          {
+            "line": 50,
+            "text": "export const TERRAIN_DATA_VERSION7 = 0x01010007;"
+          },
+          {
+            "line": 51,
+            "text": "export const TERRAIN_DATA_VERSION8 = 0x01010008;"
+          },
+          {
+            "line": 52,
+            "text": "export const TERRAIN_DATA_VERSION_DEFAULT = 0x01010111;"
+          },
+          {
+            "line": 53,
+            "text": ""
+          },
+          {
+            "line": 54,
+            "text": "class TerrainBuffer {"
+          },
+          {
+            "line": 227,
+            "text": " */"
+          },
+          {
+            "line": 228,
+            "text": "@ccclass('cc.TerrainLayerInfo')"
+          },
+          {
+            "line": 229,
+            "text": "export class TerrainLayerInfo {"
+          },
+          {
+            "line": 230,
+            "text": "    @serializable"
+          },
+          {
+            "line": 231,
+            "text": "    public slot = 0;"
+          },
+          {
+            "line": 232,
+            "text": "    @serializable"
+          },
+          {
+            "line": 233,
+            "text": "    public tileSize = 1;"
+          },
+          {
+            "line": 234,
+            "text": "    @serializable"
+          },
+          {
+            "line": 235,
+            "text": "    public detailMap: Texture2D|null = null;"
+          },
+          {
+            "line": 236,
+            "text": "    @serializable"
+          },
+          {
+            "line": 237,
+            "text": "    public normalMap: Texture2D|null = null;"
+          },
+          {
+            "line": 238,
+            "text": "    @serializable"
+          },
+          {
+            "line": 239,
+            "text": "    public roughness = 1;"
+          },
+          {
+            "line": 240,
+            "text": "    @serializable"
+          },
+          {
+            "line": 241,
+            "text": "    public metallic = 0;"
+          },
+          {
+            "line": 242,
+            "text": "}"
+          },
+          {
+            "line": 247,
+            "text": " */"
+          },
+          {
+            "line": 248,
+            "text": "@ccclass('cc.TerrainLayerBinaryInfo')"
+          },
+          {
+            "line": 249,
+            "text": "export class TerrainLayerBinaryInfo {"
+          },
+          {
+            "line": 250,
+            "text": "    public slot = 0;"
+          },
+          {
+            "line": 261,
+            "text": " */"
+          },
+          {
+            "line": 262,
+            "text": "@ccclass('cc.TerrainAsset')"
+          },
+          {
+            "line": 263,
+            "text": "export class TerrainAsset extends Asset {"
+          },
+          {
+            "line": 264,
+            "text": "    protected _version = 0;"
+          },
+          {
+            "line": 274,
+            "text": "    protected _layerBinaryInfos: TerrainLayerBinaryInfo[] = [];"
+          },
+          {
+            "line": 275,
+            "text": "    @serializable"
+          },
+          {
+            "line": 276,
+            "text": "    protected _layerInfos: TerrainLayerInfo[] = [];"
+          },
+          {
+            "line": 277,
+            "text": ""
+          },
+          {
+            "line": 460,
+            "text": "     */"
+          },
+          {
+            "line": 461,
+            "text": "    public _loadNativeData (_nativeData: Uint8Array): boolean {"
+          },
+          {
+            "line": 462,
+            "text": "        if (!_nativeData || _nativeData.length === 0) {"
+          },
+          {
+            "line": 463,
+            "text": "            return false;"
+          },
+          {
+            "line": 470,
+            "text": "        this._version = stream.readInt();"
+          },
+          {
+            "line": 471,
+            "text": "        if (this._version === TERRAIN_DATA_VERSION_DEFAULT) {"
+          },
+          {
+            "line": 472,
+            "text": "            return true;"
+          },
+          {
+            "line": 473,
+            "text": "        }"
+          },
+          {
+            "line": 480,
+            "text": "            && this._version !== TERRAIN_DATA_VERSION7"
+          },
+          {
+            "line": 481,
+            "text": "            && this._version !== TERRAIN_DATA_VERSION8) {"
+          },
+          {
+            "line": 482,
+            "text": "            return false;"
+          },
+          {
+            "line": 483,
+            "text": "        }"
+          },
+          {
+            "line": 503,
+            "text": ""
+          },
+          {
+            "line": 504,
+            "text": "        if (this._version < TERRAIN_DATA_VERSION8) {"
+          },
+          {
+            "line": 505,
+            "text": "            for (let i = 0; i < this.heights.length; ++i) {"
+          },
+          {
+            "line": 506,
+            "text": "                const h = (this._heights[i] - TERRAIN_HEIGHT_BASE) * TERRAIN_HEIGHT_FACTORY_V7;"
+          },
+          {
+            "line": 569,
+            "text": "     */"
+          },
+          {
+            "line": 570,
+            "text": "    public _exportNativeData (): Uint8Array {"
+          },
+          {
+            "line": 571,
+            "text": "        const stream = new TerrainBuffer();"
+          },
+          {
+            "line": 572,
+            "text": ""
+          },
+          {
+            "line": 573,
+            "text": "        // version"
+          },
+          {
+            "line": 574,
+            "text": "        stream.writeInt32(TERRAIN_DATA_VERSION8);"
+          },
+          {
+            "line": 575,
+            "text": ""
+          },
+          {
+            "line": 576,
+            "text": "        // geometry info"
+          },
+          {
+            "line": 639,
+            "text": "        const stream = new TerrainBuffer();"
+          },
+          {
+            "line": 640,
+            "text": "        stream.writeInt32(TERRAIN_DATA_VERSION_DEFAULT);"
+          },
+          {
+            "line": 641,
+            "text": "        return stream.buffer;"
+          },
+          {
+            "line": 642,
+            "text": "    }"
+          }
+        ]
+      }
+    ],
+    "effect": [
+      {
+        "reference": "engine/cocos/asset/assets/effect-asset.ts",
+        "sha256": "8a65aff59005941989e95dbb0a7ca6bda5d2304414c4384be360c1822e77b217",
+        "excerpts": [
+          {
+            "line": 215,
+            "text": " */"
+          },
+          {
+            "line": 216,
+            "text": "@ccclass('cc.EffectAsset')"
+          },
+          {
+            "line": 217,
+            "text": "export class EffectAsset extends Asset {"
+          },
+          {
+            "line": 218,
+            "text": "    /**"
+          },
+          {
+            "line": 299,
+            "text": "     */"
+          },
+          {
+            "line": 300,
+            "text": "    @serializable"
+          },
+          {
+            "line": 301,
+            "text": "    @editable"
+          },
+          {
+            "line": 302,
+            "text": "    public techniques: EffectAsset.ITechniqueInfo[] = [];"
+          },
+          {
+            "line": 307,
+            "text": "     */"
+          },
+          {
+            "line": 308,
+            "text": "    @serializable"
+          },
+          {
+            "line": 309,
+            "text": "    @editable"
+          },
+          {
+            "line": 310,
+            "text": "    public shaders: EffectAsset.IShaderInfo[] = [];"
+          },
+          {
+            "line": 315,
+            "text": "     */"
+          },
+          {
+            "line": 316,
+            "text": "    @serializable"
+          },
+          {
+            "line": 317,
+            "text": "    @editable"
+          },
+          {
+            "line": 318,
+            "text": "    public combinations: EffectAsset.IPreCompileInfo[] = [];"
+          },
+          {
+            "line": 323,
+            "text": "     */"
+          },
+          {
+            "line": 324,
+            "text": "    @serializable"
+          },
+          {
+            "line": 325,
+            "text": "    @editorOnly"
+          },
+          {
+            "line": 326,
+            "text": "    public hideInEditor = false;"
+          }
+        ]
+      }
+    ],
+    "effectChunk": [
+      {
+        "reference": "engine/editor/assets/default_file_content/effect-header/chunk",
+        "sha256": "fb1bfb9cad3278ceb8cdd53002ec9c20aa944a845101ff3098f96eef76fd4d5b",
+        "excerpts": []
+      }
+    ]
+  },
+  "nativeImporterEvidence": {
+    "animationClip": {
+      "reference": "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/animation-clip.ccc",
+      "layoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "ddaddfaf86eb9da8f9d6b3a2b5385f7ffbdd37f79818ea34b6afcc059da5e0f6"
+      },
+      "status": "module_layout_present_runtime_unverified",
+      "evidenceLimit": "ASAR 头部布局不证明可用或不适用；3.8.7 Variant 有官方模板和类型声明，但未列出独立模块，必须保留实机对照缺口。"
+    },
+    "animationGraph": {
+      "reference": "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/animation-graph.ccc",
+      "layoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "ddaddfaf86eb9da8f9d6b3a2b5385f7ffbdd37f79818ea34b6afcc059da5e0f6"
+      },
+      "status": "module_layout_present_runtime_unverified",
+      "evidenceLimit": "ASAR 头部布局不证明可用或不适用；3.8.7 Variant 有官方模板和类型声明，但未列出独立模块，必须保留实机对照缺口。"
+    },
+    "animationGraphVariant": {
+      "reference": "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/animation-graph-variant.ccc",
+      "layoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "ddaddfaf86eb9da8f9d6b3a2b5385f7ffbdd37f79818ea34b6afcc059da5e0f6"
+      },
+      "status": "module_layout_present_runtime_unverified",
+      "evidenceLimit": "ASAR 头部布局不证明可用或不适用；3.8.7 Variant 有官方模板和类型声明，但未列出独立模块，必须保留实机对照缺口。"
+    },
+    "animationMask": {
+      "reference": "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/animation-mask.ccc",
+      "layoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "ddaddfaf86eb9da8f9d6b3a2b5385f7ffbdd37f79818ea34b6afcc059da5e0f6"
+      },
+      "status": "module_layout_present_runtime_unverified",
+      "evidenceLimit": "ASAR 头部布局不证明可用或不适用；3.8.7 Variant 有官方模板和类型声明，但未列出独立模块，必须保留实机对照缺口。"
+    },
+    "material": {
+      "reference": "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/material.ccc",
+      "layoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "ddaddfaf86eb9da8f9d6b3a2b5385f7ffbdd37f79818ea34b6afcc059da5e0f6"
+      },
+      "status": "module_layout_present_runtime_unverified",
+      "evidenceLimit": "ASAR 头部布局不证明可用或不适用；3.8.7 Variant 有官方模板和类型声明，但未列出独立模块，必须保留实机对照缺口。"
+    },
+    "physicsMaterial": {
+      "reference": "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/physics-material.ccc",
+      "layoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "ddaddfaf86eb9da8f9d6b3a2b5385f7ffbdd37f79818ea34b6afcc059da5e0f6"
+      },
+      "status": "module_layout_present_runtime_unverified",
+      "evidenceLimit": "ASAR 头部布局不证明可用或不适用；3.8.7 Variant 有官方模板和类型声明，但未列出独立模块，必须保留实机对照缺口。"
+    },
+    "renderPipeline": {
+      "reference": "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/render-pipeline.ccc",
+      "layoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "ddaddfaf86eb9da8f9d6b3a2b5385f7ffbdd37f79818ea34b6afcc059da5e0f6"
+      },
+      "status": "module_layout_present_runtime_unverified",
+      "evidenceLimit": "ASAR 头部布局不证明可用或不适用；3.8.7 Variant 有官方模板和类型声明，但未列出独立模块，必须保留实机对照缺口。"
+    },
+    "renderFlow": {
+      "reference": "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/render-flow.ccc",
+      "layoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "ddaddfaf86eb9da8f9d6b3a2b5385f7ffbdd37f79818ea34b6afcc059da5e0f6"
+      },
+      "status": "module_layout_present_runtime_unverified",
+      "evidenceLimit": "ASAR 头部布局不证明可用或不适用；3.8.7 Variant 有官方模板和类型声明，但未列出独立模块，必须保留实机对照缺口。"
+    },
+    "renderStage": {
+      "reference": "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/render-stage.ccc",
+      "layoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "ddaddfaf86eb9da8f9d6b3a2b5385f7ffbdd37f79818ea34b6afcc059da5e0f6"
+      },
+      "status": "module_layout_present_runtime_unverified",
+      "evidenceLimit": "ASAR 头部布局不证明可用或不适用；3.8.7 Variant 有官方模板和类型声明，但未列出独立模块，必须保留实机对照缺口。"
+    },
+    "renderTexture": {
+      "reference": "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/render-texture/index.ccc",
+      "layoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "ddaddfaf86eb9da8f9d6b3a2b5385f7ffbdd37f79818ea34b6afcc059da5e0f6"
+      },
+      "status": "module_layout_present_runtime_unverified",
+      "evidenceLimit": "ASAR 头部布局不证明可用或不适用；3.8.7 Variant 有官方模板和类型声明，但未列出独立模块，必须保留实机对照缺口。"
+    },
+    "prefab": {
+      "reference": "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/prefab.ccc",
+      "layoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "ddaddfaf86eb9da8f9d6b3a2b5385f7ffbdd37f79818ea34b6afcc059da5e0f6"
+      },
+      "status": "module_layout_present_runtime_unverified",
+      "evidenceLimit": "ASAR 头部布局不证明可用或不适用；3.8.7 Variant 有官方模板和类型声明，但未列出独立模块，必须保留实机对照缺口。"
+    },
+    "scene": {
+      "reference": "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/scene/index.ccc",
+      "layoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "ddaddfaf86eb9da8f9d6b3a2b5385f7ffbdd37f79818ea34b6afcc059da5e0f6"
+      },
+      "status": "module_layout_present_runtime_unverified",
+      "evidenceLimit": "ASAR 头部布局不证明可用或不适用；3.8.7 Variant 有官方模板和类型声明，但未列出独立模块，必须保留实机对照缺口。"
+    },
+    "terrain": {
+      "reference": "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/terrain.ccc",
+      "layoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "ddaddfaf86eb9da8f9d6b3a2b5385f7ffbdd37f79818ea34b6afcc059da5e0f6"
+      },
+      "status": "module_layout_present_runtime_unverified",
+      "evidenceLimit": "ASAR 头部布局不证明可用或不适用；3.8.7 Variant 有官方模板和类型声明，但未列出独立模块，必须保留实机对照缺口。"
+    },
+    "effect": {
+      "reference": "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/effect.ccc",
+      "layoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "ddaddfaf86eb9da8f9d6b3a2b5385f7ffbdd37f79818ea34b6afcc059da5e0f6"
+      },
+      "status": "module_layout_present_runtime_unverified",
+      "evidenceLimit": "ASAR 头部布局不证明可用或不适用；3.8.7 Variant 有官方模板和类型声明，但未列出独立模块，必须保留实机对照缺口。"
+    },
+    "effectChunk": {
+      "reference": "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/effect-header.ccc",
+      "layoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "ddaddfaf86eb9da8f9d6b3a2b5385f7ffbdd37f79818ea34b6afcc059da5e0f6"
+      },
+      "status": "module_layout_present_runtime_unverified",
+      "evidenceLimit": "ASAR 头部布局不证明可用或不适用；3.8.7 Variant 有官方模板和类型声明，但未列出独立模块，必须保留实机对照缺口。"
+    }
+  }
+}

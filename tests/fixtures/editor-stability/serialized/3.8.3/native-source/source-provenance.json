@@ -1,0 +1,50 @@
+{
+  "creatorVersion": "3.8.3",
+  "nativeAcceptance": false,
+  "files": [
+    {
+      "target": "tests/fixtures/editor-stability/serialized/3.8.3/native-source/text/creator-engine-license.txt",
+      "source": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/tests/fixtures/editor-stability/serialized/3.8.3/CREATOR-ENGINE-LICENSE.md",
+      "sha256": "e8799a9198184e8cc31e45e66521b1cca52f9099a932de7a56abb9d212311318"
+    },
+    {
+      "target": "tests/fixtures/editor-stability/serialized/3.8.3/native-source/text/creator-engine-license.txt.meta",
+      "source": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/native-persistence-url-383-20261015-13e46db/project/assets/fixtures/components/fixtures/web/index.html.meta",
+      "sha256": "5e51d159c7c5306c74f23e082053d9bae457183649c10fffe2ccb0eb3abb4195"
+    },
+    {
+      "target": "tests/fixtures/editor-stability/serialized/3.8.3/native-source/json/animation-source-provenance.json.meta",
+      "source": "/Applications/Cocos/Creator/3.8.3/CocosCreator.app/Contents/Resources/resources/3d/engine/editor/assets/tools/parsed-effect-info.json.meta",
+      "sha256": "5a7ce23213e7107c5420aa0a902e1795e8c26d2c0e8a77b7d2a6cb4e3939c6c2"
+    }
+  ],
+  "jsonSource": {
+    "source": "tests/fixtures/editor-stability/serialized/3.8.3/animation-source-provenance.json",
+    "sha256": "434b317f2d32005a74b14911491173b2a07d4d8c38c5586237bcf81c912175dc"
+  },
+  "metaPolicy": "Metadata are actual fixed SDK/native source templates only; stager replaces root UUID and imported/files, actual SDK reimport and readback required. No template identity counts as native identity.",
+  "publicTypeContract": {
+    "reference": "app.asar/builtin/asset-db/@types/public.d.ts:28",
+    "sha256": "837a1d8f233e39d681db0e60eb51b736a078ed8a832f0319d69607256e2dbda9",
+    "field": "AssetInfo.type",
+    "authority": "asset-db",
+    "nativeObservationPending": true,
+    "expectedTypes": {
+      "text": {
+        "type": "cc.TextAsset",
+        "reference": "engine/cocos/asset/assets/text-asset.ts:34",
+        "sha256": "151c96b5358a157f417c16fe1de4f6b8936e14df309ea7a724e21050808ac0be"
+      },
+      "json": {
+        "type": "cc.JsonAsset",
+        "reference": "engine/cocos/asset/assets/json-asset.ts:34",
+        "sha256": "73cab03f9137e80169e5894579750e52aaa04be801a8a645fba947510de4bea1"
+      }
+    }
+  },
+  "generatedFilesContract": {
+    "field": "IAssetMeta.files:string[]",
+    "reference": "app.asar/builtin/asset-db/@types/public.d.ts:6",
+    "observation": "Require actual query meta, snapshot disk meta and independent FD meta arrays to agree; no template default inferred."
+  }
+}

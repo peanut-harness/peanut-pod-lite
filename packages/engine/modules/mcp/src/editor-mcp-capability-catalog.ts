@@ -21,6 +21,19 @@ export interface EditorMcpCapabilitySeed {
 
 export const EDITOR_MCP_CAPABILITY_SEEDS: readonly EditorMcpCapabilitySeed[] = [
     {
+        operation: 'diagnostics.queryLogs',
+        readOnly: true,
+        risk: 'read',
+        description: {
+            'en-US': 'Observe the current project.log with bounded tail, delta or literal search and raw context. No acceptance verdict; inspect complete, truncated and resetDetected.',
+            'zh-CN': '有界查询当前工程日志尾部、增量或字面关键词及原始上下文；不作为验收通过判据，须检查complete/truncated/resetDetected。',
+        },
+        requiresInput: true,
+    },
+    { operation: 'viewport.queryState', readOnly: true, risk: 'read', description: { 'en-US': 'Read current Creator viewport mode, grid and camera state.', 'zh-CN': '读取Creator视口模式、网格和相机状态。' }, requiresInput: false },
+    { operation: 'viewport.focusNodes', readOnly: false, risk: 'write', description: { 'en-US': 'Focus the Creator camera on exact scene node UUIDs or paths; inspect camera readback status.', 'zh-CN': '将Creator相机聚焦到明确场景节点UUID或路径，并检查相机回读状态。' }, requiresInput: true },
+    { operation: 'viewport.setState', readOnly: false, risk: 'write', description: { 'en-US': 'Set Creator 2D mode and/or grid visibility with native readback.', 'zh-CN': '设置Creator 2D模式和/或网格可见性并回读验证。' }, requiresInput: true },
+    {
         operation: 'editor.queryVersion',
         readOnly: true,
         risk: 'read',

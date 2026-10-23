@@ -1,0 +1,70 @@
+{
+  "version": "5.5",
+  "compatibleVersion": "5.5",
+  "name": "task42",
+  "frameRate": 24,
+  "armature": [
+    {
+      "name": "OneBone",
+      "type": "Armature",
+      "frameRate": 24,
+      "aabb": {
+        "x": -4,
+        "y": -4,
+        "width": 8,
+        "height": 8
+      },
+      "bone": [
+        {
+          "name": "root"
+        }
+      ],
+      "slot": [
+        {
+          "name": "tile",
+          "parent": "root",
+          "displayIndex": 0
+        }
+      ],
+      "skin": [
+        {
+          "name": "default",
+          "slot": [
+            {
+              "name": "tile",
+              "display": [
+                {
+                  "name": "checker",
+                  "path": "checker",
+                  "type": "image"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "animation": [
+        {
+          "name": "turn",
+          "duration": 24,
+          "playTimes": 1,
+          "bone": [
+            {
+              "name": "root",
+              "rotateFrame": [
+                {
+                  "duration": 12,
+                  "rotate": 0
+                },
+                {
+                  "duration": 12,
+                  "rotate": 15
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

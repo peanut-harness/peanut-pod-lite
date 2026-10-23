@@ -8,8 +8,13 @@ const https = require('https');
 const { RemotePackageDownloader, SignedPluginCatalogVerifier } = require('@peanut/pod-engine/installation');
 const { CreatorContextResolver } = require('@peanut/pod-hosts');
 
+const { HostStartupDiagnostics } = require('./host-startup-diagnostics.ts');
+const { HostResourceFieldPreparation } = require('./resource-field-preparation.ts');
 const { LiteAccountController, createSignedOutAccount } = require('./account-controller');
 const { CpmPackageStore } = require('./cpm-package-store');
+const { HostNativeCapabilities } = require('./native-capabilities.mts');
+const { PluginWorkbench } = require('./plugin-workbench.mts');
+const { SnowbDialogs } = require('./snowb-dialogs.mts');
 const { createLiteGrantedRuntime, createLiteReadRuntime } = require('./lite-granted-runtime');
 const {
     getPluginManagerKernel,
@@ -555,7 +560,8 @@ async function activateCore(packageStore) {
     if (pluginManager == null) {
         throw new Error('plugin_manager_kernel_unavailable');
     }
-    coreTaskApi = pluginManager.createHostTaskApi(HUB_CAPABILITY_PLUGIN_ID, requireProjectPath());
+    coreTaskApi = pluginManager.createHostTaskApi(HUB_CAPABILITY_PLUGIN_ID, requireProjectPath(),
+        new HostResourceFieldPreparation(requireProjectPath(), creatorContext.version.raw));
     await coreModule.register?.({ logger: createLogger(CORE_PLUGIN_ID) });
     // Supply EditorMcp gateways through grantedRuntime. Lite policy still excludes
     // paid operations, while Pro remains optional through services.
@@ -621,12 +627,36 @@ async function activateOptionalPro(packageStore) {
     }
 }
 
-async function load() {
+let startupDiagnostics = null;
+
+async function disposeStartupDiagnostics() {
+    const current = startupDiagnostics; startupDiagnostics = null;
+    if (current) await current.dispose();
+}
+
+async function load(options = {}) {
+    await disposeStartupDiagnostics();
     await deactivateModules();
     try {
         creatorContext = resolveTrustedCreatorContext();
+        try {
+            startupDiagnostics = HostStartupDiagnostics.fromSdk(getEditor(), {
+                extensionPath: options.extensionRoot,
+                run: async () => {
+                    const report = await runStartupSmokeAndWriteReport();
+                    if (report.failed !== 0) throw new Error(`startup_smoke_failed:${report.failed}`);
+                    return report;
+                },
+                record: (state, detail) => writeJsonReport('startup-diagnostics.json', { writtenAt: new Date().toISOString(), state, detail }),
+                fail: error => console.error('[peanut-pod-lite] startup diagnostics error:', error),
+            });
+        } catch (error) {
+            writeJsonReport('startup-diagnostics.json', { writtenAt: new Date().toISOString(), state: 'failed', detail: normalizeError(error) });
+            console.error('[peanut-pod-lite] startup diagnostics error:', error);
+        }
         // Load the Plugin Manager shell before activating the Lite runtime.
         await loadPluginManagerShell(creatorContext, {
+            nativeCapabilityRegistry: HostNativeCapabilities.createRegistry(resolve(__dirname, '..')),
             readTrustedCatalog: readAcceptanceTrustedCatalog,
             installTrustedCatalogPackage,
         });
@@ -664,8 +694,9 @@ async function load() {
         });
         getEditor()?.log?.(`[peanut-pod-lite] lite_host_ready:${hostStatus.tools.length}:pro_${pro.state}:account_${account.state}`);
         writeHostStatusReport();
-        await runStartupSmokeAndWriteReport();
+        startupDiagnostics?.loadedSuccessfully();
     } catch (error) {
+        await disposeStartupDiagnostics();
         await deactivateModules();
         try {
             await unloadPluginManagerShell();
@@ -722,6 +753,7 @@ async function deactivateModules() {
 }
 
 async function unload() {
+    await disposeStartupDiagnostics();
     await deactivateModules();
     try {
         await unloadPluginManagerShell();
@@ -851,6 +883,7 @@ async function runStartupSmokeAndWriteReport() {
     getEditor()?.log?.(
         `[peanut-pod-lite] startup_smoke:${report.passed}_passed:${report.failed}_failed:tools_${report.toolCount}`,
     );
+    return report;
 }
 
 function previewSmokeValue(value) {
@@ -951,8 +984,27 @@ function resolveSafeStorage() {
     }
 }
 
+const pluginWorkbench = new PluginWorkbench(getPluginManagerKernel, getEditor, 'peanut-pod-lite-host',
+    () => HostNativeCapabilities.verifiedCanvasRoot(resolve(__dirname, '..')),
+    new SnowbDialogs(() => require('electron').dialog));
+
 const methods = {
     ...getPluginManagerMethods(),
+    async openGeneratedPluginPanel(pluginId) {
+        return pluginWorkbench.open(pluginId);
+    },
+    queryPluginWorkbench(slot) {
+        return pluginWorkbench.query(slot);
+    },
+    requestPluginWorkbench(pluginId, panelId, request, native, slot) {
+        return pluginWorkbench.request(pluginId, panelId, request, native, slot);
+    },
+    loadPluginIntoHost(payload) {
+        return pluginWorkbench.openHost(payload);
+    },
+    closePluginHost(payload) {
+        return pluginWorkbench.close(payload?.hostSlotId);
+    },
     queryStatus() {
         return hostStatus;
     },

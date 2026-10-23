@@ -1,3 +1,4 @@
+import { ExecutionRuntimeService } from '@peanut/pod-engine/runtime';
 import { types as nodeTypes } from 'node:util';
 import { TextFileWriteResultProjection } from '@peanut/pod-protocol';
 import { CoreTextFileIoContract } from '@peanut/pod-engine/policy';
@@ -90,7 +91,7 @@ export class McpFailurePresenter {
         if (
             record.schemaVersion !== 1 ||
             typeof record.code !== 'string' ||
-            !/^[a-z0-9._:-]+$/u.test(record.code) ||
+            (!/^[a-z0-9._:-]+$/u.test(record.code) && McpFailurePresenter._assetFieldPreparationRefusal(record) == null) ||
             !McpFailurePresenter._isCategory(record.category) ||
             typeof record.reason !== 'string' ||
             record.reason.length === 0 ||
@@ -111,6 +112,8 @@ export class McpFailurePresenter {
             retryable: record.retryable,
             state: record.state,
             recommendedAction: record.recommendedAction,
+            ...(McpFailurePresenter._assetFieldPreparationRefusal(record) == null ? {} : {
+                assetFieldPreparationRefusal: McpFailurePresenter._assetFieldPreparationRefusal(record) }),
             ...(typeof record.taskId === 'string' ? { taskId: record.taskId } : {}),
             ...(record.taskStatus === 'failed' || record.taskStatus === 'cancelled' || record.taskStatus === 'timed_out'
                 ? { taskStatus: record.taskStatus }
@@ -119,6 +122,20 @@ export class McpFailurePresenter {
             ...(typeof record.retryAfterMs === 'number' ? { retryAfterMs: record.retryAfterMs } : {}),
             ...(McpFailurePresenter._isQueueSummary(record.queue) ? { queue: record.queue } : {}),
         });
+    }
+
+    /** @description 仅原绑定任务的固定字段准备拒绝附件可通过公开失败投影。 */
+    private static _assetFieldPreparationRefusal(record: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> | null {
+        const proof = record.assetFieldPreparationRefusal;
+        if (proof == null || typeof proof !== 'object' || nodeTypes.isProxy(proof) || Reflect.ownKeys(proof).length !== 5
+            || record.category !== 'invalid_input' || record.state !== 'unchanged' || record.taskStatus !== 'failed'
+            || record.operation !== 'lumen.assetSet' || typeof record.taskId !== 'string'
+            || !ExecutionRuntimeService.isSafeResourceFieldPreparationCode(record.code)) return null;
+        const read = (key: string): unknown => Object.getOwnPropertyDescriptor(proof, key)?.value;
+        if (read('schemaVersion') !== 1 || read('code') !== record.code || read('taskId') !== record.taskId
+            || read('phase') !== 'prepare_before_writer' || read('projectState') !== 'unchanged') return null;
+        return Object.freeze({ schemaVersion: 1, code: record.code, phase: 'prepare_before_writer',
+            projectState: 'unchanged', taskId: record.taskId });
     }
 
     /**

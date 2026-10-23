@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "peanut.org-rag.sync.v1",
+  "corpusId": "peanut-org",
+  "repos": {
+    "peanut-pod-lite": {
+      "treeSha": "85e2413bfd5d698a5b6eb1f36731c28da7c82319204105977c0f6d6eca913e65",
+      "cardSha": "84e10ddb038a9926e0100eb4f646ad2281249eabd7603a962d76b1a7b561e3c0",
+      "fileCount": 15,
+      "attestReason": "5.1 existing operation closeout:96 components773 field evidence;52 components288 fields accepted;SDK startup blocks17 fields;original failures preserved",
+      "updatedAt": "2026-10-20T02:50:38.182Z"
+    }
+  }
+}

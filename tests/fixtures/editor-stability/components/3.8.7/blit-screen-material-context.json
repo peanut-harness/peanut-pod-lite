@@ -1,0 +1,10 @@
+{
+  "creatorVersion": "3.8.7",
+  "reference": "cocos/rendering/post-process/components/blit-screen.ts",
+  "sha256": "4a745dab69c297d76746ed37e774170537fca88cef2872278c60bf252828bb96",
+  "nativeFailure": "evidence/task-5.1/native-post-387-20261016-8ae0192/matrix-post-context-1-report.json#cc.BlitScreen.activeMaterials",
+  "sourceRule": "onLoad calls updateActiveMaterials; only entries with enable=true and material enter activeMaterials",
+  "patchRule": "save matching real materials with enable=true and the requested activeMaterials in the same bounded component patch",
+  "expectedReadbackUnchanged": true,
+  "version383Verified": false
+}

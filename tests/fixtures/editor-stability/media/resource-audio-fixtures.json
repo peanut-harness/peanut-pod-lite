@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Audio8 lifecycle plus raw downloadMode read and exact trusted preparation refusal; no playback/runtime acceptance",
+  "fixtures": [
+    {
+      "id": "creator383-audio-meta",
+      "creatorVersion": "3.8.3",
+      "assetKind": "audio",
+      "runtimeAcceptance": false,
+      "dependencies": [],
+      "files": {
+        "source": {
+          "path": "tests/fixtures/editor-stability/media/assets/audio/tone.wav",
+          "sha256": "6717131135a4419e6b936a8c57f8f17b8e2b6d8a3bf45ff2ac9c3b40df55bc33"
+        },
+        "meta": {
+          "path": "tests/fixtures/editor-stability/media/native-audio/3.8.3/tone.wav.meta",
+          "sha256": "f3901d523eb747518484cf1f1ed86e8f575dc37a55402fe06eb26911b356ac2e"
+        }
+      },
+      "initialPublic": {
+        "/assetType": "cc.AudioClip",
+        "/importer": "audio-clip",
+        "/downloadMode": 0
+      },
+      "patch": {
+        "valid": {},
+        "expectedPublic": {},
+        "blocked": "native_no_writable_fields"
+      },
+      "fieldCases": {
+        "downloadMode": {
+          "initial": 0,
+          "expected": 0,
+          "patch": {},
+          "invalidPatch": {
+            "downloadMode": 1
+          },
+          "expectedWriteRejection": "lumen_audio_property_not_editable:audio:downloadMode:allowed="
+        }
+      }
+    }
+  ]
+}

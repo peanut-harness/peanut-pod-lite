@@ -1,0 +1,456 @@
+{
+  "schemaVersion": "peanut.component-native-local-acceptance.v1",
+  "recordedAt": "2026-10-19T09:44:18.867Z",
+  "owner": "01a14256-aaae-70c0-a49e-449556d45c1e",
+  "candidateSourceCommit": "689c320c8bf387e9430a3c6e20fd70a51a2da5fc",
+  "hostSha256": "e83abe31ece1bc2c233ae8914bca4e508f2224c3dab75ecc5645c221d87aac58",
+  "coreSha256": "537b1f770c0ae7ab3d106de3cac0b9b62fa3b883021c02647735b41ce91edd6c",
+  "productSourceCheckpoint": "6d4cd97f8cf105f6a3c10ba2f1b33c874b0a45a6",
+  "localFieldLifecycle383Accepted": true,
+  "task51Complete": false,
+  "overallDeliveryComplete": false,
+  "remoteVerified": false,
+  "componentCount": 99,
+  "fieldCount": 795,
+  "verifiedComponents": 97,
+  "verifiedFields": 791,
+  "verifiedFieldStatusCounts": {
+    "native-field-readback-verified": 776,
+    "expected-public-refusal-verified": 13,
+    "expected-public-refusal": 2
+  },
+  "remainingVersionDeclarationGaps": [
+    {
+      "componentType": "cc.Sorting2D",
+      "fieldIds": [
+        "field:component:cc.Sorting2D:sortingLayer",
+        "field:component:cc.Sorting2D:sortingOrder"
+      ],
+      "reason": [
+        "component_source_declaration_absent:cc.Sorting2D"
+      ]
+    },
+    {
+      "componentType": "cc.UISkew",
+      "fieldIds": [
+        "field:component:cc.UISkew:skew",
+        "field:component:cc.UISkew:rotational"
+      ],
+      "reason": [
+        "component_source_declaration_absent:cc.UISkew"
+      ]
+    }
+  ],
+  "campaigns": [
+    {
+      "path": "evidence/task-5.1/closeout383-post-20261019/matrix-closeout-full-report.json",
+      "sha256": "cb572d9635d50423aa39ef68d933b27867a06d66ec58ab86b7e00c2168966e96",
+      "accepted": true,
+      "nativeVerifiedComponents": 91,
+      "observedNativeFieldCount": 769
+    },
+    {
+      "path": "evidence/task-5.1/closeout383-post-20261019/tiled-native-campaign.json",
+      "sha256": "96bd3f25fb756ffce7bc27eab7f1e32f355c1b24546b9b55cdd208f8d7fe2ee6",
+      "accepted": true,
+      "nativeVerifiedComponents": 4,
+      "observedNativeFieldCount": 5
+    },
+    {
+      "path": "evidence/task-5.1/closeout383-physx-20261019/matrix-closeout-physx-report.json",
+      "sha256": "9d067881ef86e5d4c1e5ab83f5d6efdc74db4e205d4718c911c30b968669a5fa",
+      "accepted": true,
+      "nativeVerifiedComponents": 2,
+      "observedNativeFieldCount": 17
+    }
+  ],
+  "closedSessions": [
+    {
+      "runId": "closeout383-post-20261019",
+      "pid": 38823,
+      "creatorVersion": "3.8.3",
+      "candidateSourceCommit": "689c320c8bf387e9430a3c6e20fd70a51a2da5fc",
+      "rawErrorCount": 0,
+      "rawWarningCount": 0,
+      "rawSources": [
+        {
+          "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout383-post-20261019/stdout.log",
+          "offset": 0,
+          "end": 24932,
+          "newErrorCount": 0,
+          "newWarningCount": 0
+        },
+        {
+          "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout383-post-20261019/stderr.log",
+          "offset": 0,
+          "end": 0,
+          "newErrorCount": 0,
+          "newWarningCount": 0
+        },
+        {
+          "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout383-post-20261019/launcher-stdout.log",
+          "offset": 0,
+          "end": 0,
+          "newErrorCount": 0,
+          "newWarningCount": 0
+        },
+        {
+          "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout383-post-20261019/launcher-stderr.log",
+          "offset": 0,
+          "end": 0,
+          "newErrorCount": 0,
+          "newWarningCount": 0
+        },
+        {
+          "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout383-post-20261019/project/temp/logs/project.log",
+          "offset": 0,
+          "end": 1349,
+          "newErrorCount": 0,
+          "newWarningCount": 0
+        }
+      ],
+      "rawErrors": [],
+      "rawWarnings": [],
+      "closeReceipt": {
+        "pid": 38823,
+        "owner": "01a14256-aaae-70c0-a49e-449556d45c1e",
+        "runId": "closeout383-post-20261019",
+        "requestedAt": "2026-10-19T09:37:26.487Z",
+        "observedExitedAt": "2026-10-19T09:37:27.713Z",
+        "originalProcessGone": true,
+        "forced": false
+      },
+      "evidence": [
+        {
+          "path": "evidence/task-5.1/closeout383-post-20261019/creator-owned-start.json",
+          "sha256": "faf8073f041275bb484f851e366a419969bd769cf2827fdea9507992d0de1639"
+        },
+        {
+          "path": "evidence/task-5.1/closeout383-post-20261019/owned-normal-close-receipt.json",
+          "sha256": "d89300820ecac8e5cb49569825a8e1dd44dd65b3be60daadd0b2c5e7336f2e54"
+        },
+        {
+          "path": "evidence/task-5.1/closeout383-post-20261019/final-delayed-whole-raw.json",
+          "sha256": "98d239c72ca19c525c44aa928feb73b6b57e20a2640e23ebe1f448c0dedee867"
+        }
+      ]
+    },
+    {
+      "runId": "closeout383-physx-20261019",
+      "pid": 11636,
+      "creatorVersion": "3.8.3",
+      "candidateSourceCommit": "689c320c8bf387e9430a3c6e20fd70a51a2da5fc",
+      "rawErrorCount": 0,
+      "rawWarningCount": 0,
+      "rawSources": [
+        {
+          "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout383-physx-20261019/stdout.log",
+          "offset": 0,
+          "end": 24389,
+          "newErrorCount": 0,
+          "newWarningCount": 0
+        },
+        {
+          "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout383-physx-20261019/stderr.log",
+          "offset": 0,
+          "end": 0,
+          "newErrorCount": 0,
+          "newWarningCount": 0
+        },
+        {
+          "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout383-physx-20261019/launcher-stdout.log",
+          "offset": 0,
+          "end": 0,
+          "newErrorCount": 0,
+          "newWarningCount": 0
+        },
+        {
+          "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout383-physx-20261019/launcher-stderr.log",
+          "offset": 0,
+          "end": 0,
+          "newErrorCount": 0,
+          "newWarningCount": 0
+        },
+        {
+          "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout383-physx-20261019/project/temp/logs/project.log",
+          "offset": 0,
+          "end": 1210,
+          "newErrorCount": 0,
+          "newWarningCount": 0
+        }
+      ],
+      "rawErrors": [],
+      "rawWarnings": [],
+      "closeReceipt": {
+        "pid": 11636,
+        "owner": "01a14256-aaae-70c0-a49e-449556d45c1e",
+        "runId": "closeout383-physx-20261019",
+        "requestedAt": "2026-10-19T09:42:46.875Z",
+        "observedExitedAt": "2026-10-19T09:42:48.047Z",
+        "originalProcessGone": true,
+        "forced": false
+      },
+      "evidence": [
+        {
+          "path": "evidence/task-5.1/closeout383-physx-20261019/creator-owned-start.json",
+          "sha256": "135bf72f85054b5a39987c0eeb8b219bc80d6a15ea6017fa7e06275d5070468b"
+        },
+        {
+          "path": "evidence/task-5.1/closeout383-physx-20261019/owned-normal-close-receipt.json",
+          "sha256": "4ff70b42023c35574396fd71a07f81338ed4a374fefaedf703505cfe61319418"
+        },
+        {
+          "path": "evidence/task-5.1/closeout383-physx-20261019/final-delayed-whole-raw.json",
+          "sha256": "694c2d4956a724b6077f81a5265a835cc9e1c273b6ff2a0ee9d77eff22829a55"
+        }
+      ]
+    },
+    {
+      "runId": "closeout387-post-20261019",
+      "pid": 39743,
+      "creatorVersion": "3.8.7",
+      "candidateSourceCommit": "689c320c8bf387e9430a3c6e20fd70a51a2da5fc",
+      "rawErrorCount": 5,
+      "rawWarningCount": 0,
+      "rawSources": [
+        {
+          "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout387-post-20261019/stdout.log",
+          "offset": 0,
+          "end": 22252,
+          "newErrorCount": 0,
+          "newWarningCount": 0
+        },
+        {
+          "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout387-post-20261019/stderr.log",
+          "offset": 0,
+          "end": 606,
+          "newErrorCount": 5,
+          "newWarningCount": 0
+        },
+        {
+          "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout387-post-20261019/launcher-stdout.log",
+          "offset": 0,
+          "end": 0,
+          "newErrorCount": 0,
+          "newWarningCount": 0
+        },
+        {
+          "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout387-post-20261019/launcher-stderr.log",
+          "offset": 0,
+          "end": 0,
+          "newErrorCount": 0,
+          "newWarningCount": 0
+        },
+        {
+          "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout387-post-20261019/project/temp/logs/project.log",
+          "offset": 0,
+          "end": 880,
+          "newErrorCount": 0,
+          "newWarningCount": 0
+        }
+      ],
+      "rawErrors": [
+        "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout387-post-20261019/stderr.log: [39743:1019/164638.201106:ERROR:interface_endpoint_client.cc(722)] Message 6 rejected by interface blink.mojom.WidgetHost",
+        "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout387-post-20261019/stderr.log: [39743:1019/164638.201955:ERROR:interface_endpoint_client.cc(722)] Message 7 rejected by interface blink.mojom.WidgetHost",
+        "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout387-post-20261019/stderr.log: [39743:1019/164638.202056:ERROR:interface_endpoint_client.cc(722)] Message 2 rejected by interface blink.mojom.Widget",
+        "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout387-post-20261019/stderr.log: [39743:1019/164638.202952:ERROR:interface_endpoint_client.cc(722)] Message 6 rejected by interface blink.mojom.WidgetHost",
+        "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/closeout387-post-20261019/stderr.log: [39743:1019/164638.202972:ERROR:interface_endpoint_client.cc(722)] Message 7 rejected by interface blink.mojom.WidgetHost"
+      ],
+      "rawWarnings": [],
+      "closeReceipt": {
+        "pid": 39743,
+        "owner": "01a14256-aaae-70c0-a49e-449556d45c1e",
+        "runId": "closeout387-post-20261019",
+        "requestedAt": "2026-10-19T08:47:48.244Z",
+        "observedExitedAt": "2026-10-19T08:47:48.918Z",
+        "originalProcessGone": true,
+        "forced": false
+      },
+      "evidence": [
+        {
+          "path": "evidence/task-5.1/closeout387-post-20261019/creator-owned-start.json",
+          "sha256": "7fd0a6211d5c06e93f3d5a5e7ff26c7a3f5de0556a85d3d3b566edf21010e6bf"
+        },
+        {
+          "path": "evidence/task-5.1/closeout387-post-20261019/owned-normal-close-receipt.json",
+          "sha256": "b840637ace761d653bf3d95332de94e144d2c7f6140f42de00f359067a98c4e6"
+        },
+        {
+          "path": "evidence/task-5.1/closeout387-post-20261019/final-delayed-whole-raw.json",
+          "sha256": "6a190c6e15b8c82f1171d66094fa2558a7d5331fa5c935c12ba3d66f9c2bc78f"
+        }
+      ]
+    }
+  ],
+  "foreignInstance": {
+    "pid": 11696,
+    "preserved": true,
+    "evidencePath": "/private/tmp/pod-parallel-20261019/task51-closeout-final-processes.txt",
+    "sha256": "682f43b19d2f67e353d2dccad6dadbea13cd620e0a28ffa8e864463a8aa6de26"
+  },
+  "fullVerification": {
+    "productSourceCheckpoint": "6d4cd97f8cf105f6a3c10ba2f1b33c874b0a45a6",
+    "tests": 1502,
+    "pass": 1502,
+    "fail": 0,
+    "skip": 0,
+    "reused": true,
+    "reason": "Since this source checkpoint only metadata and receipts changed; product source/configuration and packaged Host/Core bytes are unchanged.",
+    "logSha256": "9d16ac5538c1b0e3663ff25360c42b0c2b625bedd64bcbe6371f5b64c9b5dffe"
+  },
+  "correctedPrewriteFailures": [
+    {
+      "kind": "preview approval registration omitted projectPath",
+      "nativeWritesBeforeRefusal": 0,
+      "originalLog": "/private/tmp/pod-parallel-20261019/task51-closeout383-tiled.log",
+      "correction": "Bound the unchanged verified original safety receipt to its actual registered project; existing strict Tiled entry passed afterward."
+    },
+    {
+      "kind": "early readiness observation returned empty serviceConfigProfile",
+      "nativeWritesBeforeRefusal": 0,
+      "originalLog": "/private/tmp/pod-parallel-20261019/task51-closeout383-physx-native-read.log",
+      "originalSnapshot": "evidence/task-5.1/closeout383-physx-20261019/native-health-service-pending-first.json",
+      "correction": "After observing the actual complete SDK migration file, reran the unchanged strict read entry successfully; no readiness rule was relaxed."
+    }
+  ],
+  "presentation": {
+    "blitScreen": {
+      "observedAt": "2026-10-19T09:36:59.862Z",
+      "scene": "assets/components/cc.BlitScreen.scene",
+      "url": "http://localhost:7457/",
+      "method": "authorized CUA screenshot of existing Google Chrome preview tab plus native accessibility DevTools Console",
+      "screenshotCount": 1,
+      "visible": "lit cube with three distinct faces on neutral skybox background",
+      "renderObserved": true,
+      "visualAcceptance": true,
+      "browserAcceptance": false,
+      "task51Complete": false,
+      "fpsVisible": 60,
+      "drawCallsVisible": 5,
+      "consoleErrorCount": 0,
+      "consoleWarningCount": 1,
+      "retainedDiagnostics": [
+        "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\"> is deprecated. Please include <meta name=\"mobile-web-app-capable\" content=\"yes\">",
+        "The asset has been destroyed!",
+        "[Violation] requestAnimationFrame handler took 647ms"
+      ],
+      "gpuBufferErrorObserved": false,
+      "manualConsoleCleared": false,
+      "filtersChanged": false,
+      "previewTabs": 1
+    },
+    "otherCurrentCandidatePresentationsComplete": false,
+    "browserWholeSessionAccepted": false,
+    "note": "Field/lifecycle acceptance does not establish all component behavior or rendering. Only one necessary screenshot was reviewed in this closeout."
+  },
+  "unresolved": [
+    {
+      "kind": "3.8.7 native startup diagnostics",
+      "errorCount": 5,
+      "componentWritesAttempted": 0,
+      "accepted": false,
+      "rootCauseProven": false,
+      "note": "The session stopped and closed normally; no SDK patch or diagnostic suppression was applied."
+    },
+    {
+      "kind": "browser diagnostics",
+      "sourceObservation": "evidence/task-5.1/closeout383-post-20261019/browser-template-source-observation.json",
+      "retained": [
+        "deprecated apple-mobile-web-app-capable meta declaration",
+        "The asset has been destroyed!",
+        "requestAnimationFrame handler took 647ms"
+      ],
+      "accepted": false
+    },
+    {
+      "kind": "unexecuted presentation and behavior coverage",
+      "note": "Listed independently; no new presentation/verification tooling was added."
+    },
+    {
+      "kind": "resource 4.3 adapter coverage outside this closeout",
+      "total": 606,
+      "verified": 121,
+      "remaining": 485,
+      "prerequisiteFor51": false
+    }
+  ],
+  "constraints": {
+    "allEnabled": false,
+    "errorsFiltered": false,
+    "sdkInstallationModified": false,
+    "verificationToolsAdded": false,
+    "newProductSourceChanges": false,
+    "pushed": false,
+    "published": false
+  },
+  "evidence": [
+    {
+      "path": "evidence/task-5.1/closeout383-post-20261019/matrix-closeout-full-report.json",
+      "sha256": "cb572d9635d50423aa39ef68d933b27867a06d66ec58ab86b7e00c2168966e96"
+    },
+    {
+      "path": "evidence/task-5.1/closeout383-post-20261019/tiled-native-campaign.json",
+      "sha256": "96bd3f25fb756ffce7bc27eab7f1e32f355c1b24546b9b55cdd208f8d7fe2ee6"
+    },
+    {
+      "path": "evidence/task-5.1/closeout383-physx-20261019/matrix-closeout-physx-report.json",
+      "sha256": "9d067881ef86e5d4c1e5ab83f5d6efdc74db4e205d4718c911c30b968669a5fa"
+    },
+    {
+      "path": "evidence/task-5.1/closeout383-post-20261019/native-health.json",
+      "sha256": "f70871f29022535ebdae472ef6f20d4d5a432e7c92cb66572b14a3578bc06239"
+    },
+    {
+      "path": "evidence/task-5.1/closeout383-physx-20261019/native-health.json",
+      "sha256": "3cca75527be922a24caeb06ea85506672f9a6d52bc78297f703878789318176a"
+    },
+    {
+      "path": "evidence/task-5.1/closeout383-physx-20261019/native-health-service-pending-first.json",
+      "sha256": "809e888d6267e777f9af60b8980ecb3c81d0ec88145b6f4fdfcec251031becac"
+    },
+    {
+      "path": "evidence/task-5.1/closeout383-post-20261019/preview-safety-receipt.json",
+      "sha256": "622c73bd4c1505650d245461babf9529a97ef575d7113f458fa0d4f16ccea6a5"
+    },
+    {
+      "path": "evidence/task-5.1/closeout383-physx-20261019/preview-safety-receipt.json",
+      "sha256": "457cb1dafeccd3b9d773a6dcdde6c05342d8712e653bb010a94c073e6c6d7aee"
+    },
+    {
+      "path": "evidence/task-5.1/closeout383-post-20261019/preview-safety-approved-before-project-binding.json",
+      "sha256": "622c73bd4c1505650d245461babf9529a97ef575d7113f458fa0d4f16ccea6a5"
+    },
+    {
+      "path": "evidence/task-5.1/closeout383-post-20261019/blit-presentation-public-refresh.json",
+      "sha256": "6765e6de8414159f45c4d41a49e4cb346890a66957ee6fd42bac9c0c47292684"
+    },
+    {
+      "path": "evidence/task-5.1/closeout383-post-20261019/blit-presentation-visual-observation.json",
+      "sha256": "e54b1575f7dfaf9672f787be7df082c01cc97e2a703fcad85749498738559a56"
+    },
+    {
+      "path": "evidence/task-5.1/closeout383-post-20261019/browser-template-source-observation.json",
+      "sha256": "30898e47b407f20f41e355cb97d312cf4cbb870a549700fedb38198769378d10"
+    },
+    {
+      "path": "evidence/task-5.1/closeout383-physx-20261019/browser-console-late-observation.json",
+      "sha256": "490f7bb1fdd1eef552e8f431a73345373e5f496419ed06b21ac0a4b4f997c17f"
+    }
+  ],
+  "deliveryChecks": {
+    "openspecStrict": {
+      "passed": true,
+      "logSha256": "a5c71f6a001c33170a570c8b0a6e752d2b237ddfa294910b84be89a5691a7b17"
+    },
+    "knowledge": {
+      "build": true,
+      "attest": true,
+      "checkSync": true,
+      "checkSyncOutput": "ok scope=all chunks=24",
+      "syncReceipt": "tests/fixtures/editor-stability/components/native-verification-20261019/sync.json",
+      "syncSha256": "941f675fd5b0dab81ad2682457d5ff90351d4afdeeab9dc5681d50a4f86ae695",
+      "note": "Preliminary added heading exceeded the nonempty-line limit; closeout information was merged into the existing boundary paragraph, with no extra card lines or rule changes."
+    },
+    "diffCheck": true
+  }
+}

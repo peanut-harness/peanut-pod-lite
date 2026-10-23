@@ -1,6 +1,6 @@
 # Peanut Pod Lite
 
-Cocos Creator 编辑器产品。Lite 公开 84 项免费操作（39 读、45 写/破坏性）；所有原生写入都必须消费绑定连接、操作、资源与风险的本地审批租约。Pro 始终可选，缺失或升级失败不得阻断 Lite。
+Cocos Creator 编辑器产品。Lite 公开 88 项免费操作（41 读、47 写/破坏性）；所有原生写入都必须消费绑定连接、操作、资源与风险的本地审批租约。Pro 始终可选，缺失或升级失败不得阻断 Lite。
 
 Creator 3.8 的插件安装、开发模板、打包、版本切换和回滚统一从 Cocos Plugin Manager 面板操作。安装流程、受信任目录配置和 Lite Host 重启更新说明见 [`docs/INSTALLATION.md`](docs/INSTALLATION.md)。
 
@@ -20,6 +20,8 @@ Creator 3.8 的插件安装、开发模板、打包、版本切换和回滚统�
 - `creator-30-35`：Creator 3.0–3.5，实验支持，默认禁止写入。
 - `creator-36-37`：显式不支持，不会误落到 3.8 写入适配器。
 - `creator-38`：Creator 3.8；当前宿主与工程均精确匹配已验证的 `3.8.3` 或 `3.8.7` 时允许写入。
+
+`diagnostics.queryLogs` 提供有界 `project.log` 尾读、增量、字面搜索与原始上下文；`viewport.queryState`、`viewport.focusNodes`、`viewport.setState` 使用 Creator 原生消息和相机回读，只在 3.8.3/3.8.7 开放。视口写入照常消费本地审批租约，消息受理不等同于状态验证。详见 [`docs/LOG-DIAGNOSTICS.md`](docs/LOG-DIAGNOSTICS.md) 与 [`docs/VIEWPORT-CONTROL.md`](docs/VIEWPORT-CONTROL.md)。
 
 宿主启动时只解析一次 `CreatorContext`。未知版本、宿主与工程版本不一致、或缺少实机证据时均 fail-closed。
 

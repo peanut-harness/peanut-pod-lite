@@ -1,0 +1,64 @@
+{
+  "creatorVersion": "3.8.7",
+  "nativeRun": "evidence/task-5.1/sdk-panel-owner-387-20261016",
+  "sourceRootUuid": "f4c47573-3824-4e5b-bdba-40a7224f0e42",
+  "nativePrefabSubId": "36e19",
+  "nativeMeshSubId": "bcca5",
+  "nativeSkeletonSubId": "438fe",
+  "nativeAnimationSubId": "9bfcd",
+  "nativeMaterialSubId": "f7779",
+  "jointPaths": [
+    "Joint"
+  ],
+  "files": [
+    {
+      "file": "gltf-skinned-source.prefab.json",
+      "sha256": "677bc249b0c75bb6b8f26e9b689103216bc25f6cabed1708d2f0e47a5926caea",
+      "source": "evidence/task-5.1/sdk-panel-owner-387-20261016/project/library/f4/f4c47573-3824-4e5b-bdba-40a7224f0e42@36e19.json"
+    },
+    {
+      "file": "gltf-skinned-source.meta.json",
+      "sha256": "e8535490db347ff4c745619d8cc48488a9472c757c467ef20264522a6dd3fa70",
+      "source": "evidence/task-5.1/sdk-panel-owner-387-20261016/project/assets/fixtures/media/assets/model/triangle.gltf.meta"
+    }
+  ],
+  "input": {
+    "path": "tests/fixtures/editor-stability/media/assets/model/triangle.gltf",
+    "sha256": "32c8b6733229d16e3df46977c86d51776afcb34be5fc475b0148dd5f79572daf"
+  },
+  "sdkSources": [
+    {
+      "path": "package.json",
+      "sha256": "14f5c51d349123656acd76652a03468f754a76df12874e61b176b2d8419926cf"
+    },
+    {
+      "path": "cocos/3d/skinned-mesh-renderer/skinned-mesh-renderer.ts",
+      "sha256": "739aab2aa1e1e67f0289a1bac3432840603c36311c533fb353e6fdb477cf7693"
+    },
+    {
+      "path": "cocos/3d/skinned-mesh-renderer/skinned-mesh-batch-renderer.ts",
+      "sha256": "f476788400cd76accb4b3eae77a45395e6c0f815a85311e1197418fe062de2c6"
+    },
+    {
+      "path": "cocos/3d/skeletal-animation/skeletal-animation.ts",
+      "sha256": "abc014114c244d1d3b3dbb25f8e8c8c7ec8830a0d1d3b705e8c886dcfc46ca4f"
+    },
+    {
+      "path": "cocos/3d/framework/mesh-renderer.ts",
+      "sha256": "0e90b504656e167fc545db4fdea35e84726173800f03e633e14a7608570a4810"
+    },
+    {
+      "path": "cocos/core/math/mat4.ts",
+      "sha256": "ce41535a34d9d1a4d0e6eb4558066d426965eda52379a99ea427785df1a70568"
+    }
+  ],
+  "nativeAcceptance": false,
+  "scope": "SDK imported hierarchy source only; fresh project must re-import and verify actual resources, joints, lifecycle and raw logs",
+  "nativeSkeletonSource": {
+    "path": "evidence/task-5.1/sdk-panel-owner-387-20261016/project/library/f4/f4c47573-3824-4e5b-bdba-40a7224f0e42@438fe.json",
+    "sha256": "8f987718feb9c0b387eb7284b179260e4af6c6b562a35d5157d3c4d9a930e55d",
+    "jointPaths": [
+      "Joint"
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-10-10
+goal: Give the existing plugin panels a consistent, readable dark UI that adapts
+  to the available editor window size.

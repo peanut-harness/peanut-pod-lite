@@ -1,0 +1,927 @@
+{
+  "schemaVersion": 1,
+  "revision": "peanut-task42-native-media/1.0.0",
+  "generator": {
+    "path": "build_supplemental_fixtures.py",
+    "sha256": "3f8104cbce1a9582516d49c11e166d6342e22374027c50f895a826f9b74ff169",
+    "fonttoolsVersion": "4.66.1"
+  },
+  "origin": "新增像素引用、原创字形、单骨骼/图集、粒子参数和完整 RGBE 像素；原媒体输入保持 bytes。",
+  "files": [
+    {
+      "path": "supplemental/3.8.3/CREATOR-ENGINE-LICENSE.md",
+      "sha256": "e8799a9198184e8cc31e45e66521b1cca52f9099a932de7a56abb9d212311318",
+      "byteLength": 1164,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/3.8.3/cube-source.hdr.meta",
+      "sha256": "74547d4a453a5120160d94a0c2ff9e2cd29f9b5bfaef53aa9fd86cde40c44056",
+      "byteLength": 3351,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/3.8.3/default.labelatlas",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "byteLength": 0,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/3.8.3/default.labelatlas.meta",
+      "sha256": "70dc2a624c46f45497b6dab3d3bf19d5546a84305dd3fb4d0fa50123e45d8464",
+      "byteLength": 318,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/3.8.3/default.pac",
+      "sha256": "b88bbec672a123e7810c1e150a55c9f4f6b6bde4ca949699e878b7787d002242",
+      "byteLength": 37,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/3.8.3/default.pac.meta",
+      "sha256": "7f120adec428633de8ad80dad62d0d6e51a23754922c6dba4379a36ed2c4de21",
+      "byteLength": 807,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/3.8.7/CREATOR-ENGINE-LICENSE.md",
+      "sha256": "e8799a9198184e8cc31e45e66521b1cca52f9099a932de7a56abb9d212311318",
+      "byteLength": 1164,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/3.8.7/cube-source.hdr.meta",
+      "sha256": "74547d4a453a5120160d94a0c2ff9e2cd29f9b5bfaef53aa9fd86cde40c44056",
+      "byteLength": 3351,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/3.8.7/default.labelatlas",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "byteLength": 0,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/3.8.7/default.labelatlas.meta",
+      "sha256": "70dc2a624c46f45497b6dab3d3bf19d5546a84305dd3fb4d0fa50123e45d8464",
+      "byteLength": 318,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/3.8.7/default.pac",
+      "sha256": "b88bbec672a123e7810c1e150a55c9f4f6b6bde4ca949699e878b7787d002242",
+      "byteLength": 37,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/3.8.7/default.pac.meta",
+      "sha256": "7f120adec428633de8ad80dad62d0d6e51a23754922c6dba4379a36ed2c4de21",
+      "byteLength": 807,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/atlas/checker.png",
+      "sha256": "5dd37b0e2023a6fb9a50f4c10b2004ca06287895e43ab2accfd0acc565c9187b",
+      "byteLength": 90,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/atlas/one-region.plist",
+      "sha256": "2ed3b0b8146f14a60e0dc75857cbd0073741ee0126ccab790abee6732254b4c0",
+      "byteLength": 762,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": [
+        "supplemental/atlas/checker.png"
+      ]
+    },
+    {
+      "path": "supplemental/font/one-glyph.ttf",
+      "sha256": "600ca868a92f593f2ec54763eddeb857f43189ad11e1e975d7a41db345253212",
+      "byteLength": 1220,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/hdr/equirect.hdr",
+      "sha256": "3dc783521c9c305635f0cf47024bbcf495a2d82e924a027582a3e10340658294",
+      "byteLength": 142,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/particle/checker.png",
+      "sha256": "5dd37b0e2023a6fb9a50f4c10b2004ca06287895e43ab2accfd0acc565c9187b",
+      "byteLength": 90,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/particle/one-emitter.plist",
+      "sha256": "25091b33889eca67474176d67ead29a099fc0076ba9c42b89917dd6654b51b07",
+      "byteLength": 1723,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": [
+        "supplemental/particle/checker.png"
+      ]
+    },
+    {
+      "path": "supplemental/skeletal/checker.png",
+      "sha256": "5dd37b0e2023a6fb9a50f4c10b2004ca06287895e43ab2accfd0acc565c9187b",
+      "byteLength": 90,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": []
+    },
+    {
+      "path": "supplemental/skeletal/one-bone-dragonbones-atlas.json",
+      "sha256": "f4aa78d7f67d71d13b74f2bd0e97aad60b4f5ed034a4b7b8640d4f1f9d5180ed",
+      "byteLength": 206,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": [
+        "supplemental/skeletal/checker.png"
+      ]
+    },
+    {
+      "path": "supplemental/skeletal/one-bone-dragonbones.json",
+      "sha256": "0061dc563dc6d214caaa3055dc426d0fc061a41934839de9b13fc2673fa9a740",
+      "byteLength": 1312,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": [
+        "supplemental/skeletal/one-bone-dragonbones-atlas.json"
+      ]
+    },
+    {
+      "path": "supplemental/skeletal/one-bone-spine.atlas",
+      "sha256": "0ecd9c6517da4eaa131d04bc38a9173e9da61707e3edf28dc82012499143212a",
+      "byteLength": 160,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": [
+        "supplemental/skeletal/checker.png"
+      ]
+    },
+    {
+      "path": "supplemental/skeletal/one-bone-spine.json",
+      "sha256": "8d283ffffaed7e54750ef499c37d04fac3abaddc921ee3270e021ffde3041c5a",
+      "byteLength": 837,
+      "sourceRevision": "peanut-task42-native-media/1.0.0",
+      "dependencies": [
+        "supplemental/skeletal/one-bone-spine.atlas"
+      ]
+    },
+    {
+      "path": "assets/audio/tone.wav",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "wav",
+      "byteLength": 16044,
+      "sha256": "6717131135a4419e6b936a8c57f8f17b8e2b6d8a3bf45ff2ac9c3b40df55bc33",
+      "dependencies": []
+    },
+    {
+      "path": "assets/bundle/checker.png",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "png",
+      "byteLength": 90,
+      "sha256": "5dd37b0e2023a6fb9a50f4c10b2004ca06287895e43ab2accfd0acc565c9187b",
+      "dependencies": []
+    },
+    {
+      "path": "assets/font/glyph.png",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "png",
+      "byteLength": 94,
+      "sha256": "f6efbdaf3a5d30f93c0666a26af173506ce57424b5ebfea0814851d56a89ed9a",
+      "dependencies": []
+    },
+    {
+      "path": "assets/font/one-glyph.fnt",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "bmfont",
+      "byteLength": 311,
+      "sha256": "39ee476fa50a71799230837f2da37d2c1c1a8db864ffc0ae73c8b04e85f78ec1",
+      "dependencies": [
+        "assets/font/glyph.png"
+      ]
+    },
+    {
+      "path": "assets/image/checker.png",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "png",
+      "byteLength": 90,
+      "sha256": "5dd37b0e2023a6fb9a50f4c10b2004ca06287895e43ab2accfd0acc565c9187b",
+      "dependencies": []
+    },
+    {
+      "path": "assets/map/one-tile.tsx",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "tiled",
+      "byteLength": 206,
+      "sha256": "87051f75295d60c5bcdec8c6b26a68c73decc83119e9e3913d43886001cbcd64",
+      "dependencies": [
+        "assets/image/checker.png"
+      ]
+    },
+    {
+      "path": "assets/map/two-by-two.tmx",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "tiled",
+      "byteLength": 349,
+      "sha256": "5182f447579349e256770c53530a12aa0660652c77773525911cc59f693e8cc7",
+      "dependencies": [
+        "assets/map/one-tile.tsx"
+      ]
+    },
+    {
+      "path": "assets/model/triangle.bin",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "gltf-buffer",
+      "byteLength": 272,
+      "sha256": "28fae5e3fc248c91bf1e930a2c895e6cff4cae314bdd54d80f12798fa9b3fb27",
+      "dependencies": []
+    },
+    {
+      "path": "assets/model/triangle.gltf",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "gltf",
+      "byteLength": 3540,
+      "sha256": "32c8b6733229d16e3df46977c86d51776afcb34be5fc475b0148dd5f79572daf",
+      "dependencies": [
+        "assets/model/triangle.bin",
+        "assets/image/checker.png"
+      ]
+    },
+    {
+      "path": "assets/video/blue.mp4",
+      "sourceRevision": "peanut-task42-media/1.0.0",
+      "formatId": "mp4",
+      "byteLength": 1662,
+      "sha256": "c2bd0209243b6c6005f73844398aea89f80c95449d1dc846d0980ce19e618f7c",
+      "dependencies": []
+    }
+  ],
+  "versions": {
+    "3.8.3": {
+      "provenance": "supplemental/3.8.3/source-provenance.json",
+      "inputs": {
+        "image": {
+          "input": "assets/image/checker.png",
+          "dependencyClosure": [
+            "assets/image/checker.png"
+          ]
+        },
+        "model": {
+          "input": "assets/model/triangle.gltf",
+          "dependencyClosure": [
+            "assets/image/checker.png",
+            "assets/model/triangle.bin",
+            "assets/model/triangle.gltf"
+          ]
+        },
+        "audio": {
+          "input": "assets/audio/tone.wav",
+          "dependencyClosure": [
+            "assets/audio/tone.wav"
+          ]
+        },
+        "video": {
+          "input": "assets/video/blue.mp4",
+          "dependencyClosure": [
+            "assets/video/blue.mp4"
+          ]
+        },
+        "buffer": {
+          "input": "assets/model/triangle.bin",
+          "dependencyClosure": [
+            "assets/model/triangle.bin"
+          ]
+        },
+        "bitmapFont": {
+          "input": "assets/font/one-glyph.fnt",
+          "dependencyClosure": [
+            "assets/font/glyph.png",
+            "assets/font/one-glyph.fnt"
+          ]
+        },
+        "tiledMap": {
+          "input": "assets/map/two-by-two.tmx",
+          "dependencyClosure": [
+            "assets/image/checker.png",
+            "assets/map/one-tile.tsx",
+            "assets/map/two-by-two.tmx"
+          ]
+        },
+        "ttfFont": {
+          "input": "supplemental/font/one-glyph.ttf",
+          "dependencyClosure": [
+            "supplemental/font/one-glyph.ttf"
+          ]
+        },
+        "spine": {
+          "input": "supplemental/skeletal/one-bone-spine.json",
+          "dependencyClosure": [
+            "supplemental/skeletal/checker.png",
+            "supplemental/skeletal/one-bone-spine.atlas",
+            "supplemental/skeletal/one-bone-spine.json"
+          ]
+        },
+        "dragonBones": {
+          "input": "supplemental/skeletal/one-bone-dragonbones.json",
+          "dependencyClosure": [
+            "supplemental/skeletal/checker.png",
+            "supplemental/skeletal/one-bone-dragonbones-atlas.json",
+            "supplemental/skeletal/one-bone-dragonbones.json"
+          ]
+        },
+        "dragonBonesAtlas": {
+          "input": "supplemental/skeletal/one-bone-dragonbones-atlas.json",
+          "dependencyClosure": [
+            "supplemental/skeletal/checker.png",
+            "supplemental/skeletal/one-bone-dragonbones-atlas.json"
+          ]
+        },
+        "particle": {
+          "input": "supplemental/particle/one-emitter.plist",
+          "dependencyClosure": [
+            "supplemental/particle/checker.png",
+            "supplemental/particle/one-emitter.plist"
+          ]
+        },
+        "spriteAtlas": {
+          "input": "supplemental/atlas/one-region.plist",
+          "dependencyClosure": [
+            "supplemental/atlas/checker.png",
+            "supplemental/atlas/one-region.plist"
+          ]
+        },
+        "cubeMap": {
+          "input": "supplemental/hdr/equirect.hdr",
+          "derivedSelector": "image importer type=texture cube; ERP texture-cube subasset; exact installed source meta is frozen; rebind UUID only after AssetDB import",
+          "metaSource": "supplemental/3.8.3/cube-source.hdr.meta",
+          "dependencyClosure": [
+            "supplemental/3.8.3/cube-source.hdr.meta",
+            "supplemental/hdr/equirect.hdr"
+          ]
+        },
+        "directory": {
+          "input": "assets/bundle",
+          "stagingRecipe": {
+            "assetdbOperation": "asset.createFolder",
+            "inspectorPatch": {
+              "isBundle": true,
+              "bundleName": "Task42Bundle",
+              "priority": 1
+            },
+            "child": "assets/bundle/checker.png",
+            "identity": "后续原生创建目录并取得真实 directory meta UUID；禁止将 fixture UUID 视为登记结果。"
+          },
+          "dependencyClosure": [
+            "assets/bundle/checker.png"
+          ]
+        },
+        "mesh": {
+          "input": "assets/model/triangle.gltf",
+          "derivedSelector": "meshes[0].primitives[0]",
+          "derivedIdentity": "真实 glTF 源数据，不创建伪 .mesh/.skeleton/.animation/.material；后续 importer 子资源 metadata 精确绑定此 selector，读回类型与数据必须匹配。",
+          "dependencyClosure": [
+            "assets/image/checker.png",
+            "assets/model/triangle.bin",
+            "assets/model/triangle.gltf"
+          ]
+        },
+        "skeleton": {
+          "input": "assets/model/triangle.gltf",
+          "derivedSelector": "skins[0]",
+          "derivedIdentity": "真实 glTF 源数据，不创建伪 .mesh/.skeleton/.animation/.material；后续 importer 子资源 metadata 精确绑定此 selector，读回类型与数据必须匹配。",
+          "dependencyClosure": [
+            "assets/image/checker.png",
+            "assets/model/triangle.bin",
+            "assets/model/triangle.gltf"
+          ]
+        },
+        "instantiationAnimation": {
+          "input": "assets/model/triangle.gltf",
+          "derivedSelector": "animations[0]",
+          "derivedIdentity": "真实 glTF 源数据，不创建伪 .mesh/.skeleton/.animation/.material；后续 importer 子资源 metadata 精确绑定此 selector，读回类型与数据必须匹配。",
+          "dependencyClosure": [
+            "assets/image/checker.png",
+            "assets/model/triangle.bin",
+            "assets/model/triangle.gltf"
+          ]
+        },
+        "instantiationMaterial": {
+          "input": "assets/model/triangle.gltf",
+          "derivedSelector": "materials[0]",
+          "derivedIdentity": "真实 glTF 源数据，不创建伪 .mesh/.skeleton/.animation/.material；后续 importer 子资源 metadata 精确绑定此 selector，读回类型与数据必须匹配。",
+          "dependencyClosure": [
+            "assets/image/checker.png",
+            "assets/model/triangle.bin",
+            "assets/model/triangle.gltf"
+          ]
+        },
+        "autoAtlas": {
+          "input": "supplemental/3.8.3/default.pac",
+          "metaSource": "supplemental/3.8.3/default.pac.meta",
+          "sourceReference": "engine/editor/assets/default_file_content/auto-atlas/default.pac",
+          "stagingRecipe": {
+            "source": "仅使用同版官方源模板，导入后消费真实 meta/子资源身份，不复用模板 UUID。",
+            "sourceImage": "assets/image/checker.png",
+            "layout": "将 .pac 与 sourceImage 放到同一已登记目录，原生 pack 产生非空 Atlas",
+            "inspectorPatch": {
+              "pack": {
+                "maxWidth": 64,
+                "maxHeight": 64,
+                "padding": 2
+              }
+            }
+          },
+          "dependencyClosure": [
+            "assets/image/checker.png",
+            "supplemental/3.8.3/default.pac",
+            "supplemental/3.8.3/default.pac.meta"
+          ]
+        },
+        "labelAtlas": {
+          "input": "supplemental/3.8.3/default.labelatlas",
+          "metaSource": "supplemental/3.8.3/default.labelatlas.meta",
+          "sourceReference": "engine/editor/assets/default_file_content/label-atlas/default.labelatlas",
+          "stagingRecipe": {
+            "source": "仅使用同版官方源模板，导入后消费真实 meta/子资源身份，不复用模板 UUID。",
+            "sourceImage": "assets/font/glyph.png",
+            "spriteFrame": "取得该 glyph 图片原生子资源 SpriteFrame UUID 后绑定 spriteFrameUuid",
+            "inspectorPatch": {
+              "itemWidth": 8,
+              "itemHeight": 8,
+              "startChar": "A"
+            }
+          },
+          "dependencyClosure": [
+            "assets/font/glyph.png",
+            "supplemental/3.8.3/default.labelatlas",
+            "supplemental/3.8.3/default.labelatlas.meta"
+          ]
+        }
+      },
+      "nativeImporterLayout": [
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/animation-clip.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/animation-graph-variant.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/animation-graph.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/animation-mask.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/audio-clip.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/auto-atlas.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/bitmap-font.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/buffer.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/directory.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/dragonbones/dragonbones-atlas.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/dragonbones/dragonbones.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/dragonbones/index.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/effect-header.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/effect.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/erp-texture-cube.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/fbx.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/animation.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/asset-finder.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/fbx-to-gltf.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/image.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/load-asset-sync.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/material.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/mesh.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/meshSimplify.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/original-animation.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/prefab.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/reader-manager.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/skeleton.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/validation.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/image/alpha.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/image/image-base.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/image/image-mics.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/image/index.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/image/migrations.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/image/sign.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/image/utils.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/instantiation-asset/animation.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/instantiation-asset/asset.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/instantiation-asset/material.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/instantiation-asset/mesh.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/instantiation-asset/skeleton.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/javascript.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/json.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/label-atlas.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/material.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/animation-graph/3.5.0.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/animation-graph/3.8.0.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/archive-space.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/components.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/migrate-animation-clip-3-3-0.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/migrate-bundle-config.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/migrate-curve-range-3-3-0.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/migrate-geometry-curve-3-3-0.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/name2id.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/prefab.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/particle.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/physics-material.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/prefab.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/render-flow.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/render-pipeline.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/render-stage.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/render-texture/index.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/render-texture/rt-sprite-frame.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/scene/defines.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/scene/index.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/scene/migrate-prefab-1-1-34.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/scene/migrates.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/scene/utils.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/spine.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/sprite-atlas.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/sprite-frame.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/terrain.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/text.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/texture-base.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/texture-cube.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/texture-packer.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/texture.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/tiled-map.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/ttf-font.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/typescipt.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/unknown.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/algorithm/bleeding.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/animation-compression.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/base64.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/cube-map-simple-layout.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/curve-utils.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/equirect-cubemap-faces.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/fbx-converter.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/fbx2glTf.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/glTF-animation-utils.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/glTF.constants.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/gltf-converter.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/image-mime-type-to-ext.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/image-utils.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/khr-draco-mesh-compression.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/match-image-type-pattern.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/material-interface.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/material-upgrader.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/migration-utils.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/model-convert-routine.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/pp-geometry.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/resolve-glTF-image-path.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/script-compiler.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/serialize-library.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/split-animation.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/ts-utils.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/uri-utils.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/uv-unwrap.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/video-clip.ccc"
+      ],
+      "baselineLayoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "ddaddfaf86eb9da8f9d6b3a2b5385f7ffbdd37f79818ea34b6afcc059da5e0f6"
+      },
+      "layoutSource": {
+        "id": "creator/3.8.3/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.3",
+        "sha256": "81e7181186485d6df2d8d6d18ac825c8fc41ba49fdc4781ca05c85cb39933e69"
+      },
+      "nativeRuntimePassedRows": 0
+    },
+    "3.8.7": {
+      "provenance": "supplemental/3.8.7/source-provenance.json",
+      "inputs": {
+        "image": {
+          "input": "assets/image/checker.png",
+          "dependencyClosure": [
+            "assets/image/checker.png"
+          ]
+        },
+        "model": {
+          "input": "assets/model/triangle.gltf",
+          "dependencyClosure": [
+            "assets/image/checker.png",
+            "assets/model/triangle.bin",
+            "assets/model/triangle.gltf"
+          ]
+        },
+        "audio": {
+          "input": "assets/audio/tone.wav",
+          "dependencyClosure": [
+            "assets/audio/tone.wav"
+          ]
+        },
+        "video": {
+          "input": "assets/video/blue.mp4",
+          "dependencyClosure": [
+            "assets/video/blue.mp4"
+          ]
+        },
+        "buffer": {
+          "input": "assets/model/triangle.bin",
+          "dependencyClosure": [
+            "assets/model/triangle.bin"
+          ]
+        },
+        "bitmapFont": {
+          "input": "assets/font/one-glyph.fnt",
+          "dependencyClosure": [
+            "assets/font/glyph.png",
+            "assets/font/one-glyph.fnt"
+          ]
+        },
+        "tiledMap": {
+          "input": "assets/map/two-by-two.tmx",
+          "dependencyClosure": [
+            "assets/image/checker.png",
+            "assets/map/one-tile.tsx",
+            "assets/map/two-by-two.tmx"
+          ]
+        },
+        "ttfFont": {
+          "input": "supplemental/font/one-glyph.ttf",
+          "dependencyClosure": [
+            "supplemental/font/one-glyph.ttf"
+          ]
+        },
+        "spine": {
+          "input": "supplemental/skeletal/one-bone-spine.json",
+          "dependencyClosure": [
+            "supplemental/skeletal/checker.png",
+            "supplemental/skeletal/one-bone-spine.atlas",
+            "supplemental/skeletal/one-bone-spine.json"
+          ]
+        },
+        "dragonBones": {
+          "input": "supplemental/skeletal/one-bone-dragonbones.json",
+          "dependencyClosure": [
+            "supplemental/skeletal/checker.png",
+            "supplemental/skeletal/one-bone-dragonbones-atlas.json",
+            "supplemental/skeletal/one-bone-dragonbones.json"
+          ]
+        },
+        "dragonBonesAtlas": {
+          "input": "supplemental/skeletal/one-bone-dragonbones-atlas.json",
+          "dependencyClosure": [
+            "supplemental/skeletal/checker.png",
+            "supplemental/skeletal/one-bone-dragonbones-atlas.json"
+          ]
+        },
+        "particle": {
+          "input": "supplemental/particle/one-emitter.plist",
+          "dependencyClosure": [
+            "supplemental/particle/checker.png",
+            "supplemental/particle/one-emitter.plist"
+          ]
+        },
+        "spriteAtlas": {
+          "input": "supplemental/atlas/one-region.plist",
+          "dependencyClosure": [
+            "supplemental/atlas/checker.png",
+            "supplemental/atlas/one-region.plist"
+          ]
+        },
+        "cubeMap": {
+          "input": "supplemental/hdr/equirect.hdr",
+          "derivedSelector": "image importer type=texture cube; ERP texture-cube subasset; exact installed source meta is frozen; rebind UUID only after AssetDB import",
+          "metaSource": "supplemental/3.8.7/cube-source.hdr.meta",
+          "dependencyClosure": [
+            "supplemental/3.8.7/cube-source.hdr.meta",
+            "supplemental/hdr/equirect.hdr"
+          ]
+        },
+        "directory": {
+          "input": "assets/bundle",
+          "stagingRecipe": {
+            "assetdbOperation": "asset.createFolder",
+            "inspectorPatch": {
+              "isBundle": true,
+              "bundleName": "Task42Bundle",
+              "priority": 1
+            },
+            "child": "assets/bundle/checker.png",
+            "identity": "后续原生创建目录并取得真实 directory meta UUID；禁止将 fixture UUID 视为登记结果。"
+          },
+          "dependencyClosure": [
+            "assets/bundle/checker.png"
+          ]
+        },
+        "mesh": {
+          "input": "assets/model/triangle.gltf",
+          "derivedSelector": "meshes[0].primitives[0]",
+          "derivedIdentity": "真实 glTF 源数据，不创建伪 .mesh/.skeleton/.animation/.material；后续 importer 子资源 metadata 精确绑定此 selector，读回类型与数据必须匹配。",
+          "dependencyClosure": [
+            "assets/image/checker.png",
+            "assets/model/triangle.bin",
+            "assets/model/triangle.gltf"
+          ]
+        },
+        "skeleton": {
+          "input": "assets/model/triangle.gltf",
+          "derivedSelector": "skins[0]",
+          "derivedIdentity": "真实 glTF 源数据，不创建伪 .mesh/.skeleton/.animation/.material；后续 importer 子资源 metadata 精确绑定此 selector，读回类型与数据必须匹配。",
+          "dependencyClosure": [
+            "assets/image/checker.png",
+            "assets/model/triangle.bin",
+            "assets/model/triangle.gltf"
+          ]
+        },
+        "instantiationAnimation": {
+          "input": "assets/model/triangle.gltf",
+          "derivedSelector": "animations[0]",
+          "derivedIdentity": "真实 glTF 源数据，不创建伪 .mesh/.skeleton/.animation/.material；后续 importer 子资源 metadata 精确绑定此 selector，读回类型与数据必须匹配。",
+          "dependencyClosure": [
+            "assets/image/checker.png",
+            "assets/model/triangle.bin",
+            "assets/model/triangle.gltf"
+          ]
+        },
+        "instantiationMaterial": {
+          "input": "assets/model/triangle.gltf",
+          "derivedSelector": "materials[0]",
+          "derivedIdentity": "真实 glTF 源数据，不创建伪 .mesh/.skeleton/.animation/.material；后续 importer 子资源 metadata 精确绑定此 selector，读回类型与数据必须匹配。",
+          "dependencyClosure": [
+            "assets/image/checker.png",
+            "assets/model/triangle.bin",
+            "assets/model/triangle.gltf"
+          ]
+        },
+        "autoAtlas": {
+          "input": "supplemental/3.8.7/default.pac",
+          "metaSource": "supplemental/3.8.7/default.pac.meta",
+          "sourceReference": "engine/editor/assets/default_file_content/auto-atlas/default.pac",
+          "stagingRecipe": {
+            "source": "仅使用同版官方源模板，导入后消费真实 meta/子资源身份，不复用模板 UUID。",
+            "sourceImage": "assets/image/checker.png",
+            "layout": "将 .pac 与 sourceImage 放到同一已登记目录，原生 pack 产生非空 Atlas",
+            "inspectorPatch": {
+              "pack": {
+                "maxWidth": 64,
+                "maxHeight": 64,
+                "padding": 2
+              }
+            }
+          },
+          "dependencyClosure": [
+            "assets/image/checker.png",
+            "supplemental/3.8.7/default.pac",
+            "supplemental/3.8.7/default.pac.meta"
+          ]
+        },
+        "labelAtlas": {
+          "input": "supplemental/3.8.7/default.labelatlas",
+          "metaSource": "supplemental/3.8.7/default.labelatlas.meta",
+          "sourceReference": "engine/editor/assets/default_file_content/label-atlas/default.labelatlas",
+          "stagingRecipe": {
+            "source": "仅使用同版官方源模板，导入后消费真实 meta/子资源身份，不复用模板 UUID。",
+            "sourceImage": "assets/font/glyph.png",
+            "spriteFrame": "取得该 glyph 图片原生子资源 SpriteFrame UUID 后绑定 spriteFrameUuid",
+            "inspectorPatch": {
+              "itemWidth": 8,
+              "itemHeight": 8,
+              "startChar": "A"
+            }
+          },
+          "dependencyClosure": [
+            "assets/font/glyph.png",
+            "supplemental/3.8.7/default.labelatlas",
+            "supplemental/3.8.7/default.labelatlas.meta"
+          ]
+        }
+      },
+      "nativeImporterLayout": [
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/animation-clip.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/animation-graph.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/animation-mask.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/audio-clip.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/auto-atlas.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/bitmap-font.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/buffer.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/directory.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/dragonbones/dragonbones-atlas.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/dragonbones/dragonbones.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/dragonbones/index.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/effect-header.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/effect.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/erp-texture-cube.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/fbx.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/animation.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/asset-finder.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/fbx-to-gltf.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/image.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/load-asset-sync.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/material.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/mesh.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/original-animation.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/prefab.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/reader-manager.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/skeleton.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/gltf/validation.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/image/image-mics.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/image/index.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/image/migrations.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/instantiation-asset/animation.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/instantiation-asset/asset.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/instantiation-asset/material.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/instantiation-asset/mesh.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/instantiation-asset/skeleton.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/javascript.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/json.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/label-atlas.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/material.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/animation-graph/3.5.0.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/archive-space.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/components.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/migrate-animation-clip-3-3-0.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/migrate-curve-range-3-3-0.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/migrate-geometry-curve-3-3-0.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/name2id.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/migrates/prefab.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/particle.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/physics-material.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/prefab.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/render-flow.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/render-pipeline.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/render-stage.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/render-texture/index.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/render-texture/rt-sprite-frame.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/scene/defines.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/scene/index.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/scene/migrate-prefab-1-1-34.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/scene/migrates.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/scene/utils.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/spine.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/sprite-atlas.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/sprite-frame.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/terrain.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/text.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/texture-base.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/texture-cube.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/texture-packer.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/texture.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/tiled-map.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/ttf-font.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/typescipt.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/unknown.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/algorithm/bleeding.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/animation-compression.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/base64.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/cube-map-simple-layout.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/curve-utils.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/equirect-cubemap-faces.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/fbx-converter.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/fbx2glTf.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/glTF-animation-utils.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/glTF.constants.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/gltf-converter.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/image-mime-type-to-ext.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/image-utils.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/khr-draco-mesh-compression.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/match-image-type-pattern.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/material-interface.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/material-upgrader.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/migration-utils.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/model-convert-routine.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/pp-geometry.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/resolve-glTF-image-path.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/script-compiler.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/serialize-library.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/split-animation.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/ts-utils.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/utils/uri-utils.ccc",
+        "modules/engine-extensions/extensions/engine-extends/dist/importer/importers/video-clip.ccc"
+      ],
+      "baselineLayoutSource": {
+        "id": "creator/3.8.7/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.7",
+        "sha256": "9b4f7b9e9c96e4ebdb1463e3e264519a679486cc9c59513e053a69ab38c787df"
+      },
+      "layoutSource": {
+        "id": "creator/3.8.7/app-asar-header",
+        "kind": "module_layout",
+        "creatorVersion": "3.8.7",
+        "sha256": "4d53797a64bd3883974030ceb61c269e74a7ffc1c24de74e6c37248675182af1"
+      },
+      "nativeRuntimePassedRows": 0
+    }
+  },
+  "formatSources": [
+    "https://docs.cocos.com/creator/3.8/manual/en/asset/spine.html",
+    "https://docs.cocos.com/creator/3.8/manual/en/asset/dragonbones.html",
+    "https://en.esotericsoftware.com/spine-json-format"
+  ],
+  "runtimeAcceptance": "not performed; no Creator process or native AssetDB identity is claimed"
+}

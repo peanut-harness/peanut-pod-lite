@@ -1,4 +1,5 @@
 import type { IEditorMcpPreparedTextWrite } from './editor-mcp-text-write-gateway.js';
+import type { ISilentAssetClosureCopyPreparation } from '@peanut/pod-engine/assets';
 
 /**
  * @description 单个写任务的项目级资源调度计划。
@@ -32,6 +33,10 @@ export interface IResourceOperationTaskPlan {
      * @description 内部签发且只供当前调用的不可变文本写准备，不进入业务 payload 或任务证据。
      */
     readonly preparedTextWrite?: IEditorMcpPreparedTextWrite;
+    /**
+     * @description 实际复制算法签发的完整只读闭包及源摘要；不来自业务JSON。
+     */
+    readonly preparedCopy?: ISilentAssetClosureCopyPreparation;
 }
 
 /**

@@ -1,0 +1,22 @@
+{
+  "creatorVersion": "3.8.7",
+  "macroConfig": {
+    "ENABLE_TILEDMAP_CULLING": true,
+    "TOUCH_TIMEOUT": 5000,
+    "ENABLE_TRANSPARENT_CANVAS": false,
+    "ENABLE_WEBGL_ANTIALIAS": true,
+    "ENABLE_FLOAT_OUTPUT": false,
+    "CLEANUP_IMAGE_CACHE": false,
+    "ENABLE_MULTI_TOUCH": true,
+    "MAX_LABEL_CANVAS_POOL_SIZE": 20,
+    "ENABLE_WEBGL_HIGHP_STRUCT_VALUES": false,
+    "BATCHER2D_MEM_INCREMENT": 144,
+    "CUSTOM_PIPELINE_NAME": "Builtin"
+  },
+  "source": "cocos/core/platform/macro.ts",
+  "sourceSha256": "dea197ee352c37b08bfd16e93ed85bb0309769c7e4498c7edff86087e8848a02",
+  "sourceLines": "1119-1129",
+  "nativeProfileEvidence": "evidence/task-5.1/native-post-387-20261016-8ae0192/native-health-initial-macro-defaults.json",
+  "profileEvidenceSha256": "20b5b353e2414b04f0b559eaff295f1ab51bd95515da1b5348002fb84794dbe2",
+  "scope": "exact public getProject macro defaults; post-process changes only CUSTOM_PIPELINE_NAME to Forward"
+}

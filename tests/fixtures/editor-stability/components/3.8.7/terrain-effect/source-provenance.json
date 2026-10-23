@@ -1,0 +1,319 @@
+{
+  "schemaVersion": 1,
+  "creatorVersion": "3.8.7",
+  "purpose": "同版本Terrain完整effect及实际builtin shader chunk依赖；禁止通用Unlit effect替代Terrain所需属性；副本改为任务专用文件名，避免覆盖SDK全局effect名称注册",
+  "files": [
+    {
+      "path": "tests/fixtures/editor-stability/components/3.8.7/terrain-effect/task51-terrain.effect",
+      "sdkPath": "editor/assets/effects/builtin-terrain.effect",
+      "sha256": "0e1fcba76743b66d27ad8d72ba74208fe6d0572c8511c39eb7cca405bc3bdf94"
+    },
+    {
+      "path": "tests/fixtures/editor-stability/components/3.8.7/terrain-effect/task51-terrain.effect.meta",
+      "sdkPath": "editor/assets/effects/builtin-terrain.effect.meta",
+      "sha256": "ce9d19e07d2fed56363601103b187d8df0a525ceb5c662ff975c40d7bb284396"
+    }
+  ],
+  "sdkChunks": [
+    {
+      "path": "editor/assets/chunks/builtin/functionalities/fog.chunk",
+      "sha256": "7c6a691b9ad36e90a075bde22c9fe8c8503af99f000db1078c9d0288f7b71b0b"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/functionalities/morph-animation.chunk",
+      "sha256": "f2f13d331445c514ab86c9214afa528eac9f8541655950c0047f20c8b88bb5c3"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/functionalities/probe.chunk",
+      "sha256": "ee044e46379f1a8c2e9d862abd7359eddad7800721c958b78e9c755f1492a40a"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/functionalities/sh.chunk",
+      "sha256": "7ebfa34b59b39b6a200ca5eca6fdb7038b4fcbd33b0a00a4139148865444bac6"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/functionalities/shadow-map.chunk",
+      "sha256": "15ae137f9206b292fe8286ca77ab2b504ac52201df2ae23deff4c9ff84945b6f"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/functionalities/skinning-animation-lbs.chunk",
+      "sha256": "c84ab5f88c601a1a69ddcfaecb25f1707403ba549b9a1b7b8d609332a853ddc8"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/functionalities/world-transform.chunk",
+      "sha256": "14f0d3d066a04424360d94d8123a0a64f1fa13245cce4c812a42bdbee32d2bf8"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/uniforms/cc-csm.chunk",
+      "sha256": "cd4c797461cb3f8d1ddc782de766a30635c115c299afe024e1c2b8f5145a8637"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/uniforms/cc-diffusemap.chunk",
+      "sha256": "95f990873b3d2b3801db1af8d00df263a10e6a62e89835a01a705c7b18117404"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/uniforms/cc-environment.chunk",
+      "sha256": "8273b6ec59dd18b67fe67b8410145fc747ad4a0232084643cc1fe2109f26d755"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/uniforms/cc-forward-light.chunk",
+      "sha256": "a61051ee880a67f5e857b470d4117e9e9208e9618ad56ba430874d18a192720f"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/uniforms/cc-global.chunk",
+      "sha256": "4036cab1daf2dbaa906ac5b934a608ac66836478a96c9e94d51025f44a5f75b6"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/uniforms/cc-light-map.chunk",
+      "sha256": "4922961861969acc4f87991219fcc20575c0c15d5ccd07b00a83e9e8391318d1"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/uniforms/cc-local-batched.chunk",
+      "sha256": "763a6b0ad0b26f1ad6114fe15d444de2cc82ae0115057a862d6ee5a608c77503"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/uniforms/cc-local.chunk",
+      "sha256": "e7ee504b5dd91c441574490e1b27d63c04fdb198b7703d175692f05c5710aceb"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/uniforms/cc-morph.chunk",
+      "sha256": "cf38599aedbf9db4b9edcc168a2e6a94bcda0c385858f067447f93d59df0a265"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/uniforms/cc-reflection-probe.chunk",
+      "sha256": "754861e6eb899fb07b2f1c56aede3844214070ec36312ff8b30ec3b0a515d143"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/uniforms/cc-sh.chunk",
+      "sha256": "8d742b86e4e92aea1482740960f2619e92a5a317ba14882e4862eb285002207f"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/uniforms/cc-shadow-map.chunk",
+      "sha256": "dba252944aa1589d5fb297eed39ea67b9d9cfd2fe42b329b3211d90ce9dc13bd"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/uniforms/cc-shadow.chunk",
+      "sha256": "3218d3d2787d46938df66bebb40148a9660d2a9884656a86b1252e332d0a8bb5"
+    },
+    {
+      "path": "editor/assets/chunks/builtin/uniforms/cc-skinning.chunk",
+      "sha256": "b1429c387d5c556ea6af3cba2707fb745a6efd82273645746d9688bb97ede49f"
+    },
+    {
+      "path": "editor/assets/chunks/common/color/aces.chunk",
+      "sha256": "9ab59a61959926d87c20a4efbb180616ad7961f51b07885abd5cff9207e7ab5a"
+    },
+    {
+      "path": "editor/assets/chunks/common/color/gamma.chunk",
+      "sha256": "58e8a46747db5c2e15fa88bd9e383aa3d693fd550a56486b8eb3c26f7b3b62a6"
+    },
+    {
+      "path": "editor/assets/chunks/common/color/tone-mapping.chunk",
+      "sha256": "7085a89c7d731bfc889783620d6bce30b7c3a517a82d8e72f56e29af51b8f94a"
+    },
+    {
+      "path": "editor/assets/chunks/common/common-define.chunk",
+      "sha256": "abe3f169e995672d4b904fbe89a6af3e498309b8a61932bd51723aed3059ebbd"
+    },
+    {
+      "path": "editor/assets/chunks/common/data/packing.chunk",
+      "sha256": "d7f8da3964692ffccf098c79ed4b513dc7f7a15aad2a4dfe04fef878152ed2e8"
+    },
+    {
+      "path": "editor/assets/chunks/common/data/unpack.chunk",
+      "sha256": "88fe68850825ca851211642b08fcbf0089f2cce0a62a4940b6bb7dfbbbae7910"
+    },
+    {
+      "path": "editor/assets/chunks/common/debug/debug-view-define.chunk",
+      "sha256": "42578e90386d6231e3700493de2b87f9c3c71681f8c76b5bcdcc51eccea1dd55"
+    },
+    {
+      "path": "editor/assets/chunks/common/effect/fog.chunk",
+      "sha256": "17a3ecec65eaa1b153888b315e2655f2b223000faaaaac221f13c7fab55a9f40"
+    },
+    {
+      "path": "editor/assets/chunks/common/lighting/attenuation.chunk",
+      "sha256": "71299d2e7f7d813d2b82b79481fee25dd54ed04d22b9bfc73d9236c00dbf6357"
+    },
+    {
+      "path": "editor/assets/chunks/common/lighting/brdf.chunk",
+      "sha256": "69d8dcd452cc85b393efa91ebb2c49297031c70aedace92d2c5749c08d17d747"
+    },
+    {
+      "path": "editor/assets/chunks/common/lighting/bxdf.chunk",
+      "sha256": "df7eab11df3fe2d0aa7503d146612c99115e464eebc2ed903b7c08e09b952579"
+    },
+    {
+      "path": "editor/assets/chunks/common/lighting/functions.chunk",
+      "sha256": "f654e4850bcedf9759a6b763d28fa7d6338c6983a60d1e95824e35d0d2d65331"
+    },
+    {
+      "path": "editor/assets/chunks/common/lighting/light-map.chunk",
+      "sha256": "cdd34736f19da1da08eb7e9f2b7489826bb24dca82b73bf30b6ce2c13566c9b3"
+    },
+    {
+      "path": "editor/assets/chunks/common/math/coordinates.chunk",
+      "sha256": "599d8262e20e173b915e1947bf47047c41460c8646ab86a5238020d6e779bc06"
+    },
+    {
+      "path": "editor/assets/chunks/common/math/number.chunk",
+      "sha256": "59cd37ed1c432759fac91723f3b39d6755b0e56d2cec5a75556759c07c35bf0c"
+    },
+    {
+      "path": "editor/assets/chunks/common/math/octahedron-transform.chunk",
+      "sha256": "b8a5b6c7410ffba5aa862bde9922f02b1f913a849e03b0577976eafa95c19f35"
+    },
+    {
+      "path": "editor/assets/chunks/common/mesh/material.chunk",
+      "sha256": "c96e09a30a66b3f332deefb774000f5b0c2d1f5f8d6495970ff29cd4b7bc5502"
+    },
+    {
+      "path": "editor/assets/chunks/common/shadow/native-pcf.chunk",
+      "sha256": "e41499c6ab669db86341125ba319e5964f69072c4841d1918d6a2cee6d98ef35"
+    },
+    {
+      "path": "editor/assets/chunks/common/texture/cubemap.chunk",
+      "sha256": "74c66c2eb242dbe4c9ef3d9302b72f00a99153ab2df1358826b27b75f8aed751"
+    },
+    {
+      "path": "editor/assets/chunks/common/texture/texture-lod.chunk",
+      "sha256": "6002cd8d8c959ded09be7074355c5f2d48ebe4c5118972ff56a8041832cada78"
+    },
+    {
+      "path": "editor/assets/chunks/lighting-models/data-structures/lighting-intermediate-data.chunk",
+      "sha256": "7a85b10b4bcc078abb81e4af581f118d16d3c30983000d5a73192508fd4745da"
+    },
+    {
+      "path": "editor/assets/chunks/lighting-models/data-structures/lighting-misc-data.chunk",
+      "sha256": "a61f8505766cf26d8ed712c0a5c3633f3034577f61ce6d605aafc123651961b6"
+    },
+    {
+      "path": "editor/assets/chunks/lighting-models/data-structures/lighting-result.chunk",
+      "sha256": "f4e5f9ca84f0244b6b5f989bd98dcd747ed8c0a0f901a6d020a27fe512b49a56"
+    },
+    {
+      "path": "editor/assets/chunks/lighting-models/default-functions/standard.chunk",
+      "sha256": "e8fc6d6d06ba213db1cd6aa76c9c12fb8ba00fc6b466fb4d5ab475ce0ca7874a"
+    },
+    {
+      "path": "editor/assets/chunks/lighting-models/includes/common.chunk",
+      "sha256": "c5b3adebb90a245dba17c2180bd74964d8e7d5067c883b0747d1bd305873aebf"
+    },
+    {
+      "path": "editor/assets/chunks/lighting-models/includes/standard.chunk",
+      "sha256": "337f4a9ead48994d5042a2cab1df992c50a3b0575feb78a97509899cee379fd0"
+    },
+    {
+      "path": "editor/assets/chunks/lighting-models/lighting-flow/common-flow.chunk",
+      "sha256": "d67851563bf552c7a31201d538110af006a866027ff97ab9c9f70f421deb92d9"
+    },
+    {
+      "path": "editor/assets/chunks/lighting-models/model-functions/standard-common.chunk",
+      "sha256": "d7b2a878e7ed870f7e591e0a302a908970586dcab1b25d2d5216337bb9c9d167"
+    },
+    {
+      "path": "editor/assets/chunks/lighting-models/model-functions/standard.chunk",
+      "sha256": "4942dcc494ccd4749dd4dd1ba0ebe43578e940cd398d57ed75b590c7a8283524"
+    },
+    {
+      "path": "editor/assets/chunks/shading-entries/data-structures/fs-input.chunk",
+      "sha256": "995b752f957f5f3cca1b8a57df59382794f441b2175ac28669fee220bef2aa36"
+    },
+    {
+      "path": "editor/assets/chunks/shading-entries/data-structures/vs-fs.chunk",
+      "sha256": "3a076ee47223e6f7f759a229ad31d7175089a1e8c9a4a5694cb4650a524f4b1e"
+    },
+    {
+      "path": "editor/assets/chunks/shading-entries/data-structures/vs-input.chunk",
+      "sha256": "c84c67245ced137ea249bc5d9bfd2b5aadf151d90ea0583b16d674b510f31bcc"
+    },
+    {
+      "path": "editor/assets/chunks/shading-entries/data-structures/vs-intermediate.chunk",
+      "sha256": "8a0fcf62e848919a050c823e0495ee00ff01e25b2f3611f890be7d2dd1297f59"
+    },
+    {
+      "path": "editor/assets/chunks/shading-entries/data-structures/vs-output.chunk",
+      "sha256": "9ab2e433c61026ac063191d41759b7f7fe9fa70ff2c3d583600eaebe161960d4"
+    },
+    {
+      "path": "editor/assets/chunks/shading-entries/main-functions/render-to-reflectmap/fs.chunk",
+      "sha256": "74c3d7908066e1ab72636487f8349a5737ccaa75859aa78f99f3159705ab8ec4"
+    },
+    {
+      "path": "editor/assets/chunks/shading-entries/main-functions/render-to-scene/fs.chunk",
+      "sha256": "9ba87797005f8cd9627e167db653a7516805bdea92c58351a53eb9d1bcd74280"
+    },
+    {
+      "path": "editor/assets/chunks/shading-entries/main-functions/render-to-scene/pipeline/deferred-fs.chunk",
+      "sha256": "508352ad87c47a8a3d2c80e9e1fb023bca3125dbc99cc1d9185218f48bfc53e0"
+    },
+    {
+      "path": "editor/assets/chunks/shading-entries/main-functions/render-to-scene/pipeline/forward-fs.chunk",
+      "sha256": "b762e534a956c23fdae7f86becc4f00edfcd28be30337ad883a25a99b2dc1de9"
+    },
+    {
+      "path": "editor/assets/chunks/shading-entries/main-functions/render-to-scene/vs.chunk",
+      "sha256": "74972dbfc363b74a76567e54bc2228ded3fc1f1d69d0aec7972df1502f6cfa41"
+    },
+    {
+      "path": "editor/assets/chunks/shading-entries/main-functions/render-to-shadowmap/fs.chunk",
+      "sha256": "77e44602ee517346904f0bec1df0bd55321593a605d2fdf8a900dfc0688591bc"
+    },
+    {
+      "path": "editor/assets/chunks/shading-entries/main-functions/render-to-shadowmap/vs.chunk",
+      "sha256": "e95c046330092d1bd363a6f56a0a92a672214801ea8d9128d7ea14c898e42b28"
+    },
+    {
+      "path": "editor/assets/chunks/surfaces/data-structures/standard.chunk",
+      "sha256": "8e6a22b7560cc48cdbe7c9ec0e721ca2f431f8122becd03c3ffaffefc4171ec9"
+    },
+    {
+      "path": "editor/assets/chunks/surfaces/default-functions/common-vs.chunk",
+      "sha256": "3816422a99462eb6c11bf925b5beabc363c6a5708b3ef5756248a24b65fbedb6"
+    },
+    {
+      "path": "editor/assets/chunks/surfaces/default-functions/standard-fs.chunk",
+      "sha256": "70d61a2431f32da069cb256733176ff6f646d662e53e8d18ba2fb19eff1dcbc8"
+    },
+    {
+      "path": "editor/assets/chunks/surfaces/effect-macros/common-macros.chunk",
+      "sha256": "baddb21a7b13cde39cbcfd121a24fb821cbf547a0a356fe54f4390d27160cae3"
+    },
+    {
+      "path": "editor/assets/chunks/surfaces/effect-macros/render-to-shadowmap.chunk",
+      "sha256": "5ddabeb45426125e9d4c4b45334cc1355b3202a3a59fe63006013dbfc0bd8f93"
+    },
+    {
+      "path": "editor/assets/chunks/surfaces/effect-macros/terrain.chunk",
+      "sha256": "a62c0c1093edeed260394d237b94fa546907321df15c7dd4175dc710d57d026d"
+    },
+    {
+      "path": "editor/assets/chunks/surfaces/includes/common-fs.chunk",
+      "sha256": "6124e7fdd2555e70197b2af27c543721f270dbdebd24d3f8d44d1117380696b4"
+    },
+    {
+      "path": "editor/assets/chunks/surfaces/includes/common-vs.chunk",
+      "sha256": "d66289523ec0459f438ccb230d88d94771ac33bec3011c19ab108f25dcb60dd8"
+    },
+    {
+      "path": "editor/assets/chunks/surfaces/includes/standard-fs.chunk",
+      "sha256": "3e5083504fae0dda0e742dc95d47d0a025ee1a83ce9209232344e448991158af"
+    },
+    {
+      "path": "editor/assets/chunks/surfaces/includes/standard-vs.chunk",
+      "sha256": "4b487388f4e0d00c568420c4e48dc4f50fc0db042a57d26705381896f6a76ea4"
+    },
+    {
+      "path": "editor/assets/chunks/surfaces/module-functions/common-vs.chunk",
+      "sha256": "8bf84c1301545e31a8149257f0cb6a633d39b8bdda54614e3968f7c11f351788"
+    },
+    {
+      "path": "editor/assets/chunks/surfaces/module-functions/debug-view.chunk",
+      "sha256": "b63e7f25646619416517c1b2fee9b62fc355134f71d62a81718a70d52fa25441"
+    },
+    {
+      "path": "editor/assets/chunks/surfaces/module-functions/standard-fs.chunk",
+      "sha256": "148cc255567d47af937d32ac24b93b0f778a4ef825fda339e2e5057f39dbd494"
+    }
+  ]
+}

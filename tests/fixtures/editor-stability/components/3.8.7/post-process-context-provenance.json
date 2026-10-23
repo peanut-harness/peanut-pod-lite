@@ -1,0 +1,68 @@
+{
+  "creatorVersion": "3.8.7",
+  "context": "post-process",
+  "baseProfile": "engine-modules-sorting2d.json",
+  "changeOnly": {
+    "cache.custom-pipeline-post-process._value": true,
+    "includeModules.add": "custom-pipeline-post-process",
+    "macroConfig.CUSTOM_PIPELINE_NAME": "Forward",
+    "modules.graphics": {
+      "pipeline": "custom-pipeline",
+      "custom-pipeline-post-process": true
+    }
+  },
+  "effectiveGraphicsDerivedFromFrozenCache": true,
+  "sdkSources": [
+    {
+      "reference": "cc.config.json",
+      "sha256": "05ae6308c4d94dc90a4b98f7504929e828539ff42f3c2b6ec3b066e033933655"
+    },
+    {
+      "reference": "exports/custom-pipeline.ts",
+      "sha256": "197153eb0f500072212e9cf5400aac48d63be713521315f64ae022ccfd6b1bbc"
+    },
+    {
+      "reference": "exports/custom-pipeline-post-process.ts",
+      "sha256": "18fe717558a96f19722c36250f2d4c5c53ca6fe91c9c754e01c3290f24de6acb"
+    },
+    {
+      "reference": "cocos/rendering/custom/index.ts",
+      "sha256": "2e1833763c779834eb9482985714df0ac0fa2ec2e0fc8daf53ed05fa2889f7f8"
+    },
+    {
+      "reference": "cocos/rendering/post-process/index.ts",
+      "sha256": "9178e6a5b080b6e953af9ee122e71b9e9ce246d30dd8febdfb7a71ba65107a11"
+    },
+    {
+      "reference": "cocos/rendering/post-process/post-process-builder.ts",
+      "sha256": "67348ba98aebd88e74dd5e63f39f2b175247787e53531e649ed526d5fe45c7ff"
+    },
+    {
+      "reference": "cocos/core/platform/macro.ts",
+      "sha256": "dea197ee352c37b08bfd16e93ed85bb0309769c7e4498c7edff86087e8848a02"
+    },
+    {
+      "reference": "cocos/misc/camera-component.ts",
+      "sha256": "dacb33382d34f06916696d1a7a292c26d36d55439b6fa70d97d3fb3edd60843b"
+    }
+  ],
+  "nativeProofRequired": {
+    "usesCustomPipeline": true,
+    "postProcessBuilderConstructor": "PostProcessBuilder",
+    "customPipelineName": "Forward"
+  },
+  "actualSdkOfflineAssembly": "evidence/task-5.1/post-context-offline-20261016-d/assembly-receipt.json",
+  "nativePassed": false,
+  "rendered": false,
+  "mcpExposureChanged": false,
+  "allEnabled": false,
+  "officialReferences": [
+    "https://docs.cocos.com/creator/3.8/manual/zh/render-pipeline/post-process/",
+    "https://docs.cocos.com/creator/3.8/manual/zh/render-pipeline/write-render-pipeline.html"
+  ],
+  "presentationCamera": {
+    "usePostProcess": true,
+    "serializedField": "_usePostProcess",
+    "nativeGetterRequired": true
+  }
+}

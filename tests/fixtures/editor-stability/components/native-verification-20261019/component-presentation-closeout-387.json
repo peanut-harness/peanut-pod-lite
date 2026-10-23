@@ -1,0 +1,1982 @@
+{
+  "kind": "local-existing-presentation-closeout",
+  "recordedAt": "2026-10-20T01:49:14.495458+00:00",
+  "candidateSourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+  "hostSha256": "e83abe31ece1bc2c233ae8914bca4e508f2224c3dab75ecc5645c221d87aac58",
+  "coreSha256": "537b1f770c0ae7ab3d106de3cac0b9b62fa3b883021c02647735b41ce91edd6c",
+  "counts": {
+    "catalogRows": 99,
+    "authoredPresentationsObserved": 66,
+    "visible": 65,
+    "failedSdkBatch": 1,
+    "contentContextPending": 29,
+    "tiledWithoutAuthoredPresentation": 4
+  },
+  "task51Complete": false,
+  "remoteVerified": false,
+  "allEnabled": false,
+  "errorsFiltered": false,
+  "sdkInstallationModified": false,
+  "newVerificationToolAdded": false,
+  "pushedOrPublished": false,
+  "scope": "Existing authored presentation pictures/carriers, not full physics/UI/animation/LOD/effect behavior acceptance",
+  "sourceFixes": [
+    "7f5e9f0 direct binary when no same-version peers; only conditional clean startup evidence",
+    "0b1b127 actual Joint2D body dependency and 3D carrier gravity disabled",
+    "566c873 real static joint anchors and target gravityScale0"
+  ],
+  "validation": {
+    "fixtureTests": {
+      "passed": 174,
+      "failed": 0,
+      "skipped": 0
+    },
+    "fullVerify": {
+      "passed": 1502,
+      "failed": 0,
+      "skipped": 0
+    },
+    "officialPackAndApiVerified": true,
+    "sourceAndConfigUnchangedSinceValidation": true,
+    "evidence": [
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-joint-anchor-fixture-tests.log",
+        "sha256": "376713499b2f312ba9ba7350fed31389b6dcf48f70388828aa1f0d747d269edb",
+        "bytes": 19835
+      },
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-joint-anchor-standards.log",
+        "sha256": "9fcc8832b0341af3f104e75a23674ffec3fe509a1ccc22eda33986e387052c27",
+        "bytes": 464
+      },
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-joint-anchor-full-verify.log",
+        "sha256": "1cf0ea66f49efa04ba7deba73920765d8ceecd81a1771f6ced7cae7135fa9809",
+        "bytes": 319042
+      },
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-joint-anchor-pack.log",
+        "sha256": "9cc2d3602c351f517908b3a6e7a24e9334e74b1507608d1be96c71bc93cba373",
+        "bytes": 2026
+      },
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-joint-anchor-candidate/api-verification.json",
+        "sha256": "551ad46c9d41e1aa111eefe184dd7cf37b98a0fe54652c74d3c2f5e35cde40da",
+        "bytes": 1052
+      },
+      {
+        "path": "/private/tmp/pod-parallel-20261019/task51-joint-anchor-candidate/lite-release-descriptor.json",
+        "sha256": "e81ea350e2a615c56092fc75fd15c6f0120c4456073881d7df910644c4e2c5e6",
+        "bytes": 1066
+      }
+    ]
+  },
+  "cases": [
+    {
+      "componentType": "cc.BlitScreen",
+      "scene": "assets/components/cc.BlitScreen.scene",
+      "sceneUuid": "abfcfe56-859f-449b-886d-8cc9595276ea",
+      "rendered": true,
+      "observation": "Lit cube with three distinct faces on neutral background",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedInfo": [
+        {
+          "message": "The asset has been destroyed!",
+          "count": 3
+        }
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-19T10:17:33.865Z",
+      "browserWholeSessionZeroClaimed": false,
+      "runId": "present387-direct-20261019",
+      "sourceCommit": "7f5e9f0bc7155515f07e1a00f75845df97d5da0c",
+      "inheritedUnchangedUnaffectedPresentation": true,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-direct-20261019/presentation-observations.json",
+        "sha256": "aba4848d88c414bf00adb8979d75cbf3b849db207c22fbf13bf5fed6314b42e5",
+        "bytes": 37528
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.BlockInputEvents",
+      "scene": "assets/components/cc.BlockInputEvents.scene",
+      "sceneUuid": "ee7fc4a2-9c78-44bf-9911-575351efb0d2",
+      "rendered": true,
+      "observation": "Centered visible Task 5.1 cc.BlockInputEvents label on black background",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedInfo": [
+        {
+          "message": "The asset has been destroyed!",
+          "count": 3
+        }
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-19T10:22:13.341Z",
+      "runId": "present387-direct-20261019",
+      "sourceCommit": "7f5e9f0bc7155515f07e1a00f75845df97d5da0c",
+      "inheritedUnchangedUnaffectedPresentation": true,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-direct-20261019/presentation-observations.json",
+        "sha256": "aba4848d88c414bf00adb8979d75cbf3b849db207c22fbf13bf5fed6314b42e5",
+        "bytes": 37528
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.Bloom",
+      "scene": "assets/components/cc.Bloom.scene",
+      "sceneUuid": "a44b1176-ff80-4c73-9c22-e1234c6e943c",
+      "rendered": true,
+      "observation": "Lit cube visible; bloom prefilter/downsample/upsample/combine shaders compiled",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedDiagnostics": [
+        "The asset has been destroyed! x3",
+        "[Violation] requestAnimationFrame handler took 500ms"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-19T10:24:00.906Z",
+      "runId": "present387-direct-20261019",
+      "sourceCommit": "7f5e9f0bc7155515f07e1a00f75845df97d5da0c",
+      "inheritedUnchangedUnaffectedPresentation": true,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-direct-20261019/presentation-observations.json",
+        "sha256": "aba4848d88c414bf00adb8979d75cbf3b849db207c22fbf13bf5fed6314b42e5",
+        "bytes": 37528
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.BoxCollider",
+      "scene": "assets/components/cc.BoxCollider.scene",
+      "sceneUuid": "854ac11c-6e42-4e87-9746-5ccbecc06759",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Static lit cube carrier visible on neutral background",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedDiagnostics": [
+        "The asset has been destroyed! x3"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-19T10:25:49.177Z",
+      "runId": "present387-direct-20261019",
+      "sourceCommit": "7f5e9f0bc7155515f07e1a00f75845df97d5da0c",
+      "inheritedUnchangedUnaffectedPresentation": true,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-direct-20261019/presentation-observations.json",
+        "sha256": "aba4848d88c414bf00adb8979d75cbf3b849db207c22fbf13bf5fed6314b42e5",
+        "bytes": 37528
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.BoxCollider2D",
+      "scene": "assets/components/cc.BoxCollider2D.scene",
+      "sceneUuid": "6b890547-f73c-4ce0-8064-bdda730d84dc",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Small SDK default sprite carrier visible at center on black background",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedDiagnostics": [
+        "The asset has been destroyed! x3"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-19T10:28:31.900Z",
+      "runId": "present387-direct-20261019",
+      "sourceCommit": "7f5e9f0bc7155515f07e1a00f75845df97d5da0c",
+      "inheritedUnchangedUnaffectedPresentation": true,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-direct-20261019/presentation-observations.json",
+        "sha256": "aba4848d88c414bf00adb8979d75cbf3b849db207c22fbf13bf5fed6314b42e5",
+        "bytes": 37528
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.Button",
+      "scene": "assets/components/cc.Button.scene",
+      "sceneUuid": "7018d7f0-14dc-417b-96d1-3875d60f23d3",
+      "rendered": true,
+      "interactionVerified": false,
+      "observation": "Small white Button with label visible at canvas center",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedDiagnostics": [
+        "The asset has been destroyed! x3"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-19T10:31:05.258Z",
+      "runId": "present387-direct-20261019",
+      "sourceCommit": "7f5e9f0bc7155515f07e1a00f75845df97d5da0c",
+      "inheritedUnchangedUnaffectedPresentation": true,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-direct-20261019/presentation-observations.json",
+        "sha256": "aba4848d88c414bf00adb8979d75cbf3b849db207c22fbf13bf5fed6314b42e5",
+        "bytes": 37528
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.Canvas",
+      "scene": "assets/components/cc.Canvas.scene",
+      "sceneUuid": "a261a1e0-3b92-42ed-94ba-5deacdbac2b7",
+      "rendered": true,
+      "observation": "Centered small label visible in Canvas on black background",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedDiagnostics": [
+        "The asset has been destroyed! x3"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-19T10:31:24.300Z",
+      "runId": "present387-direct-20261019",
+      "sourceCommit": "7f5e9f0bc7155515f07e1a00f75845df97d5da0c",
+      "inheritedUnchangedUnaffectedPresentation": true,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-direct-20261019/presentation-observations.json",
+        "sha256": "aba4848d88c414bf00adb8979d75cbf3b849db207c22fbf13bf5fed6314b42e5",
+        "bytes": 37528
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.CapsuleCollider",
+      "scene": "assets/components/cc.CapsuleCollider.scene",
+      "sceneUuid": "e917aeb9-3f9f-466d-948b-81a1e266e2cd",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Lit cube carrier visible on beige background",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedDiagnostics": [
+        "The asset has been destroyed! x3"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-19T10:31:35.782Z",
+      "runId": "present387-direct-20261019",
+      "sourceCommit": "7f5e9f0bc7155515f07e1a00f75845df97d5da0c",
+      "inheritedUnchangedUnaffectedPresentation": true,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-direct-20261019/presentation-observations.json",
+        "sha256": "aba4848d88c414bf00adb8979d75cbf3b849db207c22fbf13bf5fed6314b42e5",
+        "bytes": 37528
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.CircleCollider2D",
+      "scene": "assets/components/cc.CircleCollider2D.scene",
+      "sceneUuid": "51a419d3-2d5e-4dd2-b6d6-8baee882c684",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Small SDK sprite carrier centered on black background",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedDiagnostics": [
+        "The asset has been destroyed! x3"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-19T10:31:48.016Z",
+      "runId": "present387-direct-20261019",
+      "sourceCommit": "7f5e9f0bc7155515f07e1a00f75845df97d5da0c",
+      "inheritedUnchangedUnaffectedPresentation": true,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-direct-20261019/presentation-observations.json",
+        "sha256": "aba4848d88c414bf00adb8979d75cbf3b849db207c22fbf13bf5fed6314b42e5",
+        "bytes": 37528
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.ColorGrading",
+      "scene": "assets/components/cc.ColorGrading.scene",
+      "sceneUuid": "9a9e9eb5-7f47-4208-babf-f61baa3f5845",
+      "rendered": true,
+      "effectComparisonVerified": false,
+      "observation": "Lit cube visible; color-grading and post-final shaders compiled",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedDiagnostics": [
+        "The asset has been destroyed! x3",
+        "requestAnimationFrame handler took 126ms"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-19T10:32:01.384Z",
+      "runId": "present387-direct-20261019",
+      "sourceCommit": "7f5e9f0bc7155515f07e1a00f75845df97d5da0c",
+      "inheritedUnchangedUnaffectedPresentation": true,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-direct-20261019/presentation-observations.json",
+        "sha256": "aba4848d88c414bf00adb8979d75cbf3b849db207c22fbf13bf5fed6314b42e5",
+        "bytes": 37528
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.ConeCollider",
+      "scene": "assets/components/cc.ConeCollider.scene",
+      "sceneUuid": "bc2ade87-72a4-48b2-acd2-fd7301c544e4",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Lit cube carrier visible on beige background",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedDiagnostics": [
+        "The asset has been destroyed! x3"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-19T10:32:13.486Z",
+      "runId": "present387-direct-20261019",
+      "sourceCommit": "7f5e9f0bc7155515f07e1a00f75845df97d5da0c",
+      "inheritedUnchangedUnaffectedPresentation": true,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-direct-20261019/presentation-observations.json",
+        "sha256": "aba4848d88c414bf00adb8979d75cbf3b849db207c22fbf13bf5fed6314b42e5",
+        "bytes": 37528
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.CylinderCollider",
+      "scene": "assets/components/cc.CylinderCollider.scene",
+      "sceneUuid": "0e4deff1-b4d1-401e-a5d2-92b4b046dab4",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Lit cube carrier visible on beige background",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedDiagnostics": [
+        "The asset has been destroyed! x3"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-19T10:32:58.426Z",
+      "runId": "present387-direct-20261019",
+      "sourceCommit": "7f5e9f0bc7155515f07e1a00f75845df97d5da0c",
+      "inheritedUnchangedUnaffectedPresentation": true,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-direct-20261019/presentation-observations.json",
+        "sha256": "aba4848d88c414bf00adb8979d75cbf3b849db207c22fbf13bf5fed6314b42e5",
+        "bytes": 37528
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.DOF",
+      "scene": "assets/components/cc.DOF.scene",
+      "sceneUuid": "2b85803a-a0bf-4639-bb01-375ddf79a6ea",
+      "rendered": true,
+      "observation": "Depth-of-field visibly softens cube edges; DOF pipeline shaders compiled",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedDiagnostics": [
+        "The asset has been destroyed! x3",
+        "requestAnimationFrame handler took 401ms"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-19T10:33:10.410Z",
+      "runId": "present387-direct-20261019",
+      "sourceCommit": "7f5e9f0bc7155515f07e1a00f75845df97d5da0c",
+      "inheritedUnchangedUnaffectedPresentation": true,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-direct-20261019/presentation-observations.json",
+        "sha256": "aba4848d88c414bf00adb8979d75cbf3b849db207c22fbf13bf5fed6314b42e5",
+        "bytes": 37528
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.ConfigurableConstraint",
+      "scene": "assets/components/cc.ConfigurableConstraint.scene",
+      "sceneUuid": "601194b3-5904-4f4b-9cba-65beb634027f",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Lit cube carrier stable and visible on beige background after gravity fix",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "retainedDiagnostics": [
+        "The asset has been destroyed! x3"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:18:09.651Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.ConstantForce",
+      "scene": "assets/components/cc.ConstantForce.scene",
+      "sceneUuid": "fc6b60dd-0cf4-4739-91af-7a504e245210",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Lit cube carrier remains visible after gravity fix",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "retainedDiagnostics": [
+        "The asset has been destroyed! x3"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:18:27.834Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.DistanceJoint2D",
+      "scene": "assets/components/cc.DistanceJoint2D.scene",
+      "sceneUuid": "ace47b32-d9db-49f9-9238-11d68674bbca",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "SDK sprite carrier centered and stable; prior null impl error absent at observation",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "retainedDiagnostics": [
+        "The asset has been destroyed! x3"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:18:45.786Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.EditBox",
+      "scene": "assets/components/cc.EditBox.scene",
+      "sceneUuid": "08a6539f-2e6d-4cdc-9479-5cfb6cae9ad1",
+      "rendered": true,
+      "interactionVerified": false,
+      "observation": "Gray EditBox with placeholder visible at center",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:19:02.327Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.FSR",
+      "scene": "assets/components/cc.FSR.scene",
+      "sceneUuid": "15de4c7d-45c7-431c-98b4-670478742414",
+      "rendered": true,
+      "effectComparisonVerified": false,
+      "observation": "Lit cube visible; FSR EASU and RCAS shaders compiled",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "retainedDiagnostics": [
+        "requestAnimationFrame handler took 571ms",
+        "The asset has been destroyed! x3"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:19:20.325Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.FixedConstraint",
+      "scene": "assets/components/cc.FixedConstraint.scene",
+      "sceneUuid": "92930407-9aca-4aed-8800-c545deef2357",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Lit cube carrier stable at canvas center",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:19:35.668Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.FixedJoint2D",
+      "scene": "assets/components/cc.FixedJoint2D.scene",
+      "sceneUuid": "80f9a63e-317f-4790-8024-d03bb786a3a4",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "SDK sprite carrier centered and stable on black background",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:19:50.976Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.HBAO",
+      "scene": "assets/components/cc.HBAO.scene",
+      "sceneUuid": "584c5788-af5f-48f7-a54e-695ea1ffa021",
+      "rendered": true,
+      "effectComparisonVerified": false,
+      "observation": "Lit cube visible; HBAO, blur X/Y and combine shaders compiled",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "retainedDiagnostics": [
+        "requestAnimationFrame handler took 449ms",
+        "The asset has been destroyed! x3"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:20:09.855Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.HingeConstraint",
+      "scene": "assets/components/cc.HingeConstraint.scene",
+      "sceneUuid": "2d9416b0-b1e8-480c-9c78-e1d204c6ac6b",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Lit cube carrier stable at canvas center",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "retainedDiagnostics": [
+        "requestAnimationFrame handler took 366ms"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:20:26.941Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.HingeJoint2D",
+      "scene": "assets/components/cc.HingeJoint2D.scene",
+      "sceneUuid": "f12ed806-eba2-4d37-ac1f-91d5c7b44c1a",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "SDK sprite centered and stable",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:20:41.107Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.LODGroup",
+      "scene": "assets/components/cc.LODGroup.scene",
+      "sceneUuid": "8373dd9a-0b26-4613-99b1-6d4c41e7271c",
+      "rendered": true,
+      "lodTransitionVerified": false,
+      "observation": "Lit cube carrier visible; no LOD distance transition exercised",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:20:55.004Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.Label",
+      "scene": "assets/components/cc.Label.scene",
+      "sceneUuid": "1c67401b-df60-4dfd-8956-dbb8fcb00f76",
+      "rendered": true,
+      "observation": "White Task 5.1 - cc.Label text centered and legible",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:21:10.312Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.Layout",
+      "scene": "assets/components/cc.Layout.scene",
+      "sceneUuid": "5432243a-9646-4064-b832-b185cd580efd",
+      "rendered": true,
+      "layoutBehaviorVerified": false,
+      "observation": "Small child label visible at center",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:21:26.870Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.Mask",
+      "scene": "assets/components/cc.Mask.scene",
+      "sceneUuid": "30b6cf3f-2dc8-4059-8bcd-5eae69e71193",
+      "rendered": true,
+      "clippingBehaviorVerified": false,
+      "observation": "Child label visible; stencil and graphics shaders compiled",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "retainedDiagnostics": [
+        "requestAnimationFrame handler took 64ms"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:21:43.772Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.MeshCollider",
+      "scene": "assets/components/cc.MeshCollider.scene",
+      "sceneUuid": "f13b0f05-7910-4603-be8f-30c2280f8f51",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Lit cube carrier visible",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:21:58.161Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.MeshRenderer",
+      "scene": "assets/components/cc.MeshRenderer.scene",
+      "sceneUuid": "87220b9a-2131-4fa7-982f-457f300cd1e3",
+      "rendered": true,
+      "observation": "Lit cube rendered with three shaded faces",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:22:12.534Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.MouseJoint2D",
+      "scene": "assets/components/cc.MouseJoint2D.scene",
+      "sceneUuid": "d8244801-4d75-46ea-b114-4d791ca7caaf",
+      "rendered": true,
+      "interactionVerified": false,
+      "physicsBehaviorVerified": false,
+      "observation": "SDK sprite centered; mouse drag not exercised",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "retainedDiagnostics": [
+        "setInterval handler took 241ms"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:22:53.668Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.PageView",
+      "scene": "assets/components/cc.PageView.scene",
+      "sceneUuid": "eef7a9e7-eab5-4f33-b63e-1e5e6a06184f",
+      "rendered": true,
+      "interactionVerified": false,
+      "observation": "PageView visible with pink page, white frame and bottom indicators",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:23:29.281Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.PlaneCollider",
+      "scene": "assets/components/cc.PlaneCollider.scene",
+      "sceneUuid": "919adbac-778a-409c-b22d-f10dc59f7eab",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Lit cube carrier visible",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:23:48.620Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.PointToPointConstraint",
+      "scene": "assets/components/cc.PointToPointConstraint.scene",
+      "sceneUuid": "f53f0774-e989-4257-8d13-a0c42ca794f2",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Lit cube carrier visible",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:24:11.139Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.PolygonCollider2D",
+      "scene": "assets/components/cc.PolygonCollider2D.scene",
+      "sceneUuid": "315443fc-ea18-4456-b13e-44f500f89933",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "SDK sprite carrier centered",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:24:27.956Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.PostProcess",
+      "scene": "assets/components/cc.PostProcess.scene",
+      "sceneUuid": "b1a8c761-9e5b-405b-9dfe-cc6930b9cc49",
+      "rendered": true,
+      "observation": "Lit cube and post-final pipeline visible",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "retainedDiagnostics": [
+        "requestAnimationFrame handler took 423ms"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:24:46.208Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.ProgressBar",
+      "scene": "assets/components/cc.ProgressBar.scene",
+      "sceneUuid": "160f9e41-4158-4a45-98f7-f64f58261682",
+      "rendered": true,
+      "observation": "Horizontal progress bar with half light fill visible",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:25:03.842Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.RelativeJoint2D",
+      "scene": "assets/components/cc.RelativeJoint2D.scene",
+      "sceneUuid": "7dc60e1f-e097-42a9-91c7-2198ea2185d3",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "SDK sprite centered and stable",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:25:22.810Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.RenderRoot2D",
+      "scene": "assets/components/cc.RenderRoot2D.scene",
+      "sceneUuid": "d8402770-0f66-44e2-a685-ad84fabb3f6e",
+      "rendered": true,
+      "observation": "White Task 5.1 - cc.RenderRoot2D label visible",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:25:42.030Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.RichText",
+      "scene": "assets/components/cc.RichText.scene",
+      "sceneUuid": "666275a8-8b67-4ed5-8e7c-d7b693f22d54",
+      "rendered": true,
+      "observation": "RichText rendered in green and cyan text at center",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:25:59.923Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.RigidBody",
+      "scene": "assets/components/cc.RigidBody.scene",
+      "sceneUuid": "48d02093-0b67-4a0e-93c3-1451bfd6cea5",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Lit cube carrier stable in view",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:26:18.394Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.RigidBody2D",
+      "scene": "assets/components/cc.RigidBody2D.scene",
+      "sceneUuid": "c7a7183c-f16c-4779-ac17-52331d1b65f0",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "SDK sprite carrier stable at center",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:26:36.419Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.SafeArea",
+      "scene": "assets/components/cc.SafeArea.scene",
+      "sceneUuid": "efa055a6-7e86-4943-a3aa-fbec9473d5d6",
+      "rendered": true,
+      "safeAreaInsetsVerified": false,
+      "observation": "White SafeArea label centered",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:26:56.571Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.ScrollView",
+      "scene": "assets/components/cc.ScrollView.scene",
+      "sceneUuid": "d7e8fa6a-d015-42e7-9f39-4c7221d3a3d6",
+      "rendered": true,
+      "interactionVerified": false,
+      "observation": "White scroll viewport with item text and scrollbar visible",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:27:14.504Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.SimplexCollider",
+      "scene": "assets/components/cc.SimplexCollider.scene",
+      "sceneUuid": "a4173eca-89a4-4e06-a254-fe0bc374b5ce",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Lit cube carrier visible",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:27:33.392Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.SkeletalAnimation",
+      "scene": "assets/components/cc.SkeletalAnimation.scene",
+      "sceneUuid": "656d5f1c-47f1-4140-bb90-f0eaf8ab6c82",
+      "rendered": true,
+      "animationMotionVerified": false,
+      "observation": "Blue/orange textured skinned triangle visible; skinning shader compiled",
+      "consoleErrorsTotal": 71,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 0,
+      "newConsoleWarningsObserved": 0,
+      "retainedDiagnostics": [
+        "requestAnimationFrame handler took 458ms"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:27:55.985Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.SkinnedMeshBatchRenderer",
+      "scene": "assets/components/cc.SkinnedMeshBatchRenderer.scene",
+      "sceneUuid": "eb7b01a0-91d5-4ebe-84d3-5f22d5b8451e",
+      "rendered": false,
+      "observation": "Blank beige background; new RangeError Maximum call stack size exceeded in SkinnedMeshBatchRenderer setter skinned-mesh-batch-renderer.ts:194 recursive calls",
+      "consoleErrorsTotal": 72,
+      "consoleWarningsTotal": 2,
+      "newConsoleErrorsObserved": 1,
+      "newConsoleWarningsObserved": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:28:21.098Z",
+      "runId": "present387-anchor-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+        "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+        "bytes": 106873
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.SkinnedMeshRenderer",
+      "scene": "assets/components/cc.SkinnedMeshRenderer.scene",
+      "sceneUuid": "2ffcdc32-aa19-41f4-a707-2be4fe56cbfc",
+      "rendered": true,
+      "animationMotionVerified": false,
+      "observation": "Blue/orange textured skinned triangle visible; skinning shader compiled",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:35:02.552Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.Slider",
+      "scene": "assets/components/cc.Slider.scene",
+      "sceneUuid": "b8a65035-301d-4bec-8fb7-c7de448550a5",
+      "rendered": true,
+      "interactionVerified": false,
+      "observation": "Slider track and round thumb visible",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:35:21.978Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.SliderJoint2D",
+      "scene": "assets/components/cc.SliderJoint2D.scene",
+      "sceneUuid": "ee322786-a2ef-4059-a3b7-4c6a7333923f",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "SDK sprite carrier stable at center",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:35:40.459Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.Sorting",
+      "scene": "assets/components/cc.Sorting.scene",
+      "sceneUuid": "271e1c93-e4e5-442e-a493-359adefdfdd7",
+      "rendered": true,
+      "sortingComparisonVerified": false,
+      "observation": "Lit cube carrier visible; no 3D overlap comparison in this existing scene",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedDiagnostics": [
+        "load handler took 394ms",
+        "requestAnimationFrame handler took 54ms"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:35:59.562Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.Sorting2D",
+      "scene": "assets/components/cc.Sorting2D.scene",
+      "sceneUuid": "a1ce0896-47fd-473a-851a-02354809b518",
+      "rendered": true,
+      "sortingComparisonVerified": true,
+      "observation": "Blue order=1 sprite covers later-created red order=0 sprite in exact overlap",
+      "backdropNativeFields": {
+        "present": true,
+        "type": "cc.Sorting2D",
+        "uuid": "8efygQEotC2bGeSkbIkkAH",
+        "valid": true,
+        "nodeSuffix": "/Canvas/SortingBackdrop",
+        "sceneUuid": "a1ce0896-47fd-473a-851a-02354809b518",
+        "skinnedContext": null,
+        "fields": [
+          {
+            "id": "field:component:cc.Sorting2D:sortingLayer",
+            "status": "read",
+            "access": "native-public-getter",
+            "selector": [
+              "sortingLayer"
+            ],
+            "value": 0
+          },
+          {
+            "id": "field:component:cc.Sorting2D:sortingOrder",
+            "status": "read",
+            "access": "native-public-getter",
+            "selector": [
+              "sortingOrder"
+            ],
+            "value": 0
+          }
+        ]
+      },
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:36:28.456Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.SphereCollider",
+      "scene": "assets/components/cc.SphereCollider.scene",
+      "sceneUuid": "90d287f4-ecda-4417-967f-f550b1947b28",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Lit cube carrier visible",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:36:46.740Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.SpringJoint2D",
+      "scene": "assets/components/cc.SpringJoint2D.scene",
+      "sceneUuid": "cad30376-d626-4cf8-8596-9f1762abf4e3",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "SDK sprite carrier centered and stable",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:37:06.066Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.Sprite",
+      "scene": "assets/components/cc.Sprite.scene",
+      "sceneUuid": "c80c146a-4e68-4900-8419-8c4ba80b2299",
+      "rendered": true,
+      "observation": "Blue SDK sprite visible with configured size and tint",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:37:24.066Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.TAA",
+      "scene": "assets/components/cc.TAA.scene",
+      "sceneUuid": "57b6ce6c-d1da-4b05-85ee-3e8586a283cd",
+      "rendered": true,
+      "effectComparisonVerified": false,
+      "observation": "Lit cube visible; TAA and post-final shaders compiled",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedDiagnostics": [
+        "requestAnimationFrame handler took 552ms"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:37:43.159Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.TerrainCollider",
+      "scene": "assets/components/cc.TerrainCollider.scene",
+      "sceneUuid": "7cc4cf2c-7979-4cb4-9e99-d7429e96626b",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Lit cube carrier visible; terrain collision behavior not exercised",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:38:03.603Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.Toggle",
+      "scene": "assets/components/cc.Toggle.scene",
+      "sceneUuid": "0c774071-b761-4914-9a4f-50a3d29c7c5f",
+      "rendered": true,
+      "interactionVerified": false,
+      "observation": "Small checked Toggle visible at center",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedDiagnostics": [
+        "requestAnimationFrame handler took 367ms"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:38:24.781Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.UIMeshRenderer",
+      "scene": "assets/components/cc.UIMeshRenderer.scene",
+      "sceneUuid": "826cefd1-0ec5-42ce-b6b5-992dd86ad41d",
+      "rendered": true,
+      "observation": "Lit 3D cube appears inside 2D Canvas with shaded faces",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:38:51.515Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.UIOpacity",
+      "scene": "assets/components/cc.UIOpacity.scene",
+      "sceneUuid": "a0c9ec93-9c21-4b59-979f-de62c6bcd8b4",
+      "rendered": true,
+      "opacityComparisonVerified": false,
+      "observation": "White UIOpacity label visible",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:39:10.507Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.UISkew",
+      "scene": "assets/components/cc.UISkew.scene",
+      "sceneUuid": "d2d65d71-d205-4829-88c6-105da8b90590",
+      "rendered": true,
+      "skewComparisonVerified": false,
+      "observation": "White UISkew label visible with default skew",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:39:28.941Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.UIStaticBatch",
+      "scene": "assets/components/cc.UIStaticBatch.scene",
+      "sceneUuid": "fa4bb80d-5201-4848-b168-08a2c1e91a9b",
+      "rendered": true,
+      "batchingBehaviorVerified": false,
+      "observation": "Static batch child label visible",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:39:48.687Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.UITransform",
+      "scene": "assets/components/cc.UITransform.scene",
+      "sceneUuid": "8377d14d-def0-4b1b-8b08-6dcdfabfeb81",
+      "rendered": true,
+      "observation": "White UITransform label visible",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:40:06.510Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.WheelJoint2D",
+      "scene": "assets/components/cc.WheelJoint2D.scene",
+      "sceneUuid": "fa65b66e-5ee8-4cf4-a682-daacfdba869f",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "SDK sprite carrier centered and stable",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:40:27.817Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.Widget",
+      "scene": "assets/components/cc.Widget.scene",
+      "sceneUuid": "3a3794f3-25b1-4d0e-8b63-3cb60b0bcfae",
+      "rendered": true,
+      "alignmentBehaviorVerified": false,
+      "observation": "Widget child label visible",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:40:55.129Z",
+      "runId": "present387-remainder2-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+        "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+        "bytes": 42470
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.BoxCharacterController",
+      "scene": "assets/components/cc.BoxCharacterController.scene",
+      "sceneUuid": "62f103df-662d-40dd-9a98-d686959c19bf",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "Lit cube carrier visible; browser confirms PhysX registration and builtin pipeline; profiler shows FPS 59 at observation",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedDiagnostics": [
+        "requestAnimationFrame handler took 71ms"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:44:45.933Z",
+      "runId": "present387-physx-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-physx-20261020/presentation-observations.json",
+        "sha256": "7dd43790f4af414499b0ac23f6f281a3d87d046f273b464dfbf1724f80b026bf",
+        "bytes": 6915
+      },
+      "behaviorAcceptance": false
+    },
+    {
+      "componentType": "cc.CapsuleCharacterController",
+      "scene": "assets/components/cc.CapsuleCharacterController.scene",
+      "sceneUuid": "386565ea-5b07-4cfe-830f-b948852eb8c0",
+      "rendered": true,
+      "physicsBehaviorVerified": false,
+      "observation": "CapsuleCharacterController native component valid; lit cube carrier visible at center in PhysX preview; screenshot FPS 61. Controller movement/collision behavior not exercised.",
+      "consoleErrors": 0,
+      "consoleWarnings": 0,
+      "retainedDiagnostics": [
+        "SDK asset-destroy debug messages and shader compilation information retained"
+      ],
+      "screenshotReviewed": true,
+      "observedAt": "2026-10-20T01:47:26.893Z",
+      "runId": "present387-physx-20261020",
+      "sourceCommit": "566c873407a6311a25ad1a64edde8613152c25f6",
+      "inheritedUnchangedUnaffectedPresentation": false,
+      "observationEvidence": {
+        "path": "evidence/task-5.1/present387-physx-20261020/presentation-observations.json",
+        "sha256": "7dd43790f4af414499b0ac23f6f281a3d87d046f273b464dfbf1724f80b026bf",
+        "bytes": 6915
+      },
+      "behaviorAcceptance": false
+    }
+  ],
+  "campaigns": [
+    {
+      "runId": "present387-direct-20261019",
+      "selectedCases": 13,
+      "files": [
+        {
+          "path": "evidence/task-5.1/present387-direct-20261019/presentation-observations.json",
+          "sha256": "aba4848d88c414bf00adb8979d75cbf3b849db207c22fbf13bf5fed6314b42e5",
+          "bytes": 37528
+        },
+        {
+          "path": "evidence/task-5.1/present387-direct-20261019/browser-console.log",
+          "sha256": "137a1c839244cecd506cd0e8630632158fefa2a19a21b4eeccf801cb492990d8",
+          "bytes": 41503
+        },
+        {
+          "path": "evidence/task-5.1/present387-direct-20261019/final-delayed-whole-raw.json",
+          "sha256": "ae3cdf078a2625256a6ee2356813e9e9f9988eb778ab8f1a4a89af9db0540f55",
+          "bytes": 945
+        },
+        {
+          "path": "evidence/task-5.1/present387-direct-20261019/owned-normal-close-receipt.json",
+          "sha256": "7fd01edb78815559dace808e217f04d618d47876437e16a2553d0fe94c178f1e",
+          "bytes": 256
+        },
+        {
+          "path": "evidence/task-5.1/present387-direct-20261019/creator-owned-exit.json",
+          "sha256": "233a58dda0a7336825403d40b628e3babb9a48b8c94a1d21502842b5fb3bb5d8",
+          "bytes": 206
+        },
+        {
+          "path": "evidence/task-5.1/present387-direct-20261019/preview-safety-receipt.json",
+          "sha256": "5adcabe715d3064a65ab7cd8676e1bfdb7b0c3509832972163b1c3308e361ed7",
+          "bytes": 5575
+        }
+      ],
+      "wholeRaw": {
+        "newErrors": [],
+        "newWarnings": [],
+        "sources": [
+          {
+            "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/present387-direct-20261019/stdout.log",
+            "offset": 0,
+            "end": 23824,
+            "newErrorCount": 0,
+            "newWarningCount": 0
+          },
+          {
+            "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/present387-direct-20261019/stderr.log",
+            "offset": 0,
+            "end": 0,
+            "newErrorCount": 0,
+            "newWarningCount": 0
+          },
+          {
+            "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/present387-direct-20261019/project/temp/logs/project.log",
+            "offset": 0,
+            "end": 880,
+            "newErrorCount": 0,
+            "newWarningCount": 0
+          }
+        ]
+      },
+      "wholeCampaignAccepted": false,
+      "note": "13 earlier unaffected visible cases reused with original source identity; 3 original failures superseded only by actual current-source reruns"
+    },
+    {
+      "runId": "present387-anchor-20261020",
+      "selectedCases": 33,
+      "files": [
+        {
+          "path": "evidence/task-5.1/present387-anchor-20261020/presentation-observations.json",
+          "sha256": "53e50ce94ae10a731d5cabcfd8b937468064a547c9fae9731e6fa320da303396",
+          "bytes": 106873
+        },
+        {
+          "path": "evidence/task-5.1/present387-anchor-20261020/browser-console.log",
+          "sha256": "88bf0ac87cbbf880899ea501c8d4faf8ba8a3353bbcf35b4493dd7ab49cf48cb",
+          "bytes": 892874
+        },
+        {
+          "path": "evidence/task-5.1/present387-anchor-20261020/final-delayed-whole-raw.json",
+          "sha256": "87cfa6cf9ecdd1d682ce5501dcb1c4afac4c2a9eade09a9b87f19cf45b880578",
+          "bytes": 945
+        },
+        {
+          "path": "evidence/task-5.1/present387-anchor-20261020/owned-normal-close-receipt.json",
+          "sha256": "4a690987f2ca0bac37baf16a0a307343cec201d8a94f10c7706aa49f1e46f8b2",
+          "bytes": 256
+        },
+        {
+          "path": "evidence/task-5.1/present387-anchor-20261020/creator-owned-exit.json",
+          "sha256": "877cbd933a1ff2f6870eb7b9f52be510f0e2c850eebac11e206fa99a175aa886",
+          "bytes": 206
+        },
+        {
+          "path": "evidence/task-5.1/present387-anchor-20261020/preview-safety-receipt.json",
+          "sha256": "4fdc479a6081eef1dae5ca6d68981eaefeb1b6a54a27029800376f795f107f13",
+          "bytes": 3825
+        }
+      ],
+      "wholeRaw": {
+        "newErrors": [],
+        "newWarnings": [],
+        "sources": [
+          {
+            "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/present387-anchor-20261020/stdout.log",
+            "offset": 0,
+            "end": 25040,
+            "newErrorCount": 0,
+            "newWarningCount": 0
+          },
+          {
+            "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/present387-anchor-20261020/stderr.log",
+            "offset": 0,
+            "end": 0,
+            "newErrorCount": 0,
+            "newWarningCount": 0
+          },
+          {
+            "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/present387-anchor-20261020/project/temp/logs/project.log",
+            "offset": 0,
+            "end": 880,
+            "newErrorCount": 0,
+            "newWarningCount": 0
+          }
+        ]
+      },
+      "wholeCampaignAccepted": false,
+      "note": "32 visible; batch SDK recursion failure retained. Preview-safety second rapid refresh refused and receipt remains false. Historical browser baseline 71 errors/2 warnings; batch raised errors to72"
+    },
+    {
+      "runId": "present387-remainder2-20261020",
+      "selectedCases": 18,
+      "files": [
+        {
+          "path": "evidence/task-5.1/present387-remainder2-20261020/presentation-observations.json",
+          "sha256": "edd48f586eaef0af0d60920b8f887d8cc6412827215357c25ba13365e6439c36",
+          "bytes": 42470
+        },
+        {
+          "path": "evidence/task-5.1/present387-remainder2-20261020/browser-console.log",
+          "sha256": "1098e070c105bd6a73aa9bec7708070ba83709802a2da8bdcad4e7bd178827bf",
+          "bytes": 46349
+        },
+        {
+          "path": "evidence/task-5.1/present387-remainder2-20261020/final-delayed-whole-raw.json",
+          "sha256": "4dd34193c5407fdb24cf7766f230e8daaaeda43cfa144680a6401a8e3e4c16bd",
+          "bytes": 1468
+        },
+        {
+          "path": "evidence/task-5.1/present387-remainder2-20261020/owned-normal-close-receipt.json",
+          "sha256": "a6edd8e33ef26eae7137ca9501271f8e8c2250217a7a6afdf3cff30752b37918",
+          "bytes": 260
+        },
+        {
+          "path": "evidence/task-5.1/present387-remainder2-20261020/creator-owned-exit.json",
+          "sha256": "f771bb2e4bc65a4f3a66d901a444e3f88c2669b7b10b12ef5d8f09f75d805556",
+          "bytes": 206
+        },
+        {
+          "path": "evidence/task-5.1/present387-remainder2-20261020/preview-safety-receipt.json",
+          "sha256": "5c482acc96d054e9d657dfffff9de9077f8fe0bd207f7c44f814eb95df6d547a",
+          "bytes": 5599
+        }
+      ],
+      "wholeRaw": {
+        "newErrors": [
+          "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/present387-remainder2-20261020/stderr.log: TypeError: Object has been destroyed",
+          "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/present387-remainder2-20261020/project/temp/logs/project.log: 10-20-2026 09:41:57 - warn: Object has been destroyedTypeError: Object has been destroyed"
+        ],
+        "newWarnings": [],
+        "sources": [
+          {
+            "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/present387-remainder2-20261020/stdout.log",
+            "offset": 0,
+            "end": 23974,
+            "newErrorCount": 0,
+            "newWarningCount": 0
+          },
+          {
+            "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/present387-remainder2-20261020/stderr.log",
+            "offset": 0,
+            "end": 503,
+            "newErrorCount": 1,
+            "newWarningCount": 0
+          },
+          {
+            "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/present387-remainder2-20261020/project/temp/logs/project.log",
+            "offset": 0,
+            "end": 1436,
+            "newErrorCount": 1,
+            "newWarningCount": 0
+          }
+        ]
+      },
+      "wholeCampaignAccepted": false,
+      "note": "18 visible and browser0/0; late SDK WindowSender destroyed-WebContents exit error appears in two native sources; campaign remains rejected"
+    },
+    {
+      "runId": "present387-physx-20261020",
+      "selectedCases": 2,
+      "files": [
+        {
+          "path": "evidence/task-5.1/present387-physx-20261020/presentation-observations.json",
+          "sha256": "7dd43790f4af414499b0ac23f6f281a3d87d046f273b464dfbf1724f80b026bf",
+          "bytes": 6915
+        },
+        {
+          "path": "evidence/task-5.1/present387-physx-20261020/browser-console.log",
+          "sha256": "f38fc2506251a178a12e45c545f0b1dda9cd4dec3fa14623dac3e8b201af3fe0",
+          "bytes": 55551
+        },
+        {
+          "path": "evidence/task-5.1/present387-physx-20261020/final-delayed-whole-raw.json",
+          "sha256": "bb154ed071e338c217fceaa16aafe51eeec51f77c0db1af6aa7e56c003b6d79a",
+          "bytes": 942
+        },
+        {
+          "path": "evidence/task-5.1/present387-physx-20261020/creator-owned-exit.json",
+          "sha256": "48e8931c631fdd3054d5c38c50ca24e8af1901d4ed0ae8771be8f729abd73477",
+          "bytes": 206
+        },
+        {
+          "path": "evidence/task-5.1/present387-physx-20261020/gui-close-observation.json",
+          "sha256": "523484d22f87476f4e577bb38945d45107ac3c4d3bbc214c5c09f17ed538ed0b",
+          "bytes": 1022
+        }
+      ],
+      "wholeRaw": {
+        "newErrors": [],
+        "newWarnings": [],
+        "sources": [
+          {
+            "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/present387-physx-20261020/stdout.log",
+            "offset": 0,
+            "end": 22700,
+            "newErrorCount": 0,
+            "newWarningCount": 0
+          },
+          {
+            "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/present387-physx-20261020/stderr.log",
+            "offset": 0,
+            "end": 0,
+            "newErrorCount": 0,
+            "newWarningCount": 0
+          },
+          {
+            "path": "/Users/alex/workspaces/peanut-workspace/.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io/evidence/task-5.1/present387-physx-20261020/project/temp/logs/project.log",
+            "offset": 0,
+            "end": 879,
+            "newErrorCount": 0,
+            "newWarningCount": 0
+          }
+        ]
+      },
+      "wholeCampaignAccepted": null,
+      "note": "2 visible in actual PhysXWorld; browser0/0; GUI normal close exit0 and delayed native three sources0/0. Manual existing public refresh+one-tab checks; no fabricated CLI preview-safety acceptance"
+    }
+  ],
+  "preservedFailureEvidence": [
+    {
+      "path": "evidence/task-5.1/present387-remainder-20261020/startup-refusal.json",
+      "sha256": "0cebd71cfb888a0d90d8d5d865c18c598bd5ce0d1e1281c007c6738028e25db1",
+      "bytes": 3088
+    },
+    {
+      "path": "evidence/task-5.1/present387-remainder-20261020/final-delayed-whole-raw.json",
+      "sha256": "6e601e0d6237e555d7116b49985d8956ff99b1512459f3cd39bf6b60a4c2918b",
+      "bytes": 2725
+    },
+    {
+      "path": "evidence/task-5.1/closeout387-post-20261019/stderr.log",
+      "sha256": "83f5335201d9eeefc3a0d57fc5637eed4c362e094f9fb25927fdef0bea31972d",
+      "bytes": 606
+    },
+    {
+      "path": "evidence/task-5.1/present387-body-20261019/resume-close-observation.json",
+      "sha256": "13bccf375d3ffbde97e66d98a5ca80821ff955c141ce4bda8057549b7a645e62",
+      "bytes": 1424
+    }
+  ],
+  "separateGaps": [
+    {
+      "id": "sdk-skinned-batch-recursion",
+      "status": "unfixed-separated-by-user",
+      "userDecision": "将此 SDK 缺陷单列，先收完其余场景",
+      "source": "/Applications/Cocos/Creator/3.8.7/CocosCreator.app/Contents/Resources/resources/3d/engine/cocos/3d/skinned-mesh-renderer/skinned-mesh-batch-renderer.ts:194",
+      "compiled": "/Applications/Cocos/Creator/3.8.7/CocosCreator.app/Contents/Resources/resources/3d/engine/bin/.cache/dev/preview/bundled/index.js:113705",
+      "finding": "SDK source super.skeleton = val compiled locally to this.skeleton = val, recursively calling its setter. mesh setter analogous. Actual preview RangeError and blank picture retained. No installation/cache edits or runtime compatibility added."
+    },
+    {
+      "id": "sdk-exit-late-window-send",
+      "status": "unfixed",
+      "finding": "remainder2 normal close: destroyed WebContents send via WindowSender.immediately/Immediate; two error sources retained; later PhysX GUI-close0/0 is conditional evidence, not root-cause fix."
+    },
+    {
+      "id": "shared-creator-json-startup",
+      "status": "conditional-recovery",
+      "finding": "remainder attempt window.json/layout.json Unexpected end of JSON input, recovery-window failure;4errors2warnings retained. Files later valid/stable in two reads; no shared configuration edits; concurrent-writer root cause not established."
+    },
+    {
+      "id": "original-five-widget-errors",
+      "status": "root-cause-unproven",
+      "finding": "Original five errors retained. New direct startup condition did not reproduce; OTA correlation disproven; no builder-ui or Chromium root-cause claim."
+    },
+    {
+      "id": "declaration-gaps-383",
+      "remainingFields": 4,
+      "components": [
+        "cc.Sorting2D",
+        "cc.UISkew"
+      ],
+      "status": "not-pass-not-NA"
+    },
+    {
+      "id": "missing-presentation-context",
+      "rows": 29,
+      "tiledRowsWithoutAuthoredScene": 4,
+      "status": "not-pass-not-NA"
+    },
+    {
+      "id": "behavior-acceptance",
+      "status": "not-complete",
+      "finding": "Visible carrier does not prove physics/controller interaction, UI events, animations, LOD, or effect comparison; Sorting2D overlap has direct observed blue order1 over red order0 evidence."
+    },
+    {
+      "id": "resource-adapters-outside-scope",
+      "total": 606,
+      "verified": 121,
+      "remaining": 485,
+      "blocksTask51Prerequisites": false
+    }
+  ],
+  "cleanup": {
+    "allOwnedCocosClosed": true,
+    "protectedForeignPid": 11696,
+    "protectedForeignPreserved": true,
+    "onlyOwnPreviewTabClosed": true,
+    "browserKeepLogRestored": true,
+    "allSixCapabilitiesDetached": true
+  }
+}

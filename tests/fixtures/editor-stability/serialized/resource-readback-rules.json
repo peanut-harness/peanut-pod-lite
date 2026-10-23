@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "nativeExecution": "not performed; Creator must not be launched for task 4.1",
+  "commonPostconditions": [
+    "仅后续有明确 task packet 和登记的隔离工程才能执行 Creator",
+    "启动/操作/冷却/退出原始 stdout/stderr/project.log 均保留；任何新增 warning/error 或延迟诊断阻止通过",
+    "静态映射不证明原生 importer、Inspector 或运行时能力"
+  ],
+  "actions": {
+    "create": [
+      "AssetDB 原生发布源文件及闭合依赖；新根 UUID 与 meta、登记一致；不是 refresh 首次发布",
+      "语义值与 initialPublic 一致，全部 typed/internal/UUID 引用可读"
+    ],
+    "import": [
+      "精确版本 importer 导入同版本合法源及依赖；导入完成与子资源登记可查",
+      "语义值与 initialPublic 一致，禁止把源 meta imported 标志作为导入证据"
+    ],
+    "query": [
+      "路径、精确版本 importer、根 UUID、适用子资源与 AssetDB 登记一致"
+    ],
+    "inspect": [
+      "公开语义值与 initialPublic 一致；引用闭包能被原生查询解析"
+    ],
+    "read": [
+      "字段值与 fieldCases.initial 一致；原始源/meta 与 UUID 不变"
+    ],
+    "patch": [
+      "应用 fixture.patch.valid，公开值与 expectedPublic 一致",
+      "保持根 UUID 与内部引用；RenderTexture 尺寸同步自身子资源，Flow 的 Stage UUID 指向同版本依赖",
+      "保存、重开后语义和引用不丢失"
+    ],
+    "set": [
+      "应用 fieldCases.patch；fieldCases.expected 及其序列化字段语义一致，根 UUID 不变"
+    ],
+    "reject_invalid": [
+      "fieldCases.invalidPatch 必须拒绝；内存及源/meta bytes 与 UUID 均不变"
+    ],
+    "reject_write": [
+      "只读 type 字段写入必须拒绝；原内存、磁盘和根 UUID 不变"
+    ],
+    "copy": [
+      "新目的 UUID 区别于源；自身子资源引用一致重映射；源 UUID/bytes 不变",
+      "目的公开值和依赖关系保留，AssetDB 中源与目的均可查"
+    ],
+    "move": [
+      "原路径注销且目的路径登记；根 UUID 与自身子资源 identity 保持",
+      "依赖引用与语义值保持，源位置无残留"
+    ],
+    "rename": [
+      "原路径注销且新路径登记；根 UUID 与自身子资源 identity 保持",
+      "资产头/根节点允许原生名称规范化；其余语义及引用保持"
+    ],
+    "refresh": [
+      "既有 UUID 保持，importer settle 后登记和引用闭合；语义值保持",
+      "不得用于证明首次 create/import 成功"
+    ],
+    "save": [
+      "资产头、节点/组件和 typed references 合法；保存前后根 UUID 保持，公开语义与期望值一致"
+    ],
+    "reopen": [
+      "通过实际 Creator 重开已经保存的层次资源；头和根类型、组件装配及引用保持，公开语义与保存前一致"
+    ],
+    "delete": [
+      "根及适用子资源从 AssetDB 注销；源文件/meta 不残留；测试自有反向引用已解绑",
+      "依赖资源保留；删除后原 UUID 与路径查询为缺失"
+    ]
+  }
+}

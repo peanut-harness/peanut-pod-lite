@@ -24,6 +24,7 @@ import type {
     IPluginTaskApi,
     PluginManagedTaskRequest,
     PluginTaskExecutor,
+    IHostResourceFieldProducer,
 } from './plugin-manager-contracts.js';
 
 /**
@@ -50,7 +51,11 @@ export class PluginTaskApi implements IPluginTaskApi {
     /**
      * @description 校验宿主签发 invocation 并解析其连接与 capability。
      */
-    private readonly _resolveInvocationOwner: ((invocation: IMcpCapabilityInvocation) => { readonly connectionId: string; readonly capability: string } | null) | null;
+    private readonly _resolveInvocationOwner: ((invocation: IMcpCapabilityInvocation) => { readonly connectionId: string; readonly capability: string; readonly scopedWriteGuard?: (input: unknown, closure?: readonly string[]) => Promise<void> } | null) | null;
+    /**
+     * @description 受理到executor开始之间的有界Host守卫；不接受业务输入提供的回调。
+     */
+    private readonly _scopedWriteGuards = new Map<string, (input: unknown, closure?: readonly string[]) => Promise<void>>();
     /**
      * @description 当前插件注册的 executor 撤销函数。
      */
@@ -76,8 +81,10 @@ export class PluginTaskApi implements IPluginTaskApi {
         pluginId: string,
         runtime: ICocosRuntime,
         projectKey: string = `plugin:${pluginId}`,
-        resolveInvocationOwner: ((invocation: IMcpCapabilityInvocation) => { readonly connectionId: string; readonly capability: string } | null) | null = null,
+        resolveInvocationOwner: ((invocation: IMcpCapabilityInvocation) => { readonly connectionId: string; readonly capability: string; readonly scopedWriteGuard?: (input: unknown, closure?: readonly string[]) => Promise<void> } | null) | null = null,
+        private readonly _resourceFieldProducer: IHostResourceFieldProducer | null = null,
     ) {
+        if (_resourceFieldProducer != null && pluginId !== 'peanut.editor-mcp') throw new Error('plugin_task_resource_field_producer_plugin_invalid');
         this._pluginId = pluginId;
         this._runtime = runtime;
         this._projectKey = projectKey;
@@ -187,6 +194,7 @@ export class PluginTaskApi implements IPluginTaskApi {
             return;
         }
         this._active = false;
+        this._scopedWriteGuards.clear();
         for (const disposer of [...this._executorDisposers]) {
             disposer();
             this._executorDisposers.delete(disposer);
@@ -216,15 +224,20 @@ export class PluginTaskApi implements IPluginTaskApi {
                 const owner = this._runtime.execution.getOwner(task.taskId) ?? this._owner(kind);
                 const signal = this._runtime.execution.getTaskAbortSignal(task.taskId);
                 const prepareTextWrite = await this._createHostTextWritePreparation(task, signal);
-                const data = await executor(task.request, {
+                const assertScopedWrite = this._takeScopedWriteGuard(owner, task.request);
+                const context: IPluginTaskExecutorContext = {
                     owner,
                     signal,
                     ...(prepareTextWrite == null ? {} : { prepareTextWrite }),
+                    ...(assertScopedWrite == null ? {} : { assertScopedWrite }),
                     enterCommitWindow: (): boolean => this._runtime.execution.enterTaskCommitWindow(task.taskId),
                     recordEvidence: (evidence): void => {
                         this._runtime.execution.recordEvidence(task.taskId, evidence);
                     },
-                });
+                };
+                const prepareResourceField = await this._createHostResourceFieldPreparation(task, signal, context);
+                if (prepareResourceField != null) context.prepareResourceField = prepareResourceField;
+                const data = await executor(task.request, context);
                 return {
                     taskId: task.taskId,
                     kind: task.request.kind,
@@ -281,6 +294,42 @@ export class PluginTaskApi implements IPluginTaskApi {
         };
         this._executorDisposers.add(dispose);
         return dispose;
+    }
+
+    /**
+     * @description Host任务专属字段准备闭包；普通插件、批次及写后不取得producer。
+     */
+    private async _createHostResourceFieldPreparation(task: Parameters<ITaskExecutor['execute']>[0], signal: AbortSignal,
+        context: IPluginTaskExecutorContext): Promise<IPluginTaskExecutorContext['prepareResourceField']> {
+        const producer = this._resourceFieldProducer; const request = task.request;
+        if (!producer || nodeTypes.isProxy(request)) return undefined;
+        const kind = Object.getOwnPropertyDescriptor(request, 'kind');
+        const merge = Object.getOwnPropertyDescriptor(request, 'mergePolicy');
+        if (!kind || !('value' in kind) || kind.value !== 'editor-mcp.resource-operation'
+            || merge != null && (!('value' in merge) || merge.value != null && merge.value !== 'none')) return undefined;
+        const payload: unknown = Object.getOwnPropertyDescriptor(request, 'payload')?.value;
+        if (!payload || typeof payload !== 'object' || nodeTypes.isProxy(payload)
+            || Object.getOwnPropertyDescriptor(payload, 'operation')?.value !== 'lumen.assetSet') return undefined;
+        const input: unknown = Object.getOwnPropertyDescriptor(payload, 'input')?.value;
+        if (!input || typeof input !== 'object' || nodeTypes.isProxy(input)) return undefined;
+        const hostProject = await this._runtime.project.getProjectPath();
+        if (!hostProject) throw new Error('resource_field_host_project_unavailable');
+        const hostRoot = realpathSync(hostProject); const api = this; let used = false;
+        const active = async (): Promise<boolean> => api._active && !signal.aborted
+            && api._runtime.execution.getTaskAbortSignal(task.taskId) === signal
+            && (await api._runtime.execution.query(task.taskId))?.status === 'waiting_commit';
+        return async function(this: IPluginTaskExecutorContext, originalRequest, projectRoot, originalInput, originalSignal): Promise<void> {
+            if (this !== context || used || originalRequest !== request || originalInput !== input || originalSignal !== signal
+                || typeof projectRoot !== 'string' || realpathSync(projectRoot) !== hostRoot) {
+                throw new Error('resource_field_host_preparation_untrusted');
+            }
+            used = true;
+            if (!await active()) throw new Error('resource_field_host_preparation_untrusted');
+            return ExecutionRuntimeService.withResourceFieldPreparation(request, signal, async () => {
+                await producer.prepare(hostRoot, input);
+                if (!await active()) throw new Error('resource_field_host_preparation_phase_changed');
+            });
+        };
     }
 
     /**
@@ -349,6 +398,12 @@ export class PluginTaskApi implements IPluginTaskApi {
         if (invocation != null && invocationOwner == null) {
             throw new Error('plugin_task_invocation_untrusted');
         }
+        if (invocationOwner?.scopedWriteGuard != null) {
+            const key = `${invocationOwner.connectionId}:${invocationOwner.capability}:${request.requestId}`;
+            if (request.mergePolicy === 'batch_commit' || this._scopedWriteGuards.has(key) || this._scopedWriteGuards.size >= 512)
+                throw new Error('plugin_task_scoped_request_conflict');
+            this._scopedWriteGuards.set(key, invocationOwner.scopedWriteGuard);
+        }
         const receipt = await this._runtime.execution.submitOwned(
             { ...request, pluginId: this._pluginId },
             invocationOwner == null
@@ -379,6 +434,7 @@ export class PluginTaskApi implements IPluginTaskApi {
             if (invocation != null && invocationOwner == null) {
                 throw new Error('plugin_task_invocation_untrusted');
             }
+            if (invocationOwner?.scopedWriteGuard != null) throw new Error('plugin_task_scoped_batch_not_supported');
             return {
                 request: { ...request, pluginId: this._pluginId },
                 owner: invocationOwner == null
@@ -396,6 +452,23 @@ export class PluginTaskApi implements IPluginTaskApi {
             this._taskIds.add(item.taskId);
         }
         return receipt;
+    }
+
+    /**
+     * @description 把原受理守卫一次性交给实际executor，校验回调必须使用同一任务对象。
+     * @param owner Host固定的owner。
+     * @param request 当前实际受理任务。
+     * @returns 原writer窗口使用的守卫或undefined。
+     */
+    private _takeScopedWriteGuard(owner: ITaskOwner, request: Readonly<ITaskRequest>): IPluginTaskExecutorContext['assertScopedWrite'] {
+        const key = `${owner.connectionId}:${owner.capability}:${request.requestId}`;
+        const guard = this._scopedWriteGuards.get(key); this._scopedWriteGuards.delete(key);
+        if (!guard) return undefined;
+        return async (actualRequest: Readonly<ITaskRequest>, closure?: readonly string[]) => {
+            if (actualRequest !== request || actualRequest.payload == null || typeof actualRequest.payload !== 'object'
+                || Array.isArray(actualRequest.payload)) throw new Error('plugin_task_scoped_context_invalid');
+            await guard(Reflect.get(actualRequest.payload, 'input'), closure);
+        };
     }
 
     /**

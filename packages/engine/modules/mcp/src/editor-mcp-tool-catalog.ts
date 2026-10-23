@@ -9,6 +9,7 @@ import type {
 import {
     CoreCocosMcpOperationThroughputProfileCatalog,
     CoreTextFileIoContract,
+    CoreCocosMcpReadToolSchemaCatalog,
     type ICoreMcpJsonSchema,
 } from '@peanut/pod-engine/policy';
 
@@ -21,7 +22,7 @@ const TOOL_NAME_PREFIX = 'peanut.editor-mcp.';
  */
 export class EditorMcpToolCatalog {
     /**
-     * @description 84 项公开 operation 的权威吞吐画像。
+     * @description 88 项公开 operation 的权威吞吐画像。
      */
     private readonly _throughputProfiles = new CoreCocosMcpOperationThroughputProfileCatalog();
     /** @description operation 到其一级工具 inputSchema 的映射；键集合即权威 operation 全集。 */
@@ -123,13 +124,25 @@ export class EditorMcpToolCatalog {
      */
     private _descriptionWithAiContract(description: LocalizedText, readOnly: boolean, operation: EditorMcpOperationId): LocalizedText {
         const englishRule = readOnly
-            ? ' Treat the call as successful only when response.ok=true. On response.ok=false, inspect failure.code, failure.category, and failure.recommendedAction.'
-            : operation === 'asset.writeText'
+            ? operation === 'viewport.queryState'
+                ? ' Inspect result.creatorVersion and each result.fields[*].supported/available; null values are not state evidence.'
+                : operation === 'diagnostics.queryLogs'
+                ? ' Observation succeeds only when response.ok=true and result.ok=true. Inspect failureCode on result.ok=false, and resetDetected, truncated, complete and pendingLine before continuing. An empty search is not project acceptance.'
+                : ' Treat the call as successful only when response.ok=true. On response.ok=false, inspect failure.code, failure.category, and failure.recommendedAction.'
+            : operation === 'viewport.focusNodes' || operation === 'viewport.setState'
+                ? ' Accept success only when taskStatus=succeeded, postflight.verified=true, result.data.ok=true, result.data.status=verified, and every result.data.fields[*].verified=true. accepted_unverified and partial_failure require further inspection; never retry blindly.'
+                : operation === 'asset.writeText'
                 ? ' Accept success only when taskStatus=succeeded, postflight.verified=true, result.ok=true, result.projectState=verified, and every result.files[*].status=verified. On failure inspect the structured failure object; when failure.state is unknown or may_have_changed, query the target state before retrying. Never retry a write blindly.'
                 : ' Accept success only when taskStatus=succeeded and postflight.verified=true. On failure inspect the structured failure object; when failure.state is unknown or may_have_changed, query the target state before retrying. Never retry a write blindly.';
         const chineseRule = readOnly
-            ? ' 仅当 response.ok=true 时判定成功；response.ok=false 时必须读取 failure.code、failure.category 与 failure.recommendedAction。'
-            : operation === 'asset.writeText'
+            ? operation === 'viewport.queryState'
+                ? ' 检查result.creatorVersion和每个result.fields[*].supported/available；null值不构成状态证据。'
+                : operation === 'diagnostics.queryLogs'
+                ? ' 仅response.ok=true且result.ok=true表示观测成功；失败读取failureCode，并检查resetDetected/truncated/complete/pendingLine；空搜索不代表工程验收通过。'
+                : ' 仅当 response.ok=true 时判定成功；response.ok=false 时必须读取 failure.code、failure.category 与 failure.recommendedAction。'
+            : operation === 'viewport.focusNodes' || operation === 'viewport.setState'
+                ? ' 仅当 taskStatus=succeeded、postflight.verified=true、result.data.ok=true、result.data.status=verified 且每个 result.data.fields[*].verified=true 时判定成功。accepted_unverified和partial_failure需继续检查，禁止盲目重试。'
+                : operation === 'asset.writeText'
                 ? ' 文本写入仅当 taskStatus=succeeded、postflight.verified=true、result.ok=true、result.projectState=verified 且每个 result.files[*].status=verified 时判定成功。失败时读取结构化 failure；failure.state 为 unknown 或 may_have_changed 时必须先查询目标状态再重试，禁止盲目重放写操作。'
                 : ' 仅当 taskStatus=succeeded 且 postflight.verified=true 时判定成功。失败时读取结构化 failure；failure.state 为 unknown 或 may_have_changed 时必须先查询目标状态再重试，禁止盲目重放写操作。';
         if (typeof description === 'string') {
@@ -152,10 +165,16 @@ export class EditorMcpToolCatalog {
             schemaVersion: 1,
             successSignals: Object.freeze(
                 readOnly
-                    ? operation === 'asset.readText'
+                    ? operation === 'viewport.queryState'
+                        ? ['response.ok=true', 'result.fields.is2D.available=true', 'result.fields.gridVisible.available=true']
+                        : operation === 'diagnostics.queryLogs'
+                        ? ['response.ok=true', 'result.ok=true']
+                        : operation === 'asset.readText'
                         ? ['response.ok=true', 'result.ok=true', 'result.consistent=true', 'result.files[*].status=read']
                         : ['response.ok=true']
-                    : operation === 'asset.writeText'
+                    : operation === 'viewport.focusNodes' || operation === 'viewport.setState'
+                        ? ['response.ok=true', 'result.taskStatus=succeeded', 'result.postflight.verified=true', 'result.data.ok=true', 'result.data.status=verified', 'result.data.fields[*].verified=true']
+                        : operation === 'asset.writeText'
                         ? ['response.ok=true', 'result.taskStatus=succeeded', 'result.postflight.verified=true',
                             'result.ok=true', 'result.projectState=verified', 'result.files[*].status=verified']
                         : ['response.ok=true', 'result.taskStatus=succeeded', 'result.postflight.verified=true'],
@@ -226,9 +245,17 @@ export class EditorMcpToolCatalog {
     private _buildSchemas(): ReadonlyMap<EditorMcpOperationId, IMcpJsonSchema> {
         const map = new Map<EditorMcpOperationId, IMcpJsonSchema>();
 
+        const logSchema = new CoreCocosMcpReadToolSchemaCatalog().find('diagnostics.queryLogs');
+        if (logSchema == null) throw new Error('editor_mcp_log_schema_missing');
+        map.set('diagnostics.queryLogs', this._textFileSchema(logSchema));
+        const viewportSchema = new CoreCocosMcpReadToolSchemaCatalog().find('viewport.queryState');
+        if (viewportSchema == null) throw new Error('editor_mcp_viewport_schema_missing');
+        map.set('viewport.queryState', this._textFileSchema(viewportSchema));
         map.set('editor.queryVersion', this._empty());
         map.set('editor.queryProject', this._empty());
         map.set('editor.querySelection', this._empty());
+        map.set('viewport.focusNodes', this._object({ targets: this._stringArray('精确场景节点UUID或完整路径列表，最大32个。'), ...this._writeControl() }, ['targets']));
+        map.set('viewport.setState', this._object({ is2D: this._boolean('可选2D模式。'), gridVisible: this._boolean('可选网格可见性。'), ...this._writeControl() }));
         map.set(
             'editor.setSelection',
             this._object({

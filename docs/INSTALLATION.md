@@ -15,6 +15,12 @@
 7. **运行原子创建矩阵。** 对 3.8.3 与 3.8.7 分别执行 `verify-managed-task-live.mts`，要求同一候选 Host/Core 身份下 Prefab/Scene 首次创建、同目标竞争、commit 前取消、UUID/`.meta`、唯一 postflight、零探针残留和日志增量全部通过。其它 3.8 补丁不得借此自动开放写入。
 8. **运行吞吐长稳矩阵。** 对 3.8.3 与 3.8.7 分别执行 `verify-throughput-soak-live.mts`；默认包含 30 分钟正常混合负载、10 分钟持续过载，以及任务保留期后的回收检查。短时参数只允许验证 harness，不构成实机验收证据。
 
+## 可选 Canvas 能力
+
+UI Prefab 和 SnowB 的完整安装需要签名 Canvas 能力。构建 Host 时可设置 `PEANUT_HOST_NATIVE_CAPABILITY_ROOT` 为可信能力包根目录；该目录必须包含 `public-key.pem` 和当前平台的 `canvas/1.x/<platform>-<arch>/capability.manifest.json` 及载荷。打包器验证签名、文件摘要和本机加载能力后，将当前平台载荷复制到 Host 自身的 `native-capabilities/`，并计入发行摘要。Lite 源码不从 Pro 仓库自动定位或加载能力。
+
+未设置变量时仍发布不含 Canvas 的 Lite Host。安装含 Canvas 的候选 Host 后须重启 Creator，保持常规包安装事务和原有授权检查；不能靠复制文件到运行中的 Host 绕过发行摘要。缺失或损坏能力只导致依赖 Canvas 的插件拒绝安装/激活，不阻断 Lite 的基本功能。
+
 ## 插件创建与生命周期
 
 - 在 **开发者** 页选择 **创建插件**，分别使用 **Creator 3.8 Host** 或 **Peanut Core** 模板。生成目标必须为空目录；Core 模板自带符合运行时模块协议的 `register`、`activate`、`deactivate` 和 `dispose` 入口。

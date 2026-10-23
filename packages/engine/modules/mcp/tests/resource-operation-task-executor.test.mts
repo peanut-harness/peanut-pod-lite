@@ -88,6 +88,48 @@ test('resource executor preserves FIFO for the same resource', async () => {
     assert.deepEqual(started, ['first', 'second']);
 });
 
+test('scoped resource execution supplies the current transitive closure and refuses new dependencies before commit', async () => {
+    const root = 'assets/fixtures/resource-stability/one/source.mtl';
+    const dependency = 'assets/fixtures/resource-stability/one/texture.png';
+    let calls = 0; let changed = false; let writes = 0; let commits = 0;
+    const instance = new ResourceOperationTaskExecutor({
+        plan: async () => {
+            calls += 1;
+            const dependencies = changed && calls > 1 ? ['assets/foreign/texture.png'] : [dependency];
+            return { projectKey: '/project', operation: 'asset.copy', requiresProjectWriter: true,
+                resourceKeys: [root, ...dependencies],
+                closure: { roots: [root], dependencies, sidecars: [`${root}.meta`], uuidKeys: [], unresolvedUuids: [] } };
+        },
+        execute: async () => { writes += 1; return {}; },
+    });
+    const observed: string[][] = [];
+    const scopedContext: IPluginTaskExecutorContext = { ...context(),
+        enterCommitWindow: () => { commits += 1; return true; },
+        assertScopedWrite: async (_request, closure) => {
+            assert.ok(closure); observed.push([...closure]);
+        } };
+    await instance.execute(request('scope-internal', {}), scopedContext);
+    assert.deepEqual(observed, [[root, dependency, `${root}.meta`]]);
+    assert.equal(writes, 1); assert.equal(commits, 1);
+    calls = 0; changed = true;
+    await assert.rejects(instance.execute(request('scope-external', {}), scopedContext), /scoped_resource_closure_changed/);
+    assert.equal(writes, 1); assert.equal(commits, 1); assert.equal(observed.length, 1);
+});
+
+test('scoped authorization is rechecked after the actual writer lock and before commit', async () => {
+    const started: string[] = []; const firstGate = gate(); const instance = executor(started, new Map([['first', firstGate]]));
+    const first = instance.execute(request('first', { id: 'first', project: '/p', resource: 'asset:a' }), context());
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    let revoked = false; let committed = false; let checks = 0;
+    const secondRequest = request('second', { id: 'second', project: '/p', resource: 'asset:a' });
+    const second = instance.execute(secondRequest, { ...context(),
+        assertScopedWrite: async (actual) => { assert.equal(actual, secondRequest); checks += 1; if (revoked) throw new Error('attachment_revoked'); },
+        enterCommitWindow: () => { committed = true; return true; } });
+    const rejected = assert.rejects(second, /attachment_revoked/);
+    await new Promise((resolve) => setTimeout(resolve, 5)); assert.equal(checks, 0); revoked = true; firstGate.release();
+    await first; await rejected; assert.equal(checks, 1); assert.equal(committed, false); assert.deepEqual(started, ['first']);
+});
+
 test('resource executor permits disjoint resources in one project concurrently', async () => {
     const started: string[] = [];
     const firstGate = gate();
@@ -201,6 +243,14 @@ test('planner preserves asset sidecars and offline lumen parallelism', () => {
         rootName: 'NewPanel',
     });
     assert.equal(scaffoldPlan.workerManagedCommitWindow, true);
+    for (const extension of ['animgraph', 'animgraphvari', 'animask', 'rpp', 'terrain']) {
+        const created = planner.plan('D:/projects/game', 'lumen.scaffold', { assetRelativePath: `assets/ui/New.${extension}` });
+        assert.equal(created.workerManagedCommitWindow, true);
+        assert.ok(created.resourceKeys.includes(`resource:db://assets/ui/New.${extension}.meta`));
+        assert.ok(created.resourceKeys.includes('directory:assets/ui'));
+        assert.equal(planner.plan('D:/projects/game', 'lumen.scaffold', {
+            assetRelativePath: `assets/ui/New.${extension}`, reset: true }).workerManagedCommitWindow, undefined);
+    }
     assert.equal(scaffoldPlan.requiresProjectWriter, false);
     assert.ok(scaffoldPlan.resourceKeys.includes('resource:db://assets/ui/NewPanel.prefab'));
     assert.ok(scaffoldPlan.resourceKeys.includes('resource:db://assets/ui/NewPanel.prefab.meta'));

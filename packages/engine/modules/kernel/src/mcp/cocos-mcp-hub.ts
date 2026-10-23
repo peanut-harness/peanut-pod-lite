@@ -39,6 +39,8 @@ import {
 import { ensureAbortControllerPolyfill } from './abort-controller-polyfill.js';
 import { CocosMcpInputReader } from './cocos-mcp-input-reader.js';
 import { McpControlFlowRefusal } from './mcp-control-flow-refusal.js';
+import { McpScopedCapabilityAttachments } from './mcp-scoped-capability-attachments.js';
+import { McpHubSettingsFile, type IMcpHubSettingsRecord } from './mcp-hub-settings-file.js';
 
 ensureAbortControllerPolyfill();
 
@@ -70,25 +72,6 @@ export interface ICocosMcpHubOptions {
      * 不自动免审；仅镜像租约。返回 Lite token（通常与 Hub token 相同）。
      */
     readonly mirrorLocalApprovalLease?: IMcpApprovalLeaseMirror;
-}
-
-interface IMcpHubSettingsRecord {
-    /** @description 是否为当前项目启用 MCP Hub。 */
-    readonly isEnabled: boolean;
-    /**
-     * @description 本项目偏好的 loopback 端口；仅项目内粘滞，不得跨项目复用。
-     */
-    readonly preferredPort: number | null;
-    /**
-     * @description 保持插件运行但不公开其 MCP capability 的插件标识。
-     */
-    readonly disabledPluginIds: readonly string[];
-    /** @description 已明确授权公开写 capability 的插件标识。 */
-    readonly writeEnabledPluginIds: readonly string[];
-    /**
-     * @description 测试用：为 true 时写 capability 可经 `call` 直接执行，跳过 plan 审批。
-     */
-    readonly directWriteEnabled: boolean;
 }
 
 interface IMcpPlanRecord {
@@ -160,7 +143,7 @@ export class CocosMcpHub implements IMcpHubControl {
     /** @description 项目内非提交状态文件。 */
     private readonly _descriptorPath: string;
     /** @description 项目内持久化的面板开关设置。 */
-    private readonly _settingsPath: string;
+    private readonly _settingsFile: McpHubSettingsFile;
     /** @description 当前待确认写操作。 */
     private readonly _plans = new Map<string, IMcpPlanRecord>();
     /** @description 当前编辑器会话内的最近调用审计记录。 */
@@ -185,6 +168,10 @@ export class CocosMcpHub implements IMcpHubControl {
     private _directWriteEnabled: boolean;
     /** @description 显式批次、审批租约与 batch writer 生命周期协调器。 */
     private readonly _batchCoordinator: McpBatchCoordinator;
+    /**
+     * @description 保持整体只读档位的项目精确能力授权。
+     */
+    private readonly _scopedAttachments: McpScopedCapabilityAttachments;
     /** @description 当前在飞的写 capability 数量。 */
     private _writeInFlight = 0;
     /** @description 等待写槽位的回调队列。 */
@@ -214,7 +201,10 @@ export class CocosMcpHub implements IMcpHubControl {
         this._pluginManagerProvider = pluginManagerProvider;
         this._options = options;
         this._descriptorPath = join(resolve(options.projectPath), '.peanut-ai', 'cocos-mcp.json');
-        this._settingsPath = join(resolve(options.projectPath), '.peanut-ai', 'cocos-mcp-settings.json');
+        this._settingsFile = new McpHubSettingsFile(resolve(options.projectPath));
+        const repairMessage = options.repairMessage;
+        this._scopedAttachments = new McpScopedCapabilityAttachments(resolve(options.projectPath), repairMessage == null
+            ? null : (uuid) => repairMessage.request('asset-db', 'query-asset-info', uuid));
         const settings = this._readSettings();
         this._isEnabled = settings.isEnabled;
         this._preferredPort = settings.preferredPort;
@@ -228,6 +218,7 @@ export class CocosMcpHub implements IMcpHubControl {
             metrics: this._throughputAdmission.getMetricsRecorder(),
         });
         this._batchCoordinator = new McpBatchCoordinator({
+            isScopedCapability: (name) => this._pluginManagerProvider()?.getMcpCapabilityRegistry().hasScopedAttachment(name) === true,
             projectPath: options.projectPath,
             pluginManagerProvider,
             inputReader: this._inputReader,
@@ -457,6 +448,7 @@ export class CocosMcpHub implements IMcpHubControl {
      */
     public applyPluginExposureSettings(pluginManager: PluginManagerApp): void {
         const registry = pluginManager.getMcpCapabilityRegistry();
+        registry.bindScopedAttachments(this._scopedAttachments);
         for (const pluginId of this._disabledPluginIds) {
             registry.setPluginExposure(pluginId, 'disabled');
         }
@@ -532,6 +524,10 @@ export class CocosMcpHub implements IMcpHubControl {
 
     /** @description 分发受限 bridge 动作。 */
     private async _dispatch(payload: Record<string, unknown>, invocation: IMcpHubInvocationOptions = {}): Promise<unknown> {
+        if (['attachCapabilities', 'detachCapabilities', 'queryCapabilityAttachments'].includes(String(payload.action))) {
+            const registry = this._requirePluginManager().getMcpCapabilityRegistry(); registry.bindScopedAttachments(this._scopedAttachments);
+            return this._scopedAttachments.dispatch(payload, registry);
+        }
         const action = payload.action;
         if (action === 'health') {
             return { sessionId: this._sessionId, revision: this._getCatalog().revision };
@@ -635,7 +631,7 @@ export class CocosMcpHub implements IMcpHubControl {
         }
         if (action === 'execute') {
             return this._withInvocation(connectionId, invocationId, invocation, async (activeInvocation): Promise<unknown> =>
-                this._executePlan(this._inputReader.readPlanId(payload.planId), connectionId, activeInvocation),
+                this._executePlan(this._inputReader.readPlanId(payload.planId), connectionId, activeInvocation, payload.approvalToken),
             );
         }
         if (action === 'issueApprovalToken') {
@@ -715,6 +711,7 @@ export class CocosMcpHub implements IMcpHubControl {
         if (definition == null) {
             throw new Error(`mcp_capability_unavailable:${name}`);
         }
+        await registry.validateInvocationInput(name, input);
         const risk = this._inputReader.resolveCallRisk(definition, input);
         const resourceIds = this._inputReader.readOptionalResources(input);
         const admissionLease = await this._throughputAdmission.acquire({
@@ -725,7 +722,7 @@ export class CocosMcpHub implements IMcpHubControl {
         });
         try {
             let hasLocalApproval = false;
-            if (!definition.readOnly && !this._directWriteEnabled) {
+            if (!definition.readOnly && (!this._directWriteEnabled || registry.hasScopedAttachment(name))) {
                 const approvalToken = this._inputReader.readOptionalApprovalToken(input);
                 if (
                     approvalToken == null ||
@@ -734,6 +731,7 @@ export class CocosMcpHub implements IMcpHubControl {
                         operation: name,
                         resources: resourceIds,
                         risk,
+                        requireOneTime: registry.hasScopedAttachment(name),
                     })
                 ) {
                     return this._createPlan(name, input, connectionId);
@@ -798,7 +796,7 @@ export class CocosMcpHub implements IMcpHubControl {
     }
 
     /** @description 执行已经由编辑器 UI 批准的一次性计划。 */
-    private async _executePlan(planId: string, connectionId: string, invocation: IMcpHubInvocationOptions): Promise<unknown> {
+    private async _executePlan(planId: string, connectionId: string, invocation: IMcpHubInvocationOptions, approvalToken?: unknown): Promise<unknown> {
         this._removeExpiredPlans();
         const plan = this._plans.get(planId);
         if (plan == null || plan.connectionId !== connectionId) {
@@ -815,6 +813,15 @@ export class CocosMcpHub implements IMcpHubControl {
         if (definition == null) {
             throw new Error(`mcp_capability_unavailable:${plan.name}`);
         }
+        const registry = this._requirePluginManager().getMcpCapabilityRegistry();
+        const input = registry.hasScopedAttachment(plan.name) ? this._scopedAttachments.planInput(plan.input, approvalToken) : plan.input;
+        if (registry.hasScopedAttachment(plan.name) && definition.risk === 'destructive' && !this._inputReader.readConfirmDestructive(input))
+            McpControlFlowRefusal.reject('cocos_mcp_destructive_confirmation_required');
+        await registry.validateInvocationInput(plan.name, input);
+        if (registry.hasScopedAttachment(plan.name) && !this._batchCoordinator.tryConsumeApproval(
+            this._inputReader.readOptionalApprovalToken(input) ?? '', { connectionId, operation: plan.name,
+                resources: this._inputReader.readOptionalResources(input), risk: this._inputReader.resolveCallRisk(definition, input), requireOneTime: true }))
+            McpControlFlowRefusal.reject('cocos_mcp_scoped_approval_required');
         const admissionLease = await this._throughputAdmission.acquire({
             connectionId,
             projectKey: resolve(this._options.projectPath),
@@ -826,12 +833,12 @@ export class CocosMcpHub implements IMcpHubControl {
             const result = await this._invokeWithPostflight(
                 definition,
                 plan.name,
-                plan.input,
+                input,
                 connectionId,
                 invocation,
-                this._inputReader.resolveCallRisk(definition, plan.input),
+                this._inputReader.resolveCallRisk(definition, input),
                 {
-                    resourceIds: this._inputReader.readOptionalResources(plan.input),
+                    resourceIds: this._inputReader.readOptionalResources(input),
                     hasLocalApproval: true,
                 },
             );
@@ -983,7 +990,7 @@ export class CocosMcpHub implements IMcpHubControl {
             const checkpoint = monitor.checkpoint(projectRoot);
             const result = await invoke();
             let postflight = monitor.readDelta(checkpoint);
-            if (postflight.verified === false && risk !== 'destructive') {
+            if (postflight.verified === false && risk !== 'destructive' && !registry.hasScopedAttachment(name)) {
                 const repairer = new ProjectLogPostflightRepairer(this._options.repairMessage ?? null);
                 postflight = await repairer.repairOnceIfNeeded(projectRoot, postflight);
             }
@@ -1118,7 +1125,8 @@ export class CocosMcpHub implements IMcpHubControl {
 
     /** @description 返回当前已激活插件的 capability 目录。 */
     private _getCatalog(): IMcpCapabilityCatalog {
-        return this._requirePluginManager().getMcpCapabilityRegistry().getCatalog();
+        const registry = this._requirePluginManager().getMcpCapabilityRegistry(); registry.bindScopedAttachments(this._scopedAttachments);
+        return registry.getCatalog();
     }
 
     /** @description 从请求体读取并收窄 JSON 对象。 */
@@ -1164,82 +1172,13 @@ export class CocosMcpHub implements IMcpHubControl {
     }
 
     /** @description 读取项目内持久化的 Hub 与插件 capability 公开设置；缺失或损坏时使用安全默认值。 */
-    private _readSettings(): IMcpHubSettingsRecord {
-        const defaults: IMcpHubSettingsRecord = {
-            isEnabled: true,
-            preferredPort: null,
-            disabledPluginIds: [],
-            writeEnabledPluginIds: [],
-            directWriteEnabled: false,
-        };
-        if (!existsSync(this._settingsPath) || !lstatSync(this._settingsPath).isFile() || lstatSync(this._settingsPath).isSymbolicLink()) {
-            return defaults;
-        }
-        try {
-            const value: unknown = JSON.parse(readFileSync(this._settingsPath, 'utf8'));
-            if (
-                typeof value === 'object' &&
-                value != null &&
-                !Array.isArray(value) &&
-                typeof (value as Record<string, unknown>).isEnabled === 'boolean'
-            ) {
-                const record = value as Record<string, unknown>;
-                const isEnabled = record.isEnabled;
-                return {
-                    isEnabled: isEnabled as boolean,
-                    preferredPort: this._readOptionalPreferredPort(record.preferredPort),
-                    disabledPluginIds: Array.isArray(record.disabledPluginIds)
-                        ? record.disabledPluginIds.filter(
-                              (pluginId): pluginId is string => typeof pluginId === 'string' && this._isPluginId(pluginId),
-                          )
-                        : [],
-                    writeEnabledPluginIds: Array.isArray(record.writeEnabledPluginIds)
-                        ? record.writeEnabledPluginIds.filter(
-                              (pluginId): pluginId is string => typeof pluginId === 'string' && this._isPluginId(pluginId),
-                          )
-                        : [],
-                    directWriteEnabled: record.directWriteEnabled === true,
-                };
-            }
-        } catch {
-            return defaults;
-        }
-        return defaults;
-    }
+    private _readSettings(): IMcpHubSettingsRecord { return this._settingsFile.read(); }
 
     /** @description 使用原子替换保存项目 Hub 与插件 capability 公开设置。 */
     private _writeSettings(): void {
-        const projectPath = resolve(this._options.projectPath);
-        if (!existsSync(projectPath) || !lstatSync(projectPath).isDirectory() || lstatSync(projectPath).isSymbolicLink()) {
-            throw new Error('cocos_mcp_project_path_invalid');
-        }
-        const stateDirectory = join(projectPath, '.peanut-ai');
-        if (existsSync(stateDirectory) && (!lstatSync(stateDirectory).isDirectory() || lstatSync(stateDirectory).isSymbolicLink())) {
-            throw new Error('cocos_mcp_state_directory_invalid');
-        }
-        mkdirSync(stateDirectory, { recursive: true });
-        if (existsSync(this._settingsPath) && (!lstatSync(this._settingsPath).isFile() || lstatSync(this._settingsPath).isSymbolicLink())) {
-            throw new Error('cocos_mcp_settings_invalid');
-        }
-        const temporaryPath = `${this._settingsPath}.${this._sessionId}.tmp`;
-        writeFileSync(
-            temporaryPath,
-            JSON.stringify(
-                {
-                    isEnabled: this._isEnabled,
-                    preferredPort: this._preferredPort,
-                    disabledPluginIds: [...this._disabledPluginIds].sort((left, right) => left.localeCompare(right)),
-                    writeEnabledPluginIds: [...this._writeEnabledPluginIds]
-                        .filter((pluginId) => !this._disabledPluginIds.has(pluginId))
-                        .sort((left, right) => left.localeCompare(right)),
-                    directWriteEnabled: this._directWriteEnabled,
-                },
-                null,
-                2,
-            ),
-            'utf8',
-        );
-        renameSync(temporaryPath, this._settingsPath);
+        this._settingsFile.write({ isEnabled: this._isEnabled, preferredPort: this._preferredPort,
+            disabledPluginIds: [...this._disabledPluginIds], writeEnabledPluginIds: [...this._writeEnabledPluginIds],
+            directWriteEnabled: this._directWriteEnabled }, this._sessionId);
     }
 
     /**

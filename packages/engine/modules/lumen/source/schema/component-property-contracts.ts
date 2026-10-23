@@ -106,6 +106,16 @@ export interface ILumenPropertyFieldSpec {
     readonly nativeBooleanEnum?: true;
 
     /**
+     * @description 已验证原生角度以度公开、以弧度持久化；只由内部版本适配器提供。
+     */
+    readonly nativeAngleDegrees?: true;
+
+    /**
+     * @description formerlySerializedAs使用不同JSON名时的原生成员名，仅供源码审计后的只读探针。
+     */
+    readonly nativeReadName?: string;
+
+    /**
      * @description `componentRef` 时目标组件类型（如 `cc.Sprite`）。
      */
     readonly refComponentType?: string;

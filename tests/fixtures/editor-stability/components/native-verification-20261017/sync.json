@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "peanut.org-rag.sync.v1",
+  "corpusId": "peanut-org",
+  "repos": {
+    "peanut-pod-lite": {
+      "treeSha": "4ddbe9be34b65a6065c15022f130d2ba65b4a2b27c7f8fb4941720814d9ba3ef",
+      "cardSha": "84e10ddb038a9926e0100eb4f646ad2281249eabd7603a962d76b1a7b561e3c0",
+      "fileCount": 15,
+      "attestReason": "本地原生字段验证总结；仅跳过不匹配知识 globs 的 evidence，保留所有原始诊断；5.1 未完成",
+      "updatedAt": "2026-10-16T16:22:02.977Z"
+    }
+  }
+}

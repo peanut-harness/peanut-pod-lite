@@ -662,6 +662,7 @@ const elements = {
     mcpCategoryFilters: getPanelElementById('mcpCategoryFilters'),
     mcpCapabilityList: getPanelElementById('mcpCapabilityList'),
     mcpDetailTitle: getPanelElementById('mcpDetailTitle'),
+    mcpDetailSignature: getPanelElementById('mcpDetailSignature'),
     mcpDetailDescription: getPanelElementById('mcpDetailDescription'),
     mcpSchemaFields: getPanelElementById('mcpSchemaFields'),
     mcpSchemaJson: getPanelElementById('mcpSchemaJson'),
@@ -756,6 +757,7 @@ const uiState = {
     mcpSearch: '',
     mcpCategory: 'all',
     selectedMcpCapabilityName: null,
+    mcpDetailTab: 'parameters',
     settingsReturnTab: 'packages',
 };
 
@@ -782,6 +784,54 @@ function setActiveWorkbenchTab(tabId) {
         tabView.classList.toggle('is-active', isActive);
         tabView.hidden = !isActive;
     });
+}
+
+/**
+ * @description 同步 MCP 能力详情页签与对应内容面板。
+ * @param {string} tabId 请求选择的 MCP 详情页签
+ * @param {boolean} focus 是否将键盘焦点移动到选中页签
+ * @returns {void}
+ */
+function setActiveMcpDetailTab(tabId, focus = false) {
+    const root = getPanelDomRoot();
+    const tabs = [...root.querySelectorAll('[data-mcp-detail-tab]')].filter((tab) => !tab.hidden);
+    const target = tabs.find((tab) => tab.getAttribute('data-mcp-detail-tab') === tabId) ?? tabs[0];
+    const activeId = target?.getAttribute('data-mcp-detail-tab') ?? 'parameters';
+    uiState.mcpDetailTab = activeId;
+    tabs.forEach((tab) => {
+        const active = tab === target;
+        tab.classList.toggle('is-active', active);
+        tab.setAttribute('aria-selected', String(active));
+        tab.tabIndex = active ? 0 : -1;
+    });
+    root.querySelectorAll('[data-mcp-detail-view]').forEach((view) => {
+        view.hidden = view.getAttribute('data-mcp-detail-view') !== activeId;
+    });
+    if (focus) target?.focus();
+}
+
+/**
+ * @description 绑定 MCP 详情页签的点击和键盘方向导航。
+ * @returns {void}
+ */
+function bindMcpDetailTabs() {
+    const tabs = [...getPanelDomRoot().querySelectorAll('[data-mcp-detail-tab]')];
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => setActiveMcpDetailTab(tab.getAttribute('data-mcp-detail-tab')));
+        tab.addEventListener('keydown', (event) => {
+            const visibleTabs = tabs.filter((candidate) => !candidate.hidden);
+            const index = visibleTabs.indexOf(tab);
+            let nextIndex;
+            if (event.key === 'ArrowRight') nextIndex = (index + 1) % visibleTabs.length;
+            else if (event.key === 'ArrowLeft') nextIndex = (index - 1 + visibleTabs.length) % visibleTabs.length;
+            else if (event.key === 'Home') nextIndex = 0;
+            else if (event.key === 'End') nextIndex = visibleTabs.length - 1;
+            else return;
+            event.preventDefault();
+            setActiveMcpDetailTab(visibleTabs[nextIndex].getAttribute('data-mcp-detail-tab'), true);
+        });
+    });
+    setActiveMcpDetailTab(uiState.mcpDetailTab);
 }
 
 /**
@@ -977,6 +1027,7 @@ function bindActions(panelDriver) {
     elements.mcpTabButton?.addEventListener('click', () => {
         setActiveWorkbenchTab('mcp');
     });
+    bindMcpDetailTabs();
     elements.aboutTabButton?.addEventListener('click', () => {
         setActiveWorkbenchTab('about');
     });
@@ -1014,6 +1065,9 @@ function bindActions(panelDriver) {
         }
         uiState.selectedMcpCapabilityName = capabilityName;
         renderMcpHub(latestRenderedState);
+        requestAnimationFrame(() => {
+            elements.mcpCapabilityList.querySelector('.mcp-capability-card.is-selected')?.scrollIntoView({ block: 'nearest' });
+        });
     });
     elements.mcpPlanList?.addEventListener('click', (event) => {
         if (!(event.target instanceof Element)) {
@@ -2480,8 +2534,11 @@ function renderMcpHub(state) {
     elements.mcpSummary.innerHTML = `<div><dt>端口</dt><dd>${escapeHtml(String(mcpHub.port ?? '—'))}</dd></div><div><dt>能力目录版本</dt><dd>${escapeHtml(String(mcpHub.catalogRevision ?? 0))}</dd></div><div><dt>工作流</dt><dd>${escapeHtml(String(workflowCount))}</dd></div><div><dt>最近调用</dt><dd>${escapeHtml(String((mcpHub.recentCalls ?? []).length))}</dd></div>`;
     elements.mcpCapabilityList.innerHTML = capabilities.length === 0
         ? buildEmptyState('当前分类没有匹配的 MCP capability。')
-        : capabilities.map((capability) => `<article class="mcp-capability-card${capability.name === selectedCapability?.name ? ' is-selected' : ''}" data-mcp-capability-name="${escapeHtml(capability.name)}"><div class="mcp-card-head"><code class="mcp-capability-name">${escapeHtml(capability.name)}</code><span class="pill ${capability.readOnly ? 'pill-success' : 'pill-danger'}">${escapeHtml(capability.readOnly ? '只读' : '写入')}</span></div><p class="mcp-card-copy">${escapeHtml(localizeDescription(state, capability.description))}</p></article>`).join('');
-    elements.mcpDetailTitle.textContent = selectedCapability?.name ?? '选择一项能力';
+        : capabilities.map((capability) => `<article class="mcp-capability-card${capability.name === selectedCapability?.name ? ' is-selected' : ''}" data-mcp-capability-name="${escapeHtml(capability.name)}"><div class="mcp-card-head"><code class="mcp-capability-name" title="${escapeHtml(capability.name)}">${escapeHtml(formatMcpCapabilityTitle(capability.name)).replaceAll('.', '.<wbr>')}</code><span class="pill ${capability.readOnly ? 'pill-success' : 'pill-danger'}">${escapeHtml(capability.readOnly ? '只读' : '写入')}</span></div></article>`).join('');
+    elements.mcpDetailTitle.textContent = formatMcpCapabilityTitle(selectedCapability?.name);
+    const signatureProperties = Object.entries(selectedCapability?.inputSchema?.properties ?? {})
+        .map(([name, schema]) => `${name}: ${schema.type ?? 'unknown'}`);
+    elements.mcpDetailSignature.textContent = `${formatMcpCapabilityTitle(selectedCapability?.name)}(${signatureProperties.join(', ')})`;
     elements.mcpDetailDescription.textContent = localizeDescription(state, selectedCapability?.description) || t(state, 'mcp.selectCapability');
     const schemaProperties = selectedCapability?.inputSchema?.properties ?? {};
     const requiredProperties = new Set(selectedCapability?.inputSchema?.required ?? []);
@@ -2503,6 +2560,20 @@ function renderMcpHub(state) {
     elements.mcpRecentCallList.innerHTML = (mcpHub.recentCalls ?? []).length === 0
         ? buildEmptyState('当前编辑器会话内还没有 MCP 调用。')
         : mcpHub.recentCalls.map((call) => `<article class="mcp-call-card"><div class="mcp-card-head"><code class="mcp-capability-name">${escapeHtml(call.name)}</code><span class="pill ${call.status === 'succeeded' ? 'pill-success' : (call.status === 'failed' ? 'pill-danger' : 'pill-neutral')}">${escapeHtml(recentCallStatusLabels[call.status] ?? call.status)}</span></div><p class="mcp-call-meta">${escapeHtml(call.category)} · ${escapeHtml(call.risk)} · ${escapeHtml(new Date(call.requestedAt).toLocaleTimeString())}${call.durationMs == null ? '' : ` · ${escapeHtml(String(call.durationMs))} ms`}</p>${call.errorCode == null ? '' : `<p class="mcp-call-error">${escapeHtml(call.errorCode)}</p>`}</article>`).join('');
+    setActiveMcpDetailTab(uiState.mcpDetailTab);
+}
+
+/**
+ * @description 将 MCP 工具标识压缩为标题中的点分名称。
+ * @param {string | null | undefined} capabilityName 完整 MCP 工具名
+ * @returns {string} 用于阅读的能力标题
+ */
+function formatMcpCapabilityTitle(capabilityName) {
+    if (typeof capabilityName !== 'string' || capabilityName.length === 0) {
+        return '选择一项能力';
+    }
+    const suffix = capabilityName.replace(/^peanut\.editor-mcp\./, '');
+    return suffix.split('-').join('.');
 }
 
 function filterPackageCatalog(packageCatalog) {

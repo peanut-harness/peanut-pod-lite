@@ -142,6 +142,19 @@ export function extractWriteResources(
     input: Readonly<Record<string, unknown>>,
 ): readonly string[] {
     const collected: string[] = [];
+    // 组件节点路径是场景内选择器；授权对象是承载组件的场景或Prefab文件。
+    if (['lumen.compAdd', 'lumen.compRm', 'lumen.compSet'].includes(operation)) {
+        collectRaw(input.prefabRelativePath, collected);
+        collectRaw(input.scriptRelativePath, collected);
+        if (typeof input.scriptName === 'string' && /^(?:db:\/\/)?assets\//u.test(input.scriptName)) {
+            collectRaw(input.scriptName, collected);
+        }
+        return normalizeResourceKeys(collected);
+    }
+    // 明确禁用资产刷新时只需调用方声明的资源；默认刷新仍保持原preview授权。
+    if (operation === 'preview.refresh' && input.refreshAssets === false) {
+        return Object.freeze([]);
+    }
     const assetKeys = ASSET_OP_KEYS[operation];
     if (assetKeys != null) {
         for (const key of assetKeys) {

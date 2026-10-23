@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "status": "viewport-native-acceptance-passed",
+  "checks": {
+    "versions": ["3.8.3", "3.8.7"],
+    "queryState": "camera, mode and grid read from the live Creator process",
+    "setState": "mode and grid changed independently, native readback verified, then restored to baseline",
+    "focusNodes": "single and multiple exact scene paths resolved from Creator query-node-tree and camera readback verified",
+    "selection": "unchanged across focus calls",
+    "assets": "scene and metadata SHA-256 unchanged across state and focus calls",
+    "postflight": "all managed viewport mutations succeeded with zero new Creator errors or warnings",
+    "logs": "diagnostics.queryLogs tail, literal search, context, delta and arbitrary path refusal passed on both versions"
+  },
+  "creatorVersions": {
+    "3.8.3": {
+      "project": "evidence/log-diagnostics-20261022/qa-383",
+      "modeGrid": { "changed": "verified", "restored": "verified", "postflightErrors": 0, "postflightWarnings": 0 },
+      "focus": { "single": "verified", "multiple": "verified", "cameraReadbackChanged": true, "selectionStable": true },
+      "assetDigests": {
+        "scene": "6539252b00f51a305d3b0d20316388ea75d3f9aa2d3039d7fbc259ffeb2022dd",
+        "meta": "70d5a2c6a5e2dc0a30708ec883dd4450ef9807fcb60d963317ee3dcf0104f919",
+        "unchanged": true
+      },
+      "liveLogs": "evidence/log-diagnostics-20261022/live-383.json"
+    },
+    "3.8.7": {
+      "project": "evidence/log-diagnostics-20261022/qa-387",
+      "modeGrid": { "changed": "verified", "restored": "verified", "postflightErrors": 0, "postflightWarnings": 0 },
+      "focus": { "single": "verified", "multiple": "verified", "cameraReadbackChanged": true, "selectionStable": true },
+      "assetDigests": {
+        "scene": "83577dd24b8e66cb3fc0207f0f53eb96b5a1238204dc5ecfc06f66d600680296",
+        "meta": "446a8b6c70c9d2fd861a88fa5d516b3bf084e8245c421ab45b3390e7450946b7",
+        "unchanged": true
+      },
+      "liveLogs": "evidence/log-diagnostics-20261022/live-387.json"
+    }
+  }
+}

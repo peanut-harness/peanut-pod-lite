@@ -43,7 +43,7 @@ import { PluginRegistry } from '../registry/plugin-registry.js';
 import { DefaultPluginLogger } from '../shared/default-plugin-logger.js';
 import { PluginEventBus } from '../shared/plugin-event-bus.js';
 import { PluginFileStorage, UnavailablePluginFileStorage } from '../shared/plugin-file-storage.js';
-import type { IDesignSourceCapabilityDescriptor, IPluginActivateContext, IPluginModule, IPluginRegistrationInput, IPluginRegisterContext, IPluginTaskApi } from '../shared/plugin-manager-contracts.js';
+import type { IDesignSourceCapabilityDescriptor, IHostResourceFieldProducer, IPluginActivateContext, IPluginModule, IPluginRegistrationInput, IPluginRegisterContext, IPluginTaskApi } from '../shared/plugin-manager-contracts.js';
 import type { IPluginUpgradeDiagnostics } from '../shared/plugin-upgrade-diagnostics.js';
 import { PluginUpgradeDiagnosticsTracker, type IMutablePluginUpgradeDiagnostics } from '../shared/plugin-upgrade-diagnostics-tracker.js';
 import { PluginStorage } from '../shared/plugin-storage.js';
@@ -269,12 +269,13 @@ export class PluginManagerApp {
     }
 
     /** @description 为宿主直接加载但仍由 Kernel 控制的 MCP 插件创建任务 API。 */
-    public createHostTaskApi(pluginId: string, projectKey: string = this._taskProjectKey ?? `plugin:${pluginId}`): IPluginTaskApi {
+    public createHostTaskApi(pluginId: string, projectKey: string = this._taskProjectKey ?? `plugin:${pluginId}`,
+        resourceFieldProducer: IHostResourceFieldProducer | null = null): IPluginTaskApi {
         if (this._pluginTaskApis.has(pluginId)) {
             throw new Error(`plugin_task_api_already_active:${pluginId}`);
         }
         const taskApi = new PluginTaskApi(pluginId, this._runtime, projectKey,
-            (invocation) => this._mcpCapabilityRegistry.resolveInvocationOwner(pluginId, invocation),
+            (invocation) => this._mcpCapabilityRegistry.resolveInvocationOwner(pluginId, invocation), resourceFieldProducer,
         );
         this._pluginTaskApis.set(pluginId, taskApi);
         return taskApi;

@@ -21,6 +21,7 @@
     ],
     "ui2dTypes": [
         "cc.UITransform",
+        "cc.UIMeshRenderer",
         "cc.Canvas",
         "cc.Widget",
         "cc.Button",

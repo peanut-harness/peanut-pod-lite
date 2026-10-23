@@ -42,7 +42,7 @@ function createContext(
     };
 }
 
-test('Creator operation matrix covers all 84 operations across all four profiles', (): void => {
+test('Creator operation matrix covers all 88 operations across all four profiles', (): void => {
     const contexts = [
         createContext('creator-24', '2.4.11', 'experimental', false),
         createContext('creator-30-35', '3.5.2', 'experimental', false),
@@ -52,8 +52,8 @@ test('Creator operation matrix covers all 84 operations across all four profiles
 
     for (const context of contexts) {
         const matrix = CreatorOperationAvailabilityMatrix.list(context);
-        assert.equal(matrix.length, 84);
-        assert.equal(new Set(matrix.map((entry) => entry.operation)).size, 84);
+        assert.equal(matrix.length, 88);
+        assert.equal(new Set(matrix.map((entry) => entry.operation)).size, 88);
     }
 });
 
@@ -68,9 +68,9 @@ test('Creator operation matrix keeps writes fail-closed outside verified 3.8.7',
         createContext('creator-38', '3.8.7', 'full', true),
     );
 
-    assert.equal(creator24.filter((entry) => entry.availability === 'available').length, 39);
+    assert.equal(creator24.filter((entry) => entry.availability === 'available').length, 40);
     assert.equal(creator24.filter((entry) => entry.availability === 'read_only').length, 45);
     assert.equal(unsupported.every((entry) => entry.availability === 'refused'), true);
-    assert.equal(verified.filter((entry) => entry.availability === 'available').length, 39);
-    assert.equal(verified.filter((entry) => entry.availability === 'write').length, 45);
+    assert.equal(verified.filter((entry) => entry.availability === 'available').length, 41);
+    assert.equal(verified.filter((entry) => entry.availability === 'write').length, 47);
 });

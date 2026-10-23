@@ -1497,7 +1497,7 @@ test('cocos-info reports field-level inEngineNotInWhitelistFields from engine Ty
 test('schema covers spine / motion streak / polygon and encodes vec2List', (): void => {
     const root = createProject('lumen-broad-');
     try {
-        const session = new LumenSession({ projectRoot: root });
+        const session = new LumenSession({ projectRoot: root, cocosVersion: '3.8.7' });
         const components = session.describeSchema().components;
         assert.ok(components != null);
         for (const type of [
