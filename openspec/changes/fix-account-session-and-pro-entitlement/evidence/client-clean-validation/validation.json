@@ -1,0 +1,22 @@
+{
+  "sourceCommit": "e8915cbee2dcd380b438f8cb47b0dc8a235ad39a",
+  "pack": {
+    "command": "npm run pack",
+    "exitCode": 0,
+    "cleanTree": true
+  },
+  "verify": {
+    "command": "npm run verify",
+    "exitCode": 0,
+    "cleanTree": true
+  },
+  "targeted": "13/13",
+  "strict": "passed",
+  "diffCheck": "passed",
+  "scopedRag": "ok scope=peanut-pod-lite chunks=542; shared-main attestation by integration owner, not feature integration",
+  "nativeCreatorPanel": "pending-locked",
+  "serverMigration": "not-implemented-yet",
+  "fullInteractiveLogin": "follow-up",
+  "remoteStatus": "local-checkpoint-only",
+  "githubActions": "not-checked"
+}

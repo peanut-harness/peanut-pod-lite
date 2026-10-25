@@ -20,3 +20,9 @@ Creator 3.8.3/3.8.7 面板仍待解锁后操作，完整交互式登录按用户
 原始通过、失败与限制见 [客户端检查点证据](../openspec/changes/fix-account-session-and-pro-entitlement/evidence/client-checkpoint/validation.json)。没有使用真实账号、付款、生产部署、发布或触发/核验 GitHub Actions。
 
 Scoped RAG 已在总管处理共享知识同步后回读通过：`ok scope=peanut-pod-lite chunks=542`。上述 stale 记录保留为历史失败，不改写成首次通过。当前可形成待正式 pack/verify 的本地代码检查点；实机任务继续未完成。
+
+## 干净工作树最终后台验证
+
+本地代码检查点 `e8915cbee2dcd380b438f8cb47b0dc8a235ad39a` 后，正式 `npm run pack` 与完整 `npm run verify` 均退出 0。缺失描述文件前置已解决，原失败日志保留。Host package digest 为 `2609b0234273bfb7cb136dbf5f38b3b2af1ac0a895bdf9e7d992fb3f3815c93c`；Core 为 `f6eeba550bf4c9ba36e4ed9eab33bd9622c84c739a5d466c40e7bedd398c1d79`，完整描述文件及两条原始命令日志见 [最终后台证据](../openspec/changes/fix-account-session-and-pro-entitlement/evidence/client-clean-validation/validation.json)。
+
+3.1 后台验证已完成；3.2 两版实际面板仍未完成。知识同步回读通过仅对应总管注明的共享主线事实 attestation，不代表本分支已集成或已到远端。当前为 coordinated 本地检查点，未推送或合并本轮账户改动；集成后正式发布包身份仍须绑定实际交付提交。

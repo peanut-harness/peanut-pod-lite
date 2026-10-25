@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "productId": "peanut.pod-lite",
+  "version": "0.2.0",
+  "sourceCommit": "e8915cbee2dcd380b438f8cb47b0dc8a235ad39a",
+  "creatorProfiles": [
+    {
+      "version": "3.8.3",
+      "operationCount": 88,
+      "readOperationCount": 41,
+      "writeOperationCount": 47
+    },
+    {
+      "version": "3.8.7",
+      "operationCount": 88,
+      "readOperationCount": 41,
+      "writeOperationCount": 47
+    }
+  ],
+  "host": {
+    "kind": "host",
+    "archive": "peanut-pod-lite-host-0.2.0.tar.gz",
+    "sha256": "15d6c1babff4ea17e1f3c92f55c73a89a8efcb54a9ff87c0a631f7234bd7d2b4",
+    "packageDigest": "2609b0234273bfb7cb136dbf5f38b3b2af1ac0a895bdf9e7d992fb3f3815c93c"
+  },
+  "core": {
+    "kind": "core",
+    "archive": "peanut-pod-lite-core-0.2.0.tar.gz",
+    "sha256": "4c575cc24b7338bb84bee22555ab457d5f7920684568e875c61277a52d71e248",
+    "packageDigest": "f6eeba550bf4c9ba36e4ed9eab33bd9622c84c739a5d466c40e7bedd398c1d79"
+  }
+}
