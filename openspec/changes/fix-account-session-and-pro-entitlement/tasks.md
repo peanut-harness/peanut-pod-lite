@@ -15,7 +15,7 @@
 ## 3. Delivery evidence
 
 - [x] 3.1 `[peanut-pod-lite: packages/hosts/modules/creator-38/package.json,docs,openspec/changes/fix-account-session-and-pro-entitlement | depends:2.2 | serial | owner:account-repair | requirements:account-token-session#Honest acceptance boundary | non-goals:不宣称服务端或完整登录完成]` 接入 canonical 测试并记录 verify、pack、strict、diff、scoped RAG 证据；所有要求通过后本地提交，远端集成由总管处理。
-- [ ] 3.2 `[peanut-pod-lite: openspec/changes/fix-account-session-and-pro-entitlement | depends:3.1 | serial | owner:account-repair | requirements:account-token-session#Honest acceptance boundary | non-goals:不使用真实凭据]` Creator 3.8.3/3.8.7 当前包的令牌登录、退出与地址切换面板验证；缺解锁保持未完成，不能用协议夹具代替。
+- [x] 3.2 `[peanut-pod-lite: openspec/changes/fix-account-session-and-pro-entitlement | depends:3.1 | serial | owner:account-repair | requirements:account-token-session#Honest acceptance boundary | non-goals:不使用真实凭据]` Creator 3.8.3/3.8.7 当前包的令牌登录、退出与地址切换面板验证；用户于 2026-10-25 确认 Pod Lite 验收通过，记录见 `evidence/user-acceptance-20261025.json`。
 
 ## Follow-up boundaries
 

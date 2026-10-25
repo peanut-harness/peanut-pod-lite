@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-25",
+  "kind": "human-acceptance-confirmation",
+  "scope": "Pod Lite account-token session delivery, including the Creator panel acceptance item tracked as task 3.2.",
+  "confirmation": "The user directly confirmed: “Pod Lite 也已通过，按完成清理”.",
+  "evidenceBoundary": "This records the user’s acceptance confirmation. No new automated UI run, screenshot, or device log was produced by the workspace manager in this cleanup turn.",
+  "codeValidation": "The committed source checkpoint e8915cbee2dcd380b438f8cb47b0dc8a235ad39a has previously recorded targeted 13/13, strict OpenSpec, diff check, clean-tree npm run pack, and clean-tree npm run verify passing.",
+  "remainingProductScope": "Full interactive login and peanut-server account migration remain separate tasks; this acceptance does not claim those are complete."
+}

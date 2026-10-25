@@ -26,3 +26,7 @@ Scoped RAG 已在总管处理共享知识同步后回读通过：`ok scope=peanu
 本地代码检查点 `e8915cbee2dcd380b438f8cb47b0dc8a235ad39a` 后，正式 `npm run pack` 与完整 `npm run verify` 均退出 0。缺失描述文件前置已解决，原失败日志保留。Host package digest 为 `2609b0234273bfb7cb136dbf5f38b3b2af1ac0a895bdf9e7d992fb3f3815c93c`；Core 为 `f6eeba550bf4c9ba36e4ed9eab33bd9622c84c739a5d466c40e7bedd398c1d79`，完整描述文件及两条原始命令日志见 [最终后台证据](../openspec/changes/fix-account-session-and-pro-entitlement/evidence/client-clean-validation/validation.json)。
 
 3.1 后台验证已完成；3.2 两版实际面板仍未完成。知识同步回读通过仅对应总管注明的共享主线事实 attestation，不代表本分支已集成或已到远端。当前为 coordinated 本地检查点，未推送或合并本轮账户改动；集成后正式发布包身份仍须绑定实际交付提交。
+
+## 用户验收确认
+
+用户于 2026-10-25 确认 Pod Lite 验收通过。该确认用于关闭 OpenSpec 3.2；本次总管整理没有重新运行 Creator 面板，也没有生成实机截图或设备日志。代码自动验证仍以 `evidence/client-clean-validation/validation.json` 中的检查点为准。完整交互式登录和 peanut-server 服务迁移仍是独立待办。
