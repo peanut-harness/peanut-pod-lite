@@ -1,0 +1,50 @@
+{
+  "status": "implementation-checkpoint-awaiting-clean-pack-and-integration-verification",
+  "deliveryMode": "coordinated",
+  "checkpointOwner": "01a16835-6198-7d72-baf1-ad77f73c5f38",
+  "integrationOwner": "01a15d43-320f-75e0-b084-35f96228383a",
+  "baseCommit": "427771b7fa382860a0528941aea8108d78d0d0b0",
+  "commands": [
+    {
+      "command": "node --test tests/account-session.test.mts tests/account-pro-entitlement.test.mts tests/account-upgrade.test.mjs",
+      "cwd": "packages/hosts/modules/creator-38",
+      "exitCode": 0,
+      "result": "13/13; synthetic credentials and local Host only"
+    },
+    {
+      "command": "node tools/check-javascript-syntax.mjs <creator38>/src <creator38>/panel <creator38>/scripts",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run verify",
+      "exitCode": 1,
+      "result": "sandbox tsx IPC denied; unsandboxed reached Host tests and failed because fresh tree lacks CPM release descriptor"
+    },
+    {
+      "command": "npm run pack",
+      "exitCode": 1,
+      "result": "lite_release_source_dirty; clean-tree gate retained"
+    },
+    {
+      "command": "rag.mjs check-sync --repo peanut-pod-lite",
+      "exitCode": 1,
+      "result": "code-changed-knowledge-unchanged; integration owner requested to handle shared attestation"
+    },
+    {
+      "command": "rag.mjs check-sync --brief --repo peanut-pod-lite",
+      "exitCode": 0,
+      "result": "ok scope=peanut-pod-lite chunks=542; after integration owner handled shared knowledge sync"
+    }
+  ],
+  "unverified": [
+    "clean-tree formal pack",
+    "final repository verify",
+    "Creator 3.8.3/3.8.7 actual panel",
+    "real OIDC and production entitlement",
+    "peanut-server native account service"
+  ],
+  "githubActions": "not-checked",
+  "productionDeployment": false,
+  "realCredentialsUsed": false,
+  "fullInteractiveLogin": "follow-up"
+}

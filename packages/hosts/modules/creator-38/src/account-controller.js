@@ -23,6 +23,8 @@ class LiteAccountController {
         this.transport = transport;
         this.timeoutMs = timeoutMs;
         this.account = createSignedOutAccount();
+        this.sessionRevision = 0;
+        this.refreshRevision = 0;
     }
 
     status() {
@@ -43,22 +45,27 @@ class LiteAccountController {
     }
 
     setEndpoint(endpoint) {
-        this.store.writeEndpoint(endpoint);
+        if (this.store.writeEndpoint(endpoint)) {
+            this.invalidateSession();
+        }
         return this.status();
     }
 
     async setAccessToken(token, pro) {
         this.store.writeAccessToken(token);
+        this.invalidateSession();
         return this.refresh(pro);
     }
 
     clear(pro) {
         this.store.clear();
-        this.account = createSignedOutAccount();
+        this.invalidateSession();
         return this.withPro(pro);
     }
 
     async refresh(pro) {
+        const sessionRevision = this.sessionRevision;
+        const refreshRevision = ++this.refreshRevision;
         try {
             const session = this.store.read();
             const client = createPodAccountClient({
@@ -68,6 +75,9 @@ class LiteAccountController {
                 timeoutMs: this.timeoutMs,
             });
             const snapshot = await client.subscription();
+            if (sessionRevision !== this.sessionRevision || refreshRevision !== this.refreshRevision) {
+                return this.status();
+            }
             this.account = Object.freeze({
                 state: 'signed_in',
                 error: null,
@@ -86,6 +96,9 @@ class LiteAccountController {
             });
             return this.account;
         } catch (error) {
+            if (sessionRevision !== this.sessionRevision || refreshRevision !== this.refreshRevision) {
+                return this.status();
+            }
             this.account = Object.freeze({
                 ...createSignedOutAccount(),
                 state: 'error',
@@ -100,6 +113,7 @@ class LiteAccountController {
      * Fetches a fresh server snapshot and requires the complete Pro entitlement set.
      */
     async requireProEntitlement() {
+        const revision = this.sessionRevision;
         const session = this.store.read();
         const client = createPodAccountClient({
             endpoint: session.endpoint,
@@ -108,6 +122,7 @@ class LiteAccountController {
             timeoutMs: this.timeoutMs,
         });
         const snapshot = await client.subscription();
+        this.requireCurrentSession(revision);
         const offer = listPremiumOffer();
         const entitlements = new Set(Array.isArray(snapshot.entitlements) ? snapshot.entitlements : []);
         const activeUntil = snapshot.activeUntil ?? null;
@@ -123,6 +138,7 @@ class LiteAccountController {
     }
 
     async startCheckout(pro) {
+        const revision = this.sessionRevision;
         const session = this.store.read();
         const client = createPodAccountClient({
             endpoint: session.endpoint,
@@ -131,7 +147,9 @@ class LiteAccountController {
             timeoutMs: this.timeoutMs,
         });
         const checkout = await client.checkout(POD_PRO_PRODUCT_CODE);
+        this.requireCurrentSession(revision);
         await this.refresh(pro);
+        this.requireCurrentSession(revision);
         return Object.freeze({
             ...checkout,
             recommendedAction: this.account.recommendedAction,
@@ -147,6 +165,25 @@ class LiteAccountController {
             recommendedAction: recommend(this.account.subscription?.status, pro),
         });
         return this.account;
+    }
+
+    /**
+     * @description 退出或凭据变化后使所有在途结果失效。
+     */
+    invalidateSession() {
+        this.sessionRevision += 1;
+        this.refreshRevision += 1;
+        this.account = createSignedOutAccount();
+    }
+
+    /**
+     * @description 拒绝旧会话返回的授权或 checkout 结果。
+     * @param revision 请求启动时的会话代次。
+     */
+    requireCurrentSession(revision) {
+        if (revision !== this.sessionRevision) {
+            throw new Error('peanut_account_session_changed');
+        }
     }
 }
 

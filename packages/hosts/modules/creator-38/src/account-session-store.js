@@ -2,6 +2,7 @@
 
 const { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } = require('fs');
 const { isAbsolute, join, relative, resolve, sep } = require('path');
+const { normalizePodEndpoint } = require('./pod-account-client');
 
 const TOKEN_MAX_LENGTH = 8_192;
 
@@ -28,8 +29,15 @@ class AccountSessionStore {
     }
 
     writeEndpoint(endpoint) {
+        const normalized = normalizePodEndpoint(endpoint);
+        const changed = this.readEndpoint() !== normalized;
+        if (!changed) {
+            return false;
+        }
         this.ensureDirectory();
-        writeFileSync(this.configPath, `${JSON.stringify({ endpoint }, null, 2)}\n`, { mode: 0o600 });
+        this.clear();
+        writeFileSync(this.configPath, `${JSON.stringify({ endpoint: normalized }, null, 2)}\n`, { mode: 0o600 });
+        return true;
     }
 
     writeAccessToken(token) {
@@ -57,7 +65,7 @@ class AccountSessionStore {
         }
         try {
             const parsed = JSON.parse(readFileSync(this.configPath, 'utf8'));
-            return typeof parsed?.endpoint === 'string' ? parsed.endpoint : null;
+            return normalizePodEndpoint(parsed?.endpoint);
         } catch {
             return null;
         }

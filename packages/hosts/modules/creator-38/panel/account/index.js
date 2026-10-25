@@ -30,33 +30,37 @@ exports.ready = function ready() {
             2,
         );
     };
-    this.$.saveEndpoint.addEventListener('click', async () => {
+    const perform = async (action) => {
+        try {
+            await action();
+            await render();
+        } catch {
+            this.$.status.innerText = '账户操作失败，请检查服务配置后重试。';
+        }
+    };
+    this.$.saveEndpoint.addEventListener('click', () => perform(async () => {
         await Editor.Message.request('peanut-pod-lite-host', 'set-pod-endpoint', this.$.endpoint.value.trim());
-        await render();
-    });
-    this.$.signIn.addEventListener('click', async () => {
-        await Editor.Message.request('peanut-pod-lite-host', 'set-access-token', this.$.token.value);
+    }));
+    this.$.signIn.addEventListener('click', () => perform(async () => {
+        const token = this.$.token.value;
         this.$.token.value = '';
-        await render();
-    });
-    this.$.signOut.addEventListener('click', async () => {
+        await Editor.Message.request('peanut-pod-lite-host', 'set-access-token', token);
+    }));
+    this.$.signOut.addEventListener('click', () => perform(async () => {
+        this.$.token.value = '';
         await Editor.Message.request('peanut-pod-lite-host', 'clear-account');
-        await render();
-    });
-    this.$.refresh.addEventListener('click', async () => {
+    }));
+    this.$.refresh.addEventListener('click', () => perform(async () => {
         await Editor.Message.request('peanut-pod-lite-host', 'query-subscription');
-        await render();
-    });
-    this.$.upgrade.addEventListener('click', async () => {
+    }));
+    this.$.upgrade.addEventListener('click', () => perform(async () => {
         const checkout = await Editor.Message.request('peanut-pod-lite-host', 'start-checkout');
         if (typeof checkout?.checkoutUrl === 'string') {
             await Editor.shell?.openExternal?.(checkout.checkoutUrl);
         }
-        await render();
-    });
-    this.$.refreshPro.addEventListener('click', async () => {
+    }));
+    this.$.refreshPro.addEventListener('click', () => perform(async () => {
         await Editor.Message.request('peanut-pod-lite-host', 'refresh-pro');
-        await render();
-    });
-    void render();
+    }));
+    void perform(async () => {});
 };
