@@ -9,6 +9,19 @@ export const PID_GATE_SCRIPT = 'printf "READY:%s:%s\\n" "$$" "$1"; shift; IFS= r
 const LEASE_NAME = 'sprite-runtime-lease-synthetic.json';
 const MAX_READY_MS = 2000;
 const MAX_GATE_MS = 5000;
+const PRIVATE = '/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-editor-operations-20261026/task-5.1';
+const PRODUCTION = Object.freeze({
+    project: '/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-3.8.3',
+    binary: '/Applications/Cocos/Creator/3.8.3/CocosCreator.app/Contents/MacOS/CocosCreator',
+    binarySha256: '799386a840d319b7eb78a788a4919950d8537f41aeca2cb6ce85a0ee2c4a0330',
+    lease: join(PRIVATE, 'sprite-runtime-lease-383.json'),
+    permit: join(PRIVATE, 'sprite-production-383-stage-permit.json'),
+    candidateSourceCommit: '660226aa28d0d96fc4766c81c3b58af71cd1a8f0',
+    hostSha256: '3954bec522639354ce249f594055e7a543854ee721c645994051cd094f534438',
+    coreSha256: 'ef38d9ac7f12a6face2e353cbb02c538ce0546520d1cb3941a903c8a376d794f',
+    probeSourceCommit: '61fcce7509044d4715b25462dde2849dc929c1a1',
+    probeBundleSha256: '0add8b7a252e597d6b9972b21ef93f83bc9a9e544261f8d24565f66a5abcee1a',
+});
 
 type OwnedLease = { path: string; dev: number; ino: number; digest: string; generation: string };
 type SyntheticLease = {
@@ -18,6 +31,16 @@ type SyntheticLease = {
     issuedAt: number; expiresAt: number; probeBundleSha256: string; generation: string;
     permissions: ['existingAssetIdentity'];
 };
+type RuntimeLease = {
+    schema: 'peanut.pod.sprite-runtime-lease.v1'; status: 'active';
+    projectPath: string; creatorVersion: '3.8.3'; creatorExecutable: string;
+    creatorExecutableSha256: string; purpose: 'existing-asset-compatibility';
+    owner: string; runId: string; pid: number; issuedAt: number; expiresAt: number;
+    candidateSourceCommit: string; hostSha256: string; coreSha256: string;
+    probeSourceCommit: string; probeBundleSha256: string; permissions: ['existingAssetIdentity'];
+};
+type GateLease = SyntheticLease | RuntimeLease;
+type GateSession = { pid: number; leasePath: string; go(): void; wait(): Promise<number>; close(): Promise<void> };
 
 function sha(bytes: Buffer): string { return createHash('sha256').update(bytes).digest('hex'); }
 function statFile(path: string): Stats {
@@ -34,10 +57,10 @@ function syntheticRoot(path: string): string {
         throw new Error('component_sprite_pid_gate_synthetic_root_invalid');
     return root;
 }
-function publish(path: string, value: SyntheticLease): OwnedLease {
+function publish(path: string, value: GateLease, generation: string): OwnedLease {
     if (lstatSync(path, { throwIfNoEntry: false }))
         throw new Error('component_sprite_pid_gate_lease_occupied');
-    const temporary = join(dirname(path), `sprite-runtime-lease.${value.generation}.tmp`);
+    const temporary = join(dirname(path), `sprite-runtime-lease.${generation}.tmp`);
     const bytes = Buffer.from(JSON.stringify(value) + '\n');
     let fd: number | null = null;
     let own: { dev: number; ino: number } | null = null;
@@ -58,7 +81,7 @@ function publish(path: string, value: SyntheticLease): OwnedLease {
         if (final.dev !== own.dev || final.ino !== own.ino || final.nlink !== 1
             || (final.mode & 0o777) !== 0o600 || sha(readFileSync(path)) !== sha(bytes))
             throw new Error('component_sprite_pid_gate_lease_publish_mismatch');
-        return { path, ...own, digest: sha(bytes), generation: value.generation };
+        return { path, ...own, digest: sha(bytes), generation };
     } catch (error) {
         if (fd !== null) closeSync(fd);
         for (const candidate of [linked ? path : '', temporary]) {
@@ -99,30 +122,14 @@ function waitReady(child: ChildProcessWithoutNullStreams, nonce: string): Promis
     });
 }
 
-/**
- * Synthetic proof only. A real Creator launch requires a separate registered stage.
- */
-export async function prepareSyntheticPidGate(input: {
-    root: string; executable: string; args?: string[]; owner: string; runId: string;
-    probeBundleSha256: string;
-}): Promise<{
-    pid: number; leasePath: string; go(): void; wait(): Promise<number>; close(): Promise<void>;
-}> {
-    const root = syntheticRoot(input.root);
-    const executable = realpathSync(input.executable);
-    if (executable !== resolve(input.executable) || !executable.startsWith(root + sep)
-        || (statFile(executable).mode & 0o111) === 0
-        || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu.test(input.owner)
-        || !/^[a-z0-9][a-z0-9-]{0,63}$/u.test(input.runId)
-        || !/^[a-f0-9]{64}$/u.test(input.probeBundleSha256)
-        || !Array.isArray(input.args ?? []) || (input.args ?? []).some(arg => typeof arg !== 'string' || arg.includes('\0')))
-        throw new Error('component_sprite_pid_gate_synthetic_input_invalid');
-    const leasePath = join(root, LEASE_NAME);
+async function prepareGate(config: { cwd: string; executable: string; args: string[]; leasePath: string;
+    lease(pid: number, now: number, generation: string): GateLease }): Promise<GateSession> {
+    const { cwd, executable, args, leasePath } = config;
     if (lstatSync(leasePath, { throwIfNoEntry: false }))
         throw new Error('component_sprite_pid_gate_lease_occupied');
     const nonce = randomBytes(16).toString('hex');
-    const child = spawn('/bin/sh', ['-c', PID_GATE_SCRIPT, 'pid-gate', nonce, executable, ...(input.args ?? [])],
-        { cwd: root, stdio: ['pipe', 'pipe', 'pipe'], env: { PATH: '/usr/bin:/bin' } });
+    const child = spawn('/bin/sh', ['-c', PID_GATE_SCRIPT, 'pid-gate', nonce, executable, ...args],
+        { cwd, stdio: ['pipe', 'pipe', 'pipe'], env: { PATH: '/usr/bin:/bin' } });
     let lease: OwnedLease | null = null;
     let released = false;
     let gateTimer: ReturnType<typeof setTimeout> | null = null;
@@ -153,20 +160,15 @@ export async function prepareSyntheticPidGate(input: {
             throw new Error('component_sprite_pid_gate_child_identity_invalid');
         const now = Date.now();
         const generation = randomBytes(16).toString('hex');
-        lease = publish(leasePath, { schema: 'peanut.pod.sprite-pid-gate-synthetic.v1',
-            status: 'active', projectPath: root, creatorVersion: 'synthetic',
-            creatorExecutable: executable, creatorExecutableSha256: sha(readFileSync(executable)),
-            owner: input.owner, runId: input.runId, pid: child.pid!, issuedAt: now,
-            expiresAt: now + MAX_GATE_MS, probeBundleSha256: input.probeBundleSha256,
-            generation, permissions: ['existingAssetIdentity'] });
+        lease = publish(leasePath, config.lease(child.pid!, now, generation), generation);
         gateTimer = setTimeout(() => { if (!released && child.exitCode === null) child.kill('SIGTERM'); }, MAX_GATE_MS);
         return { pid: child.pid!, leasePath,
             go(): void {
                 if (released || !lease || child.exitCode !== null || child.signalCode !== null)
                     throw new Error('component_sprite_pid_gate_not_ready');
                 checkOwned(lease);
-                const value = JSON.parse(readFileSync(lease.path, 'utf8')) as SyntheticLease;
-                if (value.pid !== child.pid || value.generation !== lease.generation
+                const value = JSON.parse(readFileSync(lease.path, 'utf8')) as GateLease;
+                if (value.pid !== child.pid || ('generation' in value && value.generation !== lease.generation)
                     || value.status !== 'active' || Date.now() >= value.expiresAt)
                     throw new Error('component_sprite_pid_gate_lease_invalid');
                 released = true;
@@ -175,4 +177,112 @@ export async function prepareSyntheticPidGate(input: {
             wait: () => exited,
             close };
     } catch (error) { await close(); throw error; }
+}
+
+/**
+ * Actual shell/exec proof in an owned temporary fixture only.
+ */
+export async function prepareSyntheticPidGate(input: {
+    root: string; executable: string; args?: string[]; owner: string; runId: string;
+    probeBundleSha256: string;
+}): Promise<GateSession> {
+    const root = syntheticRoot(input.root);
+    const executable = realpathSync(input.executable);
+    if (executable !== resolve(input.executable) || !executable.startsWith(root + sep)
+        || (statFile(executable).mode & 0o111) === 0
+        || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu.test(input.owner)
+        || !/^[a-z0-9][a-z0-9-]{0,63}$/u.test(input.runId)
+        || !/^[a-f0-9]{64}$/u.test(input.probeBundleSha256)
+        || !Array.isArray(input.args ?? []) || (input.args ?? []).some(arg => typeof arg !== 'string' || arg.includes('\0')))
+        throw new Error('component_sprite_pid_gate_synthetic_input_invalid');
+    return prepareGate({ cwd: root, executable, args: input.args ?? [], leasePath: join(root, LEASE_NAME),
+        lease: (pid, now, generation): SyntheticLease => ({ schema: 'peanut.pod.sprite-pid-gate-synthetic.v1',
+            status: 'active', projectPath: root, creatorVersion: 'synthetic',
+            creatorExecutable: executable, creatorExecutableSha256: sha(readFileSync(executable)),
+            owner: input.owner, runId: input.runId, pid, issuedAt: now,
+            expiresAt: now + MAX_GATE_MS, probeBundleSha256: input.probeBundleSha256,
+            generation, permissions: ['existingAssetIdentity'] }) });
+}
+
+type ProductionPermit = {
+    schema: 'peanut.pod.sprite-production-383-stage-permit.v1'; status: 'active';
+    owner: string; runId: string; projectPath: string; creatorVersion: '3.8.3';
+    creatorExecutable: string; creatorExecutableSha256: string;
+    candidateSourceCommit: string; hostSha256: string; coreSha256: string;
+    probeSourceCommit: string; probeBundleSha256: string;
+    issuedAt: number; expiresAt: number;
+    backupManifestPath: string; backupManifestSha256: string;
+    processSnapshotPath: string; processSnapshotSha256: string;
+};
+
+function productionPermit(owner: string, runId: string): ProductionPermit {
+    const path = PRODUCTION.permit;
+    const stat = statFile(path);
+    if ((stat.mode & 0o777) !== 0o600)
+        throw new Error('component_sprite_pid_gate_permit_file_invalid');
+    const value = JSON.parse(readFileSync(path, 'utf8')) as ProductionPermit;
+    const now = Date.now();
+    if (!value || typeof value !== 'object' || Array.isArray(value)
+        || Object.keys(value).length !== 19
+        || value.schema !== 'peanut.pod.sprite-production-383-stage-permit.v1'
+        || value.status !== 'active' || value.owner !== owner || value.runId !== runId
+        || value.projectPath !== PRODUCTION.project || value.creatorVersion !== '3.8.3'
+        || value.creatorExecutable !== PRODUCTION.binary
+        || value.creatorExecutableSha256 !== PRODUCTION.binarySha256
+        || value.candidateSourceCommit !== PRODUCTION.candidateSourceCommit
+        || value.hostSha256 !== PRODUCTION.hostSha256 || value.coreSha256 !== PRODUCTION.coreSha256
+        || value.probeSourceCommit !== PRODUCTION.probeSourceCommit
+        || value.probeBundleSha256 !== PRODUCTION.probeBundleSha256
+        || !Number.isSafeInteger(value.issuedAt) || !Number.isSafeInteger(value.expiresAt)
+        || value.issuedAt > now || value.expiresAt <= now
+        || value.expiresAt - value.issuedAt > 600000
+        || !/^[a-f0-9]{64}$/u.test(value.backupManifestSha256)
+        || !/^[a-f0-9]{64}$/u.test(value.processSnapshotSha256))
+        throw new Error('component_sprite_pid_gate_permit_identity_invalid');
+    const prefix = join(PRIVATE, 'c0-383-preparation') + sep;
+    if (!value.backupManifestPath.startsWith(prefix)
+        || basename(value.backupManifestPath) !== 'manifest.json'
+        || value.processSnapshotPath !== join(dirname(value.backupManifestPath), 'process-snapshot.txt')
+        || realpathSync(value.backupManifestPath) !== value.backupManifestPath
+        || realpathSync(value.processSnapshotPath) !== value.processSnapshotPath
+        || sha(readFileSync(value.backupManifestPath)) !== value.backupManifestSha256
+        || sha(readFileSync(value.processSnapshotPath)) !== value.processSnapshotSha256)
+        throw new Error('component_sprite_pid_gate_permit_evidence_invalid');
+    const backup = JSON.parse(readFileSync(value.backupManifestPath, 'utf8'));
+    if (backup?.schema !== 'peanut.pod.c0-full-byte-backup.v1'
+        || backup.source !== PRODUCTION.project || backup.sourceBeforeAfterEqual !== true
+        || backup.copyReadbackEqual !== true)
+        throw new Error('component_sprite_pid_gate_permit_backup_invalid');
+    return value;
+}
+
+/**
+ * Production target is fixed. The separately registered stage permit is absent until phase C.
+ */
+export async function prepareProduction383PidGate(input: { owner: string; runId: string }): Promise<GateSession> {
+    if (!input || typeof input !== 'object' || Object.keys(input).length !== 2
+        || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu.test(input.owner)
+        || !/^[a-z0-9][a-z0-9-]{0,63}$/u.test(input.runId)
+        || realpathSync(PRODUCTION.project) !== PRODUCTION.project
+        || realpathSync(PRODUCTION.binary) !== PRODUCTION.binary
+        || (statFile(PRODUCTION.binary).mode & 0o111) === 0
+        || sha(readFileSync(PRODUCTION.binary)) !== PRODUCTION.binarySha256
+        || realpathSync(PRIVATE) !== PRIVATE)
+        throw new Error('component_sprite_pid_gate_production_identity_invalid');
+    const permit = productionPermit(input.owner, input.runId);
+    return prepareGate({ cwd: PRODUCTION.project, executable: PRODUCTION.binary,
+        args: ['--project', PRODUCTION.project], leasePath: PRODUCTION.lease,
+        lease: (pid, now): RuntimeLease => ({
+            schema: 'peanut.pod.sprite-runtime-lease.v1', status: 'active',
+            projectPath: PRODUCTION.project, creatorVersion: '3.8.3',
+            owner: input.owner, runId: input.runId, pid,
+            candidateSourceCommit: PRODUCTION.candidateSourceCommit,
+            hostSha256: PRODUCTION.hostSha256, coreSha256: PRODUCTION.coreSha256,
+            probeSourceCommit: PRODUCTION.probeSourceCommit,
+            probeBundleSha256: PRODUCTION.probeBundleSha256,
+            issuedAt: now, expiresAt: Math.min(now + 120000, permit.expiresAt),
+            permissions: ['existingAssetIdentity'], creatorExecutable: PRODUCTION.binary,
+            purpose: 'existing-asset-compatibility',
+            creatorExecutableSha256: PRODUCTION.binarySha256,
+        }) });
 }

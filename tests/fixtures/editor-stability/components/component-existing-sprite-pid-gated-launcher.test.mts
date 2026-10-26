@@ -4,7 +4,8 @@ import { chmodSync, existsSync, lstatSync, mkdtempSync, readFileSync, realpathSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { PID_GATE_SCRIPT, prepareSyntheticPidGate } from './component-existing-sprite-pid-gated-launcher.mts';
+import { PID_GATE_SCRIPT, prepareProduction383PidGate,
+    prepareSyntheticPidGate } from './component-existing-sprite-pid-gated-launcher.mts';
 
 const OWNER = '12345678-1234-1234-1234-123456789abc';
 const HASH = 'a'.repeat(64);
@@ -96,4 +97,14 @@ test('unreleased gate times out without executing and revokes only its own lease
         } finally { await gate.close(); }
         assert.equal(existsSync(gate.leasePath), false);
     } finally { f.dispose(); }
+});
+
+test('production adapter refuses missing stage permit and freeform caller targets without a real lease', async () => {
+    const path = '/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-editor-operations-20261026/task-5.1/sprite-runtime-lease-383.json';
+    assert.equal(existsSync(path), false);
+    await assert.rejects(prepareProduction383PidGate({ owner: OWNER, runId: 'synthetic-pid-gate' }),
+        /file_invalid|production_identity_invalid/u);
+    await assert.rejects(prepareProduction383PidGate({ owner: OWNER, runId: 'synthetic-pid-gate',
+        executable: '/bin/echo' } as never), /production_identity_invalid/u);
+    assert.equal(existsSync(path), false);
 });
