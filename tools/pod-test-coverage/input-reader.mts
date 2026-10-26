@@ -1,4 +1,4 @@
-import { lstatSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import fs, { closeSync, constants, fstatSync, lstatSync, realpathSync, statSync, type Stats } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 import { PodCoverageContracts, type IPodCoverageInput, type IPodCoverageReference } from './contracts.mjs';
@@ -117,13 +117,51 @@ export class PodCoverageInputReader {
         if (before.size > PodCoverageContracts.maxFileBytes || this.bytesRead + before.size > PodCoverageContracts.maxTotalBytes) {
             throw new Error('pod_coverage_file_too_large');
         }
-        const bytes = readFileSync(path);
-        const after = lstatSync(path);
-        if (!after.isFile() || after.isSymbolicLink() || before.ino !== after.ino || before.size !== after.size
-            || before.mtimeMs !== after.mtimeMs || bytes.byteLength !== before.size) {
+        if (typeof constants.O_NOFOLLOW !== 'number' || typeof constants.O_NONBLOCK !== 'number') {
+            throw new Error('pod_coverage_secure_open_unavailable');
+        }
+        let handle: number;
+        try {
+            handle = fs.openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+        } catch {
             throw new Error('pod_coverage_file_changed_during_read');
         }
-        this.bytesRead += bytes.byteLength;
-        return bytes;
+        try {
+            const opened = fstatSync(handle);
+            if (!opened.isFile() || !this.sameFile(before, opened)) throw new Error('pod_coverage_file_changed_during_read');
+            const chunks: Buffer[] = [];
+            const buffer = Buffer.allocUnsafe(64 * 1024);
+            let length = 0;
+            while (true) {
+                const available = Math.min(PodCoverageContracts.maxFileBytes - length,
+                    PodCoverageContracts.maxTotalBytes - this.bytesRead - length);
+                const count = fs.readSync(handle, buffer, 0, Math.min(buffer.length, available + 1), null);
+                if (count === 0) break;
+                if (count > available) throw new Error('pod_coverage_file_too_large');
+                chunks.push(Buffer.from(buffer.subarray(0, count)));
+                length += count;
+            }
+            const afterHandle = fstatSync(handle);
+            const afterPath = lstatSync(path);
+            if (!this.sameFile(before, afterHandle) || !this.sameFile(before, afterPath)
+                || afterPath.isSymbolicLink() || length !== before.size) {
+                throw new Error('pod_coverage_file_changed_during_read');
+            }
+            this.bytesRead += length;
+            return Buffer.concat(chunks, length);
+        } finally {
+            closeSync(handle);
+        }
+    }
+
+    /**
+     * @description 对比读取前、固定句柄和读取后路径的同一文件身份及内容时间。
+     * @param left 读取前文件状态。
+     * @param right 待比对文件状态。
+     * @returns 身份与大小、时间是否一致。
+     */
+    private sameFile(left: Stats, right: Stats): boolean {
+        return left.dev === right.dev && left.ino === right.ino && left.size === right.size
+            && left.mtimeMs === right.mtimeMs && left.ctimeMs === right.ctimeMs;
     }
 }

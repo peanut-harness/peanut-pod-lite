@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import fs, { appendFileSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -98,6 +99,65 @@ test('symlink escape is rejected, including a linked input file', () => {
     } finally {
         rmSync(root, { recursive: true, force: true });
         rmSync(outside, { recursive: true, force: true });
+    }
+});
+
+test('path swap immediately before open cannot read outside the explicit root', () => {
+    const root = mkdtempSync(join(tmpdir(), 'pod-coverage-race-'));
+    const outside = mkdtempSync(join(tmpdir(), 'pod-coverage-race-outside-'));
+    const originalOpen = fs.openSync;
+    try {
+        const path = join(root, 'source.txt');
+        const saved = join(root, 'saved.txt');
+        const foreign = join(outside, 'foreign.txt');
+        const localBytes = Buffer.from('LOCAL_0000');
+        const foreignBytes = Buffer.from('OTHER_9999');
+        writeFileSync(path, localBytes);
+        writeFileSync(foreign, foreignBytes);
+        const reader = new PodCoverageInputReader([{ id: 'lite', path: root }]);
+        const canonicalPath = realpathSync(path);
+        let swapped = false;
+        fs.openSync = new Proxy(originalOpen, { apply(target, receiver, args) {
+            if (args[0] !== canonicalPath) return Reflect.apply(target, receiver, args);
+            renameSync(path, saved);
+            symlinkSync(foreign, path);
+            swapped = true;
+            try { return Reflect.apply(target, receiver, args); }
+            finally { unlinkSync(path); renameSync(saved, path); }
+        } });
+        syncBuiltinESMExports();
+        const reference = { rootId: 'lite', path: 'source.txt', sha256: PodCoverageContracts.sha256(foreignBytes) };
+        assert.throws(() => reader.readReference(reference), /file_changed_during_read/u);
+        assert.equal(swapped, true);
+        assert.deepEqual(readFileSync(path), localBytes);
+    } finally {
+        fs.openSync = originalOpen;
+        syncBuiltinESMExports();
+        rmSync(root, { recursive: true, force: true });
+        rmSync(outside, { recursive: true, force: true });
+    }
+});
+
+test('file growth during pinned reading stops at the hard byte budget', () => {
+    const root = mkdtempSync(join(tmpdir(), 'pod-coverage-growth-'));
+    const originalRead = fs.readSync;
+    try {
+        const path = join(root, 'source.bin');
+        writeFileSync(path, Buffer.alloc(PodCoverageContracts.maxFileBytes));
+        const reader = new PodCoverageInputReader([{ id: 'lite', path: root }]);
+        let grew = false;
+        fs.readSync = new Proxy(originalRead, { apply(target, receiver, args) {
+            if (!grew) { appendFileSync(path, Buffer.from('x')); grew = true; }
+            return Reflect.apply(target, receiver, args);
+        } });
+        syncBuiltinESMExports();
+        const reference = { rootId: 'lite', path: 'source.bin', sha256: 'a'.repeat(64) };
+        assert.throws(() => reader.readReference(reference), /file_too_large/u);
+        assert.equal(grew, true);
+    } finally {
+        fs.readSync = originalRead;
+        syncBuiltinESMExports();
+        rmSync(root, { recursive: true, force: true });
     }
 });
 
