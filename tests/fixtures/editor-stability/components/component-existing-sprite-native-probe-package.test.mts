@@ -48,6 +48,29 @@ test('offline package pins entry, descriptor, dispatcher and scene sources and t
     } finally { rmSync(destination, { recursive: true, force: true }); }
 });
 
+test('diagnostic package is fixed to 3.8.3 existing asset and remains unaccepted', async () => {
+    const destination = scratch();
+    try {
+        const report = await Package.build(repository, destination, 'diagnostic-383');
+        const manifest = JSON.parse(readFileSync(join(destination, 'package.json'), 'utf8'));
+        assert.equal(manifest.private, true);
+        assert.equal(manifest.peanutOfflineOnly, false);
+        assert.equal(manifest.peanutDiagnosticOnly, true);
+        assert.equal(manifest.nativeCompatible, null);
+        assert.equal(manifest.diagnosticTargetVersion, '3.8.3');
+        assert.equal(manifest.diagnosticAction, 'existingAssetIdentity');
+        assert.equal(report.diagnosticMode, true);
+        assert.equal(report.installable, false);
+        assert.equal(report.nativeAccepted, false);
+        assert.deepEqual(readdirSync(destination).sort(), ['main.js', 'package.json', 'scene.js']);
+        const expected = digest(Buffer.from(JSON.stringify({
+            main: manifest.bundleDigests['main.js'], scene: manifest.bundleDigests['scene.js'],
+            manifest: digest(readFileSync(join(destination, 'package.json'))),
+        })));
+        assert.equal(report.packageSha256, expected);
+    } finally { rmSync(destination, { recursive: true, force: true }); }
+});
+
 test('changed or linked source refuses before producing an output', async () => {
     const root = scratch(); const destination = scratch();
     try {

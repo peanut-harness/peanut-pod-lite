@@ -235,7 +235,7 @@ test('invalid JSON is an explicit body failure before Editor access', async () =
     } finally { await entry.close(); f.close(); }
 });
 
-function activationFixture() {
+function activationFixture(diagnostic = false) {
     const root = realpathSync(mkdtempSync(join(tmpdir(), 'component-sprite-activation-')));
     const project = join(root, 'synthetic-project');
     const extension = join(project, 'extensions/peanut-component-sprite-probe');
@@ -249,7 +249,10 @@ function activationFixture() {
     const sourceCommit = 'd'.repeat(40);
     const manifestBytes = Buffer.from(JSON.stringify({
         name: 'peanut-component-sprite-probe', probeSourceCommit: sourceCommit,
-        bundleDigests: { 'main.js': bundleSha, 'scene.js': sceneSha }, peanutOfflineOnly: true,
+        bundleDigests: { 'main.js': bundleSha, 'scene.js': sceneSha },
+        private: true, peanutOfflineOnly: !diagnostic,
+        ...(diagnostic ? { peanutDiagnosticOnly: true, nativeCompatible: null,
+            diagnosticTargetVersion: '3.8.3', diagnosticAction: 'existingAssetIdentity' } : {}),
     }));
     writeFileSync(join(extension, 'package.json'), manifestBytes);
     const manifestSha = createHash('sha256').update(manifestBytes).digest('hex');
@@ -264,7 +267,10 @@ function activationFixture() {
         coreSha256: 'ef38d9ac7f12a6face2e353cbb02c538ce0546520d1cb3941a903c8a376d794f',
         probeSourceCommit: sourceCommit, probeBundleSha256: packageSha,
         issuedAt: Date.now() - 1000, expiresAt: Date.now() + 60000,
-        permissions: ['assetIdentity', 'sceneFields'], creatorExecutable: process.execPath };
+        permissions: diagnostic ? ['existingAssetIdentity'] : ['assetIdentity', 'sceneFields'],
+        creatorExecutable: process.execPath,
+        ...(diagnostic ? { purpose: 'existing-asset-compatibility',
+            creatorExecutableSha256: createHash('sha256').update(readFileSync(process.execPath)).digest('hex') } : {}) };
     const leasePath = join(root, 'lease.json');
     const editor = { Project: { path: project }, App: { version: '3.8.3' },
         Message: { request: async (_target: string, method: string, ...args: unknown[]) => {
@@ -307,6 +313,46 @@ test('synthetic Creator load uses a fixed lease, owned descriptor and only read-
         await assert.rejects(creator.load(), /already_loaded/);
     } finally { await creator.unload(); f.close(); }
     assert.equal(existsSync(f.descriptorPath), false);
+});
+
+test('diagnostic lease admits only fixed 3.8.3 existing asset readback', async () => {
+    const f = activationFixture(true); f.writeLease();
+    const relative = 'assets/peanut-pod-upgrade-0-2-1/probe.json';
+    const actual = '/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-3.8.3';
+    mkdirSync(dirname(join(f.project, relative)), { recursive: true });
+    for (const name of [relative, `${relative}.meta`])
+        writeFileSync(join(f.project, name), readFileSync(join(actual, name)));
+    const creator = createSyntheticCreatorEntry(f.project, f.editor, 'diagnostic-383');
+    try {
+        await creator.load();
+        const descriptor = JSON.parse(readFileSync(f.descriptorPath, 'utf8'));
+        const request = { projectPath: f.project, creatorVersion: '3.8.3',
+            owner: f.lease.owner, runId: f.lease.runId, pid: process.pid };
+        for (const action of ['assetIdentity', 'sceneFields', 'write']) {
+            const response = await post(descriptor.port, { ...request, action }, descriptor.token);
+            assert.equal(response.status, 400);
+        }
+        const response = await post(descriptor.port, { ...request, action: 'existingAssetIdentity' }, descriptor.token);
+        assert.equal(response.status, 200);
+        assert.equal((await response.json()).result.nativeAccepted, false);
+    } finally { await creator.unload(); f.close(); }
+});
+
+test('diagnostic entry rejects offline package and widened or wrong-purpose leases', async () => {
+    for (const variant of ['offline', 'permission', 'purpose', 'binary'] as const) {
+        const f = activationFixture(variant !== 'offline');
+        try {
+            const lease = { ...f.lease };
+            if (variant === 'permission') lease.permissions = ['assetIdentity', 'sceneFields'];
+            if (variant === 'purpose') lease.purpose = 'sprite-native-probe';
+            if (variant === 'binary') lease.creatorExecutableSha256 = '0'.repeat(64);
+            f.writeLease(lease);
+            const creator = createSyntheticCreatorEntry(f.project, f.editor, 'diagnostic-383');
+            await assert.rejects(creator.load(), /lease_identity_invalid|bundle_identity_invalid/u);
+            assert.equal(existsSync(f.descriptorPath), false);
+            await creator.unload();
+        } finally { f.close(); }
+    }
 });
 
 test('missing, expired, mismatched and malformed fixed lease refuse before descriptor or listener', async () => {

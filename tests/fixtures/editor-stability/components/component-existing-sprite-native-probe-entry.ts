@@ -10,6 +10,7 @@ type Identity = { projectPath: string; creatorVersion: '3.8.3' | '3.8.7'; owner:
     runId: string; pid: number };
 type Descriptor = Identity & { port: number; token: string; generation: string };
 type Context = Identity & { timeoutMs?: number; expiresAt?: number;
+    allowedActions?: readonly ('assetIdentity' | 'sceneFields' | 'existingAssetIdentity')[];
     message: { request(target: string, method: string, ...args: unknown[]): Promise<unknown> };
     descriptor: { publish(value: Descriptor): void | Promise<void>;
         clear(generation: string): void | Promise<void> } };
@@ -31,7 +32,7 @@ function errorCode(error: unknown): string {
 }
 
 /**
- * Offline transport candidate. Creator load remains disabled until real project registration.
+ * Bounded transport. Real load requires a separately registered diagnostic stage.
  */
 export class ComponentExistingSpriteNativeProbeEntry {
     private readonly context: Context;
@@ -170,8 +171,10 @@ type EditorApi = { Project: { path: string }; App: { version: string };
     Message: { request(target: string, method: string, ...args: unknown[]): Promise<unknown> } };
 type Lease = Identity & { schema: string; status: string; candidateSourceCommit: string;
     hostSha256: string; coreSha256: string; probeSourceCommit: string; probeBundleSha256: string;
-    issuedAt: number; expiresAt: number; permissions: string[]; creatorExecutable: string };
+    issuedAt: number; expiresAt: number; permissions: string[]; creatorExecutable: string;
+    purpose?: string; creatorExecutableSha256?: string };
 type Version = Identity['creatorVersion'];
+type Mode = 'offline-synthetic' | 'diagnostic-383';
 const PRIVATE = '/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-editor-operations-20261026/task-5.1';
 const PRODUCT = { candidateSourceCommit: '660226aa28d0d96fc4766c81c3b58af71cd1a8f0',
     hostSha256: '3954bec522639354ce249f594055e7a543854ee721c645994051cd094f534438',
@@ -179,7 +182,8 @@ const PRODUCT = { candidateSourceCommit: '660226aa28d0d96fc4766c81c3b58af71cd1a8
 const REAL = {
     '3.8.3': { project: '/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-3.8.3',
         lease: join(PRIVATE, 'sprite-runtime-lease-383.json'),
-        binary: '/Applications/Cocos/Creator/3.8.3/CocosCreator.app/Contents/MacOS/CocosCreator' },
+        binary: '/Applications/Cocos/Creator/3.8.3/CocosCreator.app/Contents/MacOS/CocosCreator',
+        binarySha256: '799386a840d319b7eb78a788a4919950d8537f41aeca2cb6ce85a0ee2c4a0330' },
     '3.8.7': { project: '/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-3.8.7',
         lease: join(PRIVATE, 'sprite-runtime-lease-387.json'),
         binary: '/Applications/Cocos/Creator/3.8.7/CocosCreator.app/Contents/MacOS/CocosCreator' },
@@ -197,10 +201,12 @@ function readOwnedJson(path: string): Record<string, unknown> {
         throw new Error('component_sprite_probe_lease_shape_invalid');
     return value as Record<string, unknown>;
 }
-function readLease(path: string, project: string, version: Version, binary: string): Lease {
+function readLease(path: string, project: string, version: Version, binary: string,
+    mode: Mode, binarySha256?: string): Lease {
     const value = readOwnedJson(path) as Lease;
     const now = Date.now();
-    if (Object.keys(value).length !== 16 || value.schema !== 'peanut.pod.sprite-runtime-lease.v1'
+    if (Object.keys(value).length !== (mode === 'diagnostic-383' ? 18 : 16)
+        || value.schema !== 'peanut.pod.sprite-runtime-lease.v1'
         || value.status !== 'active' || value.projectPath !== project || value.creatorVersion !== version
         || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu.test(value.owner)
         || !/^[a-z0-9][a-z0-9-]{0,63}$/u.test(value.runId)
@@ -211,12 +217,18 @@ function readLease(path: string, project: string, version: Version, binary: stri
         || !Number.isSafeInteger(value.issuedAt) || !Number.isSafeInteger(value.expiresAt)
         || value.issuedAt > now || value.expiresAt <= now
         || value.expiresAt - value.issuedAt > 600000
-        || !Array.isArray(value.permissions) || value.permissions.length !== 2
-        || value.permissions[0] !== 'assetIdentity' || value.permissions[1] !== 'sceneFields')
+        || !Array.isArray(value.permissions)
+        || (mode === 'diagnostic-383'
+            ? (version !== '3.8.3' || value.purpose !== 'existing-asset-compatibility'
+                || value.creatorExecutableSha256 !== binarySha256
+                || !binarySha256 || createHash('sha256').update(readFileSync(binary)).digest('hex') !== binarySha256
+                || value.permissions.length !== 1 || value.permissions[0] !== 'existingAssetIdentity')
+            : (value.permissions.length !== 2 || value.permissions[0] !== 'assetIdentity'
+                || value.permissions[1] !== 'sceneFields')))
         throw new Error('component_sprite_probe_lease_identity_invalid');
     return value;
 }
-function checkBundle(project: string, lease: Lease, synthetic: boolean): void {
+function checkBundle(project: string, lease: Lease, mode: Mode): void {
     const extension = join(project, 'extensions/peanut-component-sprite-probe');
     const manifestPath = join(extension, 'package.json');
     const bundlePath = join(extension, 'main.js');
@@ -237,11 +249,17 @@ function checkBundle(project: string, lease: Lease, synthetic: boolean): void {
         || manifest.bundleDigests?.['main.js'] !== main
         || manifest.bundleDigests?.['scene.js'] !== scene
         || lease.probeBundleSha256 !== packageDigest
-        || (!synthetic && (manifest.peanutOfflineOnly !== false || manifest.nativeCompatible !== true)))
+        || (mode === 'diagnostic-383'
+            ? (manifest.private !== true || manifest.peanutOfflineOnly !== false
+                || manifest.peanutDiagnosticOnly !== true || manifest.nativeCompatible !== null
+                || manifest.diagnosticTargetVersion !== '3.8.3'
+                || manifest.diagnosticAction !== 'existingAssetIdentity')
+            : manifest.peanutOfflineOnly !== true))
         throw new Error('component_sprite_probe_bundle_identity_invalid');
 }
 
 function lifecycle(config: { path: string; lease: string; binary: string; version: Version; synthetic: boolean;
+    mode: Mode; binarySha256?: string;
     editor(): unknown }): { load(): Promise<void>; unload(): Promise<void> } {
     let active: ComponentExistingSpriteNativeProbeEntry | null = null;
     return {
@@ -258,12 +276,14 @@ function lifecycle(config: { path: string; lease: string; binary: string; versio
                 || (!config.synthetic && realpathSync(process.execPath) !== config.binary))
                 throw new Error('component_sprite_probe_creator_identity_invalid');
             const version = editor.App.version as Version;
-            const lease = readLease(config.lease, project, version, config.binary);
-            checkBundle(project, lease, config.synthetic);
+            const lease = readLease(config.lease, project, version, config.binary,
+                config.mode, config.binarySha256);
+            checkBundle(project, lease, config.mode);
             const descriptor = new ComponentExistingSpriteProbeDescriptorOwner(project);
             const entry = new ComponentExistingSpriteNativeProbeEntry({
                 projectPath: project, creatorVersion: version, owner: lease.owner,
                 runId: lease.runId, pid: process.pid, expiresAt: lease.expiresAt,
+                allowedActions: config.mode === 'diagnostic-383' ? ['existingAssetIdentity'] : undefined,
                 message: { request: (target, method, ...args) => editor.Message.request(target, method, ...args) },
                 descriptor: {
                     publish: value => descriptor.publish({ schemaVersion: 1, ...value,
@@ -292,7 +312,8 @@ function lifecycle(config: { path: string; lease: string; binary: string; versio
 
 let productionLifecycle: ReturnType<typeof lifecycle> | null = null;
 
-export function createSyntheticCreatorEntry(project: string, editor: EditorApi) {
+export function createSyntheticCreatorEntry(project: string, editor: EditorApi,
+    mode: Mode = 'offline-synthetic') {
     const root = dirname(project);
     if (project !== resolve(project) || basename(project) !== 'synthetic-project'
         || !basename(root).startsWith('component-sprite-activation-')
@@ -300,8 +321,13 @@ export function createSyntheticCreatorEntry(project: string, editor: EditorApi) 
         throw new Error('component_sprite_probe_synthetic_project_invalid');
     if (editor.App.version !== '3.8.3' && editor.App.version !== '3.8.7')
         throw new Error('component_sprite_probe_synthetic_version_invalid');
+    if (mode !== 'offline-synthetic' && mode !== 'diagnostic-383')
+        throw new Error('component_sprite_probe_synthetic_mode_invalid');
     return lifecycle({ path: project, lease: join(root, 'lease.json'), version: editor.App.version,
-        binary: process.execPath, synthetic: true, editor: () => editor });
+        binary: process.execPath, synthetic: true, mode,
+        binarySha256: mode === 'diagnostic-383'
+            ? createHash('sha256').update(readFileSync(process.execPath)).digest('hex') : undefined,
+        editor: () => editor });
 }
 
 export async function load(): Promise<void> {
@@ -312,6 +338,7 @@ export async function load(): Promise<void> {
         throw new Error('component_sprite_probe_creator_version_unregistered');
     const current = lifecycle({ path: REAL[version].project, lease: REAL[version].lease,
         binary: REAL[version].binary, version, synthetic: false,
+        mode: 'diagnostic-383', binarySha256: version === '3.8.3' ? REAL['3.8.3'].binarySha256 : undefined,
         editor: () => Reflect.get(globalThis, 'Editor') });
     productionLifecycle = current;
     try { await current.load(); }

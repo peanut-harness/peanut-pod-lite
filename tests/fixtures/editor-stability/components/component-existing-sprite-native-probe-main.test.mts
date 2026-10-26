@@ -213,6 +213,27 @@ test('3.8.7 refuses 3.8.3 existing-asset bytes before native lookup', async () =
         await assert.rejects(new ComponentExistingSpriteNativeProbeMain(f.context).dispatch({
             ...f.input, action: 'existingAssetIdentity',
         }), /existing_source_invalid/);
-        assert.deepEqual(f.calls, []);
+        assert.equal(f.calls.length, 0);
+    } finally { f.close(); }
+});
+
+test('3.8.3 compatibility pilot admits only fixed existing asset action', async () => {
+    const url = 'db://assets/peanut-pod-upgrade-0-2-1/probe.json';
+    const f = fixture(async (_target, _method, argument) => ({ url: argument,
+        uuid: '83213e97-04f5-48f9-9d1c-a4af0ba54c1d', type: 'cc.JsonAsset' }));
+    try {
+        seedExisting(f.context.projectPath, '3.8.3');
+        const probe = new ComponentExistingSpriteNativeProbeMain({ ...f.context,
+            allowedActions: ['existingAssetIdentity'] });
+        for (const action of ['assetIdentity', 'sceneFields', 'write'])
+            await assert.rejects(probe.dispatch({ ...f.input, action }), /action_denied|action_invalid/u);
+        await assert.rejects(probe.dispatch({ ...f.input, action: 'existingAssetIdentity', url }), /arguments_invalid/u);
+        assert.equal(f.calls.length, 0);
+        const result = await probe.dispatch({ ...f.input, action: 'existingAssetIdentity' });
+        assert.equal(result.nativeAccepted, false);
+        assert.deepEqual(f.calls.map(row => [row.target, row.method, row.args]),
+            [['asset-db', 'query-asset-info', [url]]]);
+        assert.throws(() => new ComponentExistingSpriteNativeProbeMain({ ...f.context,
+            creatorVersion: '3.8.7', allowedActions: ['existingAssetIdentity'] }), /context_invalid/u);
     } finally { f.close(); }
 });

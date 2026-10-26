@@ -8,9 +8,9 @@ import { build, type Metafile } from 'esbuild';
 const PREFIX = 'tests/fixtures/editor-stability/components/';
 const INPUTS = Object.freeze([
     { source: `${PREFIX}component-existing-sprite-native-probe-entry.ts`,
-        sha256: '61095b5b37545a587f322a7130f38f0c2442ecd5e9b6ce883a85794f4766ea4f', bundle: 'main.js' },
+        sha256: '1063129bc2ad2242733571ff000811f33194e7f9d348e6202ffe9c50d1d1c1e9', bundle: 'main.js' },
     { source: `${PREFIX}component-existing-sprite-native-probe-main.ts`,
-        sha256: '44cf5fb6d3fe54455b41e379625c29cd9158839aca4f3b7c42aad25871a6b2a1', bundle: 'main.js' },
+        sha256: '51ea40d7a64ae3e9e646bf0616eaf3d0fec6c7a2f0b1c2400d9bd529edd8a2db', bundle: 'main.js' },
     { source: `${PREFIX}component-existing-sprite-probe-descriptor.ts`,
         sha256: '5a775ebdf35714eb31b3ebfe7785e88c2557723b6b5ecb34f61d2e48af52f78b', bundle: 'main.js' },
     { source: `${PREFIX}component-existing-sprite-native-probe-scene.ts`,
@@ -32,7 +32,7 @@ function regular(path: string): Buffer {
 }
 
 /**
- * Build an offline-only bundle in an empty owned temp directory; never stage an extension.
+ * Build a private offline or bounded diagnostic bundle in an empty owned temp directory.
  */
 export class ComponentExistingSpriteNativeProbePackage {
     public static readonly inputs = INPUTS;
@@ -65,7 +65,10 @@ export class ComponentExistingSpriteNativeProbePackage {
         }
     }
 
-    public static async build(repository: string, outputRoot: string): Promise<Record<string, unknown>> {
+    public static async build(repository: string, outputRoot: string,
+        mode: 'offline' | 'diagnostic-383' = 'offline'): Promise<Record<string, unknown>> {
+        if (mode !== 'offline' && mode !== 'diagnostic-383')
+            throw new Error('component_sprite_probe_package_mode_invalid');
         const root = realpathSync(repository);
         const destination = realpathSync(outputRoot);
         if (root !== resolve(repository) || destination !== resolve(outputRoot)
@@ -100,7 +103,10 @@ export class ComponentExistingSpriteNativeProbePackage {
         }
         const manifest = {
             package_version: 2, name: 'peanut-component-sprite-probe', version: '0.1.0',
-            private: true, peanutOfflineOnly: true, main: './main.js',
+            private: true, peanutOfflineOnly: mode === 'offline',
+            peanutDiagnosticOnly: mode === 'diagnostic-383', nativeCompatible: null,
+            ...(mode === 'diagnostic-383' ? { diagnosticTargetVersion: '3.8.3',
+                diagnosticAction: 'existingAssetIdentity' } : {}), main: './main.js',
             probeSourceCommit: sourceCommit,
             contributions: { scene: { script: './scene.js' } },
             sourceDigests: Object.fromEntries(sources.map(row => [row.source, row.sha256])),
@@ -118,6 +124,7 @@ export class ComponentExistingSpriteNativeProbePackage {
         return { schema: 'peanut.pod.component-existing-sprite-probe-package.v2',
             packageRoot: destination, probeId: manifest.name, probeVersion: manifest.version,
             separateFromProductCandidate: true, installable: false, executable: false,
+            diagnosticMode: mode === 'diagnostic-383', nativeCompatible: null, nativeAccepted: false,
             sourceCommit, packageSha256,
             sourceFiles: sources.map(({ source, sha256 }) => ({ path: source, sha256 })),
             outputFiles: output.map(({ path, sha256 }) => ({ path, sha256 })),

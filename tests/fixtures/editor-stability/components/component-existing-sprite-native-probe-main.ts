@@ -24,6 +24,7 @@ type Request = { action: Action; projectPath: string; creatorVersion: string; ow
     expectedFrameUuid?: string; expectOpacity?: boolean };
 type Context = { projectPath: string; creatorVersion: '3.8.3' | '3.8.7'; owner: string;
     runId: string; pid: number; token: string; timeoutMs: number;
+    allowedActions?: readonly Action[];
     message: { request(target: string, method: string, ...args: unknown[]): Promise<unknown> } };
 
 function record(value: unknown): Record<string, unknown> {
@@ -55,6 +56,9 @@ export class ComponentExistingSpriteNativeProbeMain {
             || !Number.isSafeInteger(context.pid) || context.pid <= 0
             || !/^[a-f0-9]{64}$/iu.test(context.token)
             || !Number.isInteger(context.timeoutMs) || context.timeoutMs < 1 || context.timeoutMs > 5000
+            || (context.allowedActions !== undefined
+                && (context.creatorVersion !== '3.8.3' || context.allowedActions.length !== 1
+                    || context.allowedActions[0] !== 'existingAssetIdentity'))
             || typeof context.message?.request !== 'function')
             throw new Error('component_sprite_probe_context_invalid');
         this.context = { ...context, projectPath: project };
@@ -65,6 +69,8 @@ export class ComponentExistingSpriteNativeProbeMain {
         if (input.action !== 'assetIdentity' && input.action !== 'sceneFields'
             && input.action !== 'existingAssetIdentity')
             throw new Error('component_sprite_probe_action_invalid');
+        if (this.context.allowedActions && !this.context.allowedActions.includes(input.action))
+            throw new Error('component_sprite_probe_action_denied');
         const keys = input.action !== 'sceneFields' ? COMMON : [...COMMON,
             'expectedSceneUuid', 'expectedFrameUuid', 'expectOpacity'];
         if (Object.keys(input).length !== keys.length || Object.keys(input).some(key => !keys.includes(key as typeof COMMON[number])))
