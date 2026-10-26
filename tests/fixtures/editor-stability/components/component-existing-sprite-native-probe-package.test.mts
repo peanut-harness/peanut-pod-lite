@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync,
     symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 import type { Metafile } from 'esbuild';
@@ -12,7 +13,7 @@ const repository = resolve(import.meta.dirname, '../../../..');
 const digest = (bytes: Buffer): string => createHash('sha256').update(bytes).digest('hex');
 function scratch(): string { return realpathSync(mkdtempSync(join(tmpdir(), 'component-sprite-probe-package-'))); }
 
-test('offline package pins both sources and exactly three private outputs', async () => {
+test('offline package pins entry, dispatcher and scene sources and exactly three private outputs', async () => {
     const destination = scratch();
     try {
         const report = await Package.build(repository, destination);
@@ -28,8 +29,13 @@ test('offline package pins both sources and exactly three private outputs', asyn
         assert.deepEqual(Object.keys(manifest.sourceDigests).sort(), Package.inputs.map(row => row.source).sort());
         for (const row of Package.inputs) {
             assert.equal(manifest.sourceDigests[row.source], digest(readFileSync(join(repository, row.source))));
-            assert.equal(manifest.bundleDigests[row.output], digest(readFileSync(join(destination, row.output))));
+            assert.equal(manifest.bundleDigests[row.bundle], digest(readFileSync(join(destination, row.bundle))));
         }
+        assert.match(readFileSync(join(destination, 'main.js'), 'utf8'), /offline_only/u);
+        const bundled = createRequire(import.meta.url)(join(destination, 'main.js'));
+        assert.equal(typeof bundled.load, 'function');
+        assert.equal(typeof bundled.unload, 'function');
+        assert.throws(bundled.load, /offline_only/);
         assert.equal(JSON.stringify(report).includes('nativeAccepted":true'), false);
     } finally { rmSync(destination, { recursive: true, force: true }); }
 });
@@ -73,22 +79,27 @@ test('nonempty, linked or nonowned output roots refuse without overwriting', asy
 
 test('bundle closure refuses extra source, output, dynamic or unknown external imports', () => {
     const source = Package.inputs[0].source;
+    const included = [source, Package.inputs[1].source];
     const input = { bytes: 1, imports: [], format: 'esm' as const };
-    const output = { bytes: 1, inputs: { [source]: { bytesInOutput: 1 } }, imports: [] as Metafile['outputs'][string]['imports'],
+    const output = { bytes: 1, inputs: Object.fromEntries(included.map(file => [file, { bytesInOutput: 1 }])),
+        imports: [] as Metafile['outputs'][string]['imports'],
         exports: [], entryPoint: source };
     const meta = (inputs: Record<string, typeof input>, outputs: Record<string, typeof output>): Metafile =>
         ({ inputs, outputs });
     const key = 'main.js';
-    Package.assertBundleClosure(meta({ [source]: input }, { [key]: output }), source, key, repository);
+    const inputs = Object.fromEntries(included.map(file => [file, input]));
+    Package.assertBundleClosure(meta(inputs, { [key]: output }), included, key, repository);
     assert.throws(() => Package.assertBundleClosure(meta({ [source]: input,
-        'unregistered.ts': input }, { [key]: output }), source, key, repository), /transitive_source/);
-    assert.throws(() => Package.assertBundleClosure(meta({ [source]: input }, {
-        [key]: output, 'extra.js': output }), source, key, repository), /output_invalid/);
+        'unregistered.ts': input }, { [key]: output }), included, key, repository), /transitive_source/);
+    assert.throws(() => Package.assertBundleClosure(meta(inputs, {
+        [key]: output, 'extra.js': output }), included, key, repository), /output_invalid/);
     for (const dependency of [{ path: 'other', kind: 'require-call' as const, external: true },
         { path: 'node:fs', kind: 'dynamic-import' as const, external: true },
         { path: 'node:fs', kind: 'require-call' as const, external: false }]) {
         const imported = { ...output, imports: [dependency] };
-        assert.throws(() => Package.assertBundleClosure(meta({ [source]: input }, {
-            [key]: imported }), source, key, repository), /external_invalid/);
+        assert.throws(() => Package.assertBundleClosure(meta(inputs, {
+            [key]: imported }), included, key, repository), /external_invalid/);
     }
+    assert.throws(() => Package.assertBundleClosure(meta(inputs, {
+        [key]: { ...output, inputs: { [source]: { bytesInOutput: 1 } } } }), included, key, repository), /transitive_source/);
 });
