@@ -192,6 +192,59 @@ test('Server reviewed routes require original implementation bytes; CPM scoped p
     } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+test('public CPM schema v2 empty stable manifest is readable but has no available release', () => {
+    const root = mkdtempSync(join(tmpdir(), 'pod-cpm-empty-'));
+    try {
+        const bytes = Buffer.from(JSON.stringify({ schemaVersion: 2, channel: 'stable', publicKey: null, releases: [] }));
+        writeFileSync(join(root, 'releases.json'), bytes);
+        const source = sourceFor('cpm-release-manifest-v2', 'releases.json', bytes, 'cpm-install');
+        const input = inputFor(source);
+        const assessment = PodCoverageInventory.inspect(input, new PodCoverageInputReader([{ id: 'cpm-install', path: root }]));
+        assert.equal(assessment.complete, true);
+        assert.equal(assessment.sources[0]?.releaseAvailable, false);
+        assert.deepEqual(assessment.capabilities.map((row) => row.sourceSubject),
+            ['channel:stable:public-release-unavailable-or-unverified']);
+        assert.equal(PodCoverageMapping.assess(input, assessment).complete, false);
+        assert.equal(PodCoverageInventory.inspect(input, new PodCoverageInputReader([])).sources[0]?.completeness, 'missing');
+        writeFileSync(join(root, 'releases.json'), '{}');
+        assert.throws(() => PodCoverageInventory.inspect(input, new PodCoverageInputReader([{ id: 'cpm-install', path: root }])),
+            /reference_content_changed/u);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('nonempty CPM release stays unverified and malformed manifests fail closed', () => {
+    const root = mkdtempSync(join(tmpdir(), 'pod-cpm-release-'));
+    try {
+        const release = { id: 'peanut.cpm', version: '1.0.0', channel: 'stable', url: 'https://example.test/cpm.tgz',
+            sha256: 'a'.repeat(64), signature: 'untrusted-signature' };
+        const manifest = { schemaVersion: 2, channel: 'stable',
+            publicKey: { keyId: 'untrusted', algorithm: 'ed25519', format: 'spki-der-base64', value: 'untrusted-key' },
+            releases: [release] };
+        const inspect = (value: unknown) => {
+            const bytes = Buffer.from(JSON.stringify(value));
+            writeFileSync(join(root, 'releases.json'), bytes);
+            const source = sourceFor('cpm-release-manifest-v2', 'releases.json', bytes, 'cpm-install');
+            return PodCoverageInventory.inspect(inputFor(source), new PodCoverageInputReader([{ id: 'cpm-install', path: root }]));
+        };
+        const assessment = inspect(manifest);
+        assert.equal(assessment.complete, false);
+        assert.equal(assessment.sources[0]?.completeness, 'unverified');
+        assert.equal(assessment.sources[0]?.reason, 'cpm_release_signature_and_install_unverified');
+        assert.equal(assessment.sources[0]?.releaseAvailable, null);
+        assert.equal(assessment.capabilities.length, 2);
+        for (const invalid of [{ ...manifest, schemaVersion: 3 }, { ...manifest, channel: 'unknown' },
+            { ...manifest, unexpected: true }, { ...manifest, releases: [release, release] },
+            { ...manifest, releases: [{ ...release, url: 'http://example.test/cpm.tgz' }] },
+            { ...manifest, releases: [{ ...release, url: 'https://example.test/cpm.tgz#fragment' }] }]) {
+            assert.throws(() => inspect(invalid), /pod_coverage_cpm_/u);
+        }
+        const source = sourceFor('cpm-release-manifest-v2', 'releases.json', Buffer.from('{}'), 'cpm-install');
+        assert.throws(() => PodCoverageContracts.validateInput({ ...inputFor(source),
+            sources: [{ ...source, sourceRef: { ...source.sourceRef as Record<string, unknown>, path: '../escape' } }] }),
+        /reference_path_invalid/u);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test('mapping rejects unknown capability and dangling or cyclic case/workflow dependencies', () => {
     const root = mkdtempSync(join(tmpdir(), 'pod-coverage-mapping-'));
     try {

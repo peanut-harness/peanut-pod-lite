@@ -26,6 +26,10 @@ export interface IPodCoverageSourceAssessment {
     readonly capabilities: readonly IPodCoverageInventoryCapability[];
     readonly liteInventory: ICoverageInventory | null;
     readonly liteManifest: ICoverageManifest | null;
+    /**
+     * @description CPM stable 空清单明确不可用；非空未验签时未知。
+     */
+    readonly releaseAvailable?: boolean | null;
 }
 
 /**
@@ -144,12 +148,16 @@ export class PodCoverageInventory {
         const environmentMatch = version === null || typeof version === 'string'
             && (environments.includes(version) || environments.includes(`creator-${version}`));
         const reviewed = row.completeness === 'complete' || row.completeness === 'reviewed';
+        const cpmReleases = kind === 'cpm-release-manifest-v2'
+            ? PodCoverageContracts.record(document, null, 'cpm_release_manifest').releases as readonly unknown[] : null;
         const reason = !commitMatch ? 'candidate_repository_identity_missing_or_changed'
             : !digestMatch ? 'candidate_source_digest_missing_or_changed'
                 : !environmentMatch ? 'candidate_creator_version_missing'
-                    : !reviewed ? 'source_completeness_unverified' : null;
+                    : !reviewed ? 'source_completeness_unverified'
+                        : cpmReleases !== null && cpmReleases.length > 0 ? 'cpm_release_signature_and_install_unverified' : null;
         return { id, repository, kind, completeness: reason === null ? 'complete' : 'unverified', reason, capabilities,
-            liteInventory: parsed?.inventory ?? null, liteManifest: parsed?.manifest ?? null };
+            liteInventory: parsed?.inventory ?? null, liteManifest: parsed?.manifest ?? null,
+            releaseAvailable: cpmReleases === null ? null : cpmReleases.length === 0 ? false : null };
     }
 
     /**
@@ -196,6 +204,48 @@ export class PodCoverageInventory {
             const scripts = record.scripts === undefined ? {} : PodCoverageContracts.record(record.scripts, null, 'package_scripts');
             const entries = kind === 'cpm-package' ? Object.keys(scripts).filter((key) => /release|bootstrap|install/u.test(key)) : [];
             return [capability(`package:${name}`, kind), ...entries.map((entry) => capability(`script:${name}:${entry}`, kind))];
+        }
+        if (kind === 'cpm-release-manifest-v2') {
+            const keys = Object.keys(record);
+            if (record.schemaVersion !== 2 || record.channel !== 'stable' || !Array.isArray(record.releases)
+                || record.releases.length > PodCoverageContracts.maxCases
+                || keys.some((key) => !['schemaVersion', 'channel', 'publicKey', 'releases'].includes(key))
+                || !['schemaVersion', 'channel', 'releases'].every((key) => Object.hasOwn(record, key))) {
+                throw new Error('pod_coverage_cpm_release_manifest_invalid');
+            }
+            const releases = this.arrayRecords(record.releases, 'cpm_releases');
+            if (releases.length > 0) {
+                const key = PodCoverageContracts.record(record.publicKey,
+                    ['keyId', 'algorithm', 'format', 'value'], 'cpm_public_key');
+                if (typeof key.keyId !== 'string' || key.algorithm !== 'ed25519' || key.format !== 'spki-der-base64'
+                    || typeof key.value !== 'string' || key.value.length === 0) {
+                    throw new Error('pod_coverage_cpm_public_key_invalid');
+                }
+            } else if (record.publicKey !== undefined && record.publicKey !== null) {
+                throw new Error('pod_coverage_cpm_empty_public_key_invalid');
+            }
+            const identities = new Set<string>();
+            const items = releases.map((release) => {
+                PodCoverageContracts.record(release, ['id', 'version', 'channel', 'url', 'sha256', 'signature'], 'cpm_release');
+                const id = PodCoverageContracts.identifier(release.id);
+                const version = String(release.version);
+                if (!/^\d+\.\d+\.\d+$/u.test(version) || release.channel !== 'stable'
+                    || !PodCoverageContracts.digest(release.sha256) || typeof release.signature !== 'string'
+                    || release.signature.length === 0 || release.signature.length > 4096) {
+                    throw new Error('pod_coverage_cpm_release_invalid');
+                }
+                let url: URL;
+                try { url = new URL(String(release.url)); }
+                catch { throw new Error('pod_coverage_cpm_release_url_invalid'); }
+                if (url.protocol !== 'https:' || url.username || url.password || url.hash || typeof release.url !== 'string') {
+                    throw new Error('pod_coverage_cpm_release_url_invalid');
+                }
+                const identity = `${id}@${version}`;
+                if (identities.has(identity)) throw new Error('pod_coverage_cpm_release_duplicate');
+                identities.add(identity);
+                return capability(`release:${identity}:unverified`, kind);
+            });
+            return [capability('channel:stable:public-release-unavailable-or-unverified', kind), ...items];
         }
         if (kind === 'pro-fixed-lite') {
             const productId = PodCoverageContracts.identifier(record.productId);
@@ -272,5 +322,6 @@ export class PodCoverageInventory {
      * @description 本版本唯一允许给予目录解释权的来源类型。
      */
     private static readonly supportedKinds = new Set(['lite-coverage-draft', 'pro-core-catalog', 'pro-premium-catalog',
-        'pro-plugin-manifest', 'pro-package', 'pro-fixed-lite', 'server-reviewed-routes', 'cpm-package', 'curated-business']);
+        'pro-plugin-manifest', 'pro-package', 'pro-fixed-lite', 'server-reviewed-routes', 'cpm-package',
+        'cpm-release-manifest-v2', 'curated-business']);
 }

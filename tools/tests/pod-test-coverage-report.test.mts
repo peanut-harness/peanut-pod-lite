@@ -66,3 +66,16 @@ test('three-axis result counts are independent and historical pass cannot satisf
     assert.equal(counts.unverified, 1);
     assert.equal(report.acceptanceComplete, false);
 });
+
+test('CPM source completeness and public release availability are separate report fields', () => {
+    const [input, inventory, mapping, evidence] = fixture();
+    const source = { id: 'cpm-public', repository: 'cpm-install', kind: 'cpm-release-manifest-v2',
+        completeness: 'complete' as const, reason: null, capabilities: [], liteInventory: null, liteManifest: null,
+        releaseAvailable: false };
+    const report = PodCoverageReport.build(input, { ...inventory, sources: [source] }, mapping, evidence);
+    const sources = (report.denominator as { sources: readonly Readonly<Record<string, unknown>>[] }).sources;
+    assert.equal(sources[0]?.completeness, 'complete');
+    assert.equal(sources[0]?.releaseAvailable, false);
+    assert.equal(report.acceptanceComplete, false);
+    assert.match(PodCoverageReport.markdown(report), /cpm-public.*false/u);
+});
