@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { CpmIntegrityProtocol, CpmManifestValidator } from '../src/index.js';
+import { CpmIntegrityProtocol, CpmManifestValidator, DirectoryPackageIntegrityProtocol, DirectoryPackageManifestValidator } from '../src/index.js';
 
 test('sorts records and calculates the canonical CPM package digest', () => {
     const records = [
@@ -61,6 +61,14 @@ test('freezes Lite and Pro directory-package digest bytes for the Packaging migr
     ];
     assert.equal(CpmIntegrityProtocol.digest(filesFor('peanut.pod-lite')),
         '8921e032558c87a991c8a2ee4e1ff23a918606e132de1630a28e5526da9f8900');
+    assert.equal(DirectoryPackageIntegrityProtocol.digest(filesFor('peanut.pod-lite')),
+        CpmIntegrityProtocol.digest(filesFor('peanut.pod-lite')));
     assert.equal(CpmIntegrityProtocol.digest(filesFor('peanut.cocos-mcp-pro')),
         'e7b26c5836a687dbedc7e3605c76828110518e8b87c29f64c159d7ad2c68b437');
+    const proManifest = {
+        id: 'peanut.cocos-mcp-pro', version: '0.2.0', kind: 'tooling-plugin',
+        main: './peanut.cocos-mcp-pro.bundle.js',
+        package: { schemaVersion: 1, digest: DirectoryPackageIntegrityProtocol.digest(filesFor('peanut.cocos-mcp-pro')), files: filesFor('peanut.cocos-mcp-pro') },
+    };
+    assert.deepEqual(DirectoryPackageManifestValidator.validate(proManifest), CpmManifestValidator.validate(proManifest));
 });

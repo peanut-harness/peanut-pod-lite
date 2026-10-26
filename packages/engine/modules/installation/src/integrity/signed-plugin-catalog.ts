@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 
-import { CpmSigningProtocol } from './cpm-signing-protocol.js';
+import { PodSigningProtocol } from './pod-signing-protocol.js';
 
 export interface ISignedPluginCatalogProduct {
     readonly productId: string;
@@ -54,7 +54,7 @@ export class SignedPluginCatalogVerifier {
             generatedAt: value.generatedAt,
             catalogDigest: SignedPluginCatalogVerifier.digestProducts(products),
         };
-        if (!CpmSigningProtocol.verify('lite-plugin-catalog-v1', fields, value.signature, this._trustAnchor)) {
+        if (!PodSigningProtocol.verify('lite-plugin-catalog-v1', fields, value.signature, this._trustAnchor)) {
             throw new Error('plugin_catalog_signature_invalid');
         }
         return Object.freeze({

@@ -1,0 +1,104 @@
+import { createHash } from 'crypto';
+
+/**
+ * @description Pod 目录包中的单个普通文件摘要记录。
+ */
+export interface IDirectoryPackageFileRecord {
+    /**
+     * @description 包根目录下使用 `/` 分隔的相对文件路径。
+     */
+    readonly path: string;
+    /**
+     * @description 文件内容的 SHA-256 十六进制摘要。
+     */
+    readonly digest: string;
+}
+
+/**
+ * @description 提供与宿主无关的 Pod 目录包路径和摘要协议。
+ */
+export class DirectoryPackageIntegrityProtocol {
+    /**
+     * @description 允许的 SHA-256 十六进制摘要格式。
+     */
+    private static readonly DIGEST_PATTERN = /^[a-f0-9]{64}$/u;
+    /**
+     * @description 允许的包内相对路径格式。
+     */
+    private static readonly PATH_PATTERN = /^[A-Za-z0-9._\-\s]+(?:\/[A-Za-z0-9._\-\s]+)*$/u;
+
+    /**
+     * @description 计算文件内容的 SHA-256 摘要。
+     * @param content 待摘要的文本或二进制内容。
+     * @returns 小写十六进制摘要。
+     */
+    public static sha256(content: string | Uint8Array): string {
+        return createHash('sha256').update(content).digest('hex');
+    }
+
+    /**
+     * @description 校验并复制文件记录，按路径生成稳定顺序。
+     * @param records 未受信的文件摘要记录。
+     * @returns 校验后的排序记录；非法记录或重复路径会抛出诊断错误。
+     */
+    public static sortRecords(records: readonly IDirectoryPackageFileRecord[]): IDirectoryPackageFileRecord[] {
+        const paths = new Set<string>();
+        const validated = records.map((record) => {
+            if (!this.isRecord(record) || !this.isSafePath(record.path) || !this.DIGEST_PATTERN.test(record.digest) || paths.has(record.path)) {
+                throw new Error('cpm_file_record_invalid');
+            }
+            paths.add(record.path);
+            return { path: record.path, digest: record.digest };
+        });
+        return validated.sort((left, right) => this.comparePaths(left.path, right.path));
+    }
+
+    /**
+     * @description 按 UTF-16 码元比较路径，保证跨机器、跨 ICU 的摘要顺序一致。
+     * @param left 左侧包内路径。
+     * @param right 右侧包内路径。
+     * @returns 两条路径的稳定排序结果。
+     */
+    public static comparePaths(left: string, right: string): number {
+        return left < right ? -1 : left > right ? 1 : 0;
+    }
+
+    /**
+     * @description 判断声明摘要是否与记录一致；接受规范码元顺序与旧版 localeCompare 顺序。
+     * @param records 已校验的文件摘要记录。
+     * @param expected 清单声明的包摘要。
+     * @returns 当前或旧版摘要是否匹配。
+     */
+    public static matchesDigest(records: readonly IDirectoryPackageFileRecord[], expected: string): boolean {
+        if (expected === this.digest(records)) return true;
+        const legacy = [...this.sortRecords(records)].sort((left, right) => left.path.localeCompare(right.path));
+        return expected === this.sha256(legacy.map((record) => `${record.path}:${record.digest}`).join('\n'));
+    }
+
+    /**
+     * @description 按固定 `path:digest` 换行协议计算目录包总摘要。
+     * @param records 已校验或可被校验的文件摘要记录。
+     * @returns 小写十六进制包摘要。
+     */
+    public static digest(records: readonly IDirectoryPackageFileRecord[]): string {
+        return this.sha256(this.sortRecords(records).map((record) => `${record.path}:${record.digest}`).join('\n'));
+    }
+
+    /**
+     * @description 判断路径是否为不含穿越、绝对路径或空段的包内路径。
+     * @param path 待检查路径。
+     * @returns 路径是否符合 Pod 目录包协议。
+     */
+    public static isSafePath(path: unknown): path is string {
+        return typeof path === 'string' && this.PATH_PATTERN.test(path) && !path.split('/').some((segment) => segment === '.' || segment === '..');
+    }
+
+    /**
+     * @description 判断输入是否为非数组对象。
+     * @param value 待判断输入。
+     * @returns 是否可作为文件记录读取。
+     */
+    private static isRecord(value: unknown): value is IDirectoryPackageFileRecord {
+        return typeof value === 'object' && value !== null && !Array.isArray(value);
+    }
+}

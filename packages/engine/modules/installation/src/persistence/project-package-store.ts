@@ -1,10 +1,10 @@
 import { createHash } from 'crypto';
-import { closeSync, existsSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from 'fs';
-import { join, resolve } from 'path';
+import { closeSync, existsSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from 'fs';
+import { isAbsolute, join, relative, resolve, sep } from 'path';
 
 import type { IPluginInstallPlan, IPluginInstallResult, IPluginManifest, IPluginPackageInspection, IPluginPackageMeta, IPluginRepairResult, IPluginUninstallResult } from '@peanut/pod-protocol';
 
-import { CpmIntegrityProtocol } from '../integrity/cpm-integrity-protocol.js';
+import { DirectoryPackageIntegrityProtocol } from '../integrity/directory-package-integrity-protocol.js';
 import { PanelPackageLayout } from '../panel/panel-package-layout.js';
 import type { IInstalledPackageRecord, IInstalledPackageSnapshot } from '../shared/installed-package-store.js';
 import type { IPackageSnapshot } from '../shared/package-snapshot-store.js';
@@ -47,6 +47,28 @@ interface IPersistedInstalledManifest {
     readonly schemaVersion: 2;
     /** @description 所有已安装插件的索引。 */
     readonly plugins: readonly IPersistedPluginRecord[];
+}
+
+/**
+ * @description 从项目活动索引和磁盘载荷重新核验后得到的可加载目录包。
+ */
+export interface IVerifiedActivePackage {
+    /**
+     * @description 与活动索引一致且通过完整性检查的插件清单。
+     */
+    readonly manifest: IPluginManifest;
+    /**
+     * @description 已确认位于工程内的真实包目录。
+     */
+    readonly packagePath: string;
+    /**
+     * @description 已纳入逐文件摘要的运行入口。
+     */
+    readonly mainPath: string;
+    /**
+     * @description 与目录包 manifest 一致的总摘要。
+     */
+    readonly packageDigest: string;
 }
 
 /**
@@ -94,7 +116,7 @@ export class ProjectPackageStore {
     public inspect(packagePath: string): IPluginPackageInspection {
         // 保存输入路径标准化后的目录位置，确保安装时和检查时使用同一路径。
         const resolvedPackagePath = resolve(packagePath);
-        if (!existsSync(resolvedPackagePath) || !statSync(resolvedPackagePath).isDirectory()) {
+        if (!existsSync(resolvedPackagePath) || !lstatSync(resolvedPackagePath).isDirectory() || lstatSync(resolvedPackagePath).isSymbolicLink()) {
             return this._invalidInspection(resolvedPackagePath, ['package_not_found']);
         }
 
@@ -105,6 +127,9 @@ export class ProjectPackageStore {
         }
         // 保存唯一清单文件的绝对路径，后续从这里读取全部运行时与发布元信息。
         const manifestPath = join(resolvedPackagePath, manifestFileNames[0]);
+        if (!lstatSync(manifestPath).isFile() || lstatSync(manifestPath).isSymbolicLink()) {
+            return this._invalidInspection(resolvedPackagePath, ['plugin_manifest_invalid']);
+        }
 
         try {
             // 保存经过 JSON 解析的插件清单，后续继续校验固定目录与完整性。
@@ -159,12 +184,63 @@ export class ProjectPackageStore {
     }
 
     /**
+     * @description 只读核验项目活动索引与全部包载荷，供安装器和 Creator Host 使用同一事实。
+     * @param pluginId 要解析的插件标识。
+     * @param required 缺少活动包时是否报错。
+     * @returns 已验证的活动目录包；可选且不存在时返回 `null`。
+     */
+    public resolveVerifiedActivePackage(pluginId: string, required: boolean): IVerifiedActivePackage | null {
+        if (!this._isPluginId(pluginId)) {
+            throw new Error('pod_install_plugin_id_invalid');
+        }
+        const index = this._readInstalledManifest();
+        const plugin = index.plugins.find((candidate) => candidate.pluginId === pluginId);
+        if (plugin == null) {
+            if (required) throw new Error(`pod_install_package_not_installed:${pluginId}`);
+            return null;
+        }
+        const version = plugin.versions.find((candidate) => candidate.version === plugin.activeVersion);
+        if (version == null) throw new Error(`pod_install_active_version_invalid:${pluginId}`);
+        const projectRoot = realpathSync(this._layout.projectPath);
+        const packagePath = resolve(projectRoot, version.installPath);
+        if (!existsSync(packagePath) || !lstatSync(packagePath).isDirectory() || lstatSync(packagePath).isSymbolicLink()) {
+            throw new Error(`pod_install_package_root_invalid:${pluginId}`);
+        }
+        const realPackagePath = realpathSync(packagePath);
+        const inside = relative(projectRoot, realPackagePath);
+        if (inside.length === 0 || isAbsolute(inside) || inside === '..' || inside.startsWith(`..${sep}`)) {
+            throw new Error(`pod_install_package_root_escape:${pluginId}`);
+        }
+        const inspection = this.inspect(realPackagePath);
+        if (!inspection.isValidStructure || inspection.manifest == null || inspection.packageMeta == null) {
+            throw new Error(`pod_install_package_invalid:${pluginId}:${inspection.issues.join(',')}`);
+        }
+        const manifest = inspection.manifest;
+        if (manifest.id !== pluginId || manifest.version !== plugin.activeVersion || manifest.kind !== 'tooling-plugin'
+            || manifest.main !== `./${pluginId}.bundle.js` || manifest.package?.schemaVersion !== 1) {
+            throw new Error(`pod_install_package_identity_mismatch:${pluginId}`);
+        }
+        const packageJsonPath = join(realPackagePath, 'package.json');
+        if (!existsSync(packageJsonPath) || !lstatSync(packageJsonPath).isFile() || lstatSync(packageJsonPath).isSymbolicLink()) {
+            throw new Error(`pod_install_package_json_missing:${pluginId}`);
+        }
+        return Object.freeze({
+            manifest: Object.freeze(manifest),
+            packagePath: realPackagePath,
+            mainPath: join(realPackagePath, manifest.main.slice(2)),
+            packageDigest: inspection.packageMeta.digest,
+        });
+    }
+
+    /**
      * @description 将已校验的目录包经 staging 原子切换到活动版本。
      * @param installPlan 已通过校验的安装计划
      * @returns 使用真实项目路径的安装结果
      */
     public commitInstall(installPlan: IPluginInstallPlan): IPluginInstallResult {
         return this._withMutationLock((): IPluginInstallResult => {
+            // 在任何 staging 或版本目录变更前拒绝未知索引，避免旧工程被误当成空仓。
+            const persistedManifest = this._readInstalledManifest();
             // 保存源包检查结果，避免未经结构校验的目录进入项目仓。
             const inspection = this.inspect(installPlan.packagePath);
             if (!inspection.isValidStructure || inspection.manifest == null || inspection.packageMeta == null) {
@@ -183,12 +259,17 @@ export class ProjectPackageStore {
             mkdirSync(join(this._layout.stagingPath, installPlan.pluginId), { recursive: true });
             rmSync(stagingVersionPath, { recursive: true, force: true });
             this._copyPackageTree(installPlan.packagePath, stagingVersionPath);
+            const stagedInspection = this.inspect(stagingVersionPath);
+            if (!stagedInspection.isValidStructure || stagedInspection.manifest?.id !== installPlan.pluginId
+                || stagedInspection.manifest.version !== installPlan.version
+                || stagedInspection.packageMeta?.digest !== inspection.packageMeta.digest) {
+                throw new Error('pod_install_staged_package_mismatch');
+            }
             mkdirSync(join(this._layout.pluginsPath, installPlan.pluginId), { recursive: true });
             rmSync(installedVersionPath, { recursive: true, force: true });
             renameSync(stagingVersionPath, installedVersionPath);
 
             // 保存切换前后的磁盘索引，保留旧版本供手动切换与升级回退。
-            const persistedManifest = this._readInstalledManifest();
             const nextPlugins = persistedManifest.plugins.filter((persistedPluginRecord) => {
                 return persistedPluginRecord.pluginId !== installPlan.pluginId;
             });
@@ -337,6 +418,8 @@ export class ProjectPackageStore {
      */
     public repair(): IPluginRepairResult {
         return this._withMutationLock((): IPluginRepairResult => {
+        // 未知或损坏索引必须在任何暂存清理之前被拒绝，以保留旧工程恢复证据。
+        const persistedManifest = this._readInstalledManifest();
         // 保存修复动作摘要，供管理面板提示用户索引变化。
         const actions: string[] = [];
         this._clearInterruptedStagingEntries(actions);
@@ -346,7 +429,6 @@ export class ProjectPackageStore {
         }
 
         // 保存现有索引，优先保留仍存在的活动版本。
-        const persistedManifest = this._readInstalledManifest();
         // 保存按插件标识建立的旧索引，方便扫描时恢复 activeVersion。
         const previousByPluginId = new Map(persistedManifest.plugins.map((record) => [record.pluginId, record]));
         // 累积重建后的插件索引记录。
@@ -590,7 +672,7 @@ export class ProjectPackageStore {
             return issues;
         }
         // 保存按路径排序的文件摘要记录，用于稳定计算总摘要并逐项验证磁盘内容。
-        const fileRecords = [...packageManifest.files].sort((left, right) => CpmIntegrityProtocol.comparePaths(left.path, right.path));
+        const fileRecords = [...packageManifest.files].sort((left, right) => DirectoryPackageIntegrityProtocol.comparePaths(left.path, right.path));
         if (fileRecords.length === 0) {
             issues.push('package_file_integrity_missing');
         }
@@ -601,7 +683,7 @@ export class ProjectPackageStore {
             }
             // 保存被记录文件的磁盘位置，避免 hash 计算越出插件根目录。
             const filePath = join(packagePath, fileRecord.path);
-            if (!existsSync(filePath) || !statSync(filePath).isFile()) {
+            if (!existsSync(filePath) || !lstatSync(filePath).isFile() || lstatSync(filePath).isSymbolicLink()) {
                 issues.push(`package_file_integrity_missing:${fileRecord.path}`);
                 continue;
             }
@@ -615,32 +697,84 @@ export class ProjectPackageStore {
         if (!this._matchesPackageDigest(fileRecords, packageManifest.digest)) {
             issues.push('package_digest_mismatch');
         }
+        const expectedPaths = new Set(fileRecords.map((record) => record.path));
+        if (!expectedPaths.has(manifest.main.slice(2))) {
+            issues.push('package_main_not_integrity_checked');
+        }
+        this._inspectPayloadSet(packagePath, `${manifest.id}.manifest.json`, expectedPaths, issues);
         return issues;
+    }
+
+    /**
+     * @description 拒绝未登记文件、目录链接和特殊节点，避免安装器接受 Host 将拒绝的载荷。
+     * @param packagePath 目录包根路径。
+     * @param manifestName 唯一允许不进入文件摘要的根 manifest。
+     * @param expectedPaths manifest 声明的文件路径集合。
+     * @param issues 要追加的结构问题。
+     * @returns 无返回值，检查结果追加到问题列表。
+     */
+    private _inspectPayloadSet(packagePath: string, manifestName: string, expectedPaths: ReadonlySet<string>, issues: string[]): void {
+        const visit = (directory: string, prefix: string): void => {
+            for (const entry of readdirSync(directory, { withFileTypes: true })) {
+                if (entry.name === '.DS_Store') continue;
+                const recordPath = prefix.length === 0 ? entry.name : `${prefix}/${entry.name}`;
+                const absolutePath = join(directory, entry.name);
+                const entryStat = lstatSync(absolutePath);
+                if (entryStat.isSymbolicLink()) {
+                    issues.push(`package_payload_symlink:${recordPath}`);
+                } else if (entryStat.isDirectory()) {
+                    visit(absolutePath, recordPath);
+                } else if (!entryStat.isFile()) {
+                    issues.push(`package_payload_type_invalid:${recordPath}`);
+                } else if (recordPath === manifestName) {
+                    continue;
+                } else if (!recordPath.includes('/') && recordPath.endsWith('.manifest.json')) {
+                    issues.push(`package_manifest_ambiguous:${recordPath}`);
+                } else if (!DirectoryPackageIntegrityProtocol.isSafePath(recordPath)) {
+                    issues.push(`package_payload_path_invalid:${recordPath}`);
+                } else if (!expectedPaths.has(recordPath)) {
+                    issues.push(`package_payload_unrecorded:${recordPath}`);
+                }
+            }
+        };
+        visit(packagePath, '');
     }
 
     /** @description 非法或重复记录已由逐项检查报告，此处视为摘要不匹配而非抛出。 */
     private _matchesPackageDigest(fileRecords: readonly { path: string; digest: string }[], expected: string): boolean {
         try {
-            return CpmIntegrityProtocol.matchesDigest(fileRecords, expected);
+            return DirectoryPackageIntegrityProtocol.matchesDigest(fileRecords, expected);
         } catch {
             return false;
         }
     }
 
-    /** @description 读取 installed.json；缺失或损坏时返回安全的空索引。 */
+    /**
+     * @description 读取 schema v2 安装索引；仅文件不存在可视为空，损坏或歧义必须报错。
+     * @returns 已验证的持久索引。
+     */
     private _readInstalledManifest(): IPersistedInstalledManifest {
-        if (!existsSync(this._layout.installedManifestPath)) {
-            return { schemaVersion: 2, plugins: [] };
+        let indexStat;
+        try {
+            indexStat = lstatSync(this._layout.installedManifestPath);
+        } catch (error) {
+            if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT') {
+                return { schemaVersion: 2, plugins: [] };
+            }
+            throw new Error('pod_install_index_invalid');
+        }
+        if (!indexStat.isFile() || indexStat.isSymbolicLink()) {
+            throw new Error('pod_install_index_invalid');
         }
         try {
             // 保存已解析的 JSON 索引；只接受不含外部来源路径的当前格式。
             const candidate = JSON.parse(readFileSync(this._layout.installedManifestPath, 'utf8')) as unknown;
             if (!this._isInstalledManifest(candidate)) {
-                return { schemaVersion: 2, plugins: [] };
+                throw new Error('pod_install_index_invalid');
             }
             return candidate;
         } catch {
-            return { schemaVersion: 2, plugins: [] };
+            throw new Error('pod_install_index_invalid');
         }
     }
 
@@ -653,6 +787,7 @@ export class ProjectPackageStore {
         if (!this._isRecord(value) || value.schemaVersion !== 2 || !Array.isArray(value.plugins)) {
             return false;
         }
+        const seenPluginIds = new Set<string>();
         return value.plugins.every((pluginRecord) => {
             if (
                 !this._isRecord(pluginRecord) ||
@@ -665,7 +800,10 @@ export class ProjectPackageStore {
                 return false;
             }
             const pluginId = pluginRecord.pluginId;
+            if (seenPluginIds.has(pluginId)) return false;
+            seenPluginIds.add(pluginId);
             const activeVersion = pluginRecord.activeVersion;
+            const seenVersions = new Set<string>();
             const hasActiveVersion = pluginRecord.versions.some((versionRecord) => {
                 return this._isRecord(versionRecord) && versionRecord.version === activeVersion;
             });
@@ -679,6 +817,8 @@ export class ProjectPackageStore {
                 ) {
                     return false;
                 }
+                if (seenVersions.has(versionRecord.version)) return false;
+                seenVersions.add(versionRecord.version);
                 return versionRecord.installPath === join('peanut-plugins', 'plugins', pluginId, versionRecord.version);
             });
         });

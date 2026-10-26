@@ -57,6 +57,10 @@ declare module 'fs' {
     export function statSync(path: string): Stats;
     /** @description 读取路径自身的状态，不跟随符号链接。 */
     export function lstatSync(path: string): Stats;
+    /**
+     * @description 解析路径链上的符号链接，返回磁盘真实路径。
+     */
+    export function realpathSync(path: string): string;
     /** @description 创建目录及其父目录。 */
     export function mkdirSync(path: string, options?: { recursive?: boolean }): string | undefined;
     /** @description 创建唯一临时目录。 */
@@ -120,4 +124,12 @@ declare module 'path' {
     export function resolve(...paths: string[]): string;
     /** @description 计算目标路径相对于起点的路径。 */
     export function relative(from: string, to: string): string;
+    /**
+     * @description 判断目标路径是否为当前平台的绝对路径。
+     */
+    export function isAbsolute(path: string): boolean;
+    /**
+     * @description 当前平台的路径分隔符。
+     */
+    export const sep: string;
 }

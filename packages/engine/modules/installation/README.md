@@ -13,7 +13,8 @@
 - `upgrade`
 - `uninstall`
 - `repair`
-- CPM 目录包 manifest 与 SHA-256 完整性协议
+- Pod 目录包 manifest、SHA-256 完整性与签名协议
+- 项目活动索引与目录包的严格只读核验
 
 ## 公共入口
 
@@ -23,22 +24,25 @@
 import { PackagingApp } from '@peanut/pod-engine/installation';
 ```
 
-Pro 等外部消费者需要生成或校验 CPM 目录包时，也从同一子路径导入纯协议 API：
+Pro 等外部消费者生成或校验 Pod 目录包时，从同一子路径导入自有协议 API：
 
 ```typescript
 import {
-    CpmIntegrityProtocol,
-    CpmManifestValidator,
-    type ICpmFileRecord,
+    DirectoryPackageIntegrityProtocol,
+    DirectoryPackageManifestValidator,
+    PodSigningProtocol,
+    ProjectPackageStore,
+    type IDirectoryPackageFileRecord,
 } from '@peanut/pod-engine/installation';
 ```
 
-这些 API 只处理规范化路径、摘要记录与最小 manifest，不包含 CLI、Creator 宿主或安装索引业务。
+纯协议 API 处理规范化路径、摘要记录、最小 manifest 与固定字段签名；`ProjectPackageStore.resolveVerifiedActivePackage(pluginId, required)` 则只读核验项目索引、全部包载荷与活动身份，返回已验证入口或明确错误。未知、重复或损坏的索引不再视为空仓，修复前也不会清理旧工程的中断材料。正常安装与更新继续由 `PackagingApp` 的事务入口执行。
+
+旧 `Cpm*` 导出暂为历史消费者提供字节兼容别名；Pod 新生产调用统一使用上述自有名称。现有 `peanut-plugins/installed.json` schema v2 与旧诊断资料不因 API 改名而自动重写。Pro 构建器与 Host 将按本变更后续任务切换，过渡期间保留别名。
 
 跨仓发行签名使用
 [`docs/signing-protocol-v1.md`](docs/signing-protocol-v1.md) 中的固定字段顺序。
-`CpmSigningProtocol` 同时校验 CPM CLI 与 Lite 产品发行的公开测试向量，但两个用途
-必须使用独立的生产信任锚。
+`PodSigningProtocol` 校验 Pod 产品身份与远程插件目录；历史 CPM CLI 向量仅用于兼容测试。产品签名与目录签名继续使用不同的生产信任锚。
 
 ## 最小示例
 

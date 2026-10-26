@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-import { CpmSigningProtocol, type CpmSigningKind } from '../src/index.js';
+import { CpmSigningProtocol, PodSigningProtocol, type CpmSigningKind } from '../src/index.js';
 
 interface ISigningVector {
     readonly kind: CpmSigningKind;
@@ -21,7 +21,9 @@ const fixtures = JSON.parse(await readFile(new URL('./fixtures/signing-vectors.j
 for (const vector of fixtures.vectors) {
     test(`${vector.kind} matches the shared canonical signing vector`, () => {
         assert.equal(CpmSigningProtocol.canonicalize(vector.kind, vector.fields), vector.canonicalPayload);
+        assert.equal(PodSigningProtocol.canonicalize(vector.kind, vector.fields), vector.canonicalPayload);
         assert.equal(CpmSigningProtocol.verify(vector.kind, vector.fields, vector.signature, fixtures.publicKey.value), true);
+        assert.equal(PodSigningProtocol.verify(vector.kind, vector.fields, vector.signature, fixtures.publicKey.value), true);
     });
 
     test(`${vector.kind} rejects every signed-field mutation`, () => {
