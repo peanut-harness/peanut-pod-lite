@@ -7,11 +7,14 @@ import test from 'node:test';
 import { ComponentExistingSpriteStage, type SpriteStageManifest } from './component-existing-sprite-stage.mts';
 
 const image = 'tests/fixtures/editor-stability/media/assets/image/checker.png';
+const imageBytes = readFileSync(new URL('../media/assets/image/checker.png', import.meta.url));
 const authored = 'tests/fixtures/editor-stability/components/sprite-authored/';
 const candidate = {
     version: '0.2.1', testedSourceCommit: '660226aa28d0d96fc4766c81c3b58af71cd1a8f0',
     hostPackageDigest: '3954bec522639354ce249f594055e7a543854ee721c645994051cd094f534438',
     corePackageDigest: 'ef38d9ac7f12a6face2e353cbb02c538ce0546520d1cb3941a903c8a376d794f',
+    hostArchiveSha256: '266589255eca7e6a8fa03f64171a329e607b8de514df79a0cdcf7418dbfb771f',
+    coreArchiveSha256: 'cb037f16b57e38b38306f0066d6eb88ea94ef514cccfe92d5e49c49925ca64d0',
     frozenDescriptorSha256: '1a73441ae9abf86e15fda0434cb5ad51388a0fda589ad6ecc88b64e1eb2d3a40',
 } as const;
 const protectedPaths = [
@@ -34,7 +37,8 @@ function fixture(): { repository: string; project: string; manifest: SpriteStage
     });
     const files = ComponentExistingSpriteStage.destinations.map((path, index) => {
         const sourcePath = index === 0 ? image : `${authored}${index}.bytes`;
-        const bytes = `synthetic:${path}`; put(join(repository, sourcePath), bytes);
+        const bytes = index === 0 ? imageBytes : `synthetic:${path}`;
+        put(join(repository, sourcePath), bytes);
         return { path, sourcePath, sha256: sha(bytes) };
     });
     const manifest: SpriteStageManifest = {
@@ -84,7 +88,7 @@ test('candidate, project identity, source digest and protected hash are exact', 
         f.manifest.projectPath = f.project;
         put(join(f.repository, image), 'changed-image');
         assert.throws(plan, /source_mismatch/);
-        put(join(f.repository, image), `synthetic:${f.manifest.files[0].path}`);
+        put(join(f.repository, image), imageBytes);
         put(join(f.project, protectedPaths[0]), 'changed-protected');
         assert.throws(plan, /protected_changed/);
     } finally { f.close(); }

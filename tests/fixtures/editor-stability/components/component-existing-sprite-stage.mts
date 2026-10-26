@@ -9,9 +9,12 @@ const CANDIDATE = Object.freeze({
     testedSourceCommit: '660226aa28d0d96fc4766c81c3b58af71cd1a8f0',
     hostPackageDigest: '3954bec522639354ce249f594055e7a543854ee721c645994051cd094f534438',
     corePackageDigest: 'ef38d9ac7f12a6face2e353cbb02c538ce0546520d1cb3941a903c8a376d794f',
+    hostArchiveSha256: '266589255eca7e6a8fa03f64171a329e607b8de514df79a0cdcf7418dbfb771f',
+    coreArchiveSha256: 'cb037f16b57e38b38306f0066d6eb88ea94ef514cccfe92d5e49c49925ca64d0',
     frozenDescriptorSha256: '1a73441ae9abf86e15fda0434cb5ad51388a0fda589ad6ecc88b64e1eb2d3a40',
 });
 const SOURCE_IMAGE = 'tests/fixtures/editor-stability/media/assets/image/checker.png';
+const SOURCE_IMAGE_SHA256 = '5dd37b0e2023a6fb9a50f4c10b2004ca06287895e43ab2accfd0acc565c9187b';
 const DESTINATIONS = Object.freeze([
     'assets/fixtures/media/assets/image/checker.png',
     'assets/fixtures/media/assets/image/checker.png.meta',
@@ -124,7 +127,8 @@ export class ComponentExistingSpriteStage {
                 throw new Error('component_sprite_stage_source_invalid');
             const bytes = readFileSync(source);
             if (hash(bytes) !== item.sha256) throw new Error('component_sprite_stage_source_mismatch');
-            if (item.path === DESTINATIONS[0] && item.sourcePath !== SOURCE_IMAGE)
+            if (item.path === DESTINATIONS[0]
+                && (item.sourcePath !== SOURCE_IMAGE || item.sha256 !== SOURCE_IMAGE_SHA256))
                 throw new Error('component_sprite_stage_image_source_invalid');
             if (item.path !== DESTINATIONS[0]
                 && !item.sourcePath.startsWith('tests/fixtures/editor-stability/components/sprite-authored/'))
