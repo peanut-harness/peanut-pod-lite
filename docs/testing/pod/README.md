@@ -1,5 +1,7 @@
 # PeanutPod 测试覆盖矩阵
 
+当前自有安装候选在两处既有隔离 Creator 工程的部分实测见 [4.1 证据](creator-current-candidate-4.1.md)。这两处工程不是空工程，4.1 仍未完成，矩阵的产品用例状态不因此提升。
+
 本目录是离线研究与当前候选的来源矩阵。`initial-input.json` 绑定 Lite `21e546c6e1dde57355650db3ece3558935eddf22`、Pro `634418c90ec59f6630e535e763259dc15748e68c` 和 Server 审阅提交；`source-catalog.json` 的 SHA-256 为 `7844e28d105d769177998cb8ce6cfae85aa53b456ac2a27a61f0ee45eb032871`。这些值固定来源与候选输入，不表示产品已通过。
 
 六条主线是安装生命周期、基础编辑、设计到工程、字体与内容、账号权限、恢复连续使用。每条在 Creator 3.8.3 和 3.8.7 各有一条尚未执行的定义；报告保留 12 条 `not_run`，当前通过数为零。当前来源为 Lite 策展 6、Lite Packaging 包身份 1、Pro 核心 84、高级 15、Pro 目录包身份 1、Server 审阅路由 3，合计 110；其中 104 项仍为 `unmapped`。来源完整性不证明安装或运行成功，两个包身份来源的 `releaseAvailable` 均为 `null`。此前 CPM stable 空清单及四仓报告保留于 `source-inventory-validation.md` 作为历史回执，不进入当前候选分母。
