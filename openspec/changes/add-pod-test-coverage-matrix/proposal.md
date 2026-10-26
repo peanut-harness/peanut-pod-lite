@@ -24,7 +24,7 @@ PeanutPod 的 Lite、Pro、Server 与 CPM 已有不同层次的测试，但没�
 
 ## Impact
 
-- 实现归属 `peanut-pod-lite`：拟新增 `tools/pod-test-coverage/`、对应 `tools/tests/pod-test-coverage-*.test.mjs`、`tests/fixtures/pod-test-coverage/` 和 `docs/testing/pod/`。现有根 test:tools 已发现 `.test.mjs`，不预设修改 package.json 或 lockfile。
+- 实现归属 `peanut-pod-lite`：拟新增 `tools/pod-test-coverage/`、对应 `tools/tests/pod-test-coverage-*.test.mts`、`tests/fixtures/pod-test-coverage/` 和 `docs/testing/pod/`。现有根 test:tools 已发现 `.test.mts`，不预设修改 package.json 或 lockfile。
 - 其他仓库只作为显式指定的只读输入；Pro 的 pinned Lite 与当前 Lite 独立标识。不新增生产依赖、不改变产品 API、发行包、权限或支持版本。
 - 本次先交付上述能力的完整规划。实施需确认 change 并由总管逐 task 准入；真实 Creator、服务、安装与独立 QA 的执行继续由各自已批准任务承接。
 

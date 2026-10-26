@@ -19,7 +19,7 @@
 
 ### 1. 归属与最小实现
 
-Lite 拥有产品级测试导航，新增 `tools/pod-test-coverage/` 下纯 Node ESM 模块；数据与示例放 `tests/fixtures/pod-test-coverage/`，说明和初始映射放 `docs/testing/pod/`。采用标准库，不新增依赖，不修改产品 workspace、lockfile 或安装包。根 test:tools 的既有发现规则可以接入新 `.test.mjs` 测试。
+Lite 拥有产品级测试导航，新增 `tools/pod-test-coverage/` 下 TypeScript ESM 模块；数据与示例放 `tests/fixtures/pod-test-coverage/`，说明和初始映射放 `docs/testing/pod/`。采用标准库，不新增依赖，不修改产品 workspace、lockfile 或安装包。根 test:tools 的既有发现规则可以接入新 `.test.mjs` 测试。
 
 工具运行基线选择 Node 22，精确补丁与 OS/架构进入验收记录；与 Creator 内嵌 Node 14 的产品兼容基线分开。路径处理使用平台标准 API，首轮实际宿主验收为 macOS；Windows/Linux 文件系统行为用固定夹具覆盖但不冒称已在对应机器验收。容量上限集中定义为输入协议限制，禁止从任意环境变量改变验证强度。固定来源/证据适配器由显式组装清单注入，未知类型拒绝赋予通过，不建立外部插件加载机制。
 
@@ -67,9 +67,9 @@ Lite 拥有产品级测试导航，新增 `tools/pod-test-coverage/` 下纯 Node
 拟提供：
 
 ```
-node tools/pod-test-coverage/cli.mjs validate --input <json> --source-root <id=path> --evidence-root <id=path>
-node tools/pod-test-coverage/cli.mjs report --input <json> --source-root <id=path> --evidence-root <id=path> --out <new-directory>
-node tools/pod-test-coverage/cli.mjs check-acceptance --input <json> --source-root <id=path> --evidence-root <id=path> --workflow <id>
+node --import tsx tools/pod-test-coverage/cli.mts validate --input <json> --source-root <id=path> --evidence-root <id=path>
+node --import tsx tools/pod-test-coverage/cli.mts report --input <json> --source-root <id=path> --evidence-root <id=path> --out <new-directory>
+node --import tsx tools/pod-test-coverage/cli.mts check-acceptance --input <json> --source-root <id=path> --evidence-root <id=path> --workflow <id>
 ```
 
 validate 仅检查输入结构、引用、来源完整性声明、映射与证据一致性；合法的 not_run/blocked 不造成结构校验失败。来源缺失明确列缺口，已声明摘要不匹配/非法引用则错误。report 对合法但不完整输入生成报告并返回 0，明确 `acceptanceComplete:false`；check-acceptance 对所选主线未完成返回 2；非法输入或 I/O 错误返回 1。没有输出参数的检查不得写文件。
@@ -111,6 +111,6 @@ validate 仅检查输入结构、引用、来源完整性声明、映射与证�
 
 先固定输入契约和合成夹具，再实现独立分母与映射、证据状态、报告和 CLI，最后录入可核对的初始来源与六条主线并将计划接入报告。串行 DAG 为 1.1 → 1.2 → 2.1 → 2.2 → 3.1 → 3.2；共享 schema/数据/报告使并行无收益，不启用子代理。
 
-实现验收：定向 `node --test tools/tests/pod-test-coverage-*.test.mjs`；现有 `npm run test:tools`；按项目完整验证要求执行 Lite `npm run verify`，无发布包改动不额外 pack。原始命令/退出码保留，环境缺失不算通过。初始数据使用 validate/report 验证，check-acceptance 对真实未完成主线必须返回 2；另以完整合成证据验证退出 0，不能将其计入产品结果。整个实现验收不运行 Creator 或远程服务。
+实现验收：定向 `tsx --test tools/tests/pod-test-coverage-*.test.mts`；现有 `npm run test:tools`；按项目完整验证要求执行 Lite `npm run verify`，无发布包改动不额外 pack。原始命令/退出码保留，环境缺失不算通过。初始数据使用 validate/report 验证，check-acceptance 对真实未完成主线必须返回 2；另以完整合成证据验证退出 0，不能将其计入产品结果。整个实现验收不运行 Creator 或远程服务。
 
 本轮规划验收为 OpenSpec strict、逐 task packet、精确差异与 scoped RAG；未改变产品输入不重跑产品测试。规划以 coordinated 交付：checkpoint owner 为本执行会话，integration owner 为唯一 Workspace 总管，实际 ID 与 Git 权限由设备登记绑定。后续每项任务需要对应写集和 preflight。撤回新增文件可回滚，无产品数据迁移、无生产部署；不修改或删除历史证据，不触发或核验 Actions。
