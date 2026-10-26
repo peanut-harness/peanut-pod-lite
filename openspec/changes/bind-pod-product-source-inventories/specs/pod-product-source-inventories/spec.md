@@ -1,5 +1,7 @@
 # Spec Delta
 
+> 历史规格：以下 CPM 来源要求记录旧候选的完成范围；当前 Pod 来源与产品证据遵循 [自有安装规格](../../../decouple-pod-from-cpm/specs/pod-self-managed-installation/spec.md)。旧 CPM 清单来源不进入当前 Pod 候选分母，旧回执不升级为当前安装验收。
+
 ## Purpose
 
 为 PeanutPod 离线测试矩阵提供跨仓来源的可核对能力分母，使 Pro、Server 与 CPM 的公开目录、审阅记录及发行状态能按候选身份展示，同时阻止来源文件、历史测试或空清单被误算为当前产品验收。

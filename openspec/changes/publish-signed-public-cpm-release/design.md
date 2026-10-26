@@ -1,5 +1,7 @@
 # Design
 
+> 历史设计：本设计描述当时的 CPM 发行路径。Pod 当前采用 [decouple-pod-from-cpm](../decouple-pod-from-cpm/design.md) 的自有 Packaging/Plugin Manager 路径；下文不作为当前 Pod 安装或发布验收依据。原阶段结果和未完成门禁仍由本 change 的任务清单记录。
+
 ## Context
 
 见 [proposal.md](proposal.md) 的动机。`cpm-install` 当前已经包含 schema v2 release manifest、Ed25519 验签、runtime manifest、摘要校验、受控 tar 解包和版本化安装目录，但 Bash/PowerShell 入口在解析 release 后仍固定退出 1，`releases.json` 为空，且信任锚依赖环境变量。Lite 已生成 Creator Host 与 `peanut.pod-lite` Core 目录包并在 3.8.3/3.8.7 验证，但打包版本仍分散在 manifest/脚本中，也没有可由公共 CPM 消费的产品发行索引。

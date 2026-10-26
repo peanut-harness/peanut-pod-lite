@@ -1,5 +1,7 @@
 # Tasks
 
+> 取代记录（2026-10-26）：用户已取消 Pod 对 CPM 的依赖。本清单 1.x–4.x 的已完成状态仅表示当时完成的历史工作；5.x/6.x 保持未完成，不再作为 Pod 发布或安装的派工前置，也不因新方案而视为完成。当前实施与验收跟踪见 [decouple-pod-from-cpm/tasks.md](../decouple-pod-from-cpm/tasks.md)。本 change 保留供追溯，未归档。
+
 ## 1. 冻结发行协议与基线
 
 - [x] 1.1 `[repo: cpm-install] [paths: release-manifest.mjs, runtime-manifest.mjs, bootstrap.mjs, install.sh, install.ps1, tests/**] [depends: none] [serial] [owner: coordinator]` 记录当前空 manifest、脚本 exit 1、已有 Ed25519/runtime 校验和原子安装正负行为，补齐不会修改真实用户目录的基线 fixture；以仓库测试通过并保存稳定错误码清单验收。

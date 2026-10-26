@@ -1,5 +1,7 @@
 # Spec Delta
 
+> 历史规格：Pod 已改走 [自有安装规格](../../../decouple-pod-from-cpm/specs/pod-self-managed-installation/spec.md)。以下 CPM 发行要求保留作原方案追溯，不作为当前 Pod 产品的生效验收要求；本 change 未归档，未执行的发布门禁仍未完成。
+
 ## Purpose
 
 定义公共 CPM CLI 与 Lite 产品包从签名发行、可信下载、原子安装到 Creator 激活验收的完整分发契约，使用户能够安全安装和升级，同时让任何身份、完整性或恢复证据缺失都保持失败关闭。

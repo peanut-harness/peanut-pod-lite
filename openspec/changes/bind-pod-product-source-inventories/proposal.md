@@ -1,5 +1,7 @@
 # Proposal
 
+> 历史候选状态（2026-10-26）：本 change 的四项任务已按当时的 Pro、Server、CPM 四仓来源候选完成，记录和回执保持原样。Pod 当前候选已在 [decouple-pod-from-cpm](../decouple-pod-from-cpm/proposal.md) 中移除 CPM 依赖；当前测试矩阵的来源分母使用 Lite Packaging、Pro 包身份和 Server 审阅来源。下文的 CPM 适配器与旧候选仅供历史追溯，不是当前产品验收入口。
+
 ## Why
 
 现有测试矩阵已能诚实显示六条业务主线的未执行状态，但 Pro、Server、CPM 仍被列为缺少来源仓库，能力分母无法用于跨产品缺口导航。当前环境已有 Pro 的固定操作目录、Server 的账户实现与迁移记录、CPM 的公开 schema v2 清单；需要把这些只读来源绑定到候选身份，同时保留未发布和未完成宿主验收的边界。

@@ -1,5 +1,7 @@
 # Design
 
+> 历史设计：以下来源组合对应已完成的旧候选。当前候选的自有安装来源组合与证据边界见 [decouple-pod-from-cpm](../decouple-pod-from-cpm/design.md)；CPM 清单不进入当前 Pod 分母。本设计与旧回执保留供追溯。
+
 ## Context
 
 见 `proposal.md`。前一变更 `add-pod-test-coverage-matrix` 已交付离线输入、独立分母、证据三轴和报告，但初始输入只固定 Lite 的策展索引；Pro、Server、CPM 在候选仓库表中出现却缺少各自的来源项，因此 `missingRepositories` 为三项。Pro 的 `catalog/core-operations.json` 有 84 项、`catalog/premium-operations.json` 有 15 项，两表当前无重叠。Server 账户 Actor 3.1/3.2 的真实宿主验收未完成。CPM 公共仓没有用于既有 `cpm-package` 适配器的 `package.json`；`releases.json` 为 schema v2、stable 渠道、空 `releases`。

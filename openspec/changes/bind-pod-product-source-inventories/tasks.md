@@ -1,5 +1,7 @@
 # Tasks
 
+> 取代记录（2026-10-26）：四项勾选状态保留，表示旧候选来源绑定当时已交付。当前 Pod 候选已按 [decouple-pod-from-cpm/tasks.md](../decouple-pod-from-cpm/tasks.md) 3.1 改绑自有 Packaging/Host 来源；旧 CPM 清单适配器与四仓回执仅作历史证据，不再作为当前分母或产品安装前置。本 change 未归档。
+
 交付按 serial 依赖推进：1.1 → 1.2 → 1.3 → 2.1。每项由本产品会话完成技术验收与 checkpoint；规划工作树目前只开放本 change 目录。实施前须由 Workspace 总管按对应 task packet 登记精确写集并运行 preflight。禁止并行代理、外仓写入、产品实机或服务执行、CPM 发布与输入命令执行。来源分母完成、工具交付和产品验收分别记录。
 
 ## 1. 跨仓来源绑定

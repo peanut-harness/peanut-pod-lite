@@ -1,5 +1,7 @@
 # Proposal
 
+> 历史方案状态（2026-10-26）：用户已决定 Pod 完全脱离 CPM，改由 Peanut Packaging / Plugin Manager 负责构建与安装。本文记录原 CPM 公共发行方案，不再是 Pod 的交付前置或当前安装承诺；替代方案见 [decouple-pod-from-cpm](../decouple-pod-from-cpm/proposal.md)。已完成的历史工作及尚未执行的 5.x/6.x 任务按原状态保留。
+
 ## Why
 
 Lite 已能产出并实机验证 Creator Host 与 Core CPM 目录包，但公共 `cpm-install` 仍以空 release manifest 和失败关闭脚本拒绝安装，用户无法从公开入口获得可认证、可回滚的正式发行。现在需要把已有 Ed25519 清单、摘要校验和原子解包骨架接成真实发布闭环，使 Lite 的“可构建”状态升级为“可安全分发与安装”。
