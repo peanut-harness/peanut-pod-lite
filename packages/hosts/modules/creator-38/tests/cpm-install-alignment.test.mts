@@ -11,13 +11,17 @@ const { ProjectPackageStore } = require('@peanut/pod-engine/installation');
 const { HostPackageIdentity } = require('../src/host-package-identity.ts');
 const compareReleaseIdentity = HostPackageIdentity.compareReleaseIdentity;
 const hostPackageDigest = HostPackageIdentity.hostPackageDigest;
-const releaseRoot = resolve(import.meta.dirname, '../../../../../release/peanut.pod-lite-0.2.0');
+const repositoryRoot = resolve(import.meta.dirname, '../../../../..');
+const rootManifest = JSON.parse(readFileSync(join(repositoryRoot, 'package.json'), 'utf8'));
+const releaseRoot = join(repositoryRoot, 'release', `peanut.pod-lite-${rootManifest.version}`);
 const descriptor = JSON.parse(readFileSync(join(releaseRoot, 'lite-release-descriptor.json'), 'utf8'));
+assert.equal(descriptor.productId, 'peanut.pod-lite');
+assert.equal(descriptor.version, rootManifest.version);
 const coreId = descriptor.productId;
 const proId = 'peanut.cocos-mcp-pro';
 
 // The packed Host bundle is loaded once per process; each scenario reloads it against the same project.
-const projectRoot = createCpmLayoutProject();
+const projectRoot = createSelfManagedProject();
 const installedHostRoot = join(projectRoot, 'extensions/peanut-pod-lite-host');
 const installedHostManifest = JSON.parse(readFileSync(join(installedHostRoot, 'package.json'), 'utf8'));
 const host = require(join(installedHostRoot, installedHostManifest.main));
@@ -28,7 +32,7 @@ test.after(async () => {
     rmSync(projectRoot, { recursive: true, force: true });
 });
 
-test('packed Host loads a CPM-installed Core and reports artifacts matching the release descriptor', async () => {
+test('packed Host loads a self-managed Core and reports artifacts matching the release descriptor', async () => {
     writeIndex([coreRecord()]);
     globalThis.Editor = createEditor(projectRoot);
     await host.load();
@@ -44,7 +48,7 @@ test('packed Host loads a CPM-installed Core and reports artifacts matching the 
     await host.unload();
 });
 
-test('a failed optional Pro package stays isolated from the CPM-installed Core', async () => {
+test('a failed optional Pro package stays isolated from the self-managed Core', async () => {
     const pro = writeProPackage();
     writeIndex([coreRecord(), pro]);
     assert.equal(new ProjectPackageStore(projectRoot).resolveVerifiedActivePackage(proId, false)?.manifest.version, pro.versions[0].version);
@@ -91,10 +95,10 @@ test('Host package digest ignores Finder metadata and refuses development checko
     }
 });
 
-function createCpmLayoutProject() {
+function createSelfManagedProject() {
     const temporaryRoot = resolve(import.meta.dirname, '..', '.test-temp');
     mkdirSync(temporaryRoot, { recursive: true });
-    const root = mkdtempSync(join(temporaryRoot, 'cpm-install-alignment-'));
+    const root = mkdtempSync(join(temporaryRoot, 'self-managed-install-alignment-'));
     const extensions = join(root, 'extensions');
     const plugins = join(root, 'peanut-plugins', 'plugins', coreId);
     mkdirSync(extensions, { recursive: true });
@@ -103,7 +107,7 @@ function createCpmLayoutProject() {
     renameSync(join(extensions, `peanut-pod-lite-host-${descriptor.version}`), join(extensions, 'peanut-pod-lite-host'));
     extract(join(releaseRoot, descriptor.core.archive), plugins);
     renameSync(join(plugins, `${coreId}-${descriptor.version}`), join(plugins, descriptor.version));
-    writeFileSync(join(root, 'package.json'), JSON.stringify({ name: 'cpm-alignment', creator: { version: '3.8.7' } }));
+    writeFileSync(join(root, 'package.json'), JSON.stringify({ name: 'self-managed-alignment', creator: { version: '3.8.7' } }));
     return root;
 }
 
@@ -156,7 +160,7 @@ function createEditor(root) {
     };
     const timerMap = new Map();
     return {
-        Project: { path: root, name: 'cpm-alignment' },
+        Project: { path: root, name: 'self-managed-alignment' },
         App: { version: '3.8.7', safeStorage },
         Metrics: { trackTimeStart() {}, trackTimeEnd() {}, __protected__: { getTrackTimeStartMap: () => timerMap } },
         Selection: { getSelected: () => [] },
