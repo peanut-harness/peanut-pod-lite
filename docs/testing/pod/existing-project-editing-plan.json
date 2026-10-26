@@ -1,0 +1,43 @@
+{
+  "schema": "peanut.pod.existing-project-editing-plan.v1",
+  "change": "validate-pod-0-2-1-existing-project-editing",
+  "status": "planning_only",
+  "candidate": {
+    "version": "0.2.1",
+    "testedSourceCommit": "660226aa28d0d96fc4766c81c3b58af71cd1a8f0",
+    "hostPackageDigest": "3954bec522639354ce249f594055e7a543854ee721c645994051cd094f534438",
+    "corePackageDigest": "ef38d9ac7f12a6face2e353cbb02c538ce0546520d1cb3941a903c8a376d794f",
+    "hostArchiveSha256": "266589255eca7e6a8fa03f64171a329e607b8de514df79a0cdcf7418dbfb771f",
+    "coreArchiveSha256": "cb037f16b57e38b38306f0066d6eb88ea94ef514cccfe92d5e49c49925ca64d0"
+  },
+  "projects": [
+    {
+      "creatorVersion": "3.8.3",
+      "path": "/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-3.8.3",
+      "immutableManifestSha256": "d0590e913cd0cd01b007f4f78048de8b8886d4019384fdef42fd243a65ac5912",
+      "immutableFixtureSha256": "979d5eafec48a58f0ea5b9a946d2e4a469d46352792388923b22d0704c6e6ff9",
+      "runStatus": "blocked_pending_source_and_runtime_lease"
+    },
+    {
+      "creatorVersion": "3.8.7",
+      "path": "/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-3.8.7",
+      "immutableManifestSha256": "77447e17ee1fea9b68ef44af33cbe5f572365a1d4232c0d2022768a1faa627d0",
+      "immutableFixtureSha256": "4719237bad0dce214f4ec95f4799684a7ae7a0225e770a6299ebec28f8d951f6",
+      "runStatus": "blocked_pending_source_and_runtime_lease"
+    }
+  ],
+  "writeNamespaceTemplate": "assets/_peanut-managed-task-live/<runId>/**",
+  "runOrder": ["3.8.3", "3.8.7"],
+  "requiredStages": ["fresh_occupancy_and_backup", "candidate_identity", "managed_create", "save_close", "reopen", "independent_readback", "project_diff"],
+  "requiredEvidence": ["raw_commands_and_exit_codes", "backup_manifest", "host_core_identity", "approval_scope", "created_paths", "assetdb_uuid_and_meta", "references", "component_and_code_results", "incremental_project_log", "before_after_protected_hashes"],
+  "coverageDraftPending": { "3.8.3": 4128, "3.8.7": 4119 },
+  "podMatrixCasesNotRun": 12,
+  "gates": {
+    "sourceRegistration": false,
+    "runtimeLease": false,
+    "freshOccupancyAndBackup": false,
+    "creatorExecutionAuthorized": false
+  },
+  "stopOn": ["candidate_identity_mismatch", "backup_or_occupancy_unverified", "protected_asset_drift", "new_unexplained_log_error", "assetdb_identity_or_reference_mismatch", "rollback_uncertain"],
+  "nonGoals": ["new_or_reset_project", "blank_project_fresh_install", "real_server_or_account", "cpm_publish", "full_coverage_from_small_sample"]
+}
