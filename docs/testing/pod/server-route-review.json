@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "pod-server-review.v1",
+  "reviewer": "pod-source-owner",
+  "candidateServerCommit": "5a1c27366d87f2494e16e36fac2d7f7b810a1aae",
+  "candidateServerTree": "7dfdeedbb1c99d86b824307c1fc1cce4cdd20c9c",
+  "reviewScope": "current root Node HTTP account routes",
+  "limitations": [
+    "Source review only; no current product pass or real service execution.",
+    "Actor account protocol tests use VM fixtures; Native host, HTTP, OIDC, PG and KMS acceptance remain unfinished.",
+    "Actor HTTP host currently exposes plan routes only; these account paths are from the root Node service."
+  ],
+  "migrationImplementationRefs": [
+    {
+      "rootId": "server",
+      "path": "actor-service/src/actors/account-actor.ts",
+      "sha256": "ec2a70ed492992bd5f3d2e4d13b103c051b7639d212a35f1d9ef59e303d95bce"
+    },
+    {
+      "rootId": "server",
+      "path": "actor-service/config/account-read.sql",
+      "sha256": "24fc0d1d1fd7ac0a18387ffd1bdc4747499000023ef684442f7d3e1a5ae691b6"
+    }
+  ],
+  "routes": [
+    {
+      "id": "account-offer",
+      "method": "GET",
+      "path": "/v1/account/offer",
+      "implementationRefs": [
+        {
+          "rootId": "server",
+          "path": "src/http-handler.js",
+          "sha256": "740122051f100f2408bf55bd38126240f48bb4aed190f029e832093a2aa1ae9b"
+        },
+        {
+          "rootId": "server",
+          "path": "src/subscription-service.js",
+          "sha256": "43217177a5d7bdfb762c7a11c4111a799da3e72b82a4384d86440a88960b3731"
+        },
+        {
+          "rootId": "server",
+          "path": "src/premium-offer-catalog.js",
+          "sha256": "34bdf2ee1ca62f8531806aa6d90d79da4a1a599465fa199ca5dea354aa50e89a"
+        }
+      ]
+    },
+    {
+      "id": "account-subscription",
+      "method": "GET",
+      "path": "/v1/account/subscription",
+      "implementationRefs": [
+        {
+          "rootId": "server",
+          "path": "src/http-handler.js",
+          "sha256": "740122051f100f2408bf55bd38126240f48bb4aed190f029e832093a2aa1ae9b"
+        },
+        {
+          "rootId": "server",
+          "path": "src/subscription-service.js",
+          "sha256": "43217177a5d7bdfb762c7a11c4111a799da3e72b82a4384d86440a88960b3731"
+        },
+        {
+          "rootId": "server",
+          "path": "src/postgres-stores.js",
+          "sha256": "8ba9afa87e91a410040689cf2646cd49dac80087ce2b9e77d9f080adc68c8072"
+        }
+      ]
+    },
+    {
+      "id": "account-checkout",
+      "method": "POST",
+      "path": "/v1/account/checkout",
+      "implementationRefs": [
+        {
+          "rootId": "server",
+          "path": "src/http-handler.js",
+          "sha256": "740122051f100f2408bf55bd38126240f48bb4aed190f029e832093a2aa1ae9b"
+        },
+        {
+          "rootId": "server",
+          "path": "src/subscription-service.js",
+          "sha256": "43217177a5d7bdfb762c7a11c4111a799da3e72b82a4384d86440a88960b3731"
+        },
+        {
+          "rootId": "server",
+          "path": "src/postgres-stores.js",
+          "sha256": "8ba9afa87e91a410040689cf2646cd49dac80087ce2b9e77d9f080adc68c8072"
+        }
+      ]
+    }
+  ]
+}

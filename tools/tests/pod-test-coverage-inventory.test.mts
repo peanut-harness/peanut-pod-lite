@@ -245,6 +245,35 @@ test('nonempty CPM release stays unverified and malformed manifests fail closed'
     } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+test('reviewed Server account routes retain three exact HTTP paths and require implementation roots', () => {
+    const path = 'docs/testing/pod/server-route-review.json';
+    const bytes = readFileSync(join(repositoryRoot, path));
+    const review = JSON.parse(bytes.toString('utf8'));
+    assert.equal(review.schemaVersion, 'pod-server-review.v1');
+    assert.equal(review.reviewScope, 'current root Node HTTP account routes');
+    assert.deepEqual(review.routes.map((row: Record<string, unknown>) => [row.id, row.method, row.path]), [
+        ['account-offer', 'GET', '/v1/account/offer'],
+        ['account-subscription', 'GET', '/v1/account/subscription'],
+        ['account-checkout', 'POST', '/v1/account/checkout'],
+    ]);
+    assert.match(review.limitations.join(' '), /Native host.*remain unfinished/u);
+    for (const route of review.routes as Record<string, unknown>[]) {
+        for (const reference of route.implementationRefs as Record<string, unknown>[]) {
+            assert.equal(reference.rootId, 'server');
+            assert.equal(PodCoverageContracts.digest(reference.sha256), true);
+        }
+    }
+    const digest = PodCoverageContracts.sha256(bytes);
+    const source = { ...sourceFor('server-reviewed-routes', path, bytes, 'peanut-pod-server'),
+        commit: review.candidateServerCommit, tree: review.candidateServerTree,
+        sourceRef: { rootId: 'lite', path, sha256: digest } };
+    const input = inputFor(source);
+    const missing = PodCoverageInventory.inspect(input, new PodCoverageInputReader([{ id: 'lite', path: repositoryRoot }]));
+    assert.equal(missing.sources[0]?.completeness, 'missing');
+    assert.equal(missing.sources[0]?.reason, 'source_root_missing');
+    assert.equal(missing.complete, false);
+});
+
 test('mapping rejects unknown capability and dangling or cyclic case/workflow dependencies', () => {
     const root = mkdtempSync(join(tmpdir(), 'pod-coverage-mapping-'));
     try {
