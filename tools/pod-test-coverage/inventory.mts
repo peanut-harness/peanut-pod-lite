@@ -196,7 +196,7 @@ export class PodCoverageInventory {
             return [capability(`plugin:${pluginId}`, kind), ...panels.map((panel) =>
                 capability(`panel:${PodCoverageContracts.identifier(panel.id)}`, kind))];
         }
-        if (kind === 'pro-package' || kind === 'cpm-package') {
+        if (kind === 'pro-package' || kind === 'pod-package' || kind === 'cpm-package') {
             const name = typeof record.name === 'string' && record.name.length > 0 && record.name.length <= 256
                 ? record.name : null;
             if (name === null) throw new Error('pod_coverage_package_name_invalid');
@@ -322,6 +322,6 @@ export class PodCoverageInventory {
      * @description 本版本唯一允许给予目录解释权的来源类型。
      */
     private static readonly supportedKinds = new Set(['lite-coverage-draft', 'pro-core-catalog', 'pro-premium-catalog',
-        'pro-plugin-manifest', 'pro-package', 'pro-fixed-lite', 'server-reviewed-routes', 'cpm-package',
+        'pro-plugin-manifest', 'pro-package', 'pod-package', 'pro-fixed-lite', 'server-reviewed-routes', 'cpm-package',
         'cpm-release-manifest-v2', 'curated-business']);
 }

@@ -1,5 +1,7 @@
 # 跨仓来源接入验证回执
 
+此文件记录已交付的历史 CPM 来源快照。当前自有安装候选的来源、分母和命令见 `README.md` 与 `initial-input.json`；下述四仓分母不用于当前产品验收。
+
 变更：`bind-pod-product-source-inventories`。候选：`research-baseline-20261026`。本回执记录离线来源与工具验收，不构成 PeanutPod 产品验收。
 
 ## 来源与报告

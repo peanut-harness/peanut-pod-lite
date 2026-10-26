@@ -1,19 +1,19 @@
 {
   "schemaVersion": "pod-test-coverage-input.v1",
   "candidate": {
-    "id": "research-baseline-20261026",
+    "id": "self-managed-candidate-20261026",
     "repositories": {
       "peanut-pod-lite": {
-        "commit": "f6ac69fb9b5ce7f840d540cd1b1fe3fd23a3ec02",
-        "tree": "7e10bf7da7c6c49cb402b7c3c0333acb0546bb4c",
+        "commit": "21e546c6e1dde57355650db3ece3558935eddf22",
+        "tree": "cf771990229401fc539290c81a1ebee61ff8fc09",
         "platform": "darwin-arm64",
         "runtimeVersion": "node-26.8.2",
         "toolchain": "tsx-4.23.0",
         "artifactDigests": {}
       },
       "peanut-pod-pro": {
-        "commit": "c5f6990dd665ba2049fa8b290d669115c664a771",
-        "tree": "ad4f77864fc879a7faec788864ff1a53e8bc3da4",
+        "commit": "634418c90ec59f6630e535e763259dc15748e68c",
+        "tree": "62f0655bbdcac644bc57809b5c3c9f70ef435d6d",
         "platform": "unverified",
         "runtimeVersion": "unverified",
         "toolchain": "unverified",
@@ -26,14 +26,6 @@
         "runtimeVersion": "unverified",
         "toolchain": "unverified",
         "artifactDigests": {}
-      },
-      "cpm-install": {
-        "commit": "a5b9bf9b7bc369732c6ee2efb2b33c4a9fa32487",
-        "tree": "374d222260c5ba42d0ffd52de993e893b750f36e",
-        "platform": "unverified",
-        "runtimeVersion": "unverified",
-        "toolchain": "unverified",
-        "artifactDigests": {}
       }
     },
     "environments": [
@@ -41,11 +33,12 @@
       "creator-3.8.7"
     ],
     "inputDigests": {
-      "reviewed-mainlines": "7d034e70884fa9b684bb9b3ea41931acba787ef62cd2220f96b371bd461cb2fd",
+      "reviewed-mainlines": "7844e28d105d769177998cb8ce6cfae85aa53b456ac2a27a61f0ee45eb032871",
       "pro-core": "3f7455abe5af6dd3bf9a71558c24a80fb67cbc8cfbabcf1fd1ada1757cbd71c2",
       "pro-premium": "b2db1114af031d75c7d82f30ae32bec3868c3405d5abf3e00885248adc709dc7",
       "server-account-routes": "39aed7e818ddba6019d6fd99acd4f6d97e710f94f628128e7ad1b9307da3a9ba",
-      "cpm-stable": "dc79f1f107f4fd85fd50da51ac4113be9be4532ecb546e2b22c174a0a93f8b93"
+      "lite-packaging": "f818348e7b01bfaa787035c933464a5ea28ee08750ee8e67bbb1592d9a7d8623",
+      "pro-directory-package": "80520ca6860f70e4fd23bade203f9bff45e8849acbdeffcabbe96f179c37dcdc"
     }
   },
   "sources": [
@@ -53,14 +46,14 @@
       "id": "reviewed-mainlines",
       "repository": "peanut-pod-lite",
       "role": "current-product",
-      "commit": "f6ac69fb9b5ce7f840d540cd1b1fe3fd23a3ec02",
-      "tree": "7e10bf7da7c6c49cb402b7c3c0333acb0546bb4c",
+      "commit": "21e546c6e1dde57355650db3ece3558935eddf22",
+      "tree": "cf771990229401fc539290c81a1ebee61ff8fc09",
       "sourceRef": {
         "rootId": "lite",
         "path": "docs/testing/pod/source-catalog.json",
-        "sha256": "7d034e70884fa9b684bb9b3ea41931acba787ef62cd2220f96b371bd461cb2fd"
+        "sha256": "7844e28d105d769177998cb8ce6cfae85aa53b456ac2a27a61f0ee45eb032871"
       },
-      "sha256": "7d034e70884fa9b684bb9b3ea41931acba787ef62cd2220f96b371bd461cb2fd",
+      "sha256": "7844e28d105d769177998cb8ce6cfae85aa53b456ac2a27a61f0ee45eb032871",
       "kind": "curated-business",
       "creatorVersion": null,
       "completeness": "reviewed"
@@ -69,9 +62,13 @@
       "id": "pro-core",
       "repository": "peanut-pod-pro",
       "role": "current-product",
-      "commit": "c5f6990dd665ba2049fa8b290d669115c664a771",
-      "tree": "ad4f77864fc879a7faec788864ff1a53e8bc3da4",
-      "sourceRef": { "rootId": "pro", "path": "catalog/core-operations.json", "sha256": "3f7455abe5af6dd3bf9a71558c24a80fb67cbc8cfbabcf1fd1ada1757cbd71c2" },
+      "commit": "634418c90ec59f6630e535e763259dc15748e68c",
+      "tree": "62f0655bbdcac644bc57809b5c3c9f70ef435d6d",
+      "sourceRef": {
+        "rootId": "pro",
+        "path": "catalog/core-operations.json",
+        "sha256": "3f7455abe5af6dd3bf9a71558c24a80fb67cbc8cfbabcf1fd1ada1757cbd71c2"
+      },
       "sha256": "3f7455abe5af6dd3bf9a71558c24a80fb67cbc8cfbabcf1fd1ada1757cbd71c2",
       "kind": "pro-core-catalog",
       "creatorVersion": null,
@@ -81,9 +78,13 @@
       "id": "pro-premium",
       "repository": "peanut-pod-pro",
       "role": "current-product",
-      "commit": "c5f6990dd665ba2049fa8b290d669115c664a771",
-      "tree": "ad4f77864fc879a7faec788864ff1a53e8bc3da4",
-      "sourceRef": { "rootId": "pro", "path": "catalog/premium-operations.json", "sha256": "b2db1114af031d75c7d82f30ae32bec3868c3405d5abf3e00885248adc709dc7" },
+      "commit": "634418c90ec59f6630e535e763259dc15748e68c",
+      "tree": "62f0655bbdcac644bc57809b5c3c9f70ef435d6d",
+      "sourceRef": {
+        "rootId": "pro",
+        "path": "catalog/premium-operations.json",
+        "sha256": "b2db1114af031d75c7d82f30ae32bec3868c3405d5abf3e00885248adc709dc7"
+      },
       "sha256": "b2db1114af031d75c7d82f30ae32bec3868c3405d5abf3e00885248adc709dc7",
       "kind": "pro-premium-catalog",
       "creatorVersion": null,
@@ -95,23 +96,47 @@
       "role": "current-product",
       "commit": "5a1c27366d87f2494e16e36fac2d7f7b810a1aae",
       "tree": "7dfdeedbb1c99d86b824307c1fc1cce4cdd20c9c",
-      "sourceRef": { "rootId": "lite", "path": "docs/testing/pod/server-route-review.json", "sha256": "39aed7e818ddba6019d6fd99acd4f6d97e710f94f628128e7ad1b9307da3a9ba" },
+      "sourceRef": {
+        "rootId": "lite",
+        "path": "docs/testing/pod/server-route-review.json",
+        "sha256": "39aed7e818ddba6019d6fd99acd4f6d97e710f94f628128e7ad1b9307da3a9ba"
+      },
       "sha256": "39aed7e818ddba6019d6fd99acd4f6d97e710f94f628128e7ad1b9307da3a9ba",
       "kind": "server-reviewed-routes",
       "creatorVersion": null,
       "completeness": "reviewed"
     },
     {
-      "id": "cpm-stable",
-      "repository": "cpm-install",
+      "id": "lite-packaging",
+      "repository": "peanut-pod-lite",
       "role": "current-product",
-      "commit": "a5b9bf9b7bc369732c6ee2efb2b33c4a9fa32487",
-      "tree": "374d222260c5ba42d0ffd52de993e893b750f36e",
-      "sourceRef": { "rootId": "cpm", "path": "releases.json", "sha256": "dc79f1f107f4fd85fd50da51ac4113be9be4532ecb546e2b22c174a0a93f8b93" },
-      "sha256": "dc79f1f107f4fd85fd50da51ac4113be9be4532ecb546e2b22c174a0a93f8b93",
-      "kind": "cpm-release-manifest-v2",
+      "commit": "21e546c6e1dde57355650db3ece3558935eddf22",
+      "tree": "cf771990229401fc539290c81a1ebee61ff8fc09",
+      "sourceRef": {
+        "rootId": "lite",
+        "path": "packages/engine/modules/installation/package.json",
+        "sha256": "f818348e7b01bfaa787035c933464a5ea28ee08750ee8e67bbb1592d9a7d8623"
+      },
+      "sha256": "f818348e7b01bfaa787035c933464a5ea28ee08750ee8e67bbb1592d9a7d8623",
+      "kind": "pod-package",
       "creatorVersion": null,
-      "completeness": "complete"
+      "completeness": "reviewed"
+    },
+    {
+      "id": "pro-directory-package",
+      "repository": "peanut-pod-pro",
+      "role": "current-product",
+      "commit": "634418c90ec59f6630e535e763259dc15748e68c",
+      "tree": "62f0655bbdcac644bc57809b5c3c9f70ef435d6d",
+      "sourceRef": {
+        "rootId": "pro",
+        "path": "packages/mcp-cocos-host-adapter/package.json",
+        "sha256": "80520ca6860f70e4fd23bade203f9bff45e8849acbdeffcabbe96f179c37dcdc"
+      },
+      "sha256": "80520ca6860f70e4fd23bade203f9bff45e8849acbdeffcabbe96f179c37dcdc",
+      "kind": "pod-package",
+      "creatorVersion": null,
+      "completeness": "reviewed"
     }
   ],
   "capabilities": [
@@ -197,16 +222,17 @@
       ],
       "fixtureRefs": [],
       "commandRef": {
-        "repository": "cpm-install",
+        "repository": "peanut-pod-lite",
         "cwdRelative": ".",
-        "executable": "node",
+        "executable": "npm",
         "argv": [
-          "cli/cpm.mjs"
+          "run",
+          "release:candidate"
         ]
       },
-      "expectedOutcome": "CPM 候选安装与包身份一致",
+      "expectedOutcome": "Pod 自有候选构建、Peanut Packaging 安装及 Host/Core 包身份一致",
       "allowedEffects": [],
-      "readback": "安装后独立查询版本、签名与来源摘要",
+      "readback": "Peanut Packaging 活动索引、Host query-status.artifacts 与同一候选摘要独立核对",
       "recovery": "未获安装授权时停止；仅清理本次安装资源",
       "depends": []
     },
@@ -224,16 +250,17 @@
       ],
       "fixtureRefs": [],
       "commandRef": {
-        "repository": "cpm-install",
+        "repository": "peanut-pod-lite",
         "cwdRelative": ".",
-        "executable": "node",
+        "executable": "npm",
         "argv": [
-          "cli/cpm.mjs"
+          "run",
+          "release:candidate"
         ]
       },
-      "expectedOutcome": "CPM 候选安装与包身份一致",
+      "expectedOutcome": "Pod 自有候选构建、Peanut Packaging 安装及 Host/Core 包身份一致",
       "allowedEffects": [],
-      "readback": "安装后独立查询版本、签名与来源摘要",
+      "readback": "Peanut Packaging 活动索引、Host query-status.artifacts 与同一候选摘要独立核对",
       "recovery": "未获安装授权时停止；仅清理本次安装资源",
       "depends": []
     },

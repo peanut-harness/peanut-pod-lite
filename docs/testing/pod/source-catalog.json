@@ -7,17 +7,22 @@
         {
           "repository": "peanut-pod-lite",
           "path": "docs/INSTALLATION.md",
-          "sha256": "ed78045df29a10d907b3ae723dbac72496111dbc3f470d3345d0303a0ba98562"
+          "sha256": "5adaee23bf0a6ae8d80cbff66f29a03a1dccf440b651e47c43206c9966e3e61d"
         },
         {
-          "repository": "cpm-install",
-          "path": "cli/cpm.mjs",
-          "sha256": "ae4774037cf0b6da67ba7de64a98a59bcd9ca110d3536c8ff8dbc5406e2d3539"
+          "repository": "peanut-pod-lite",
+          "path": "packages/engine/modules/installation/src/app/packaging-app.ts",
+          "sha256": "2e75ce2febd236a1c3089639ba8d0710e454123a5938cdf00f2cf34872086d13"
         },
         {
-          "repository": "cpm-install",
-          "path": "tests/bootstrap.test.mjs",
-          "sha256": "7706e5442108fe00f45fa5c8b4d68660e9cea35818c8e328720e598c16af9775"
+          "repository": "peanut-pod-lite",
+          "path": "tools/release-candidate.mts",
+          "sha256": "ad08d17b22ff1895d76207e5c86e39b9db4a20a2619447cb26c75345fa163832"
+        },
+        {
+          "repository": "peanut-pod-pro",
+          "path": "packages/mcp-cocos-host-adapter/scripts/pod-directory-package.mts",
+          "sha256": "848587c5acee93ef98ac1ee5923635a0ade90c56e86125732c2c5221a06e3031"
         }
       ],
       "reviewStatus": "source-pointer-only",
@@ -34,7 +39,7 @@
         {
           "repository": "peanut-pod-lite",
           "path": "packages/hosts/modules/creator-38/scripts/verify-managed-task-live.mts",
-          "sha256": "6f21514655fb463c277bbc91ce020a73b805a4c2cf3b2c3a3d1f5de7d2150028"
+          "sha256": "d45e0adda63393359b501b9f553480cafc53cd6b9b6d055d1604ba935a73ad99"
         },
         {
           "repository": "peanut-pod-lite",
@@ -117,7 +122,7 @@
         {
           "repository": "peanut-pod-lite",
           "path": "packages/hosts/modules/creator-38/scripts/verify-throughput-soak-live.mts",
-          "sha256": "f0363498e5dee145543a6af7d0e4e4efb5d51d0d04e089840004d5d7e59b786a"
+          "sha256": "752bf5b5fc0a496eb5cd8a21d77bc00974b7085b57871d6d813147b80432bb98"
         },
         {
           "repository": "peanut-pod-lite",

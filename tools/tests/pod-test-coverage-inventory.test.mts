@@ -192,6 +192,21 @@ test('Server reviewed routes require original implementation bytes; CPM scoped p
     } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+test('Pod package source binds the owned package identity without a public CPM release', () => {
+    const root = mkdtempSync(join(tmpdir(), 'pod-package-source-'));
+    try {
+        const bytes = Buffer.from(JSON.stringify({ name: '@peanut/pod-engine/installation', version: '0.1.0',
+            scripts: { build: 'tsc -p tsconfig.json', test: 'node --test' } }));
+        writeFileSync(join(root, 'package.json'), bytes);
+        const source = sourceFor('pod-package', 'package.json', bytes, 'peanut-pod-lite');
+        const assessment = PodCoverageInventory.inspect(inputFor(source),
+            new PodCoverageInputReader([{ id: 'peanut-pod-lite', path: root }]));
+        assert.equal(assessment.complete, true);
+        assert.equal(assessment.sources[0]?.releaseAvailable, null);
+        assert.deepEqual(assessment.capabilities.map((row) => row.sourceSubject), ['package:@peanut/pod-engine/installation']);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test('public CPM schema v2 empty stable manifest is readable but has no available release', () => {
     const root = mkdtempSync(join(tmpdir(), 'pod-cpm-empty-'));
     try {

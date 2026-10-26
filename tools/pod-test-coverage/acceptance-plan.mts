@@ -45,7 +45,7 @@ export class PodAcceptancePlan {
         const definitions = [
             ['identity', [], 'docs/INSTALLATION.md', '候选包、来源提交与摘要独立核对', 'identity'],
             ['host-ready', ['identity'], 'docs/INSTALLATION.md', '精确宿主版本与隔离工程已就绪', 'host'],
-            ['install', ['host-ready'], 'docs/INSTALLATION.md', 'CPM 安装身份、版本与候选摘要读回', 'install'],
+            ['install', ['host-ready'], 'docs/INSTALLATION.md', 'Peanut Packaging 活动索引、版本与 Host/Core 候选摘要读回', 'install'],
             ['read-only-smoke', ['install'], 'docs/INSTALLATION.md', 'query-status 与只读探针输出', 'smoke'],
             ['approved-write', ['read-only-smoke'], 'packages/hosts/modules/creator-38/scripts/verify-managed-task-live.mts',
                 'Prefab/Scene 写入结果及 postflight 独立读回', 'write'],

@@ -132,7 +132,7 @@ test('pinned initial six-workflow input remains valid and product incomplete', (
         assert.deepEqual(report.denominator.missingRepositories, []);
         assert.deepEqual(report.denominator.sources.filter((source: { completeness: string }) =>
             source.completeness === 'missing').map((source: { id: string }) => source.id),
-        ['cpm-stable', 'pro-core', 'pro-premium', 'server-account-routes']);
+        ['pro-core', 'pro-directory-package', 'pro-premium', 'server-account-routes']);
     } finally { rmSync(output, { recursive: true, force: true }); }
     assert.equal(run(['check-acceptance', ...args, '--workflow', 'basic-editing']).status, 2);
 });
