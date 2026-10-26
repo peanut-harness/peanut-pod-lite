@@ -9,7 +9,7 @@ import test from 'node:test';
 
 const require = createRequire(import.meta.url);
 const { HostUpdateCoordinator } = require('../src/host-update-coordinator.ts');
-const { CpmPackageStore } = require('../src/cpm-package-store.js');
+const { HostPackageIdentity } = require('../src/host-package-identity.ts');
 
 /**
  * @description 最小真实目录包，只在测试 VM 中运行自己的 worker，不执行 SDK 模块。
@@ -32,7 +32,7 @@ test('old root without a worker upgrades to SDK direct versioned entry and rollb
     const candidateRoot = join(root, 'candidate'); host(extensionRoot, '0.2.0', false); host(candidateRoot, '0.2.1', true);
     const coordinator = new HostUpdateCoordinator({ extensionRoot, projectPath });
     const descriptor = { schemaVersion: 1, productId: 'peanut.pod-lite', version: '0.2.1',
-        host: { kind: 'host', packageDigest: CpmPackageStore.hostPackageDigest(candidateRoot) } };
+        host: { kind: 'host', packageDigest: HostPackageIdentity.hostPackageDigest(candidateRoot) } };
     try {
         assert.equal(existsSync(join(extensionRoot, 'dist/sdk-startup-timer-worker.js')), false);
         coordinator.stage(candidateRoot, descriptor); coordinator.applyStagedAtExit();
@@ -60,7 +60,7 @@ test('new coordinator refuses an indirect or foreign worker contribution before 
         for (const script of ['../foreign.js', './dist/sdk-startup-timer-bootstrap.js']) {
             manifest.contributions['asset-db'].script = script; writeFileSync(join(candidateRoot, 'package.json'), JSON.stringify(manifest));
             assert.throws(() => coordinator.stage(candidateRoot, { schemaVersion: 1, productId: 'peanut.pod-lite', version: '0.2.1',
-                host: { kind: 'host', packageDigest: CpmPackageStore.hostPackageDigest(candidateRoot) } }), /worker_script_invalid/u);
+                host: { kind: 'host', packageDigest: HostPackageIdentity.hostPackageDigest(candidateRoot) } }), /worker_script_invalid/u);
             assert.equal(JSON.parse(readFileSync(join(extensionRoot, 'package.json'), 'utf8')).version, '0.2.0');
         }
     } finally { rmSync(root, { recursive: true, force: true }); }

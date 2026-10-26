@@ -280,7 +280,7 @@ module.exports = {
     EXTENSION_NAME,
     async loadPluginManagerShell(context, options = {}) {
         // Do not activateInstalledPackages here: peanut.pod-lite is loaded by the
-        // CPM host path (activateCore). Plugin Manager package activation expects
+        // Pod Host path (activateCore). Plugin Manager package activation expects
         // legacy scoped MCP capability names and conflicts with the Lite catalog.
         await ensureLoaded(context, options);
     },

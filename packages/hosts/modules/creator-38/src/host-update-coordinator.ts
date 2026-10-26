@@ -13,7 +13,7 @@ const {
     writeFileSync,
 } = require('fs');
 const { basename, dirname, isAbsolute, join, relative, resolve, sep } = require('path');
-const { CpmPackageStore } = require('./cpm-package-store');
+const { HostPackageIdentity } = require('./host-package-identity.ts');
 
 const HOST_PACKAGE_ID = 'peanut-pod-lite-host';
 const PRODUCT_ID = 'peanut.pod-lite';
@@ -196,7 +196,7 @@ class HostUpdateCoordinator {
             || !existsSync(join(root, 'dist', 'main.js'))) {
             throw new Error('peanut_host_update_identity_invalid');
         }
-        const packageDigest = CpmPackageStore.hostPackageDigest(root);
+        const packageDigest = HostPackageIdentity.hostPackageDigest(root);
         if (packageDigest == null || packageDigest !== descriptor.host.packageDigest) {
             throw new Error('peanut_host_update_digest_mismatch');
         }

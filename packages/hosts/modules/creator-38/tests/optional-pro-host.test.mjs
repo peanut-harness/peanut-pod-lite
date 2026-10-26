@@ -67,13 +67,35 @@ test('optional Pro activation and corruption stay isolated from the required Cor
         assert.equal(recovered.ready, true);
         assert.deepEqual(recovered.tools, ['core.read', 'peanut.editor-mcp.issue-local-approval-lease']);
         assert.equal(recovered.pro.state, 'failed');
-        assert.match(recovered.pro.error, /integrity_file_mismatch/u);
+        assert.match(recovered.pro.error, /package_file_integrity_mismatch/u);
         HostStartupDiagnostics.fromSdk = () => { throw new Error('unverified-sdk-diagnostic-fixture'); };
         await host.load({ extensionRoot: extensionPath });
         assert.equal(host.methods.queryStatus().ready, true);
         const diagnosticFailure = readJson(join(projectRoot, 'peanut-plugins', 'runtime', 'startup-diagnostics.json'));
         assert.equal(diagnosticFailure.state, 'failed');
         assert.match(diagnosticFailure.detail, /unverified-sdk-diagnostic-fixture/u);
+        HostStartupDiagnostics.fromSdk = (editor, options) => new HostStartupDiagnostics({ ...options, events: packageEvents, messages: editor.Message });
+
+        const coreBundlePath = join(core.packagePath, 'peanut.pod-lite.bundle.js');
+        const coreBundle = readFileSync(coreBundlePath, 'utf8');
+        writeFileSync(coreBundlePath, 'tampered');
+        await assert.rejects(host.load({ extensionRoot: extensionPath }), /package_file_integrity_mismatch/u);
+        assert.equal(host.methods.queryStatus().ready, false);
+        assert.deepEqual(host.methods.queryStatus().tools, []);
+        writeFileSync(coreBundlePath, coreBundle);
+
+        writeInstalledIndex(projectRoot, [pro]);
+        await assert.rejects(host.load({ extensionRoot: extensionPath }), /package_not_installed/u);
+        assert.equal(host.methods.queryStatus().ready, false);
+
+        writeInstalledIndex(projectRoot, [core, core, pro]);
+        await assert.rejects(host.load({ extensionRoot: extensionPath }), /pod_install_index_invalid/u);
+        assert.equal(host.methods.queryStatus().ready, false);
+
+        writeInstalledIndex(projectRoot, [core, pro]);
+        await host.load({ extensionRoot: extensionPath });
+        assert.equal(host.methods.queryStatus().ready, true);
+        assert.equal(host.methods.queryStatus().pro.state, 'failed');
     } finally {
         await host.unload();
         HostStartupDiagnostics.fromSdk = originalFromSdk;

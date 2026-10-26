@@ -7,9 +7,10 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
 const require = createRequire(import.meta.url);
-const { CpmPackageStore } = require('../src/cpm-package-store.js');
-const compareReleaseIdentity = CpmPackageStore.compareReleaseIdentity;
-const hostPackageDigest = CpmPackageStore.hostPackageDigest;
+const { ProjectPackageStore } = require('@peanut/pod-engine/installation');
+const { HostPackageIdentity } = require('../src/host-package-identity.ts');
+const compareReleaseIdentity = HostPackageIdentity.compareReleaseIdentity;
+const hostPackageDigest = HostPackageIdentity.hostPackageDigest;
 const releaseRoot = resolve(import.meta.dirname, '../../../../../release/peanut.pod-lite-0.2.0');
 const descriptor = JSON.parse(readFileSync(join(releaseRoot, 'lite-release-descriptor.json'), 'utf8'));
 const coreId = descriptor.productId;
@@ -46,7 +47,7 @@ test('packed Host loads a CPM-installed Core and reports artifacts matching the 
 test('a failed optional Pro package stays isolated from the CPM-installed Core', async () => {
     const pro = writeProPackage();
     writeIndex([coreRecord(), pro]);
-    assert.equal(new CpmPackageStore(projectRoot).resolveActivePackage(proId, false)?.manifest.version, pro.versions[0].version);
+    assert.equal(new ProjectPackageStore(projectRoot).resolveVerifiedActivePackage(proId, false)?.manifest.version, pro.versions[0].version);
     writeFileSync(join(pro.packagePath, `${proId}.bundle.js`), 'tampered');
     globalThis.Editor = createEditor(projectRoot);
     await host.load();
@@ -55,7 +56,7 @@ test('a failed optional Pro package stays isolated from the CPM-installed Core',
     const status = await host.methods.queryStatus();
     assert.equal(status.ready, true, status.error);
     assert.equal(status.pro.state, 'failed');
-    assert.match(status.pro.error, /integrity_file_mismatch/u);
+    assert.match(status.pro.error, /package_file_integrity_mismatch/u);
     assert.deepEqual(compareReleaseIdentity(status.artifacts, descriptor), []);
     await host.unload();
 });

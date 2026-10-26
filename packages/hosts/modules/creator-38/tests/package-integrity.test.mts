@@ -6,7 +6,8 @@ import { join, resolve } from 'node:path';
 import { test } from 'node:test';
 
 const require = createRequire(import.meta.url);
-const { CpmPackageStore } = require('../src/cpm-package-store.js');
+const { ProjectPackageStore } = require('@peanut/pod-engine/installation');
+const { HostPackageIdentity } = require('../src/host-package-identity.ts');
 const { createLiteGrantedRuntime } = require('../src/lite-granted-runtime.js');
 const { PluginServiceRegistry } = require('../src/plugin-service-registry.js');
 const { SystemProtectedKeyStore } = require('../src/system-protected-key-store.js');
@@ -63,7 +64,7 @@ test('lite runtime moves unregistered disk orphans aside before creating an asse
     }
 });
 
-test('CPM store resolves the indexed package and rejects tampering, extra payloads, and invalid paths', () => {
+test('Pod store resolves the indexed package and rejects tampering, extra payloads, and invalid paths', () => {
     const temporaryRoot = resolve(import.meta.dirname, '..', '.test-temp');
     mkdirSync(temporaryRoot, { recursive: true });
     const projectRoot = mkdtempSync(join(temporaryRoot, 'pod-lite-integrity-'));
@@ -106,16 +107,16 @@ test('CPM store resolves the indexed package and rejects tampering, extra payloa
                 plugins: [{ pluginId, activeVersion: version, versions: [{ version, installPath: relativeInstallPath }] }],
             }),
         );
-        const store = new CpmPackageStore(projectRoot);
-        assert.equal(store.resolveActivePackage(pluginId, true).manifest.version, version);
+        const store = new ProjectPackageStore(projectRoot);
+        assert.equal(store.resolveVerifiedActivePackage(pluginId, true).manifest.version, version);
         writeFileSync(join(packageRoot, `${pluginId}.bundle.js`), 'tampered');
-        assert.throws(() => store.resolveActivePackage(pluginId, true), /integrity_file_mismatch/u);
+        assert.throws(() => store.resolveVerifiedActivePackage(pluginId, true), /package_file_integrity_mismatch/u);
         writeFileSync(join(packageRoot, `${pluginId}.bundle.js`), bundle);
         writeFileSync(join(packageRoot, 'unchecked.js'), bundle);
-        assert.throws(() => store.resolveActivePackage(pluginId, true), /payload_set_mismatch/u);
+        assert.throws(() => store.resolveVerifiedActivePackage(pluginId, true), /package_payload_unrecorded/u);
         rmSync(join(packageRoot, 'unchecked.js'));
         writeFileSync(manifestPath, JSON.stringify({ ...manifest, main: `./nested/../${pluginId}.bundle.js` }));
-        assert.throws(() => store.resolveActivePackage(pluginId, true), /manifest_invalid/u);
+        assert.throws(() => store.resolveVerifiedActivePackage(pluginId, true), /plugin_main_not_unified_bundle/u);
     } finally {
         rmSync(projectRoot, { recursive: true, force: true });
     }
@@ -171,7 +172,7 @@ test('system key store persists encrypted material and exposes only a non-extrac
     }
 });
 
-test('CPM store accepts code-unit ordered package digests and legacy localeCompare digests', () => {
+test('Pod store accepts code-unit ordered package digests and legacy localeCompare digests', () => {
     const temporaryRoot = resolve(import.meta.dirname, '..', '.test-temp');
     mkdirSync(temporaryRoot, { recursive: true });
     const projectRoot = mkdtempSync(join(temporaryRoot, 'pod-lite-digest-order-'));
@@ -204,13 +205,13 @@ test('CPM store accepts code-unit ordered package digests and legacy localeCompa
             JSON.stringify({ schemaVersion: 2, plugins: [{ pluginId, activeVersion: version, versions: [{ version, installPath: relativeInstallPath }] }] }),
         );
         const manifestPath = join(packageRoot, `${pluginId}.manifest.json`);
-        const store = new CpmPackageStore(projectRoot);
+        const store = new ProjectPackageStore(projectRoot);
         for (const digest of [codeUnit, legacy]) {
             writeFileSync(manifestPath, JSON.stringify({ id: pluginId, version, kind: 'tooling-plugin', main: `./${pluginId}.bundle.js`, package: { schemaVersion: 1, files, digest } }));
-            assert.equal(store.resolveActivePackage(pluginId, true).manifest.version, version);
+            assert.equal(store.resolveVerifiedActivePackage(pluginId, true).manifest.version, version);
         }
         writeFileSync(manifestPath, JSON.stringify({ id: pluginId, version, kind: 'tooling-plugin', main: `./${pluginId}.bundle.js`, package: { schemaVersion: 1, files, digest: 'f'.repeat(64) } }));
-        assert.throws(() => store.resolveActivePackage(pluginId, true), /integrity_digest_mismatch/u);
+        assert.throws(() => store.resolveVerifiedActivePackage(pluginId, true), /package_digest_mismatch/u);
     } finally {
         rmSync(projectRoot, { recursive: true, force: true });
     }
@@ -226,7 +227,7 @@ test('freezes Host update digest and candidate identity comparison without a rel
         writeFileSync(join(root, 'package.json'), '{}');
         writeFileSync(join(root, 'package.json.meta'), 'meta');
         const hostDigest = '0d223e406321b44906430ad3a3dc0dd994da2ee4e5a219ee782ed903762a9002';
-        assert.equal(CpmPackageStore.hostPackageDigest(root), hostDigest);
+        assert.equal(HostPackageIdentity.hostPackageDigest(root), hostDigest);
         const descriptor = {
             productId: 'peanut.pod-lite', version: '0.2.0',
             host: { packageDigest: hostDigest },
@@ -236,9 +237,9 @@ test('freezes Host update digest and candidate identity comparison without a rel
             host: { id: 'peanut-pod-lite-host', version: '0.2.0', packageDigest: hostDigest },
             core: { id: 'peanut.pod-lite', version: '0.2.0', packageDigest: descriptor.core.packageDigest },
         };
-        assert.deepEqual(CpmPackageStore.compareReleaseIdentity(artifacts, descriptor), []);
-        assert.deepEqual(CpmPackageStore.compareReleaseIdentity({ ...artifacts, host: { ...artifacts.host, packageDigest: '0'.repeat(64) } }, descriptor), ['host.packageDigest']);
-        assert.deepEqual(CpmPackageStore.compareReleaseIdentity({ ...artifacts, core: { ...artifacts.core, version: '0.2.1' } }, descriptor), ['core.version']);
+        assert.deepEqual(HostPackageIdentity.compareReleaseIdentity(artifacts, descriptor), []);
+        assert.deepEqual(HostPackageIdentity.compareReleaseIdentity({ ...artifacts, host: { ...artifacts.host, packageDigest: '0'.repeat(64) } }, descriptor), ['host.packageDigest']);
+        assert.deepEqual(HostPackageIdentity.compareReleaseIdentity({ ...artifacts, core: { ...artifacts.core, version: '0.2.1' } }, descriptor), ['core.version']);
     } finally {
         rmSync(root, { recursive: true, force: true });
     }

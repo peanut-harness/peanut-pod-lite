@@ -5,13 +5,13 @@ const { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writ
 const { isAbsolute, join, relative, resolve, sep } = require('path');
 const { createGunzip } = require('zlib');
 const https = require('https');
-const { RemotePackageDownloader, SignedPluginCatalogVerifier } = require('@peanut/pod-engine/installation');
+const { ProjectPackageStore, RemotePackageDownloader, SignedPluginCatalogVerifier } = require('@peanut/pod-engine/installation');
 const { CreatorContextResolver } = require('@peanut/pod-hosts');
 
 const { HostStartupDiagnostics } = require('./host-startup-diagnostics.ts');
 const { HostResourceFieldPreparation } = require('./resource-field-preparation.ts');
 const { LiteAccountController, createSignedOutAccount } = require('./account-controller');
-const { CpmPackageStore } = require('./cpm-package-store');
+const { HostPackageIdentity } = require('./host-package-identity.ts');
 const { HostNativeCapabilities } = require('./native-capabilities.mts');
 const { PluginWorkbench } = require('./plugin-workbench.mts');
 const { SnowbDialogs } = require('./snowb-dialogs.mts');
@@ -259,7 +259,7 @@ function resolveHostArtifactIdentity() {
         version: packageManifest.version,
         mainDigest: createHash('sha256').update(readFileSync(__filename)).digest('hex'),
         // 仅打包后的扩展（dist/main.js）可对照 release descriptor 的 Host 目录包摘要。
-        packageDigest: __filename.endsWith(join('dist', 'main.js')) ? CpmPackageStore.hostPackageDigest(join(__dirname, '..')) : null,
+        packageDigest: __filename.endsWith(join('dist', 'main.js')) ? HostPackageIdentity.hostPackageDigest(join(__dirname, '..')) : null,
     });
 }
 
@@ -267,7 +267,7 @@ function resolvePackageArtifactIdentity(verified) {
     return Object.freeze({
         id: verified.manifest.id,
         version: verified.manifest.version,
-        packageDigest: verified.manifest.package.digest,
+        packageDigest: verified.packageDigest,
         packedAt: typeof verified.manifest.package.packedAt === 'string' ? verified.manifest.package.packedAt : null,
     });
 }
@@ -552,7 +552,7 @@ function loadVerifiedModule(verified, expectedPluginId) {
 }
 
 async function activateCore(packageStore) {
-    const verified = packageStore.resolveActivePackage(CORE_PLUGIN_ID, true);
+    const verified = packageStore.resolveVerifiedActivePackage(CORE_PLUGIN_ID, true);
     coreArtifact = resolvePackageArtifactIdentity(verified);
     toolHandlers = new Map();
     coreModule = loadVerifiedModule(verified, CORE_PLUGIN_ID);
@@ -594,7 +594,7 @@ async function deactivateOptionalPro() {
 async function activateOptionalPro(packageStore) {
     let verified;
     try {
-        verified = packageStore.resolveActivePackage(PRO_PLUGIN_ID, false);
+        verified = packageStore.resolveVerifiedActivePackage(PRO_PLUGIN_ID, false);
         if (verified === null) {
             return Object.freeze({ state: 'absent', version: null, error: null, services: [] });
         }
@@ -660,7 +660,7 @@ async function load(options = {}) {
             readTrustedCatalog: readAcceptanceTrustedCatalog,
             installTrustedCatalogPackage,
         });
-        const packageStore = new CpmPackageStore(requireProjectPath());
+        const packageStore = new ProjectPackageStore(requireProjectPath());
         const coreVersion = await activateCore(packageStore);
         // Publish first-class tools into Plugin Manager registry so Hub list/status
         // matches host toolCount (reference island path: editor-mcp context.mcp.register).
@@ -1050,7 +1050,7 @@ const methods = {
         }
         await accountController.requireProEntitlement();
         await deactivateOptionalPro();
-        const pro = await activateOptionalPro(new CpmPackageStore(requireProjectPath()));
+        const pro = await activateOptionalPro(new ProjectPackageStore(requireProjectPath()));
         const account = accountController?.withPro(pro) ?? createSignedOutAccount();
         hostStatus = Object.freeze({ ...hostStatus, artifacts: artifactIdentitySnapshot(), pro, account });
         return hostStatus;

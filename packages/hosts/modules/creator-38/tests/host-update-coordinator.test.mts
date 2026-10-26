@@ -4,11 +4,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import { buildSync } from 'esbuild';
 
 const require = createRequire(import.meta.url);
 const { HostUpdateCoordinator } = require('../src/host-update-coordinator.ts');
 const { createHostBootstrap } = require('../src/host-bootstrap.ts');
-const { CpmPackageStore } = require('../src/cpm-package-store.js');
+const { HostPackageIdentity } = require('../src/host-package-identity.ts');
 
 test('Lite Host update stays staged until exit and switches the manifest atomically for restart', () => {
     const root = mkdtempSync(join(tmpdir(), 'pod-lite-host-update-'));
@@ -301,10 +303,14 @@ function writeHostPackage(root, version, mainSource) {
 
 function writeRuntimePackage(root, version, failLoad, loadBody = '', moduleBody = '') {
     writeHostPackage(root, version, '');
-    writeFileSync(join(root, 'dist', 'cpm-package-store.js'), readFileSync(new URL('../src/cpm-package-store.js', import.meta.url)));
+    buildSync({
+        entryPoints: [fileURLToPath(new URL('../src/host-package-identity.ts', import.meta.url))],
+        outfile: join(root, 'dist', 'host-package-identity.js'),
+        bundle: true, platform: 'node', format: 'cjs', target: 'node14',
+    });
     writeFileSync(join(root, 'dist', 'main.js'), `
         const path = require('path');
-        const { CpmPackageStore } = require('./cpm-package-store');
+        const { HostPackageIdentity } = require('./host-package-identity');
         ${moduleBody}
         let bootstrapExtensionRoot;
         module.exports = {
@@ -314,7 +320,7 @@ function writeRuntimePackage(root, version, failLoad, loadBody = '', moduleBody 
                 queryStatus() {
                     return { ready: true, bootstrapExtensionRoot, artifacts: { host: {
                         version: '${version}',
-                        packageDigest: CpmPackageStore.hostPackageDigest(path.join(__dirname, '..')),
+                        packageDigest: HostPackageIdentity.hostPackageDigest(path.join(__dirname, '..')),
                     } } };
                 },
             },
@@ -327,7 +333,7 @@ function createDescriptor(root, version) {
         schemaVersion: 1,
         productId: 'peanut.pod-lite',
         version,
-        host: { kind: 'host', packageDigest: CpmPackageStore.hostPackageDigest(root) },
+        host: { kind: 'host', packageDigest: HostPackageIdentity.hostPackageDigest(root) },
     };
 }
 

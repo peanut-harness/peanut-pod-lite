@@ -86,7 +86,6 @@ for (const entry of ['sdk-startup-timer-worker']) {
     assertCreator383BundleCompatibility(bytes);
     await writeFile(outfile, bytes, 'utf8');
 }
-await copyFile(resolve(extensionRoot, 'src/cpm-package-store.js'), resolve(outputDirectory, 'dist/cpm-package-store.js'));
 await cp(resolve(extensionRoot, 'package.json'), resolve(outputDirectory, 'package.json'));
 await cp(resolve(repositoryRoot, 'packages/engine/modules/lumen/bundled/schema'), resolve(outputDirectory, 'bundled/schema'), { recursive: true });
 await cp(resolve(extensionRoot, 'panel'), resolve(outputDirectory, 'panel'), { recursive: true });
