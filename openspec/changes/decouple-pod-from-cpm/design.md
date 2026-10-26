@@ -2,7 +2,7 @@
 
 ## Context
 
-见 `proposal.md`。Lite 已有 `PackagingApp({ projectPath })`、`ProjectPackageStore`、Plugin Manager、目录包打包器和版本索引事务；Pro 也用自有脚本生成相同目录包。Creator 3.8 Host 则用独立的 `CpmPackageStore` 再次解析 `peanut-plugins/installed.json`、核验并加载 Core/Pro。`docs/INSTALLATION.md`、`release:candidate`、公开 CPM 变更和初始测试矩阵仍要求独立 CPM CLI/清单。现有项目索引 schema v2 与自有安装器共享磁盘布局，但读写规则可能有差异，不能只替换类名。
+见 `proposal.md`。本变更开始时，Lite 已有 `PackagingApp({ projectPath })`、`ProjectPackageStore`、Plugin Manager、目录包打包器和版本索引事务，Pro 用自有脚本生成相同目录包，但 Creator 3.8 Host 仍用独立的 `CpmPackageStore` 再次解析项目安装索引。任务 1.x–3.2 已将 Host、构建/候选脚本、Pro 包和当前矩阵切到自有契约，并标注历史 CPM 方案。现有项目索引 schema v2 的磁盘布局与字节兼容保持；剩余工作是以递增版本候选验证已有工程的升级/修复，完成代码验证与交付，并如实保留尚缺的空工程产品证据。
 
 ## Goals / Non-Goals
 
@@ -23,6 +23,8 @@
 ### 1. 安装写入仍由 Peanut Packaging 负责
 
 继续使用 `PackagingApp` / `ProjectPackageStore` 的 `pack → inspect → planInstall → install/upgrade/repair/rollback` 路径。Host 首次放置沿用现有受控入口；Host/Core 发行身份和目录包摘要来自 Lite 自有打包结果。放弃以独立 CPM CLI 为首装中介，也不以手工写 `installed.json` 代替安装事务。安装前必须校验目标 Creator 已关闭、候选来源和原始包身份；验证步骤读取真实索引与 Host 状态。
+
+现有两处 Pod 隔离工程已安装 Lite `0.2.0`；同版本不同摘要的重新安装只能证明替换，不能叫作版本升级。后续从根 `package.json` 生成 Lite `0.2.1` 的 Host/Core 一致身份，固定候选源码提交、构建字节、目录摘要和当前矩阵引用后，才在这两处工程执行 `0.2.0 → 0.2.1`。Pro 当前包 `0.1.1` 只验证独立激活、损坏隔离与修复；历史 `0.9.0 → 0.1.1` 不称递增升级，也不在本阶段擅自改 Pro 版本。
 
 ### 2. Host 改用共享的受验证活动包读取
 
@@ -56,7 +58,9 @@ Pro 构建器改从 Lite installation 的自有完整性/manifest API 取得包�
 - [Pro 与 Lite 跨仓协议漂移] → 固定共享测试向量与包摘要，先签收公共 API 和版本，再更新 Pro pin/构建器；不从私有 sibling 源码导入。
 - [旧 CPM 名称散布在历史、vendor 和错误码中] → 区分生产依赖与历史追踪；生产入口清零，历史证据保留，兼容错误码按消费者证明逐项处理。
 - [自有协议重命名引起摘要或签名漂移] → 先冻结目录包和签名的字节向量，再切换所有生产调用方；摘要、签名、Host 身份比较任一不一致即停止后续安装切换。
+- [旧隔离工程并非空工程] → `0.2.1` 运行验证只签收既有工程的真实升级和修复；临时工程的自有首装测试与 Creator 空工程首装产品证据分开记录，不将旧 CPM 回执或同版本替换补成首装。
+- [旧工程历史日志已被 Creator 轮换] → 保留 4.1 既有 `may_have_changed` 和五份未备份旧日志的事实。新运行前逐项目备份当前 Host、索引、包、日志与原资产摘要，固定新增路径清单；只处理本轮拥有的资源，任何越界副作用停止并保留原始回执。
 
 ## Migration Plan
 
-先冻结自有安装与旧 Host 的行为差异及精确候选；补齐共享只读校验并切换 Host；再调整 Lite 首装/包身份与 Pro 构建，随后重绑矩阵及文档、标注旧 CPM 规划取代关系。每阶段保留上一可用安装包与回滚路径；Lite 和 Pro 各自完成定向/根验证后，用具名隔离工程验证安装、升级、修复、回滚、Core/Pro 故障隔离及 Creator 3.8.3/3.8.7 的 Host 身份和基础操作。只有实际结果、普通集成推送与远端回读齐全才标代码交付；产品验收仍按真实运行证据单独判断。
+先冻结自有安装与旧 Host 的行为差异及精确候选；补齐共享只读校验并切换 Host；再调整 Lite 包身份与 Pro 构建，随后重绑矩阵及文档、标注旧 CPM 规划取代关系。已有 `0.2.0` 同版本替换、真实宿主读回和 Pro 故障隔离仅是部分证据。下一步先生成 Lite `0.2.1` 递增候选并核对 Host/Core 与版本锁，再按该候选重绑矩阵来源，最后只在已登记的两处 Creator 3.8.3/3.8.7 隔离工程验证 `0.2.0 → 0.2.1`、失败恢复、Core/Pro 隔离和基础操作。每阶段保留上一可用安装包、日志与回滚路径；不新建、清空或重置工程。自有 Packaging 的临时工程首装夹具继续作为离线首装证据，真实 Creator 空工程首装仍是单列产品缺口。只有实际结果、完整代码检查、普通集成推送与远端回读齐全才标代码交付；产品验收仍按真实运行证据单独判断。

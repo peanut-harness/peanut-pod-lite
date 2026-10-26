@@ -44,6 +44,10 @@ Pod 生产构建、远程目录验签、Host 更新、候选身份核验和实�
 - **WHEN** 旧工程的活动索引和目录包满足新契约的全部身份与完整性规则
 - **THEN** Host 与自有 Plugin Manager 对活动版本给出相同结果，无需独立 CPM 才能继续启动
 
+#### Scenario: Incremental Lite upgrade in an existing isolated project
+- **WHEN** 已验证的 Lite `0.2.0` 活动包在 Creator 关闭时通过 Peanut Packaging 升级到独立构建且版本递增的 `0.2.1` 候选
+- **THEN** 安装器将操作判定为 `upgrade`，保留上一可用版本，重启后的 Host 与 Core 身份均绑定 `0.2.1` 候选；损坏或中断时只按可验证状态回退或修复，且 Pro 的独立状态不使 Core 降级
+
 #### Scenario: Legacy ambiguity or interrupted migration
 - **WHEN** 旧记录含歧义、坏摘要、未来 schema，或迁移在提交边界中断
 - **THEN** 系统停止加载或后续变更，保留原状态与恢复证据，不通过重建索引掩盖未知工程状态
@@ -67,6 +71,10 @@ Pod 测试矩阵 SHALL 将自有构建、安装、加载、升级和恢复列为
 #### Scenario: New Pod candidate
 - **WHEN** 矩阵绑定新 Lite/Pro 候选及自有安装入口的原始证据
 - **THEN** 安装主线按该候选的实际安装、Host 身份与独立读回判定，缺证据时仍为未完成
+
+#### Scenario: Existing-project evidence is separated from fresh installation
+- **WHEN** 当前候选只在已安装 Core 的隔离 Creator 工程上完成递增升级与修复
+- **THEN** 报告只记录该升级与修复证据，不把它或临时夹具首装升格为真实 Creator 空工程首装；缺少的产品首装与长稳证据保持未执行
 
 #### Scenario: Historical CPM report
 - **WHEN** 仅有此前的 CPM 发布、bootstrap 或旧工程回执

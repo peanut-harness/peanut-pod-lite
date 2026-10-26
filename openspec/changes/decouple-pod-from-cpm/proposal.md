@@ -12,6 +12,7 @@ Pod 已有 Peanut Packaging 与 Plugin Manager 负责目录包构建、校验、
 - Pro 目录包构建与 Lite 自有完整性契约对齐，替换对外 CPM 命名和跨仓发行依赖；不削弱签名目录、权益核验或本地写入审批。
 - 清除 Pod 生产构建、Host 更新、远程目录验签、候选身份核验脚本对 CPM 专用类、协议和公开发行密钥开关的调用；旧索引字节格式与已被消费的诊断码只为兼容保留，不再构成 CPM 运行依赖。
 - 重写 Pod 安装用例与离线矩阵来源，改绑自有构建、安装和 Host 证据；历史 CPM 来源保留为历史记录，不计入未来当前候选分母。
+- 在已有的 3.8.3/3.8.7 专用隔离工程上，以 Lite `0.2.1` 新候选验证从 `0.2.0` 的真实递增升级、回退与修复；两工程本轮前已安装 Core，因此不把它们当作空工程首装证据。自有 Packaging 的临时工程首装夹具另列，产品首装实机缺口继续可见。
 - 将未完成的 `publish-signed-public-cpm-release` 标记为被本决策取代，并在单独登记后调整其规划与产品文档；不得把未完成任务勾选或归档为已交付。
 
 ## Capabilities
@@ -26,4 +27,4 @@ Pod 已有 Peanut Packaging 与 Plugin Manager 负责目录包构建、校验、
 
 ## Impact
 
-影响 Lite 的 installation 包、Creator 3.8 Host、构建与发行脚本、安装文档、Pod 覆盖矩阵及相关测试；影响 Pro 目录包构建器与发布说明。`cpm-install` 仓库不作为 Pod 实现或写入目标。Server 账号协议、Creator 编辑操作和 UI Prefab 阶段三权限边界保持各自独立门禁。此变更须按 Lite/Pro 精确任务写集登记，先验证旧工程兼容，再更新正式安装口径。
+影响 Lite 的 installation 包、Creator 3.8 Host、构建与发行脚本、安装文档、Pod 覆盖矩阵及相关测试；影响 Pro 目录包构建器与发布说明。`cpm-install` 仓库不作为 Pod 实现或写入目标。Server 账号协议、Creator 编辑操作和 UI Prefab 阶段三权限边界保持各自独立门禁。此变更须按 Lite/Pro 精确任务写集登记，先验证旧工程兼容，再更新正式安装口径。`0.2.1` 仅作为本变更的新 Lite 候选；Pro 不随之改版，代码交付和产品实机首装验收分别记录。
