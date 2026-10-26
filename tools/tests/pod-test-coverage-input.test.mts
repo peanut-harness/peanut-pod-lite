@@ -138,6 +138,45 @@ test('path swap immediately before open cannot read outside the explicit root', 
     }
 });
 
+test('ancestor directory swap after resolution cannot redirect a pinned reference', () => {
+    const root = mkdtempSync(join(tmpdir(), 'pod-coverage-parent-race-'));
+    const originalRealpath = fs.realpathSync;
+    const inside = join(root, 'inside');
+    const saved = join(root, 'saved');
+    const outside = mkdtempSync(join(tmpdir(), 'pod-coverage-parent-outside-'));
+    let swapped = false;
+    try {
+        fs.mkdirSync(inside);
+        const local = join(inside, 'item.txt');
+        const foreign = join(outside, 'item.txt');
+        const localBytes = Buffer.from('LOCAL_0000');
+        const foreignBytes = Buffer.from('OTHER_9999');
+        writeFileSync(local, localBytes);
+        writeFileSync(foreign, foreignBytes);
+        const reader = new PodCoverageInputReader([{ id: 'lite', path: root }]);
+        const canonicalLocal = realpathSync(local);
+        fs.realpathSync = new Proxy(originalRealpath, { apply(target, receiver, args) {
+            const actual = Reflect.apply(target, receiver, args);
+            if (args[0] === canonicalLocal && !swapped) {
+                renameSync(inside, saved);
+                symlinkSync(outside, inside);
+                swapped = true;
+            }
+            return actual;
+        } });
+        syncBuiltinESMExports();
+        const reference = { rootId: 'lite', path: 'inside/item.txt', sha256: PodCoverageContracts.sha256(foreignBytes) };
+        assert.throws(() => reader.readReference(reference), /reference_changed_during_read/u);
+        assert.equal(swapped, true);
+    } finally {
+        fs.realpathSync = originalRealpath;
+        syncBuiltinESMExports();
+        if (swapped) { unlinkSync(inside); renameSync(saved, inside); }
+        rmSync(root, { recursive: true, force: true });
+        rmSync(outside, { recursive: true, force: true });
+    }
+});
+
 test('file growth during pinned reading stops at the hard byte budget', () => {
     const root = mkdtempSync(join(tmpdir(), 'pod-coverage-growth-'));
     const originalRead = fs.readSync;
