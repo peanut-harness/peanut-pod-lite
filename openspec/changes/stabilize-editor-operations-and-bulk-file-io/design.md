@@ -14,7 +14,7 @@
 
 **Goals:** 用一份版本化覆盖清单连接公开能力、资产/组件 schema、真实夹具和验收证据；复用现有调度与审批边界实现有界批读及强化批写；只有当前候选完整通过才给出稳定结论。
 
-**Non-Goals:** 不创建第二套调度器，不并发对同工程运行 GUI/headless，不编辑原工程或 Creator 安装包，不用屏蔽日志替代修复。源码批量 I/O 限于资产根内允许的 UTF-8 文件；二进制内容保持既有类型化资源操作。新能力不扩大其它版本写权限。
+**Non-Goals:** 不创建第二套调度器，不并发对同工程运行 GUI/headless，不新建、重置现有工程或修改 Creator 安装包，不用屏蔽日志替代修复。源码批量 I/O 限于资产根内允许的 UTF-8 文件；二进制内容保持既有类型化资源操作。新能力不扩大其它版本写权限。
 
 ## Decisions
 
@@ -64,7 +64,7 @@
 
 ### 7. 先复现生命周期，再按归属修复
 
-新隔离副本采用 Creator 接受的名称，保留受管 `npm run creator` 入口和 hooks。退出警告至少以 3.8.7 最小隔离工程、不带 Lite 与带当前 Lite 的 normal quit 对照；保存 PID、项目、启动与退出时间、原始 stack。仅在证明扩展归属后修复扩展 timer/subscription、pending request、task drain 或卸载顺序；若由 Creator 自身触发，寻找原生受支持的关闭顺序并复测，不改安装包也不豁免。
+使用已登记的现有 3.8.3/3.8.7 工程，保留受管 `npm run creator` 入口和 hooks。启动前冻结工程基线、完整备份、Core/Host 身份、独占占用与所属 PID；通过现有 Peanut Packaging / Plugin Manager 路径验证安装与修复；上一阶段 0.2.0→0.2.1 升级只按原回执复用，后续只有版本递增才称升级。3.8.7 的无 Lite 历史对照仅按实际来源复用；如需新对照，只能在现有工程完成可逆卸载、备份与归属登记后运行。保存 PID、项目、启动与退出时间、原始 stack。仅在证明扩展归属后修复扩展 timer/subscription、pending request、task drain 或卸载顺序；若由 Creator 自身触发，寻找原生受支持的关闭顺序并复测，不改安装包也不豁免。
 
 原始项目日志和进程 stdout/stderr均留存并交叉核对，独立 raw validator 不依赖现有 postflight 噪声过滤器。分类可辅助诊断，但不得抹掉计数。无法消除的原生 warning 是本目标实际阻塞，不能将全量任务打勾。
 
@@ -74,7 +74,7 @@
 
 实际业务路径、申报resources、引用UUID的AssetDB源及真实父目录均限制在assets/components和assets/fixtures。拒绝穿越、链接逃逸、伪造resources、范围外引用、自动commit和全assets刷新。一次性令牌与破坏确认保留；受管任务在原writer窗口重新检查挂接及路径，撤销使尚未写入的请求拒绝。精确挂接的写操作不支持显式批次，保持既有调度器。
 
-组件修改先离线写盘，再按精确路径lumen.commit，preview.refresh仅刷新预览且refreshAssets=false。scene.open只在修改持久化后用于原生重开观测。新候选和实机证据重新绑定，不能沿用510400c证明新产品实现。
+组件修改先离线写盘，再按精确路径lumen.commit，preview.refresh仅刷新预览且refreshAssets=false。scene.open只在修改持久化后用于原生重开观测。新候选和现有工程实机证据重新绑定，不能沿用510400c证明新产品实现。现有工程的既有内容先快照并做差异清单，组件夹具只在登记的受控资产范围写入；完成后核对候选前后身份、保存重开、原始日志及资源终态，不把同版本重装称作升级。
 
 ### 8. DAG、所有权与验收顺序
 
@@ -96,4 +96,4 @@
 
 ## Migration Plan
 
-审阅本变更后按 task id 登记源码/测试 owned paths 与 checkpoint 权，保留当前发布变更和旧报告。实现仅在登记 worktree，原工程只读。增加新 read tool 并同步目录，旧 write 客户端对超限输入分片；按新候选装到全新隔离副本，两版依次验收。失败回到源码修复并生成新 digest，保留所有旧失败原始证据。验收完成后更新知识卡及 sync、提交 checkpoint；远端回读由 integration owner 完成，之后才称代码交付完成。该流程不触发公开 CPM 发布。
+审阅本变更后按 task id 登记源码/测试 owned paths 与 checkpoint 权，保留旧报告。实现仅在登记 worktree；实机仅在另行登记的现有 3.8.3/3.8.7 工程执行，先备份、核对旧版身份与独占租约，不新建或重置工程。增加新 read tool 并同步目录，旧 write 客户端对超限输入分片；用 Peanut Packaging / Plugin Manager 安装同一新候选，两版依次验证修复；若候选版本高于已装 0.2.1，再独立验证真实升级。失败保留原始证据，先核对工程终态，再回到源码修复并生成新 digest；候选变化只重跑受影响验收。验收完成后更新知识卡及 sync、提交 checkpoint；远端回读由 integration owner 完成，之后才称代码交付完成。Pod 的构建、安装、启动和验收路径不依赖 CPM。
