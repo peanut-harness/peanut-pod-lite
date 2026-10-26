@@ -1,15 +1,21 @@
 {
   "schemaVersion": "pod-test-coverage-input.v1",
   "candidate": {
-    "id": "self-managed-candidate-20261026",
+    "id": "self-managed-lite-0.2.1-20261026",
     "repositories": {
       "peanut-pod-lite": {
-        "commit": "21e546c6e1dde57355650db3ece3558935eddf22",
-        "tree": "cf771990229401fc539290c81a1ebee61ff8fc09",
+        "commit": "660226aa28d0d96fc4766c81c3b58af71cd1a8f0",
+        "tree": "200aa648a71368c4f2e4a84f9fec37baad2f9484",
         "platform": "darwin-arm64",
         "runtimeVersion": "node-26.8.2",
         "toolchain": "tsx-4.23.0",
-        "artifactDigests": {}
+        "artifactDigests": {
+          "liteHostPackage": "3954bec522639354ce249f594055e7a543854ee721c645994051cd094f534438",
+          "liteCorePackage": "ef38d9ac7f12a6face2e353cbb02c538ce0546520d1cb3941a903c8a376d794f",
+          "liteHostArchive": "266589255eca7e6a8fa03f64171a329e607b8de514df79a0cdcf7418dbfb771f",
+          "liteCoreArchive": "cb037f16b57e38b38306f0066d6eb88ea94ef514cccfe92d5e49c49925ca64d0",
+          "liteDescriptor": "1a73441ae9abf86e15fda0434cb5ad51388a0fda589ad6ecc88b64e1eb2d3a40"
+        }
       },
       "peanut-pod-pro": {
         "commit": "634418c90ec59f6630e535e763259dc15748e68c",
@@ -33,7 +39,7 @@
       "creator-3.8.7"
     ],
     "inputDigests": {
-      "reviewed-mainlines": "7844e28d105d769177998cb8ce6cfae85aa53b456ac2a27a61f0ee45eb032871",
+      "reviewed-mainlines": "7e9723dbf51c8d0b1a780e47739582bd736c4b2d1f322be83803a7650d23bcd9",
       "pro-core": "3f7455abe5af6dd3bf9a71558c24a80fb67cbc8cfbabcf1fd1ada1757cbd71c2",
       "pro-premium": "b2db1114af031d75c7d82f30ae32bec3868c3405d5abf3e00885248adc709dc7",
       "server-account-routes": "39aed7e818ddba6019d6fd99acd4f6d97e710f94f628128e7ad1b9307da3a9ba",
@@ -46,14 +52,14 @@
       "id": "reviewed-mainlines",
       "repository": "peanut-pod-lite",
       "role": "current-product",
-      "commit": "21e546c6e1dde57355650db3ece3558935eddf22",
-      "tree": "cf771990229401fc539290c81a1ebee61ff8fc09",
+      "commit": "660226aa28d0d96fc4766c81c3b58af71cd1a8f0",
+      "tree": "200aa648a71368c4f2e4a84f9fec37baad2f9484",
       "sourceRef": {
         "rootId": "lite",
         "path": "docs/testing/pod/source-catalog.json",
-        "sha256": "7844e28d105d769177998cb8ce6cfae85aa53b456ac2a27a61f0ee45eb032871"
+        "sha256": "7e9723dbf51c8d0b1a780e47739582bd736c4b2d1f322be83803a7650d23bcd9"
       },
-      "sha256": "7844e28d105d769177998cb8ce6cfae85aa53b456ac2a27a61f0ee45eb032871",
+      "sha256": "7e9723dbf51c8d0b1a780e47739582bd736c4b2d1f322be83803a7650d23bcd9",
       "kind": "curated-business",
       "creatorVersion": null,
       "completeness": "reviewed"
@@ -110,8 +116,8 @@
       "id": "lite-packaging",
       "repository": "peanut-pod-lite",
       "role": "current-product",
-      "commit": "21e546c6e1dde57355650db3ece3558935eddf22",
-      "tree": "cf771990229401fc539290c81a1ebee61ff8fc09",
+      "commit": "660226aa28d0d96fc4766c81c3b58af71cd1a8f0",
+      "tree": "200aa648a71368c4f2e4a84f9fec37baad2f9484",
       "sourceRef": {
         "rootId": "lite",
         "path": "packages/engine/modules/installation/package.json",

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "pod-self-managed-candidate.v1",
+  "productId": "peanut.pod-lite",
+  "version": "0.2.1",
+  "sourceCommit": "660226aa28d0d96fc4766c81c3b58af71cd1a8f0",
+  "sourceTree": "200aa648a71368c4f2e4a84f9fec37baad2f9484",
+  "descriptorSha256": "1a73441ae9abf86e15fda0434cb5ad51388a0fda589ad6ecc88b64e1eb2d3a40",
+  "host": {
+    "archive": "peanut-pod-lite-host-0.2.1.tar.gz",
+    "archiveSha256": "266589255eca7e6a8fa03f64171a329e607b8de514df79a0cdcf7418dbfb771f",
+    "packageDigest": "3954bec522639354ce249f594055e7a543854ee721c645994051cd094f534438"
+  },
+  "core": {
+    "archive": "peanut-pod-lite-core-0.2.1.tar.gz",
+    "archiveSha256": "cb037f16b57e38b38306f0066d6eb88ea94ef514cccfe92d5e49c49925ca64d0",
+    "packageDigest": "ef38d9ac7f12a6face2e353cbb02c538ce0546520d1cb3941a903c8a376d794f"
+  },
+  "scope": "Offline build and package identity only; existing-project upgrade and product acceptance remain unverified."
+}

@@ -7,7 +7,12 @@
         {
           "repository": "peanut-pod-lite",
           "path": "docs/INSTALLATION.md",
-          "sha256": "5adaee23bf0a6ae8d80cbff66f29a03a1dccf440b651e47c43206c9966e3e61d"
+          "sha256": "2b54b1e42b622b7b1fb0012d32d890ad5671d77150fa0a729264bc8fdbe48c1c"
+        },
+        {
+          "repository": "peanut-pod-lite",
+          "path": "docs/testing/pod/lite-0.2.1-candidate.json",
+          "sha256": "98aa5cd551be26d72cce6fa812a3bed5f239df4e2b3df7b4ec4ce5db7b467bd5"
         },
         {
           "repository": "peanut-pod-lite",
