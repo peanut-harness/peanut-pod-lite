@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "pod-test-coverage-input.v1",
+  "candidate": {
+    "id": "synthetic-candidate",
+    "repositories": {},
+    "environments": ["creator-3.8.7"],
+    "inputDigests": {}
+  },
+  "sources": [
+    {
+      "id": "synthetic-lite-catalog",
+      "repository": "peanut-pod-lite",
+      "role": "current-product",
+      "commit": "0000000000000000000000000000000000000000",
+      "tree": "0000000000000000000000000000000000000000",
+      "sourceRef": {
+        "rootId": "lite",
+        "path": "catalog.json",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "kind": "product-catalog",
+      "creatorVersion": "3.8.7",
+      "completeness": "unverified"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "synthetic-read",
+      "ownerRepo": "peanut-pod-lite",
+      "sourceId": "synthetic-lite-catalog",
+      "sourceSubject": "editor.queryVersion",
+      "applicability": "3.8.7",
+      "unverifiedReason": "synthetic-only",
+      "traceRefs": []
+    }
+  ],
+  "cases": [],
+  "workflows": [],
+  "results": []
+}
