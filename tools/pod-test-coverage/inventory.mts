@@ -77,7 +77,7 @@ export class PodCoverageInventory {
         const sourceRepositories = new Set(input.sources.map((source) => String(source.repository)));
         const missingRepositories = declaredRepositories.filter((repository) => !sourceRepositories.has(repository));
         const sourceIds = new Set(sources.map((source) => source.id));
-        const missingSourceIds = Object.keys(digests).filter((id) => !sourceIds.has(id)).sort();
+        const missingSourceIds = Object.keys(digests).filter((id) => !id.startsWith('test-source:') && !sourceIds.has(id)).sort();
         const capabilities = sources.flatMap((source) => source.capabilities);
         const ids = new Set<string>();
         for (const capability of capabilities) {

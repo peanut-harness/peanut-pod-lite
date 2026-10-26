@@ -78,6 +78,22 @@ test('both Lite drafts preserve every target/action and native unresolved set wi
     }
 });
 
+test('candidate test-source digest binds evidence without becoming a missing inventory source', () => {
+    const root = mkdtempSync(join(tmpdir(), 'pod-coverage-test-source-'));
+    try {
+        const bytes = Buffer.from(JSON.stringify({ schemaVersion: 1, operationCount: 1, operations: ['asset.queryInfo'] }));
+        writeFileSync(join(root, 'catalog.json'), bytes);
+        const source = sourceFor('pro-core-catalog', 'catalog.json', bytes);
+        const input = inputFor(source);
+        const candidate = { ...input.candidate,
+            inputDigests: { [String(source.id)]: source.sha256, 'test-source:case-1': 'c'.repeat(64) } };
+        const inventory = PodCoverageInventory.inspect({ ...input, candidate },
+            new PodCoverageInputReader([{ id: 'peanut-pod-pro', path: root }]));
+        assert.equal(inventory.complete, true);
+        assert.deepEqual(inventory.missingSourceIds, []);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test('Lite draft rejects a missing action even if its inventory still contains the target', () => {
     const bytes = readFileSync(join(repositoryRoot, 'tests/fixtures/editor-stability/coverage/creator-3.8.7-draft.json'));
     const draft = JSON.parse(bytes.toString('utf8'));
