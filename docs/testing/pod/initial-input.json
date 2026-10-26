@@ -1,0 +1,544 @@
+{
+  "schemaVersion": "pod-test-coverage-input.v1",
+  "candidate": {
+    "id": "research-baseline-20261026",
+    "repositories": {
+      "peanut-pod-lite": {
+        "commit": "f6ac69fb9b5ce7f840d540cd1b1fe3fd23a3ec02",
+        "tree": "7e10bf7da7c6c49cb402b7c3c0333acb0546bb4c",
+        "platform": "darwin-arm64",
+        "runtimeVersion": "node-26.8.2",
+        "toolchain": "tsx-4.23.0",
+        "artifactDigests": {}
+      },
+      "peanut-pod-pro": {
+        "commit": "c5f6990dd665ba2049fa8b290d669115c664a771",
+        "tree": "ad4f77864fc879a7faec788864ff1a53e8bc3da4",
+        "platform": "unverified",
+        "runtimeVersion": "unverified",
+        "toolchain": "unverified",
+        "artifactDigests": {}
+      },
+      "peanut-pod-server": {
+        "commit": "5a1c27366d87f2494e16e36fac2d7f7b810a1aae",
+        "tree": "7dfdeedbb1c99d86b824307c1fc1cce4cdd20c9c",
+        "platform": "unverified",
+        "runtimeVersion": "unverified",
+        "toolchain": "unverified",
+        "artifactDigests": {}
+      },
+      "cpm-install": {
+        "commit": "a5b9bf9b7bc369732c6ee2efb2b33c4a9fa32487",
+        "tree": "374d222260c5ba42d0ffd52de993e893b750f36e",
+        "platform": "unverified",
+        "runtimeVersion": "unverified",
+        "toolchain": "unverified",
+        "artifactDigests": {}
+      }
+    },
+    "environments": [
+      "creator-3.8.3",
+      "creator-3.8.7"
+    ],
+    "inputDigests": {
+      "reviewed-mainlines": "7d034e70884fa9b684bb9b3ea41931acba787ef62cd2220f96b371bd461cb2fd"
+    }
+  },
+  "sources": [
+    {
+      "id": "reviewed-mainlines",
+      "repository": "peanut-pod-lite",
+      "role": "current-product",
+      "commit": "f6ac69fb9b5ce7f840d540cd1b1fe3fd23a3ec02",
+      "tree": "7e10bf7da7c6c49cb402b7c3c0333acb0546bb4c",
+      "sourceRef": {
+        "rootId": "lite",
+        "path": "docs/testing/pod/source-catalog.json",
+        "sha256": "7d034e70884fa9b684bb9b3ea41931acba787ef62cd2220f96b371bd461cb2fd"
+      },
+      "sha256": "7d034e70884fa9b684bb9b3ea41931acba787ef62cd2220f96b371bd461cb2fd",
+      "kind": "curated-business",
+      "creatorVersion": null,
+      "completeness": "reviewed"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "cap-installation",
+      "ownerRepo": "peanut-pod-lite",
+      "sourceId": "reviewed-mainlines",
+      "sourceSubject": "installation",
+      "applicability": "creator-3.8.3|creator-3.8.7",
+      "unverifiedReason": "current native/business/live candidate evidence absent",
+      "traceRefs": [
+        "docs/testing/pod/source-catalog.json#installation"
+      ]
+    },
+    {
+      "id": "cap-basic-editing",
+      "ownerRepo": "peanut-pod-lite",
+      "sourceId": "reviewed-mainlines",
+      "sourceSubject": "basic-editing",
+      "applicability": "creator-3.8.3|creator-3.8.7",
+      "unverifiedReason": "current native/business/live candidate evidence absent",
+      "traceRefs": [
+        "docs/testing/pod/source-catalog.json#basic-editing"
+      ]
+    },
+    {
+      "id": "cap-design-to-project",
+      "ownerRepo": "peanut-pod-lite",
+      "sourceId": "reviewed-mainlines",
+      "sourceSubject": "design-to-project",
+      "applicability": "creator-3.8.3|creator-3.8.7",
+      "unverifiedReason": "current native/business/live candidate evidence absent",
+      "traceRefs": [
+        "docs/testing/pod/source-catalog.json#design-to-project"
+      ]
+    },
+    {
+      "id": "cap-font-content",
+      "ownerRepo": "peanut-pod-lite",
+      "sourceId": "reviewed-mainlines",
+      "sourceSubject": "font-content",
+      "applicability": "creator-3.8.3|creator-3.8.7",
+      "unverifiedReason": "current native/business/live candidate evidence absent",
+      "traceRefs": [
+        "docs/testing/pod/source-catalog.json#font-content"
+      ]
+    },
+    {
+      "id": "cap-account-permission",
+      "ownerRepo": "peanut-pod-lite",
+      "sourceId": "reviewed-mainlines",
+      "sourceSubject": "account-permission",
+      "applicability": "creator-3.8.3|creator-3.8.7",
+      "unverifiedReason": "current native/business/live candidate evidence absent",
+      "traceRefs": [
+        "docs/testing/pod/source-catalog.json#account-permission"
+      ]
+    },
+    {
+      "id": "cap-continuity",
+      "ownerRepo": "peanut-pod-lite",
+      "sourceId": "reviewed-mainlines",
+      "sourceSubject": "continuity",
+      "applicability": "creator-3.8.3|creator-3.8.7",
+      "unverifiedReason": "current native/business/live candidate evidence absent",
+      "traceRefs": [
+        "docs/testing/pod/source-catalog.json#continuity"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "installation-creator-3.8.3",
+      "capabilityIds": [
+        "cap-installation"
+      ],
+      "layer": "package",
+      "environment": "creator-3.8.3",
+      "preconditions": [
+        "isolated project",
+        "frozen candidate",
+        "actual authorization for writes"
+      ],
+      "fixtureRefs": [],
+      "commandRef": {
+        "repository": "cpm-install",
+        "cwdRelative": ".",
+        "executable": "node",
+        "argv": [
+          "cli/cpm.mjs"
+        ]
+      },
+      "expectedOutcome": "CPM 候选安装与包身份一致",
+      "allowedEffects": [],
+      "readback": "安装后独立查询版本、签名与来源摘要",
+      "recovery": "未获安装授权时停止；仅清理本次安装资源",
+      "depends": []
+    },
+    {
+      "id": "installation-creator-3.8.7",
+      "capabilityIds": [
+        "cap-installation"
+      ],
+      "layer": "package",
+      "environment": "creator-3.8.7",
+      "preconditions": [
+        "isolated project",
+        "frozen candidate",
+        "actual authorization for writes"
+      ],
+      "fixtureRefs": [],
+      "commandRef": {
+        "repository": "cpm-install",
+        "cwdRelative": ".",
+        "executable": "node",
+        "argv": [
+          "cli/cpm.mjs"
+        ]
+      },
+      "expectedOutcome": "CPM 候选安装与包身份一致",
+      "allowedEffects": [],
+      "readback": "安装后独立查询版本、签名与来源摘要",
+      "recovery": "未获安装授权时停止；仅清理本次安装资源",
+      "depends": []
+    },
+    {
+      "id": "basic-editing-creator-3.8.3",
+      "capabilityIds": [
+        "cap-basic-editing"
+      ],
+      "layer": "creator-native",
+      "environment": "creator-3.8.3",
+      "preconditions": [
+        "isolated project",
+        "frozen candidate",
+        "actual authorization for writes"
+      ],
+      "fixtureRefs": [],
+      "commandRef": {
+        "repository": "peanut-pod-lite",
+        "cwdRelative": ".",
+        "executable": "node",
+        "argv": [
+          "--import",
+          "tsx",
+          "packages/hosts/modules/creator-38/scripts/verify-managed-task-live.mts"
+        ]
+      },
+      "expectedOutcome": "Prefab/Scene 受管写入、保存与重开",
+      "allowedEffects": [],
+      "readback": "AssetDB/meta/引用/日志及唯一 postflight",
+      "recovery": "写入失败停止，保留诊断",
+      "depends": []
+    },
+    {
+      "id": "basic-editing-creator-3.8.7",
+      "capabilityIds": [
+        "cap-basic-editing"
+      ],
+      "layer": "creator-native",
+      "environment": "creator-3.8.7",
+      "preconditions": [
+        "isolated project",
+        "frozen candidate",
+        "actual authorization for writes"
+      ],
+      "fixtureRefs": [],
+      "commandRef": {
+        "repository": "peanut-pod-lite",
+        "cwdRelative": ".",
+        "executable": "node",
+        "argv": [
+          "--import",
+          "tsx",
+          "packages/hosts/modules/creator-38/scripts/verify-managed-task-live.mts"
+        ]
+      },
+      "expectedOutcome": "Prefab/Scene 受管写入、保存与重开",
+      "allowedEffects": [],
+      "readback": "AssetDB/meta/引用/日志及唯一 postflight",
+      "recovery": "写入失败停止，保留诊断",
+      "depends": []
+    },
+    {
+      "id": "design-to-project-creator-3.8.3",
+      "capabilityIds": [
+        "cap-design-to-project"
+      ],
+      "layer": "business",
+      "environment": "creator-3.8.3",
+      "preconditions": [
+        "isolated project",
+        "frozen candidate",
+        "actual authorization for writes"
+      ],
+      "fixtureRefs": [],
+      "commandRef": {
+        "repository": "peanut-pod-pro",
+        "cwdRelative": ".",
+        "executable": "node",
+        "argv": [
+          "--import",
+          "tsx",
+          "packages/ui-prefab/tests/project-migration.test.mts"
+        ]
+      },
+      "expectedOutcome": "设计资源形成工程并能重导入",
+      "allowedEffects": [],
+      "readback": "最终包预览与跨入口实机读回",
+      "recovery": "阶段三写入禁令仍有效",
+      "depends": []
+    },
+    {
+      "id": "design-to-project-creator-3.8.7",
+      "capabilityIds": [
+        "cap-design-to-project"
+      ],
+      "layer": "business",
+      "environment": "creator-3.8.7",
+      "preconditions": [
+        "isolated project",
+        "frozen candidate",
+        "actual authorization for writes"
+      ],
+      "fixtureRefs": [],
+      "commandRef": {
+        "repository": "peanut-pod-pro",
+        "cwdRelative": ".",
+        "executable": "node",
+        "argv": [
+          "--import",
+          "tsx",
+          "packages/ui-prefab/tests/project-migration.test.mts"
+        ]
+      },
+      "expectedOutcome": "设计资源形成工程并能重导入",
+      "allowedEffects": [],
+      "readback": "最终包预览与跨入口实机读回",
+      "recovery": "阶段三写入禁令仍有效",
+      "depends": []
+    },
+    {
+      "id": "font-content-creator-3.8.3",
+      "capabilityIds": [
+        "cap-font-content"
+      ],
+      "layer": "business",
+      "environment": "creator-3.8.3",
+      "preconditions": [
+        "isolated project",
+        "frozen candidate",
+        "actual authorization for writes"
+      ],
+      "fixtureRefs": [],
+      "commandRef": {
+        "repository": "peanut-pod-pro",
+        "cwdRelative": ".",
+        "executable": "node",
+        "argv": [
+          "packages/content-delivery/tests/content-delivery.test.mjs"
+        ]
+      },
+      "expectedOutcome": "字体与内容产物可被工程消费",
+      "allowedEffects": [],
+      "readback": "产物引用、版本与平台差异读回",
+      "recovery": "缺原生宿主证据时停止",
+      "depends": []
+    },
+    {
+      "id": "font-content-creator-3.8.7",
+      "capabilityIds": [
+        "cap-font-content"
+      ],
+      "layer": "business",
+      "environment": "creator-3.8.7",
+      "preconditions": [
+        "isolated project",
+        "frozen candidate",
+        "actual authorization for writes"
+      ],
+      "fixtureRefs": [],
+      "commandRef": {
+        "repository": "peanut-pod-pro",
+        "cwdRelative": ".",
+        "executable": "node",
+        "argv": [
+          "packages/content-delivery/tests/content-delivery.test.mjs"
+        ]
+      },
+      "expectedOutcome": "字体与内容产物可被工程消费",
+      "allowedEffects": [],
+      "readback": "产物引用、版本与平台差异读回",
+      "recovery": "缺原生宿主证据时停止",
+      "depends": []
+    },
+    {
+      "id": "account-permission-creator-3.8.3",
+      "capabilityIds": [
+        "cap-account-permission"
+      ],
+      "layer": "service-live",
+      "environment": "creator-3.8.3",
+      "preconditions": [
+        "isolated project",
+        "frozen candidate",
+        "actual authorization for writes"
+      ],
+      "fixtureRefs": [],
+      "commandRef": {
+        "repository": "peanut-pod-lite",
+        "cwdRelative": ".",
+        "executable": "node",
+        "argv": [
+          "--import",
+          "tsx",
+          "packages/hosts/modules/creator-38/tests/account-session.test.mts"
+        ]
+      },
+      "expectedOutcome": "账号会话和授权边界正确",
+      "allowedEffects": [],
+      "readback": "宿主、服务与撤销的独立读回",
+      "recovery": "无真实账号环境时停止",
+      "depends": []
+    },
+    {
+      "id": "account-permission-creator-3.8.7",
+      "capabilityIds": [
+        "cap-account-permission"
+      ],
+      "layer": "service-live",
+      "environment": "creator-3.8.7",
+      "preconditions": [
+        "isolated project",
+        "frozen candidate",
+        "actual authorization for writes"
+      ],
+      "fixtureRefs": [],
+      "commandRef": {
+        "repository": "peanut-pod-lite",
+        "cwdRelative": ".",
+        "executable": "node",
+        "argv": [
+          "--import",
+          "tsx",
+          "packages/hosts/modules/creator-38/tests/account-session.test.mts"
+        ]
+      },
+      "expectedOutcome": "账号会话和授权边界正确",
+      "allowedEffects": [],
+      "readback": "宿主、服务与撤销的独立读回",
+      "recovery": "无真实账号环境时停止",
+      "depends": []
+    },
+    {
+      "id": "continuity-creator-3.8.3",
+      "capabilityIds": [
+        "cap-continuity"
+      ],
+      "layer": "reliability",
+      "environment": "creator-3.8.3",
+      "preconditions": [
+        "isolated project",
+        "frozen candidate",
+        "actual authorization for writes"
+      ],
+      "fixtureRefs": [],
+      "commandRef": {
+        "repository": "peanut-pod-lite",
+        "cwdRelative": ".",
+        "executable": "node",
+        "argv": [
+          "--import",
+          "tsx",
+          "packages/hosts/modules/creator-38/scripts/verify-throughput-soak-live.mts"
+        ]
+      },
+      "expectedOutcome": "30分钟正常加10分钟过载及冷却",
+      "allowedEffects": [],
+      "readback": "任务/安装恢复与残留、日志读回",
+      "recovery": "未达到预算或环境恢复失败时停止",
+      "depends": []
+    },
+    {
+      "id": "continuity-creator-3.8.7",
+      "capabilityIds": [
+        "cap-continuity"
+      ],
+      "layer": "reliability",
+      "environment": "creator-3.8.7",
+      "preconditions": [
+        "isolated project",
+        "frozen candidate",
+        "actual authorization for writes"
+      ],
+      "fixtureRefs": [],
+      "commandRef": {
+        "repository": "peanut-pod-lite",
+        "cwdRelative": ".",
+        "executable": "node",
+        "argv": [
+          "--import",
+          "tsx",
+          "packages/hosts/modules/creator-38/scripts/verify-throughput-soak-live.mts"
+        ]
+      },
+      "expectedOutcome": "30分钟正常加10分钟过载及冷却",
+      "allowedEffects": [],
+      "readback": "任务/安装恢复与残留、日志读回",
+      "recovery": "未达到预算或环境恢复失败时停止",
+      "depends": []
+    }
+  ],
+  "workflows": [
+    {
+      "id": "installation",
+      "kind": "installation",
+      "caseIds": [
+        "installation-creator-3.8.3",
+        "installation-creator-3.8.7"
+      ],
+      "depends": [],
+      "stopCondition": "未获安装授权时停止；仅清理本次安装资源",
+      "cleanupRule": "仅清理本次创建且有清单的资源；may_have_changed 先核验工程"
+    },
+    {
+      "id": "basic-editing",
+      "kind": "basic-editing",
+      "caseIds": [
+        "basic-editing-creator-3.8.3",
+        "basic-editing-creator-3.8.7"
+      ],
+      "depends": [],
+      "stopCondition": "写入失败停止，保留诊断",
+      "cleanupRule": "仅清理本次创建且有清单的资源；may_have_changed 先核验工程"
+    },
+    {
+      "id": "design-to-project",
+      "kind": "design-to-project",
+      "caseIds": [
+        "design-to-project-creator-3.8.3",
+        "design-to-project-creator-3.8.7"
+      ],
+      "depends": [],
+      "stopCondition": "阶段三写入禁令仍有效",
+      "cleanupRule": "仅清理本次创建且有清单的资源；may_have_changed 先核验工程"
+    },
+    {
+      "id": "font-content",
+      "kind": "font-content",
+      "caseIds": [
+        "font-content-creator-3.8.3",
+        "font-content-creator-3.8.7"
+      ],
+      "depends": [],
+      "stopCondition": "缺原生宿主证据时停止",
+      "cleanupRule": "仅清理本次创建且有清单的资源；may_have_changed 先核验工程"
+    },
+    {
+      "id": "account-permission",
+      "kind": "account-permission",
+      "caseIds": [
+        "account-permission-creator-3.8.3",
+        "account-permission-creator-3.8.7"
+      ],
+      "depends": [],
+      "stopCondition": "无真实账号环境时停止",
+      "cleanupRule": "仅清理本次创建且有清单的资源；may_have_changed 先核验工程"
+    },
+    {
+      "id": "continuity",
+      "kind": "continuity",
+      "caseIds": [
+        "continuity-creator-3.8.3",
+        "continuity-creator-3.8.7"
+      ],
+      "depends": [],
+      "stopCondition": "未达到预算或环境恢复失败时停止",
+      "cleanupRule": "仅清理本次创建且有清单的资源；may_have_changed 先核验工程"
+    }
+  ],
+  "results": []
+}

@@ -109,3 +109,23 @@ test('full synthetic exercise exits zero without entering product pass counts', 
         assert.equal(JSON.parse(exercise.stdout).syntheticExerciseComplete, true);
     } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test('pinned initial six-workflow input remains valid and product incomplete', () => {
+    const repositoryRoot = resolve(import.meta.dirname, '../..');
+    const input = join(repositoryRoot, 'docs/testing/pod/initial-input.json');
+    const args = ['--input', input, '--source-root', `lite=${repositoryRoot}`];
+    const validation = run(['validate', ...args]);
+    assert.equal(validation.status, 0, validation.stderr);
+    const output = join(tmpdir(), `pod-report-initial-${process.pid}-${Date.now()}`);
+    try {
+        const rendered = run(['report', ...args, '--out', output]);
+        assert.equal(rendered.status, 0, rendered.stderr);
+        const report = JSON.parse(readFileSync(join(output, 'report.json'), 'utf8'));
+        assert.equal(report.counts.total, 12);
+        assert.equal(report.counts.currentPassed, 0);
+        assert.equal(report.workflows.length, 6);
+        assert.equal(report.acceptancePlans.length, 2);
+        assert.equal(report.acceptanceComplete, false);
+    } finally { rmSync(output, { recursive: true, force: true }); }
+    assert.equal(run(['check-acceptance', ...args, '--workflow', 'basic-editing']).status, 2);
+});

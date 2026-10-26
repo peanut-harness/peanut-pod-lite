@@ -1,4 +1,5 @@
 import { PodCoverageContracts, type IPodCoverageInput } from './contracts.mjs';
+import { PodAcceptancePlan } from './acceptance-plan.mjs';
 import type { IPodCoverageEvidenceAssessment, IPodCoverageResultAssessment } from './evidence.mjs';
 import type { IPodCoverageInventoryAssessment } from './inventory.mjs';
 import type { IPodCoverageMappingAssessment } from './mapping.mjs';
@@ -78,6 +79,11 @@ export class PodCoverageReport {
             applicabilityUnknown: results.filter((row) => row.applicability === 'unknown').length,
             resultTotal: results.length };
         const denominatorKnown = inventory.complete;
+        const candidateRepositories = PodCoverageContracts.record(input.candidate.repositories, null, 'candidate_repositories');
+        const environments = PodCoverageContracts.stringArray(input.candidate.environments, 'candidate_environments');
+        const acceptancePlans = candidateRepositories['peanut-pod-lite'] === undefined ? []
+            : ['3.8.3', '3.8.7'].filter((version) => environments.includes(`creator-${version}`))
+                .map((version) => PodAcceptancePlan.build(input, version));
         return { schemaVersion: 'pod-test-coverage-report.v1', candidateId: String(input.candidate.id),
             denominator: { complete: inventory.complete, capabilityTotal: inventory.capabilities.length,
                 declaredCapabilityTotal: input.capabilities.length, mapped: mapping.mappedCapabilityIds.length,
@@ -90,7 +96,8 @@ export class PodCoverageReport {
                 unmappedSourceCapabilities: [...mapping.unmappedSourceCapabilities].sort((a, b) => a.id.localeCompare(b.id, 'en')) },
             counts, completionRate: denominatorKnown && counts.applicable > 0 ? counts.currentPassed / counts.applicable : null,
             byLayer: breakdown('layer'), byEnvironment: breakdown('environment'), cases: caseRows, workflows: finished,
-            results, conflicts: [...evidence.conflicts].sort(), acceptanceComplete: inventory.complete && mapping.complete
+            results, conflicts: [...evidence.conflicts].sort(), acceptancePlans,
+            acceptanceComplete: inventory.complete && mapping.complete
                 && finished.length > 0 && finished.every((row) => row.complete) };
     }
 
@@ -116,16 +123,33 @@ export class PodCoverageReport {
             .replace(/>/gu, '&gt;').replace(/[|\\`*_{}\[\]()#+.!\r\n]/gu, (char) => `&#${char.codePointAt(0)};`);
         const counts = value.counts as Readonly<Record<string, unknown>>;
         const denominator = value.denominator as Readonly<Record<string, unknown>>;
+        const mapping = value.mapping as Readonly<Record<string, unknown>>;
         const rows = value.cases as readonly Readonly<Record<string, unknown>>[];
         const workflows = value.workflows as readonly Readonly<Record<string, unknown>>[];
+        const sources = denominator.sources as readonly Readonly<Record<string, unknown>>[];
+        const results = value.results as readonly Readonly<Record<string, unknown>>[];
+        const plans = value.acceptancePlans as readonly Readonly<Record<string, unknown>>[];
         return [`# Pod 测试覆盖报告`, '', `候选：${escape(value.candidateId)}`, '',
             `分母完整：${escape(denominator.complete)}；能力总量：${escape(denominator.capabilityTotal)}；未映射：${escape(denominator.unmapped)}`,
             `验收完成：${escape(value.acceptanceComplete)}`, '',
+            '## 来源与映射缺口', '', '| 来源 | 仓库 | 完整性 | 原因 |', '| --- | --- | --- | --- |',
+            ...sources.map((row) => `| ${escape(row.id)} | ${escape(row.repository)} | ${escape(row.completeness)} | ${escape(row.reason ?? '')} |`),
+            '', `未覆盖能力：${escape((mapping.uncoveredCapabilityIds as readonly string[]).join(', '))}`,
+            `未映射来源项：${escape((mapping.unmappedSourceCapabilities as readonly Readonly<Record<string, unknown>>[])
+                .map((row) => row.sourceSubject).join(', '))}`, '',
             '## 三轴计数', '', ...Object.entries(counts).sort(([a], [b]) => a.localeCompare(b, 'en'))
                 .map(([key, count]) => `- ${escape(key)}: ${escape(count)}`), '',
             '## 用例', '', '| ID | 层级 | 环境 | 预期 | 当前状态 |', '| --- | --- | --- | --- | --- |',
             ...rows.map((row) => `| ${escape(row.id)} | ${escape(row.layer)} | ${escape(row.environment)} | ${escape(row.expectedOutcome)} | ${escape(row.status)} |`),
             '', '## 主线', '', '| ID | 类型 | 完成 |', '| --- | --- | --- |',
-            ...workflows.map((row) => `| ${escape(row.id)} | ${escape(row.kind)} | ${escape(row.complete)} |`), ''].join('\n');
+            ...workflows.map((row) => `| ${escape(row.id)} | ${escape(row.kind)} | ${escape(row.complete)} |`),
+            '', '## 当前与历史结果', '', '| ID | 用例 | 执行 | 证据 | 适用性 | 当前产品通过 |',
+            '| --- | --- | --- | --- | --- | --- |',
+            ...results.map((row) => `| ${escape(row.id)} | ${escape(row.caseId)} | ${escape(row.executionOutcome)} | ${escape(row.evidenceStatus)} | ${escape(row.applicability)} | ${escape(row.countsAsCurrentPass)} |`),
+            '', '## 最小验收链计划', '', ...plans.flatMap((plan) => [`### Creator ${escape(plan.creatorVersion)}`, '',
+                '| 步骤 | 状态 | 阻塞原因 | 入口 |', '| --- | --- | --- | --- |',
+                ...(plan.steps as readonly Readonly<Record<string, unknown>>[]).map((step) =>
+                    `| ${escape(step.id)} | ${escape(step.status)} | ${escape(step.blockReason ?? '')} | ${escape(step.entryRef)} |`), '']),
+            ''].join('\n');
     }
 }
