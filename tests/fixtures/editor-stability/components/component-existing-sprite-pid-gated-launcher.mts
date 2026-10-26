@@ -1,9 +1,10 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { closeSync, fstatSync, fsyncSync, linkSync, lstatSync, openSync, readFileSync,
+import { closeSync, createWriteStream, fstatSync, fsyncSync, linkSync, lstatSync, openSync, readFileSync,
     realpathSync, unlinkSync, writeSync, type Stats } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve, sep } from 'node:path';
+import { finished } from 'node:stream/promises';
 
 export const PID_GATE_SCRIPT = 'printf "READY:%s:%s\\n" "$$" "$1"; shift; IFS= read -r gate || exit 70; [ "$gate" = "GO" ] || exit 71; exec "$@"';
 const LEASE_NAME = 'sprite-runtime-lease-synthetic.json';
@@ -40,7 +41,8 @@ type RuntimeLease = {
     probeSourceCommit: string; probeBundleSha256: string; permissions: ['existingAssetIdentity'];
 };
 type GateLease = SyntheticLease | RuntimeLease;
-type GateSession = { pid: number; leasePath: string; go(): void; wait(): Promise<number>; close(): Promise<void> };
+type GateSession = { pid: number; leasePath: string; stdoutPath: string; stderrPath: string;
+    go(): void; wait(): Promise<number>; close(): Promise<void> };
 
 function sha(bytes: Buffer): string { return createHash('sha256').update(bytes).digest('hex'); }
 function statFile(path: string): Stats {
@@ -98,6 +100,12 @@ function checkOwned(lease: OwnedLease): void {
         || (stat.mode & 0o777) !== 0o600 || sha(readFileSync(lease.path)) !== lease.digest)
         throw new Error('component_sprite_pid_gate_lease_ownership_mismatch');
 }
+function checkRaw(path: string, fd: number): void {
+    const owned = fstatSync(fd); const current = statFile(path);
+    if (owned.dev !== current.dev || owned.ino !== current.ino || current.nlink !== 1
+        || (current.mode & 0o777) !== 0o600)
+        throw new Error('component_sprite_pid_gate_raw_ownership_mismatch');
+}
 function waitReady(child: ChildProcessWithoutNullStreams, nonce: string): Promise<void> {
     return new Promise((done, reject) => {
         let pending = '';
@@ -123,13 +131,37 @@ function waitReady(child: ChildProcessWithoutNullStreams, nonce: string): Promis
 }
 
 async function prepareGate(config: { cwd: string; executable: string; args: string[]; leasePath: string;
+    rawRoot: string;
     lease(pid: number, now: number, generation: string): GateLease }): Promise<GateSession> {
     const { cwd, executable, args, leasePath } = config;
     if (lstatSync(leasePath, { throwIfNoEntry: false }))
         throw new Error('component_sprite_pid_gate_lease_occupied');
+    if (realpathSync(config.rawRoot) !== config.rawRoot || !lstatSync(config.rawRoot).isDirectory()
+        || (lstatSync(config.rawRoot).mode & 0o077) !== 0)
+        throw new Error('component_sprite_pid_gate_raw_root_invalid');
+    const generation = randomBytes(16).toString('hex');
+    const stdoutPath = join(config.rawRoot, `sprite-runtime-${generation}.stdout.raw`);
+    const stderrPath = join(config.rawRoot, `sprite-runtime-${generation}.stderr.raw`);
+    const stdoutFd = openSync(stdoutPath, 'wx', 0o600);
+    let stderrFd: number;
+    try { stderrFd = openSync(stderrPath, 'wx', 0o600); }
+    catch (error) { closeSync(stdoutFd); throw error; }
+    try { checkRaw(stdoutPath, stdoutFd); checkRaw(stderrPath, stderrFd); }
+    catch (error) { closeSync(stdoutFd); closeSync(stderrFd); throw error; }
     const nonce = randomBytes(16).toString('hex');
     const child = spawn('/bin/sh', ['-c', PID_GATE_SCRIPT, 'pid-gate', nonce, executable, ...args],
         { cwd, stdio: ['pipe', 'pipe', 'pipe'], env: { PATH: '/usr/bin:/bin' } });
+    const stdout = createWriteStream(stdoutPath, { fd: stdoutFd, autoClose: false });
+    const stderr = createWriteStream(stderrPath, { fd: stderrFd, autoClose: false });
+    let captureError: Error | null = null;
+    const failedCapture = (error: Error): void => {
+        captureError ??= error;
+        if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
+    };
+    stdout.on('error', failedCapture); stderr.on('error', failedCapture);
+    const captured = Promise.all([finished(stdout), finished(stderr)]);
+    void captured.catch(() => undefined);
+    child.stdout.pipe(stdout); child.stderr.pipe(stderr);
     let lease: OwnedLease | null = null;
     let released = false;
     let gateTimer: ReturnType<typeof setTimeout> | null = null;
@@ -145,27 +177,49 @@ async function prepareGate(config: { cwd: string; executable: string; args: stri
     });
     // A failed launch is always observed by wait()/close(), including failures before READY.
     void exited.catch(() => undefined);
+    let final: Promise<number> | null = null;
+    const finalize = (): Promise<number> => {
+        final ??= (async () => {
+            let code: number | null = null; const failures: unknown[] = [];
+            try { code = await exited; } catch (error) { failures.push(error); }
+            try { await captured; } catch (error) { failures.push(error); }
+            try { fsyncSync(stdoutFd); fsyncSync(stderrFd);
+                checkRaw(stdoutPath, stdoutFd); checkRaw(stderrPath, stderrFd); }
+            catch (error) { failures.push(error); }
+            for (const fd of [stdoutFd, stderrFd]) {
+                try { closeSync(fd); } catch (error) { failures.push(error); }
+            }
+            if (captureError && !failures.includes(captureError)) failures.push(captureError);
+            if (failures.length === 1) throw failures[0];
+            if (failures.length > 1)
+                throw new AggregateError(failures, 'component_sprite_pid_gate_raw_or_child_failed');
+            return code!;
+        })();
+        return final;
+    };
     const close = async (): Promise<void> => {
         if (gateTimer) clearTimeout(gateTimer);
         if (exitCode === null && child.exitCode === null && child.signalCode === null)
             child.kill('SIGTERM');
         child.stdin.end();
-        await exited.catch(() => undefined);
+        let failure: unknown = null;
+        try { await finalize(); } catch (error) { failure = error; }
         if (lease) { checkOwned(lease); unlinkSync(lease.path); lease = null; }
+        if (failure) throw failure;
     };
     try {
         await waitReady(child, nonce);
         if (!Number.isSafeInteger(child.pid) || child.pid! <= 0 || child.exitCode !== null
-            || child.signalCode !== null)
+            || child.signalCode !== null || captureError)
             throw new Error('component_sprite_pid_gate_child_identity_invalid');
         const now = Date.now();
-        const generation = randomBytes(16).toString('hex');
         lease = publish(leasePath, config.lease(child.pid!, now, generation), generation);
         gateTimer = setTimeout(() => { if (!released && child.exitCode === null) child.kill('SIGTERM'); }, MAX_GATE_MS);
-        return { pid: child.pid!, leasePath,
+        return { pid: child.pid!, leasePath, stdoutPath, stderrPath,
             go(): void {
-                if (released || !lease || child.exitCode !== null || child.signalCode !== null)
+                if (released || !lease || child.exitCode !== null || child.signalCode !== null || captureError)
                     throw new Error('component_sprite_pid_gate_not_ready');
+                checkRaw(stdoutPath, stdoutFd); checkRaw(stderrPath, stderrFd);
                 checkOwned(lease);
                 const value = JSON.parse(readFileSync(lease.path, 'utf8')) as GateLease;
                 if (value.pid !== child.pid || ('generation' in value && value.generation !== lease.generation)
@@ -174,9 +228,9 @@ async function prepareGate(config: { cwd: string; executable: string; args: stri
                 released = true;
                 child.stdin.end('GO\n');
             },
-            wait: () => exited,
+            wait: finalize,
             close };
-    } catch (error) { await close(); throw error; }
+    } catch (error) { await close().catch(() => undefined); throw error; }
 }
 
 /**
@@ -195,7 +249,7 @@ export async function prepareSyntheticPidGate(input: {
         || !/^[a-f0-9]{64}$/u.test(input.probeBundleSha256)
         || !Array.isArray(input.args ?? []) || (input.args ?? []).some(arg => typeof arg !== 'string' || arg.includes('\0')))
         throw new Error('component_sprite_pid_gate_synthetic_input_invalid');
-    return prepareGate({ cwd: root, executable, args: input.args ?? [], leasePath: join(root, LEASE_NAME),
+    return prepareGate({ cwd: root, executable, args: input.args ?? [], leasePath: join(root, LEASE_NAME), rawRoot: root,
         lease: (pid, now, generation): SyntheticLease => ({ schema: 'peanut.pod.sprite-pid-gate-synthetic.v1',
             status: 'active', projectPath: root, creatorVersion: 'synthetic',
             creatorExecutable: executable, creatorExecutableSha256: sha(readFileSync(executable)),
@@ -272,6 +326,7 @@ export async function prepareProduction383PidGate(input: { owner: string; runId:
     const permit = productionPermit(input.owner, input.runId);
     return prepareGate({ cwd: PRODUCTION.project, executable: PRODUCTION.binary,
         args: ['--project', PRODUCTION.project], leasePath: PRODUCTION.lease,
+        rawRoot: join(PRIVATE, 'sprite-creator-wrapper'),
         lease: (pid, now): RuntimeLease => ({
             schema: 'peanut.pod.sprite-runtime-lease.v1', status: 'active',
             projectPath: PRODUCTION.project, creatorVersion: '3.8.3',

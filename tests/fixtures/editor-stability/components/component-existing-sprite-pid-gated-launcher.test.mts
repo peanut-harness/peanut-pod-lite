@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { chmodSync, existsSync, lstatSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, lstatSync, mkdtempSync, readFileSync, realpathSync,
+    renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -94,7 +95,44 @@ test('unreleased gate times out without executing and revokes only its own lease
         try {
             await assert.rejects(gate.wait(), /child_failed/u);
             assert.equal(existsSync(f.marker), false);
+        } finally { await assert.rejects(gate.close(), /child_failed/u); }
+        assert.equal(existsSync(gate.leasePath), false);
+    } finally { f.dispose(); }
+});
+
+test('stdout and stderr retain full output larger than pipe buffers through exec', async () => {
+    const f = fixture();
+    try {
+        writeFileSync(f.executable, '#!/bin/sh\n'
+            + 'dd if=/dev/zero bs=1024 count=256 2>/dev/null\n'
+            + 'dd if=/dev/zero bs=1024 count=256 1>&2 2>/dev/null\n'
+            + 'printf "%s\\n" "$$" > "$1"\n');
+        const gate = await prepareSyntheticPidGate(options(f));
+        try {
+            gate.go();
+            assert.equal(await gate.wait(), 0);
+            const stdout = readFileSync(gate.stdoutPath);
+            const stderr = readFileSync(gate.stderrPath);
+            assert.match(stdout.subarray(0, 50).toString('utf8'), /^READY:[0-9]+:[a-f0-9]{32}\n/u);
+            assert.equal(stdout.length, stdout.indexOf(10) + 1 + 256 * 1024);
+            assert.equal(stderr.length, 256 * 1024);
+            assert.equal(stdout.subarray(stdout.indexOf(10) + 1).equals(Buffer.alloc(256 * 1024)), true);
+            assert.equal(stderr.equals(Buffer.alloc(256 * 1024)), true);
+            assert.equal(Number(readFileSync(f.marker, 'utf8').trim()), gate.pid);
         } finally { await gate.close(); }
+    } finally { f.dispose(); }
+});
+
+test('replaced raw capture path refuses GO and preserves the foreign file', async () => {
+    const f = fixture();
+    try {
+        const gate = await prepareSyntheticPidGate(options(f));
+        renameSync(gate.stdoutPath, `${gate.stdoutPath}.owned`);
+        writeFileSync(gate.stdoutPath, 'foreign', { mode: 0o600 });
+        assert.throws(() => gate.go(), /raw_ownership_mismatch/u);
+        await assert.rejects(gate.close(), /child_failed|raw_ownership_mismatch/u);
+        assert.equal(readFileSync(gate.stdoutPath, 'utf8'), 'foreign');
+        assert.equal(existsSync(f.marker), false);
         assert.equal(existsSync(gate.leasePath), false);
     } finally { f.dispose(); }
 });
