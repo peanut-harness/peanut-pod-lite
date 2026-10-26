@@ -6,6 +6,8 @@
 
 本轮显式根读回、分母和六条主线退出码见 [0.2.1 来源矩阵回执](self-managed-source-validation-0.2.1.md)。
 
+两份现有工程的 0.2.1 最小 Prefab/Scene 编辑、关闭重开和独立读回见 [现有工程实测回执](existing-project-editing-validation.md)。它保留运行事故及覆盖缺口，12 条产品用例仍为 `not_run`。
+
 六条主线是安装生命周期、基础编辑、设计到工程、字体与内容、账号权限、恢复连续使用。每条在 Creator 3.8.3 和 3.8.7 各有一条尚未执行的定义；报告保留 12 条 `not_run`，当前通过数为零。当前来源为 Lite 策展 6、Lite Packaging 包身份 1、Pro 核心 88、高级 15、Pro 目录包身份 1、Server 审阅路由 3，合计 114；其中 108 项仍为 `unmapped`。来源完整性不证明安装或运行成功，两个包身份来源的 `releaseAvailable` 均为 `null`。此前 110 项候选和 CPM stable 空清单的报告作为历史回执保留，不进入当前分母。
 
 ## 离线命令
@@ -25,7 +27,7 @@ node --import tsx tools/pod-test-coverage/cli.mts check-acceptance --input "$ROO
 | 主线 | 可核对入口与历史变更 | 仍需的当前候选证据 |
 | --- | --- | --- |
 | 安装生命周期 | `docs/INSTALLATION.md`；Lite `PackagingApp`、`release:candidate`；Pro `pod-directory-package.mts` | 现有两版工程的 `0.2.0 → 0.2.1` 升级/修复与 Host/Core 读回；真实空工程首装仍单列缺口 |
-| 基础编辑 | `tests/fixtures/editor-stability/coverage/creator-3.8.3-draft.json`、`creator-3.8.7-draft.json`；`verify-managed-task-live.mts` | 两版原生注册、组件与代码矩阵、保存重开、引用及日志后验 |
+| 基础编辑 | `tests/fixtures/editor-stability/coverage/creator-3.8.3-draft.json`、`creator-3.8.7-draft.json`；`verify-managed-task-live.mts`；现有工程实测回执 | 两版原生注册、组件与代码全量矩阵；最小三资源链的保存重开、引用及日志后验已单独验证 |
 | 设计到工程 | Pro `packages/ui-prefab/tests/project-migration.test.mts`；`preserve-ui-prefab-reimport-customizations` | 正向字段选择、最终包预览、跨入口实机与阶段三禁写边界 |
 | 字体与内容 | Pro `sdf-font-runtime.ts`、`cocos-snowb-bmfont-service-runtime.ts`、`content-delivery-runtime.ts` | 原生产物可用性、依赖能力和平台差异 |
 | 账号权限 | Lite `account-session.test.mts`、`account-pro-entitlement.test.mts`；Server `account-actor.test.ts` | 实际账号宿主、OIDC/PG/KMS、消费者接收、会话竞态与撤销 |
@@ -35,4 +37,4 @@ node --import tsx tools/pod-test-coverage/cli.mts check-acceptance --input "$ROO
 
 ## 最小安装到编辑计划
 
-报告分别生成 3.8.3 和 3.8.7 的静态计划：候选身份 → 宿主就绪 → 安装 → 只读冒烟 → 实际审批写入 → 保存重开 → 独立读回 → 清理。无精确隔离工程绑定和写入授权时步骤保持 `blocked`。`verify-managed-task-live.mts` 不覆盖保存重开，计划将该步明确标为待定义。失败阻断后续步骤；清理只针对有创建清单的本任务资源，`may_have_changed` 保留诊断并先核验工程。
+报告分别生成 3.8.3 和 3.8.7 的静态计划：候选身份 → 宿主就绪 → 安装 → 只读冒烟 → 实际审批写入 → 保存重开 → 独立读回 → 清理。无精确隔离工程绑定和写入授权时步骤保持 `blocked`。后续现有工程实测已通过独立脚本补充三资源保存重开读回；该局部证据尚未并入产品矩阵通过数。失败阻断后续步骤；清理只针对有创建清单的本任务资源，`may_have_changed` 保留诊断并先核验工程。

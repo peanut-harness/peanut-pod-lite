@@ -1,0 +1,137 @@
+{
+  "schema": "peanut.pod.existing-project-editing-validation.v1",
+  "change": "validate-pod-0-2-1-existing-project-editing",
+  "candidateVersion": "0.2.1",
+  "candidateSourceCommit": "660226aa28d0d96fc4766c81c3b58af71cd1a8f0",
+  "scope": "existing_project_minimal_editing_chain",
+  "runtime": {
+    "3.8.3": {
+      "receipt": ".peanut-ai/pod-existing-project-editing-20261026/task-2.1-runtime/technical-acceptance-3.8.3.json",
+      "readbackDigest": "60a8bceafbb4bb64366955aec25e63c59512f6d4db873a01fbd850516193df09",
+      "identityCount": 3,
+      "nativeResolvedReferences": 2,
+      "unresolvedNativeReferences": 0,
+      "preservedIncident": "first_launch_two_control_files_outside_initial_lease"
+    },
+    "3.8.7": {
+      "receipt": ".peanut-ai/pod-existing-project-editing-20261026/task-2.2-runtime/technical-acceptance-3.8.7.json",
+      "readbackDigest": "fc1667db183157b2413ab355e2aa560b97ac057ba7e7c17ae75c4f8f2ba932c1",
+      "identityCount": 3,
+      "nativeResolvedReferences": 2,
+      "unresolvedNativeReferences": 0,
+      "proVersion": "0.1.1",
+      "preservedIncident": "first_launch_appkit_sigabrt_no_project_drift_cause_unconfirmed"
+    }
+  },
+  "coverageDrafts": {
+    "3.8.3": {
+      "caseCount": 4128,
+      "statusCounts": {
+        "pending": 4128
+      },
+      "sourceSha256": "dec432beb477e136d246c62ee18423ce7a1db3d2a57f0dffe71319c4f783083c"
+    },
+    "3.8.7": {
+      "caseCount": 4119,
+      "statusCounts": {
+        "pending": 4119
+      },
+      "sourceSha256": "e3aebe9450d9b59837bec7a76774bba9bf4cf7cf5ffeeeeed565fe1e6f42eb46"
+    }
+  },
+  "matrix": {
+    "inputSha256": "711aba866aa8ae5a4faeb12a91af1eec5ff7f209674638eb59f98fa3b49014e8",
+    "inputUnchanged": true,
+    "denominator": 114,
+    "mapped": 6,
+    "unmapped": 108,
+    "sourceComplete": true,
+    "notRun": 12,
+    "currentPassed": 0,
+    "acceptanceComplete": false,
+    "cases": [
+      {
+        "id": "account-permission-creator-3.8.3",
+        "environment": "creator-3.8.3",
+        "status": "not_run"
+      },
+      {
+        "id": "account-permission-creator-3.8.7",
+        "environment": "creator-3.8.7",
+        "status": "not_run"
+      },
+      {
+        "id": "basic-editing-creator-3.8.3",
+        "environment": "creator-3.8.3",
+        "status": "not_run"
+      },
+      {
+        "id": "basic-editing-creator-3.8.7",
+        "environment": "creator-3.8.7",
+        "status": "not_run"
+      },
+      {
+        "id": "continuity-creator-3.8.3",
+        "environment": "creator-3.8.3",
+        "status": "not_run"
+      },
+      {
+        "id": "continuity-creator-3.8.7",
+        "environment": "creator-3.8.7",
+        "status": "not_run"
+      },
+      {
+        "id": "design-to-project-creator-3.8.3",
+        "environment": "creator-3.8.3",
+        "status": "not_run"
+      },
+      {
+        "id": "design-to-project-creator-3.8.7",
+        "environment": "creator-3.8.7",
+        "status": "not_run"
+      },
+      {
+        "id": "font-content-creator-3.8.3",
+        "environment": "creator-3.8.3",
+        "status": "not_run"
+      },
+      {
+        "id": "font-content-creator-3.8.7",
+        "environment": "creator-3.8.7",
+        "status": "not_run"
+      },
+      {
+        "id": "installation-creator-3.8.3",
+        "environment": "creator-3.8.3",
+        "status": "not_run"
+      },
+      {
+        "id": "installation-creator-3.8.7",
+        "environment": "creator-3.8.7",
+        "status": "not_run"
+      }
+    ],
+    "cliExitCodes": {
+      "validate": 0,
+      "report": 0,
+      "check-installation": 2,
+      "check-basic-editing": 2,
+      "check-design-to-project": 2,
+      "check-font-content": 2,
+      "check-account-permission": 2,
+      "check-continuity": 2
+    },
+    "reproductionReceipt": ".peanut-ai/pod-existing-project-editing-20261026/task-3.1-report/cli-reproduction.json"
+  },
+  "fullProductAcceptance": false,
+  "historicalGaps": [
+    "old_five_unbacked_rotated_logs",
+    "prior_3.8.7_first_library_ENOENT"
+  ],
+  "excludedClaims": [
+    "blank_project_fresh_install",
+    "full_native_component_and_code_coverage",
+    "all_product_mainlines_passed",
+    "server_and_account_live_acceptance"
+  ]
+}

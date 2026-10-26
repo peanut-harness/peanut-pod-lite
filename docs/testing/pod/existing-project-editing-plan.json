@@ -1,7 +1,7 @@
 {
   "schema": "peanut.pod.existing-project-editing-plan.v1",
   "change": "validate-pod-0-2-1-existing-project-editing",
-  "status": "in_progress",
+  "status": "minimal_runtime_chains_verified_product_acceptance_open",
   "candidate": {
     "version": "0.2.1",
     "testedSourceCommit": "660226aa28d0d96fc4766c81c3b58af71cd1a8f0",
@@ -27,7 +27,7 @@
       "assetRoot": "assets/_peanut-managed-task-live/pod-edit-021-387-20261026-01",
       "immutableManifestSha256": "77447e17ee1fea9b68ef44af33cbe5f572365a1d4232c0d2022768a1faa627d0",
       "immutableFixtureSha256": "4719237bad0dce214f4ec95f4799684a7ae7a0225e770a6299ebec28f8d951f6",
-      "runStatus": "blocked_pending_runtime_lease"
+      "runStatus": "minimal_chain_verified_with_preserved_launch_crash"
     }
   ],
   "writeNamespaceTemplate": "assets/_peanut-managed-task-live/<runId>/**",
@@ -40,6 +40,11 @@
     "3.8.3": {
       "evidence": ".peanut-ai/pod-existing-project-editing-20261026/task-2.1-runtime/technical-acceptance-3.8.3.json",
       "scopeIncidentPreserved": true,
+      "fullComponentAndCodeCoverage": false
+    },
+    "3.8.7": {
+      "evidence": ".peanut-ai/pod-existing-project-editing-20261026/task-2.2-runtime/technical-acceptance-3.8.7.json",
+      "initialLaunchCrashPreserved": true,
       "fullComponentAndCodeCoverage": false
     }
   },
