@@ -1,0 +1,137 @@
+{
+  "schemaVersion": "pod-business-capabilities.v1",
+  "capabilities": [
+    {
+      "id": "installation",
+      "traceRefs": [
+        {
+          "repository": "peanut-pod-lite",
+          "path": "docs/INSTALLATION.md",
+          "sha256": "ed78045df29a10d907b3ae723dbac72496111dbc3f470d3345d0303a0ba98562"
+        },
+        {
+          "repository": "cpm-install",
+          "path": "cli/cpm.mjs",
+          "sha256": "ae4774037cf0b6da67ba7de64a98a59bcd9ca110d3536c8ff8dbc5406e2d3539"
+        },
+        {
+          "repository": "cpm-install",
+          "path": "tests/bootstrap.test.mjs",
+          "sha256": "7706e5442108fe00f45fa5c8b4d68660e9cea35818c8e328720e598c16af9775"
+        }
+      ],
+      "reviewStatus": "source-pointer-only",
+      "limitation": "Paths and digests identify review inputs; they are not current execution evidence."
+    },
+    {
+      "id": "basic-editing",
+      "traceRefs": [
+        {
+          "repository": "peanut-pod-lite",
+          "path": "tests/fixtures/editor-stability/coverage/creator-3.8.7-draft.json",
+          "sha256": "e3aebe9450d9b59837bec7a76774bba9bf4cf7cf5ffeeeeed565fe1e6f42eb46"
+        },
+        {
+          "repository": "peanut-pod-lite",
+          "path": "packages/hosts/modules/creator-38/scripts/verify-managed-task-live.mts",
+          "sha256": "6f21514655fb463c277bbc91ce020a73b805a4c2cf3b2c3a3d1f5de7d2150028"
+        },
+        {
+          "repository": "peanut-pod-lite",
+          "path": "packages/hosts/modules/creator-38/tests/managed-task-live-script.test.mts",
+          "sha256": "c5370e3d88cac37e8bf68ed1a7974edfd3f675f3cf207c4445e26802c3e4efe5"
+        }
+      ],
+      "reviewStatus": "source-pointer-only",
+      "limitation": "Paths and digests identify review inputs; they are not current execution evidence."
+    },
+    {
+      "id": "design-to-project",
+      "traceRefs": [
+        {
+          "repository": "peanut-pod-pro",
+          "path": "packages/ui-prefab/tests/project-migration.test.mts",
+          "sha256": "a779287480f93a60a227c8595ef6ebbbda6a7571dd5ca71f73a1d9cebf01589f"
+        },
+        {
+          "repository": "peanut-pod-pro",
+          "path": "openspec/changes/preserve-ui-prefab-reimport-customizations/tasks.md",
+          "sha256": "765d1e269c0bd56a4054ac62b15306a6d899317e6c24cde3a0b2cf575e87be13"
+        },
+        {
+          "repository": "peanut-pod-pro",
+          "path": "packages/ui-prefab/tests/reference-preservation.test.mts",
+          "sha256": "a6e5a2080c59b57205bedb7a2988d16062a08b6d23eb33a974472294e9ab2a1f"
+        }
+      ],
+      "reviewStatus": "source-pointer-only",
+      "limitation": "Paths and digests identify review inputs; they are not current execution evidence."
+    },
+    {
+      "id": "font-content",
+      "traceRefs": [
+        {
+          "repository": "peanut-pod-pro",
+          "path": "packages/mcp-cocos-host-adapter/src/sdf-font-runtime.ts",
+          "sha256": "71c55ce76f72a8e356ce07c409eedf901a79a61c251b15e9c63dfbfc9ddef95f"
+        },
+        {
+          "repository": "peanut-pod-pro",
+          "path": "packages/mcp-cocos-host-adapter/src/cocos-snowb-bmfont-service-runtime.ts",
+          "sha256": "fcaac033af77a54bb79b7975f986bea2ab3f6bfa6137a74322bc14d11cdafb7c"
+        },
+        {
+          "repository": "peanut-pod-pro",
+          "path": "packages/mcp-cocos-host-adapter/src/content-delivery-runtime.ts",
+          "sha256": "3891d82051c3786125270b90b9670001d8f93e8c733d0ba973cc8654ca297d99"
+        }
+      ],
+      "reviewStatus": "source-pointer-only",
+      "limitation": "Paths and digests identify review inputs; they are not current execution evidence."
+    },
+    {
+      "id": "account-permission",
+      "traceRefs": [
+        {
+          "repository": "peanut-pod-lite",
+          "path": "packages/hosts/modules/creator-38/tests/account-session.test.mts",
+          "sha256": "0d6d68d67454add35f81168390d438b715e1a443da476f8be3dbdb2f425d46ae"
+        },
+        {
+          "repository": "peanut-pod-lite",
+          "path": "packages/hosts/modules/creator-38/tests/account-pro-entitlement.test.mts",
+          "sha256": "d526e7c9628c0be869e4348932245aef08e5cf135c8655224a4e5a2c33d8781a"
+        },
+        {
+          "repository": "peanut-pod-server",
+          "path": "actor-service/scripts/test/account-actor.test.ts",
+          "sha256": "d4cb06a91985efe5aba187d913eac71a3e3a55ec28853e5ae12c0e7bea40bb49"
+        }
+      ],
+      "reviewStatus": "source-pointer-only",
+      "limitation": "Paths and digests identify review inputs; they are not current execution evidence."
+    },
+    {
+      "id": "continuity",
+      "traceRefs": [
+        {
+          "repository": "peanut-pod-lite",
+          "path": "packages/hosts/modules/creator-38/scripts/verify-throughput-soak-live.mts",
+          "sha256": "f0363498e5dee145543a6af7d0e4e4efb5d51d0d04e089840004d5d7e59b786a"
+        },
+        {
+          "repository": "peanut-pod-lite",
+          "path": "packages/hosts/modules/creator-38/tests/throughput-soak-live-script.test.mts",
+          "sha256": "fe3b7661b947e862b6e834fcf664b87bc4809f635b9eba3deaf581774240f722"
+        },
+        {
+          "repository": "peanut-pod-lite",
+          "path": "packages/engine/modules/kernel/tests/hotplug-recovery-acceptance.test.ts",
+          "sha256": "f46fb22b175a5b9ce177b2b0f530daddbe52599ad9abb0fe4b285966ff254bba"
+        }
+      ],
+      "reviewStatus": "source-pointer-only",
+      "limitation": "Paths and digests identify review inputs; they are not current execution evidence."
+    }
+  ]
+}
