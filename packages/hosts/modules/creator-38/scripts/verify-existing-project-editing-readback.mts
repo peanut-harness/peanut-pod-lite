@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,6 +23,7 @@ export function verifyExistingProjectEditingReadback(input: {
     readonly health: any;
     readonly assetInfos: Readonly<Record<string, unknown>>;
     readonly missingReferences: any;
+    readonly referenceResolutions: Readonly<Record<string, unknown>>;
     readonly logDelta: string;
 }): Record<string, unknown> {
     const projectPath = realpathSync(resolve(input.projectPath));
@@ -66,18 +67,28 @@ export function verifyExistingProjectEditingReadback(input: {
         }
         const current = readCreatedIdentity(projectPath, path, expectedImporter);
         assert.deepEqual(current, expected);
-        const info = (input.assetInfos[path] as any)?.data;
+        const info = input.assetInfos[path] as any;
         const liveUuid = info?.uuid ?? info?.asset?.uuid;
         assert.equal(liveUuid, expected.uuid, `editing_assetdb_identity_mismatch:${path}`);
+        assert.notEqual(info?.invalid, true, `editing_assetdb_invalid:${path}`);
         return current;
     });
 
-    const missing = input.missingReferences?.data;
-    assert.equal(missing?.total, 0, 'editing_missing_references');
-    assert.deepEqual(missing?.hits, []);
+    const missing = input.missingReferences;
     assert.equal(missing?.truncated, false);
+    assert.ok(Number.isSafeInteger(missing?.total) && missing.total >= 0, 'editing_reference_scan_invalid');
+    assert.equal(missing?.hits?.length, missing.total, 'editing_reference_scan_incomplete');
+    const referenceResolutions = missing.hits.map((hit: any) => {
+        assert.equal(typeof hit?.uuid, 'string');
+        assert.ok(hit.referrerDbPath?.startsWith(`db://${assetRoot}/`), 'editing_reference_scope_invalid');
+        const resolved = input.referenceResolutions[hit.uuid] as any;
+        assert.equal(resolved?.uuid, hit.uuid, `editing_missing_references:${hit.uuid}`);
+        assert.ok(typeof resolved.path === 'string' && resolved.path.startsWith('db://'),
+            `editing_reference_path_invalid:${hit.uuid}`);
+        return { uuid: hit.uuid, referrerDbPath: hit.referrerDbPath, resolvedPath: resolved.path };
+    });
     assert.equal(/\s-\s(?:error|warn):/iu.test(input.logDelta), false, 'editing_new_project_log_error');
-    assert.equal(/approvalToken|x-peanut-mcp-token|"token"\s*:/iu.test(JSON.stringify({ identities, missing })), false);
+    assert.equal(/approvalToken|x-peanut-mcp-token|"token"\s*:/iu.test(JSON.stringify({ identities, referenceResolutions })), false);
 
     return {
         schema: 'peanut.pod.existing-project-editing-readback.v1',
@@ -86,7 +97,9 @@ export function verifyExistingProjectEditingReadback(input: {
         creationSessionId: original.hub.sessionId,
         reopenedSessionId: input.health.sessionId,
         identities,
-        missingReferences: 0,
+        fileGraphScannerHits: missing.total,
+        nativeResolvedScannerHits: referenceResolutions,
+        unresolvedNativeReferences: 0,
         logDeltaBytes: Buffer.byteLength(input.logDelta),
         verified: true,
     };
@@ -99,24 +112,34 @@ async function main(): Promise<void> {
     const hostStatus = JSON.parse(readFileSync(join(projectPath, 'peanut-plugins/runtime/host-status.json'), 'utf8'));
     const bridge = JSON.parse(readFileSync(join(projectPath, '.peanut-ai/cocos-mcp.json'), 'utf8'));
     const health = await request(bridge, { action: 'health' });
+    const connectionId = randomBytes(16).toString('hex');
     const root = creationReport.assetRoot;
     assert.equal(typeof root, 'string');
     assert.match(root, ASSET_ROOT);
     const paths = ASSET_NAMES.map((name) => `${root}/${name}`);
     const assetInfos = Object.fromEntries(await Promise.all(paths.map(async (path) => [path,
         await request(bridge, { action: 'call', name: 'peanut.editor-mcp.asset-query-info',
+            connectionId,
             input: { pathOrUuid: `db://${path}` } }),
     ])));
     const missingReferences = await request(bridge, { action: 'call',
         name: 'peanut.editor-mcp.asset-scan-missing-references',
+        connectionId,
         input: { pathContains: root, refreshIndex: true, limit: 200 } });
+    assert.equal(missingReferences?.truncated, false, 'editing_reference_scan_truncated');
+    assert.ok(Array.isArray(missingReferences?.hits), 'editing_reference_scan_invalid');
+    const referenceResolutions = Object.fromEntries(await Promise.all(missingReferences.hits.map(async (hit: any) => [
+        hit.uuid,
+        await request(bridge, { action: 'call', name: 'peanut.editor-mcp.asset-query-info',
+            connectionId, input: { pathOrUuid: hit.uuid } }),
+    ])));
     const logBytes = readFileSync(join(projectPath, 'temp/logs/project.log'));
     const endOffset = creationReport?.checks?.projectLog?.endOffset;
     assert.ok(Number.isSafeInteger(endOffset) && endOffset >= 0 && logBytes.length >= endOffset,
         'editing_log_rotation_or_offset_unverified');
     const logDelta = logBytes.subarray(endOffset).toString('utf8');
     const verified = verifyExistingProjectEditingReadback({ projectPath, creationReport, releaseDescriptor,
-        hostStatus, health, assetInfos, missingReferences, logDelta });
+        hostStatus, health, assetInfos, missingReferences, referenceResolutions, logDelta });
     const report = { ...verified, verifiedAt: new Date().toISOString(),
         reportDigest: createHash('sha256').update(JSON.stringify(verified)).digest('hex') };
     writeFileSync(resolve(argument('--output')), `${JSON.stringify(report, null, 2)}\n`);

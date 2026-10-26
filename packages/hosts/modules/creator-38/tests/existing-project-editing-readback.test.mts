@@ -37,9 +37,9 @@ function fixture() {
         hostStatus: { ready: true, creatorContext: { version: { raw: '3.8.3' },
             projectVersion: { raw: '3.8.3' } }, artifacts }, health: { sessionId: 'second-session' },
         assetInfos: Object.fromEntries(paths.map((path, index) => [path,
-            { operation: 'asset.queryInfo', data: { uuid: identities[index]!.uuid } }])),
-        missingReferences: { operation: 'asset.scanMissingReferences',
-            data: { total: 0, hits: [], truncated: false } }, logDelta: '12:00 - info: reopened\n' };
+            { uuid: identities[index]!.uuid, path: 'db://' + path, invalid: false }])),
+        missingReferences: { total: 0, hits: [], truncated: false },
+        referenceResolutions: {}, logDelta: '12:00 - info: reopened\n' };
     return { projectPath, paths, input };
 }
 
@@ -76,7 +76,7 @@ test('readback refuses escaped paths, missing meta and changed AssetDB UUID', ()
         writeFileSync(join(projectPath, paths[0] + '.meta'), JSON.stringify({
             importer: 'prefab', uuid: input.creationReport.checks.atomicCreation.prefab.identity.uuid }));
         assert.throws(() => verifyExistingProjectEditingReadback({ ...input,
-            assetInfos: { ...input.assetInfos, [paths[0]!]: { data: { uuid: 'wrong' } } } }),
+            assetInfos: { ...input.assetInfos, [paths[0]!]: { uuid: 'wrong' } } }),
         /editing_assetdb_identity_mismatch/u);
     } finally { rmSync(projectPath, { recursive: true, force: true }); }
 });
@@ -85,8 +85,16 @@ test('readback refuses unresolved references and new project errors', () => {
     const { projectPath, input } = fixture();
     try {
         assert.throws(() => verifyExistingProjectEditingReadback({ ...input,
-            missingReferences: { data: { total: 1, hits: [{ uuid: 'missing' }], truncated: false } } }),
+            missingReferences: { total: 1, hits: [{ uuid: 'missing',
+                referrerDbPath: 'db://assets/_peanut-managed-task-live/run-1/Atomic.scene' }], truncated: false } }),
         /editing_missing_references/u);
+        const internal = 'builtin@skybox';
+        const resolved = verifyExistingProjectEditingReadback({ ...input,
+            missingReferences: { total: 1, hits: [{ uuid: internal,
+                referrerDbPath: 'db://assets/_peanut-managed-task-live/run-1/Atomic.scene' }], truncated: false },
+            referenceResolutions: { [internal]: { uuid: internal, path: 'db://internal/default_skybox/textureCube' } } });
+        assert.equal(resolved.fileGraphScannerHits, 1);
+        assert.equal(resolved.unresolvedNativeReferences, 0);
         assert.throws(() => verifyExistingProjectEditingReadback({ ...input,
             logDelta: '12:00 - error: asset missing\n' }), /editing_new_project_log_error/u);
     } finally { rmSync(projectPath, { recursive: true, force: true }); }

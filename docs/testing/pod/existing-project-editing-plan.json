@@ -1,7 +1,7 @@
 {
   "schema": "peanut.pod.existing-project-editing-plan.v1",
   "change": "validate-pod-0-2-1-existing-project-editing",
-  "status": "planning_only",
+  "status": "in_progress",
   "candidate": {
     "version": "0.2.1",
     "testedSourceCommit": "660226aa28d0d96fc4766c81c3b58af71cd1a8f0",
@@ -18,7 +18,7 @@
       "assetRoot": "assets/_peanut-managed-task-live/pod-edit-021-383-20261026-01",
       "immutableManifestSha256": "d0590e913cd0cd01b007f4f78048de8b8886d4019384fdef42fd243a65ac5912",
       "immutableFixtureSha256": "979d5eafec48a58f0ea5b9a946d2e4a469d46352792388923b22d0704c6e6ff9",
-      "runStatus": "blocked_pending_source_and_runtime_lease"
+      "runStatus": "minimal_chain_verified_with_preserved_scope_incident"
     },
     {
       "creatorVersion": "3.8.7",
@@ -27,7 +27,7 @@
       "assetRoot": "assets/_peanut-managed-task-live/pod-edit-021-387-20261026-01",
       "immutableManifestSha256": "77447e17ee1fea9b68ef44af33cbe5f572365a1d4232c0d2022768a1faa627d0",
       "immutableFixtureSha256": "4719237bad0dce214f4ec95f4799684a7ae7a0225e770a6299ebec28f8d951f6",
-      "runStatus": "blocked_pending_source_and_runtime_lease"
+      "runStatus": "blocked_pending_runtime_lease"
     }
   ],
   "writeNamespaceTemplate": "assets/_peanut-managed-task-live/<runId>/**",
@@ -36,6 +36,13 @@
   "requiredEvidence": ["raw_commands_and_exit_codes", "backup_manifest", "host_core_identity", "approval_scope", "created_paths", "assetdb_uuid_and_meta", "missing_reference_scan", "component_and_code_gap_record", "incremental_project_log", "before_after_protected_hashes"],
   "coverageDraftPending": { "3.8.3": 4128, "3.8.7": 4119 },
   "podMatrixCasesNotRun": 12,
+  "completedRuntime": {
+    "3.8.3": {
+      "evidence": ".peanut-ai/pod-existing-project-editing-20261026/task-2.1-runtime/technical-acceptance-3.8.3.json",
+      "scopeIncidentPreserved": true,
+      "fullComponentAndCodeCoverage": false
+    }
+  },
   "gates": {
     "sourceRegistration": true,
     "runtimeLease": false,

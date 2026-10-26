@@ -9,7 +9,8 @@
 
 ## 2. 两版现有工程实测
 
-- [ ] 2.1 `[external:creator-3.8.3-existing-test-project | depends:1.2 | serial | owner:pod-test-owner | requirements:mcp-write-task-execution#Creator 3.8.x host compatibility is evidence gated | non-goals:不新建/清空/重置工程]` 取得本工程独占运行租约与新鲜占用预检，备份并核对保护摘要后，执行 0.2.1 受管创建→保存关闭→重开→独立读回；验收：原始命令、Host/Core 身份、Prefab/Scene UUID 与 meta、引用、增量日志、工程前后差异和退出码齐全，失败即停并保留状态。
+- [x] 2.1 `[external:creator-3.8.3-existing-test-project | depends:1.2 | serial | owner:pod-test-owner | requirements:mcp-write-task-execution#Creator 3.8.x host compatibility is evidence gated | non-goals:不新建/清空/重置工程]` 取得本工程独占运行租约与新鲜占用预检，备份并核对保护摘要后，执行 0.2.1 受管创建→保存关闭→重开→独立读回；验收：原始命令、Host/Core 身份、Prefab/Scene UUID 与 meta、引用、增量日志、工程前后差异和退出码齐全，失败即停并保留状态。
+  - 技术回执：`.peanut-ai/pod-existing-project-editing-20261026/task-2.1-runtime/technical-acceptance-3.8.3.json`；两轮完整备份、新鲜占用、受管创建与重开后独立读回、三资源 UUID/meta、两条文件图命中由原生 AssetDB 解析、原生未解析引用 0、保护资产零漂移、轮换日志均可回读。首次控制文件越界与两次脚本失败原样保留；补登记只用于重开，不追认首轮。此项只验最小链，Pod 主线仍 `not_run`。
 - [ ] 2.2 `[external:creator-3.8.7-existing-test-project | depends:2.1 | serial | owner:pod-test-owner | requirements:mcp-write-task-execution#Creator 3.8.x host compatibility is evidence gated | non-goals:不新建/清空/重置工程]` 在另一份现有工程独立重复 2.1 的备份、占用与实机链；验收：同样的逐项原始证据和原资产零漂移，Pro 可选状态单独记录，既有首次 `library` ENOENT 作为历史保留。
 
 ## 3. 证据核对与交付
