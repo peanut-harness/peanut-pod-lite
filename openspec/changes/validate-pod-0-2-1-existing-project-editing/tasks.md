@@ -2,7 +2,8 @@
 
 ## 1. 冻结计划与执行门禁
 
-- [ ] 1.1 `[peanut-pod-lite:docs/testing/pod/existing-project-editing-plan.md,docs/testing/pod/existing-project-editing-plan.json | depends:none | serial | owner:pod-test-owner | requirements:mcp-write-task-execution#Creator 3.8.x host compatibility is evidence gated | non-goals:不运行 Creator、不修改工程]` 固定两份现有工程、Lite 0.2.1 实测包摘要、原资产保护范围、带 runId 的写入命名空间、备份/占用/失败停止规则与逐项证据字段；验收：JSON 可解析，两个版本和精确路径一致，矩阵 12 条仍为 `not_run`，当前工程没有写入。
+- [x] 1.1 `[peanut-pod-lite:docs/testing/pod/existing-project-editing-plan.md,docs/testing/pod/existing-project-editing-plan.json | depends:none | serial | owner:pod-test-owner | requirements:mcp-write-task-execution#Creator 3.8.x host compatibility is evidence gated | non-goals:不运行 Creator、不修改工程]` 固定两份现有工程、Lite 0.2.1 实测包摘要、原资产保护范围、带 runId 的写入命名空间、备份/占用/失败停止规则与逐项证据字段；验收：JSON 可解析，两个版本和精确路径一致，矩阵 12 条仍为 `not_run`，当前工程没有写入。
+  - 规划核验：`existing-project-editing-plan.json` 可解析，两个工程 `package.json` 与 `acceptance-fixture.json` 的四个 SHA-256 均与旧登记一致；12 条仍 `not_run`，运行门禁全为 false。仅只读核对，未启动 Creator 或写工程。
 - [ ] 1.2 `[peanut-pod-lite:packages/hosts/modules/creator-38/scripts/verify-managed-task-live.mts,packages/hosts/modules/creator-38/scripts/verify-existing-project-editing-readback.mts,packages/hosts/modules/creator-38/tests/** | depends:1.1 | serial | owner:pod-test-owner | requirements:assetdb-resource-creation#Creator evidence proves the atomic creation path | non-goals:登记前不写源码、不重置工程]` 向总管登记精确脚本/测试写集及预检，再补受管创建的可控输出与独立重开后只读核验入口；验收：定向测试证明候选身份不符、路径越界、缺 `.meta`/UUID/引用和新增日志错误均拒绝，现有受管任务回归仍通过。
 
 ## 2. 两版现有工程实测
