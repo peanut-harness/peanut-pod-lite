@@ -1,7 +1,6 @@
 import assert from 'assert/strict';
 import { createHash } from 'crypto';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'fs';
-import { createRequire } from 'module';
 import { tmpdir } from 'os';
 import { isAbsolute, join } from 'path';
 import test from 'node:test';
@@ -12,13 +11,6 @@ import { PackagingApp } from '../src/app/packaging-app';
 import { PanelPackageLayout } from '../src/panel/panel-package-layout';
 import { ProjectPluginFileStore } from '../src/persistence/project-plugin-file-store';
 import { ProjectPackageStore } from '../src/persistence/project-package-store';
-
-const requireHostStore = createRequire(import.meta.url);
-const { CpmPackageStore } = requireHostStore('../../../../hosts/modules/creator-38/src/cpm-package-store.js') as {
-    CpmPackageStore: new (projectPath: string) => {
-        resolveActivePackage(pluginId: string, required: boolean): { manifest: { version: string } } | null;
-    };
-};
 
 /** @description 构造可被目录包仓检查的最小插件清单。 */
 function createManifest(version: string, packageManifest: IPluginPackageManifest): IPluginManifest {
@@ -135,17 +127,19 @@ function requireFileContent(packagePath: string, relativePath: string): string {
 }
 
 /** @description 写入不声明面板贡献的最小 tooling 目录包。 */
-function writeHeadlessToolingPackage(projectPath: string): string {
-    const packagePath = join(projectPath, 'incoming', 'headless-tooling');
-    const pluginId = 'project-package-store.headless-tooling';
+function writeHeadlessToolingPackage(projectPath: string, pluginId = 'project-package-store.headless-tooling', version = '1.0.0'): string {
+    const packagePath = join(projectPath, 'incoming', pluginId, version);
     const bundleFileName = `${pluginId}.bundle.js`;
-    const bundleContent = 'module.exports = {};\n';
+    const bundleContent = `module.exports = { version: '${version}' };\n`;
+    const packageJson = '{"type":"commonjs"}';
     mkdirSync(join(packagePath, 'libs'), { recursive: true });
     writeFileSync(join(packagePath, 'libs', '.keep'), '', 'utf8');
     writeFileSync(join(packagePath, bundleFileName), bundleContent, 'utf8');
+    writeFileSync(join(packagePath, 'package.json'), packageJson, 'utf8');
     const files: IPluginPackageFileIntegrity[] = [
         { path: bundleFileName, digest: createHash('sha256').update(bundleContent).digest('hex') },
         { path: 'libs/.keep', digest: createHash('sha256').update('').digest('hex') },
+        { path: 'package.json', digest: createHash('sha256').update(packageJson).digest('hex') },
     ].sort((left, right) => left.path.localeCompare(right.path));
     const packageManifest: IPluginPackageManifest = {
         schemaVersion: 1,
@@ -154,11 +148,11 @@ function writeHeadlessToolingPackage(projectPath: string): string {
         sdkVersion: '0.1.0',
         files,
         libraries: [],
-        changelog: [{ version: '1.0.0', publishedAt: '2026-08-01T00:00:00.000Z', changes: ['Headless tooling package fixture.'] }],
+        changelog: [{ version, publishedAt: '2026-08-01T00:00:00.000Z', changes: ['Headless tooling package fixture.'] }],
     };
     const manifest: IPluginManifest = {
         id: pluginId,
-        version: '1.0.0',
+        version,
         kind: 'tooling-plugin',
         displayName: 'Headless Tooling Plugin',
         main: `./${bundleFileName}`,
@@ -186,6 +180,63 @@ test('project packaging should install a headless tooling directory package with
         assert.equal(existsSync(join(installResult.installPath, 'libs', '.keep')), true);
     } finally {
         rmSync(projectPath, { recursive: true, force: true });
+    }
+});
+
+test('one project retains Core through optional package failure, rollback, interruption and unknown index refusal', async (): Promise<void> => {
+    const projectPath = mkdtempSync(join(tmpdir(), 'peanut-combined-package-recovery-'));
+    const coreId = 'project-package-store.headless-tooling';
+    const optionalId = 'project-package-store.optional-tooling';
+    const indexPath = join(projectPath, 'peanut-plugins', 'installed.json');
+    const digest = (bytes: string | Buffer): string => createHash('sha256').update(bytes).digest('hex');
+    try {
+        const first = new PackagingApp({ projectPath });
+        await first.install(writeHeadlessToolingPackage(projectPath, coreId, '1.0.0'));
+        const coreDigest = new ProjectPackageStore(projectPath).resolveVerifiedActivePackage(coreId, true)?.packageDigest;
+        assert.match(coreDigest ?? '', /^[a-f0-9]{64}$/u);
+        assert.equal(new ProjectPackageStore(projectPath).resolveVerifiedActivePackage(optionalId, false), null);
+        const firstIndexDigest = digest(readFileSync(indexPath));
+
+        const restarted = new PackagingApp({ projectPath });
+        assert.equal(restarted.getInstalledPackageSnapshot(coreId)?.activeVersion, '1.0.0');
+        assert.equal(digest(readFileSync(indexPath)), firstIndexDigest);
+        const optional = await restarted.install(writeHeadlessToolingPackage(projectPath, optionalId));
+        assert.equal(new ProjectPackageStore(projectPath).resolveVerifiedActivePackage(optionalId, true)?.manifest.version, '1.0.0');
+        writeFileSync(join(optional.installPath, `${optionalId}.bundle.js`), 'damaged');
+        assert.throws(() => new ProjectPackageStore(projectPath).resolveVerifiedActivePackage(optionalId, true), /package_file_integrity_mismatch/u);
+        assert.equal(new ProjectPackageStore(projectPath).resolveVerifiedActivePackage(coreId, true)?.packageDigest, coreDigest);
+        assert.equal((await new PackagingApp({ projectPath }).repair()).repaired, true);
+        assert.equal(new ProjectPackageStore(projectPath).resolveVerifiedActivePackage(optionalId, false), null);
+
+        const upgraded = new PackagingApp({ projectPath });
+        await upgraded.upgrade(writeHeadlessToolingPackage(projectPath, coreId, '1.1.0'));
+        assert.equal(upgraded.getInstalledPackageSnapshot(coreId)?.activeVersion, '1.1.0');
+        upgraded.switchActiveInstalledPackageVersion(coreId, '1.0.0');
+        assert.equal(new ProjectPackageStore(projectPath).resolveVerifiedActivePackage(coreId, true)?.packageDigest, coreDigest);
+        const stableIndex = readFileSync(indexPath);
+        writeFileSync(`${indexPath}.tmp`, '{"interrupted":true}');
+        assert.equal((await new PackagingApp({ projectPath }).repair()).repaired, true);
+        assert.deepEqual(readFileSync(indexPath), stableIndex);
+
+        writeFileSync(indexPath, JSON.stringify({ schemaVersion: 3, plugins: [] }));
+        const invalidIndex = readFileSync(indexPath);
+        assert.throws(() => new PackagingApp({ projectPath }), /pod_install_index_invalid/u);
+        assert.throws(() => new ProjectPackageStore(projectPath).repair(), /pod_install_index_invalid/u);
+        assert.deepEqual(readFileSync(indexPath), invalidIndex);
+        writeFileSync(indexPath, stableIndex);
+        assert.equal(new ProjectPackageStore(projectPath).resolveVerifiedActivePackage(coreId, true)?.packageDigest, coreDigest);
+        console.log(`pod_combined_package_recovery:${JSON.stringify({
+            firstIndexSha256: firstIndexDigest,
+            stableIndexSha256: digest(stableIndex),
+            recoveredIndexSha256: digest(readFileSync(indexPath)),
+            corePackageDigest: coreDigest,
+            optionalState: 'absent',
+            activeCoreVersion: '1.0.0',
+            unknownIndexRefused: true,
+        })}`);
+    } finally {
+        rmSync(projectPath, { recursive: true, force: true });
+        assert.equal(existsSync(projectPath), false);
     }
 });
 
@@ -550,7 +601,7 @@ test('reads valid schema v2 packages with current and legacy digest ordering wit
     }
 });
 
-test('shared Packaging reader closes the legacy gaps against the same Creator Host vectors', () => {
+test('shared Packaging reader preserves every frozen Creator Host integrity vector', () => {
     const pluginId = 'peanut.pod-lite';
     const version = '0.2.0';
     const digest = (content: string): string => createHash('sha256').update(content).digest('hex');
@@ -559,28 +610,27 @@ test('shared Packaging reader closes the legacy gaps against the same Creator Ho
         mutate: (projectRoot: string, packageRoot: string, index: { schemaVersion: number; plugins: unknown[] }) => void;
         snapshots: number | 'invalid';
         inspect: boolean;
-        hostError?: RegExp;
         sharedError?: RegExp;
     }[] = [
         { name: 'valid active package', mutate: () => {}, snapshots: 1, inspect: true },
-        { name: 'duplicate plugin records', mutate: (_root, _package, index) => { index.plugins.push(index.plugins[0]); }, snapshots: 'invalid', inspect: true, hostError: /installed_index_invalid/u, sharedError: /pod_install_index_invalid/u },
-        { name: 'duplicate version records', mutate: (_root, _package, index) => { const plugin = index.plugins[0] as { versions: unknown[] }; plugin.versions.push(plugin.versions[0]); }, snapshots: 'invalid', inspect: true, hostError: /installed_index_invalid/u, sharedError: /pod_install_index_invalid/u },
-        { name: 'unknown index schema', mutate: (_root, _package, index) => { index.schemaVersion = 3; }, snapshots: 'invalid', inspect: true, hostError: /installed_index_invalid/u, sharedError: /pod_install_index_invalid/u },
-        { name: 'index path escape', mutate: (_root, _package, index) => { (index.plugins[0] as { versions: { installPath: string }[] }).versions[0].installPath = '../outside'; }, snapshots: 'invalid', inspect: true, hostError: /installed_index_invalid/u, sharedError: /pod_install_index_invalid/u },
-        { name: 'tampered payload', mutate: (_root, packageRoot) => { writeFileSync(join(packageRoot, `${pluginId}.bundle.js`), 'tampered'); }, snapshots: 1, inspect: false, hostError: /integrity_file_mismatch/u, sharedError: /package_file_integrity_mismatch/u },
+        { name: 'duplicate plugin records', mutate: (_root, _package, index) => { index.plugins.push(index.plugins[0]); }, snapshots: 'invalid', inspect: true, sharedError: /pod_install_index_invalid/u },
+        { name: 'duplicate version records', mutate: (_root, _package, index) => { const plugin = index.plugins[0] as { versions: unknown[] }; plugin.versions.push(plugin.versions[0]); }, snapshots: 'invalid', inspect: true, sharedError: /pod_install_index_invalid/u },
+        { name: 'unknown index schema', mutate: (_root, _package, index) => { index.schemaVersion = 3; }, snapshots: 'invalid', inspect: true, sharedError: /pod_install_index_invalid/u },
+        { name: 'index path escape', mutate: (_root, _package, index) => { (index.plugins[0] as { versions: { installPath: string }[] }).versions[0].installPath = '../outside'; }, snapshots: 'invalid', inspect: true, sharedError: /pod_install_index_invalid/u },
+        { name: 'tampered payload', mutate: (_root, packageRoot) => { writeFileSync(join(packageRoot, `${pluginId}.bundle.js`), 'tampered'); }, snapshots: 1, inspect: false, sharedError: /package_file_integrity_mismatch/u },
         { name: 'manifest digest drift', mutate: (_root, packageRoot) => {
             const path = join(packageRoot, `${pluginId}.manifest.json`);
             const manifest = JSON.parse(readFileSync(path, 'utf8')) as { package: Record<string, unknown> };
             writeFileSync(path, JSON.stringify({ ...manifest, package: { ...manifest.package, digest: '0'.repeat(64) } }));
-        }, snapshots: 1, inspect: false, hostError: /integrity_digest_mismatch/u, sharedError: /package_digest_mismatch/u },
-        { name: 'unrecorded payload', mutate: (_root, packageRoot) => { writeFileSync(join(packageRoot, 'unchecked.js'), 'extra'); }, snapshots: 1, inspect: false, hostError: /payload_set_mismatch/u, sharedError: /package_payload_unrecorded/u },
-        { name: 'unrecorded symbolic link', mutate: (_root, packageRoot) => { symlinkSync('package.json', join(packageRoot, 'linked.json')); }, snapshots: 1, inspect: false, hostError: /payload_symlink/u, sharedError: /package_payload_symlink/u },
-        { name: 'package root symbolic link', mutate: (_root, packageRoot) => { const target = `${packageRoot}-real`; renameSync(packageRoot, target); symlinkSync(target, packageRoot, 'dir'); }, snapshots: 1, inspect: false, hostError: /package_root_invalid/u, sharedError: /package_root_invalid/u },
+        }, snapshots: 1, inspect: false, sharedError: /package_digest_mismatch/u },
+        { name: 'unrecorded payload', mutate: (_root, packageRoot) => { writeFileSync(join(packageRoot, 'unchecked.js'), 'extra'); }, snapshots: 1, inspect: false, sharedError: /package_payload_unrecorded/u },
+        { name: 'unrecorded symbolic link', mutate: (_root, packageRoot) => { symlinkSync('package.json', join(packageRoot, 'linked.json')); }, snapshots: 1, inspect: false, sharedError: /package_payload_symlink/u },
+        { name: 'package root symbolic link', mutate: (_root, packageRoot) => { const target = `${packageRoot}-real`; renameSync(packageRoot, target); symlinkSync(target, packageRoot, 'dir'); }, snapshots: 1, inspect: false, sharedError: /package_root_invalid/u },
         { name: 'manifest version drift', mutate: (_root, packageRoot) => {
             const path = join(packageRoot, `${pluginId}.manifest.json`);
             const manifest = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
             writeFileSync(path, JSON.stringify({ ...manifest, version: '0.2.1' }));
-        }, snapshots: 1, inspect: true, hostError: /manifest_invalid/u, sharedError: /package_identity_mismatch/u },
+        }, snapshots: 1, inspect: true, sharedError: /package_identity_mismatch/u },
         { name: 'interrupted index replacement', mutate: (projectRoot) => { writeFileSync(join(projectRoot, 'peanut-plugins', 'installed.json.tmp'), '{"interrupted":true}'); }, snapshots: 1, inspect: true },
     ];
 
@@ -616,7 +666,6 @@ test('shared Packaging reader closes the legacy gaps against the same Creator Ho
             writeFileSync(indexPath, indexBytes);
 
             const packagingStore = new ProjectPackageStore(projectRoot);
-            const hostStore = new CpmPackageStore(projectRoot);
             if (vector.snapshots === 'invalid') {
                 assert.throws(() => packagingStore.readInstalledSnapshots(), /pod_install_index_invalid/u, `${vector.name}: Packaging index`);
             } else {
@@ -627,11 +676,6 @@ test('shared Packaging reader closes the legacy gaps against the same Creator Ho
                 assert.equal(packagingStore.resolveVerifiedActivePackage(pluginId, true)?.manifest.version, version, `${vector.name}: shared reader`);
             } else {
                 assert.throws(() => packagingStore.resolveVerifiedActivePackage(pluginId, true), vector.sharedError, `${vector.name}: shared reader`);
-            }
-            if (vector.hostError == null) {
-                assert.equal(hostStore.resolveActivePackage(pluginId, true)?.manifest.version, version, `${vector.name}: Host`);
-            } else {
-                assert.throws(() => hostStore.resolveActivePackage(pluginId, true), vector.hostError, `${vector.name}: Host`);
             }
             assert.equal(readFileSync(indexPath, 'utf8'), indexBytes, `${vector.name}: read-only index`);
         } finally {
