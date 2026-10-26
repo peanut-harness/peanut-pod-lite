@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { closeSync, createWriteStream, fstatSync, fsyncSync, linkSync, lstatSync, openSync, readFileSync,
     realpathSync, unlinkSync, writeSync, type Stats } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { tmpdir, userInfo } from 'node:os';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { finished } from 'node:stream/promises';
 
@@ -131,6 +131,7 @@ function waitReady(child: ChildProcessWithoutNullStreams, nonce: string): Promis
 }
 
 async function prepareGate(config: { cwd: string; executable: string; args: string[]; leasePath: string;
+    environment: NodeJS.ProcessEnv;
     rawRoot: string;
     lease(pid: number, now: number, generation: string): GateLease }): Promise<GateSession> {
     const { cwd, executable, args, leasePath } = config;
@@ -150,7 +151,7 @@ async function prepareGate(config: { cwd: string; executable: string; args: stri
     catch (error) { closeSync(stdoutFd); closeSync(stderrFd); throw error; }
     const nonce = randomBytes(16).toString('hex');
     const child = spawn('/bin/sh', ['-c', PID_GATE_SCRIPT, 'pid-gate', nonce, executable, ...args],
-        { cwd, stdio: ['pipe', 'pipe', 'pipe'], env: { PATH: '/usr/bin:/bin' } });
+        { cwd, stdio: ['pipe', 'pipe', 'pipe'], env: config.environment });
     const stdout = createWriteStream(stdoutPath, { fd: stdoutFd, autoClose: false });
     const stderr = createWriteStream(stderrPath, { fd: stderrFd, autoClose: false });
     let captureError: Error | null = null;
@@ -250,6 +251,7 @@ export async function prepareSyntheticPidGate(input: {
         || !Array.isArray(input.args ?? []) || (input.args ?? []).some(arg => typeof arg !== 'string' || arg.includes('\0')))
         throw new Error('component_sprite_pid_gate_synthetic_input_invalid');
     return prepareGate({ cwd: root, executable, args: input.args ?? [], leasePath: join(root, LEASE_NAME), rawRoot: root,
+        environment: { PATH: '/usr/bin:/bin' },
         lease: (pid, now, generation): SyntheticLease => ({ schema: 'peanut.pod.sprite-pid-gate-synthetic.v1',
             status: 'active', projectPath: root, creatorVersion: 'synthetic',
             creatorExecutable: executable, creatorExecutableSha256: sha(readFileSync(executable)),
@@ -311,6 +313,37 @@ function productionPermit(owner: string, runId: string): ProductionPermit {
 }
 
 /**
+ * Fixed Creator invocation and bounded inherited host context. No caller supplied environment.
+ */
+export function productionCreatorInvocation(): { executable: string; args: readonly string[];
+    environment: NodeJS.ProcessEnv } {
+    const account = userInfo();
+    const home = process.env.HOME; const user = process.env.USER;
+    const login = process.env.LOGNAME; const temporary = process.env.TMPDIR;
+    const locale = process.env.LANG;
+    if (!home || realpathSync(home) !== home || home !== account.homedir
+        || !user || user !== account.username || !login || login !== account.username
+        || !temporary || !realpathSync(temporary).startsWith('/private/var/folders/')
+        || !locale || !/^[A-Za-z0-9_.@-]{1,64}$/u.test(locale))
+        throw new Error('component_sprite_pid_gate_production_environment_invalid');
+    const tempPath = realpathSync(temporary); const tempStat = lstatSync(tempPath);
+    if (!tempStat.isDirectory() || (tempStat.mode & 0o077) !== 0
+        || (typeof process.getuid === 'function' && tempStat.uid !== process.getuid()))
+        throw new Error('component_sprite_pid_gate_production_environment_invalid');
+    const environment: NodeJS.ProcessEnv = { HOME: home, USER: user, LOGNAME: login,
+        TMPDIR: tempPath, LANG: locale, PATH: '/usr/bin:/bin:/usr/sbin:/sbin' };
+    for (const key of ['LC_ALL', 'LC_CTYPE', '__CF_USER_TEXT_ENCODING', 'DISPLAY'] as const) {
+        const value = process.env[key];
+        if (value === undefined) continue;
+        if (!/^[A-Za-z0-9_.@:\/-]{1,128}$/u.test(value))
+            throw new Error('component_sprite_pid_gate_production_environment_invalid');
+        environment[key] = value;
+    }
+    return { executable: PRODUCTION.binary,
+        args: ['--project', PRODUCTION.project, '--nologin'], environment };
+}
+
+/**
  * Production target is fixed. The separately registered stage permit is absent until phase C.
  */
 export async function prepareProduction383PidGate(input: { owner: string; runId: string }): Promise<GateSession> {
@@ -324,8 +357,9 @@ export async function prepareProduction383PidGate(input: { owner: string; runId:
         || realpathSync(PRIVATE) !== PRIVATE)
         throw new Error('component_sprite_pid_gate_production_identity_invalid');
     const permit = productionPermit(input.owner, input.runId);
-    return prepareGate({ cwd: PRODUCTION.project, executable: PRODUCTION.binary,
-        args: ['--project', PRODUCTION.project], leasePath: PRODUCTION.lease,
+    const invocation = productionCreatorInvocation();
+    return prepareGate({ cwd: PRODUCTION.project, executable: invocation.executable,
+        args: [...invocation.args], environment: invocation.environment, leasePath: PRODUCTION.lease,
         rawRoot: join(PRIVATE, 'sprite-creator-wrapper'),
         lease: (pid, now): RuntimeLease => ({
             schema: 'peanut.pod.sprite-runtime-lease.v1', status: 'active',

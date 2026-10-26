@@ -5,7 +5,7 @@ import { chmodSync, existsSync, lstatSync, mkdtempSync, readFileSync, realpathSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { PID_GATE_SCRIPT, prepareProduction383PidGate,
+import { PID_GATE_SCRIPT, prepareProduction383PidGate, productionCreatorInvocation,
     prepareSyntheticPidGate } from './component-existing-sprite-pid-gated-launcher.mts';
 
 const OWNER = '12345678-1234-1234-1234-123456789abc';
@@ -145,4 +145,35 @@ test('production adapter refuses missing stage permit and freeform caller target
     await assert.rejects(prepareProduction383PidGate({ owner: OWNER, runId: 'synthetic-pid-gate',
         executable: '/bin/echo' } as never), /production_identity_invalid/u);
     assert.equal(existsSync(path), false);
+});
+
+test('production invocation passes only validated host context and fixed project flags to harmless executable', async () => {
+    const f = fixture();
+    try {
+        const invocation = productionCreatorInvocation();
+        assert.deepEqual(invocation.args, ['--project',
+            '/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-3.8.3',
+            '--nologin']);
+        for (const key of ['NODE_OPTIONS', 'DYLD_INSERT_LIBRARIES', 'NODE_PATH', 'ELECTRON_RUN_AS_NODE'])
+            assert.equal(invocation.environment[key], undefined);
+        writeFileSync(f.executable, '#!/bin/sh\n'
+            + 'printf "%s\\n" "$HOME" "$USER" "$TMPDIR" "$LANG" "$PATH" "$2" "$3" "$4" > "$1"\n');
+        const child = spawn(f.executable, [f.marker, ...invocation.args],
+            { cwd: f.root, env: invocation.environment, stdio: 'ignore' });
+        const code = await new Promise<number | null>(done => child.once('exit', value => done(value)));
+        assert.equal(code, 0);
+        const lines = readFileSync(f.marker, 'utf8').trimEnd().split('\n');
+        assert.deepEqual(lines, [invocation.environment.HOME, invocation.environment.USER,
+            invocation.environment.TMPDIR, invocation.environment.LANG, invocation.environment.PATH,
+            ...invocation.args]);
+    } finally { f.dispose(); }
+});
+
+test('production invocation refuses missing HOME without creating a lease', () => {
+    const prior = process.env.HOME;
+    try {
+        delete process.env.HOME;
+        assert.throws(() => productionCreatorInvocation(), /production_environment_invalid/u);
+    } finally { process.env.HOME = prior; }
+    assert.equal(existsSync('/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-editor-operations-20261026/task-5.1/sprite-runtime-lease-383.json'), false);
 });
