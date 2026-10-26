@@ -14,3 +14,7 @@
 保持 `initial-input.json` 字节不变，以当前 Lite、Pro、Server 显式根重算。`validate` 与 `report` 退出 0；能力分母 114，已映射 6、未映射 108，来源完整。12 条产品用例全部 `not_run`，当前通过 0；安装生命周期、基础编辑、设计到工程、字体与内容、账号权限、恢复连续使用六条 `check-acceptance` 均退出 2。原始 CLI 输出和生成的 `report.json`、`report.md` 位于 `.peanut-ai/pod-existing-project-editing-20261026/task-3.1-report/`；六个退出码 2 是尚未完成产品验收的结果。
 
 组件与代码覆盖草稿中，3.8.3 的 4,128 条和 3.8.7 的 4,119 条仍全部为 `pending`。本次三资源样本没有覆盖原生注册、组件字段、TypeScript/JavaScript 组合的完整矩阵，也不能证明空白工程首装、真实 Server/账号或六条产品主线通过。后续应为这些缺口提供独立夹具与实机读回，再逐条更新矩阵状态。
+
+## 交付前验证
+
+当前工作树独立安装锁文件依赖后，定向测试 9/9、根 `npm run verify`、根 `npm run pack`、OpenSpec strict、私有范围与工作空间知识同步检查均退出 0。Host/Core 包摘要和归档 SHA-256 与冻结实测候选完全一致；生成描述符的 `sourceCommit` 是后续测试修订提交，运行实测源码仍以 `660226aa28d0d96fc4766c81c3b58af71cd1a8f0` 为准。第一次完整验证曾被旧测试硬编码的 0.2.0 目录阻断；该测试现按仓库当前版本读取真实自有打包候选，保留包身份、损坏包拒绝和 Pro 隔离断言，失败日志原样保留。验证日志与包身份核对位于 `.peanut-ai/pod-existing-project-editing-20261026/task-3.2-delivery/`。

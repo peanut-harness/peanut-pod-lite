@@ -133,5 +133,22 @@
     "full_native_component_and_code_coverage",
     "all_product_mainlines_passed",
     "server_and_account_live_acceptance"
-  ]
+  ],
+  "deliveryVerification": {
+    "rootVerifyExitCode": 0,
+    "rootVerifyLog": ".peanut-ai/pod-existing-project-editing-20261026/task-3.2-delivery/root-verify-after-repair.log",
+    "targetedTests": {
+      "passed": 9,
+      "failed": 0,
+      "log": ".peanut-ai/pod-existing-project-editing-20261026/task-3.2-delivery/targeted-tests-after-repair-escalated.log"
+    },
+    "rootPackExitCode": 0,
+    "frozenPackageAndArchiveBytesMatch": true,
+    "generatedDescriptorSourceCommit": "83cbe018b502dff8f96d629487d2ea48f56c2771",
+    "frozenRuntimeTestedSourceCommit": "660226aa28d0d96fc4766c81c3b58af71cd1a8f0",
+    "openSpecStrictExitCode": 0,
+    "privateScopedKnowledgeSyncExitCode": 0,
+    "workspaceKnowledgeSyncExitCode": 0,
+    "knownFirstVerificationFailure": "legacy_test_hardcoded_0.2.0_candidate_path_repaired_in_current_test"
+  }
 }
