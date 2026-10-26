@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "pod-test-coverage-delivery-receipt.v1",
+  "change": "add-pod-test-coverage-matrix",
+  "candidateBaseline": "f6ac69fb9b5ce7f840d540cd1b1fe3fd23a3ec02",
+  "toolImplementation": "accepted-locally",
+  "productAcceptance": "incomplete",
+  "productCurrentPassed": 0,
+  "productKnownGaps": [
+    "twelve initial cases are not_run",
+    "Pro, Server and CPM source denominators are not yet bound",
+    "native Creator, business and live service evidence is absent"
+  ],
+  "validation": [
+    { "command": "tsx --test tools/tests/pod-test-coverage-*.test.mts", "status": "passed", "tests": 33, "failures": 0 },
+    { "command": "npm run test:tools", "status": "passed", "testsInFinalToolSuite": 93, "failures": 0 },
+    { "command": "npm run verify", "status": "passed", "exitCode": 0 },
+    { "command": "openspec validate add-pod-test-coverage-matrix --strict", "status": "passed" },
+    { "command": "git diff --check", "status": "passed" },
+    { "command": "rag.mjs check-sync --brief --repo peanut-pod-lite", "status": "passed", "result": "ok scope=peanut-pod-lite chunks=724" },
+    { "command": "initial-input validate/report/check-acceptance", "status": "passed", "exitCodes": [0, 0, 2] },
+    { "command": "source-catalog traceRefs SHA-256 readback", "status": "passed", "references": 18 }
+  ],
+  "environment": { "node": "26.8.2", "creatorExecution": "not_run", "externalServices": "not_run", "actions": "not_checked" },
+  "integration": { "target": "main", "state": "checkpoint-ready", "remoteVerification": "pending; recorded in product status after push and independent readback" }
+}
