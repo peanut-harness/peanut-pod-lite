@@ -17,7 +17,7 @@ Pro 的实际 Lite gitlink 仍为 `87e076cfd1711af8b7ef88af959337c9a764f445`（L
 | Pro 目录修复回归与根 `npm run verify` | 目标回归 5/5、根验证退出 0；Core 本地 88、Pro 高级 15、legacy 快照 85，严格相等与读写审批策略均核对 |
 | Pro `npm run pack --prefix packages/mcp-cocos-host-adapter` | 保留旧同版本目录后退出 0；新 raw pack 仅 manifest 的 `/package/packedAt` 时间戳不同，包摘要和其他三文件相同。最终 release 从原 4.1 实测 manifest 原字节恢复，四文件逐字节相同；`verify:package` 退出 0 |
 | 双工作树隔离 RAG | `build` 退出 0、31 chunks；Lite/Pro `check-sync --brief` 均退出 0，输入显式绑定两棵 feature 工作树，不使用主检出成功代替 |
-| OpenSpec 与 Git 差异 | `npx openspec validate decouple-pod-from-cpm --strict` 与两仓 `git diff --check` 均退出 0；普通集成与远端 SHA 回读仍待独立登记 |
+| OpenSpec 与 Git 差异 | `npx openspec validate decouple-pod-from-cpm --strict` 与两仓 `git diff --check` 均退出 0；普通集成与首轮独立远端 SHA 回读已完成 |
 
 Pro 原始打包首次因同版本目录已存在而报历史诊断名 `cpm_version_already_exists`。旧四文件、新 raw 四文件、机器 diff、恢复后的四文件和验签回执保存在 `.peanut-ai/pod-decouple-cpm-20261026/task-4.2-validation-registration/`；**新 raw 输出本身只有包摘要相同，不宣称其 manifest 字节自然相同**。根验证原始日志及所有失败尝试另见该目录 `local-verification-logs/`。
 
@@ -27,4 +27,6 @@ Pro 原始打包首次因同版本目录已存在而报历史诊断名 `cpm_vers
 
 `initial-input.json` 现绑定 Lite 0.2.1 冻结包与 Pro 修正后的来源文件；Pro Core 源文件 SHA-256 为 `471dd61257089562c660799e4c14a52e86997ad1eed9d79a9ea05d0750dd9920`。显式 Lite/Pro/Server 根下 `validate`、`report` 均退出 0；分母 114、已映射 6、未映射 108、缺仓与缺来源均为空。六份矩阵测试 38/38，通过。12 条用例仍全部 `not_run`、当前通过 0，六条主线 `check-acceptance` 均退出 2。报告在 `.peanut-ai/pod-decouple-cpm-20261026/task-4.2-validation-registration/matrix-report-pro88-final/`，先前 110 项与更早 CPM 清单结果保留为历史记录。
 
-4.1 的两版现有工程升级与修复已完成，但真实 Creator 空工程首装、六条产品主线和长时间稳定性仍缺原始证据；旧候选未备份丢失的五份日志与首次 3.8.7 `library` ENOENT 继续保留。**4.2 尚须按登记完成普通集成、推送和独立远端 SHA 回读后才能勾选或标记 `remote-verified`**；本地通过不代表产品全面验收或可归档。
+4.1 的两版现有工程升级与修复已完成，但真实 Creator 空工程首装、六条产品主线和长时间稳定性仍缺原始证据；旧候选未备份丢失的五份日志与首次 3.8.7 `library` ENOENT 继续保留。
+
+普通交付按依赖顺序完成：Lite 候选 `b03304b6cd58dc045b2c78fc43d7dabca8a6125c` 快进并推送 `origin/main`，独立 `ls-remote` 回读同 SHA；其历史包含 Pro gitlink `87e076cfd1711af8b7ef88af959337c9a764f445`。随后 Pro 候选 `c877665e37d5f927052338524a6f88886b1d57fc` 快进并推送 `origin/main`，独立回读同 SHA。Pro 主检出的子模块工作目录已切到提交记录的 pin，主检出保持干净。两份首轮远端原始输出保存在 `.peanut-ai/pod-decouple-cpm-20261026/task-4.2-delivery-registration/`。**本收尾文档与 4.2 勾选所在的最终 Lite 提交仍须再次普通推送和独立远端回读；最终 SHA 另存交付回执，不在提交内自引用。**代码交付不代表产品全面验收或可归档。
