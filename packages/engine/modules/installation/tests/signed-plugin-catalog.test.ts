@@ -13,6 +13,9 @@ test('signed plugin catalog rejects tampered identity, version, channel, compati
     };
     const generatedAt = '2026-10-08T00:00:00.000Z';
     const fields = { channel: 'stable', generatedAt, catalogDigest: SignedPluginCatalogVerifier.digestProducts([product]) };
+    assert.equal(fields.catalogDigest, 'bc83d4cf4a734f2a136632f7ab7e38f9ae2777098cd8dde66beef4bf93f6c564');
+    assert.equal(CpmSigningProtocol.canonicalize('lite-plugin-catalog-v1', fields),
+        '{"schemaVersion":1,"kind":"lite-plugin-catalog-v1","channel":"stable","generatedAt":"2026-10-08T00:00:00.000Z","catalogDigest":"bc83d4cf4a734f2a136632f7ab7e38f9ae2777098cd8dde66beef4bf93f6c564"}');
     const signature = sign(null, Buffer.from(CpmSigningProtocol.canonicalize('lite-plugin-catalog-v1', fields)), pair.privateKey).toString('base64');
     const catalog = { schemaVersion: 1, channel: 'stable', generatedAt, products: [product], signature } as const;
     const verifier = new SignedPluginCatalogVerifier(trustAnchor);

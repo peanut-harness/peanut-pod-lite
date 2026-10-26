@@ -215,3 +215,31 @@ test('CPM store accepts code-unit ordered package digests and legacy localeCompa
         rmSync(projectRoot, { recursive: true, force: true });
     }
 });
+
+test('freezes Host update digest and candidate identity comparison without a release build', () => {
+    const temporaryRoot = resolve(import.meta.dirname, '..', '.test-temp');
+    mkdirSync(temporaryRoot, { recursive: true });
+    const root = mkdtempSync(join(temporaryRoot, 'pod-host-identity-'));
+    try {
+        mkdirSync(join(root, 'dist'), { recursive: true });
+        writeFileSync(join(root, 'dist', 'main.js'), 'main');
+        writeFileSync(join(root, 'package.json'), '{}');
+        writeFileSync(join(root, 'package.json.meta'), 'meta');
+        const hostDigest = '0d223e406321b44906430ad3a3dc0dd994da2ee4e5a219ee782ed903762a9002';
+        assert.equal(CpmPackageStore.hostPackageDigest(root), hostDigest);
+        const descriptor = {
+            productId: 'peanut.pod-lite', version: '0.2.0',
+            host: { packageDigest: hostDigest },
+            core: { packageDigest: '8921e032558c87a991c8a2ee4e1ff23a918606e132de1630a28e5526da9f8900' },
+        };
+        const artifacts = {
+            host: { id: 'peanut-pod-lite-host', version: '0.2.0', packageDigest: hostDigest },
+            core: { id: 'peanut.pod-lite', version: '0.2.0', packageDigest: descriptor.core.packageDigest },
+        };
+        assert.deepEqual(CpmPackageStore.compareReleaseIdentity(artifacts, descriptor), []);
+        assert.deepEqual(CpmPackageStore.compareReleaseIdentity({ ...artifacts, host: { ...artifacts.host, packageDigest: '0'.repeat(64) } }, descriptor), ['host.packageDigest']);
+        assert.deepEqual(CpmPackageStore.compareReleaseIdentity({ ...artifacts, core: { ...artifacts.core, version: '0.2.1' } }, descriptor), ['core.version']);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});

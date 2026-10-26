@@ -52,3 +52,15 @@ test('orders digest records by code unit and still accepts legacy localeCompare 
     assert.equal(CpmIntegrityProtocol.matchesDigest(records, legacy), true);
     assert.equal(CpmIntegrityProtocol.matchesDigest(records, CpmIntegrityProtocol.sha256('other')), false);
 });
+
+test('freezes Lite and Pro directory-package digest bytes for the Packaging migration', () => {
+    const filesFor = (pluginId: string) => [
+        { path: `${pluginId}.bundle.js`, digest: CpmIntegrityProtocol.sha256('module.exports = {};') },
+        { path: 'libs/.keep', digest: CpmIntegrityProtocol.sha256('') },
+        { path: 'package.json', digest: CpmIntegrityProtocol.sha256('{"type":"commonjs"}') },
+    ];
+    assert.equal(CpmIntegrityProtocol.digest(filesFor('peanut.pod-lite')),
+        '8921e032558c87a991c8a2ee4e1ff23a918606e132de1630a28e5526da9f8900');
+    assert.equal(CpmIntegrityProtocol.digest(filesFor('peanut.cocos-mcp-pro')),
+        'e7b26c5836a687dbedc7e3605c76828110518e8b87c29f64c159d7ad2c68b437');
+});

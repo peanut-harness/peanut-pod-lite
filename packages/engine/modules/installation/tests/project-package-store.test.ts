@@ -1,6 +1,7 @@
 import assert from 'assert/strict';
 import { createHash } from 'crypto';
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'fs';
+import { createRequire } from 'module';
 import { tmpdir } from 'os';
 import { isAbsolute, join } from 'path';
 import test from 'node:test';
@@ -10,6 +11,14 @@ import type { IPluginManifest, IPluginPackageFileIntegrity, IPluginPackageManife
 import { PackagingApp } from '../src/app/packaging-app';
 import { PanelPackageLayout } from '../src/panel/panel-package-layout';
 import { ProjectPluginFileStore } from '../src/persistence/project-plugin-file-store';
+import { ProjectPackageStore } from '../src/persistence/project-package-store';
+
+const requireHostStore = createRequire(import.meta.url);
+const { CpmPackageStore } = requireHostStore('../../../../hosts/modules/creator-38/src/cpm-package-store.js') as {
+    CpmPackageStore: new (projectPath: string) => {
+        resolveActivePackage(pluginId: string, required: boolean): { manifest: { version: string } } | null;
+    };
+};
 
 /** @description 构造可被目录包仓检查的最小插件清单。 */
 function createManifest(version: string, packageManifest: IPluginPackageManifest): IPluginManifest {
@@ -528,5 +537,84 @@ test('keeps a CPM-installed tooling package whose digest uses code-unit ordering
         assert.deepEqual(store.readInstalledSnapshots().map((snapshot) => [snapshot.pluginId, snapshot.activeVersion]), [[pluginId, version]]);
     } finally {
         rmSync(projectRoot, { recursive: true, force: true });
+    }
+});
+
+test('freezes Packaging and Creator Host behavior on the same legacy installation vectors', () => {
+    const pluginId = 'peanut.pod-lite';
+    const version = '0.2.0';
+    const digest = (content: string): string => createHash('sha256').update(content).digest('hex');
+    const cases: readonly {
+        name: string;
+        mutate: (projectRoot: string, packageRoot: string, index: { schemaVersion: number; plugins: unknown[] }) => void;
+        snapshots: number;
+        inspect: boolean;
+        hostError?: RegExp;
+    }[] = [
+        { name: 'valid active package', mutate: () => {}, snapshots: 1, inspect: true },
+        { name: 'duplicate plugin records', mutate: (_root, _package, index) => { index.plugins.push(index.plugins[0]); }, snapshots: 2, inspect: true, hostError: /installed_index_invalid/u },
+        { name: 'duplicate version records', mutate: (_root, _package, index) => { const plugin = index.plugins[0] as { versions: unknown[] }; plugin.versions.push(plugin.versions[0]); }, snapshots: 1, inspect: true, hostError: /installed_index_invalid/u },
+        { name: 'unknown index schema', mutate: (_root, _package, index) => { index.schemaVersion = 3; }, snapshots: 0, inspect: true, hostError: /installed_index_invalid/u },
+        { name: 'index path escape', mutate: (_root, _package, index) => { (index.plugins[0] as { versions: { installPath: string }[] }).versions[0].installPath = '../outside'; }, snapshots: 0, inspect: true, hostError: /installed_index_invalid/u },
+        { name: 'tampered payload', mutate: (_root, packageRoot) => { writeFileSync(join(packageRoot, `${pluginId}.bundle.js`), 'tampered'); }, snapshots: 1, inspect: false, hostError: /integrity_file_mismatch/u },
+        { name: 'manifest digest drift', mutate: (_root, packageRoot) => {
+            const path = join(packageRoot, `${pluginId}.manifest.json`);
+            const manifest = JSON.parse(readFileSync(path, 'utf8')) as { package: Record<string, unknown> };
+            writeFileSync(path, JSON.stringify({ ...manifest, package: { ...manifest.package, digest: '0'.repeat(64) } }));
+        }, snapshots: 1, inspect: false, hostError: /integrity_digest_mismatch/u },
+        { name: 'unrecorded payload', mutate: (_root, packageRoot) => { writeFileSync(join(packageRoot, 'unchecked.js'), 'extra'); }, snapshots: 1, inspect: true, hostError: /payload_set_mismatch/u },
+        { name: 'unrecorded symbolic link', mutate: (_root, packageRoot) => { symlinkSync('package.json', join(packageRoot, 'linked.json')); }, snapshots: 1, inspect: true, hostError: /payload_symlink/u },
+        { name: 'manifest version drift', mutate: (_root, packageRoot) => {
+            const path = join(packageRoot, `${pluginId}.manifest.json`);
+            const manifest = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
+            writeFileSync(path, JSON.stringify({ ...manifest, version: '0.2.1' }));
+        }, snapshots: 1, inspect: true, hostError: /manifest_invalid/u },
+        { name: 'interrupted index replacement', mutate: (projectRoot) => { writeFileSync(join(projectRoot, 'peanut-plugins', 'installed.json.tmp'), '{"interrupted":true}'); }, snapshots: 1, inspect: true },
+    ];
+
+    for (const vector of cases) {
+        const projectRoot = mkdtempSync(join(tmpdir(), 'peanut-package-host-parity-'));
+        try {
+            const installPath = join('peanut-plugins', 'plugins', pluginId, version);
+            const packageRoot = join(projectRoot, installPath);
+            mkdirSync(join(packageRoot, 'libs'), { recursive: true });
+            const files = [
+                { path: `${pluginId}.bundle.js`, content: 'module.exports = {};' },
+                { path: 'libs/.keep', content: '' },
+                { path: 'package.json', content: '{"type":"commonjs"}' },
+            ];
+            for (const file of files) {
+                writeFileSync(join(packageRoot, file.path), file.content);
+            }
+            const records = files.map((file) => ({ path: file.path, digest: digest(file.content) }))
+                .sort((left, right) => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0));
+            const packageDigest = digest(records.map((record) => `${record.path}:${record.digest}`).join('\n'));
+            assert.equal(packageDigest, '8921e032558c87a991c8a2ee4e1ff23a918606e132de1630a28e5526da9f8900');
+            writeFileSync(join(packageRoot, `${pluginId}.manifest.json`), JSON.stringify({
+                id: pluginId, version, kind: 'tooling-plugin', main: `./${pluginId}.bundle.js`,
+                package: { schemaVersion: 1, digest: packageDigest, files: records },
+            }));
+            const index: { schemaVersion: number; plugins: unknown[] } = {
+                schemaVersion: 2,
+                plugins: [{ pluginId, activeVersion: version, versions: [{ version, installPath }] }],
+            };
+            vector.mutate(projectRoot, packageRoot, index);
+            const indexPath = join(projectRoot, 'peanut-plugins', 'installed.json');
+            const indexBytes = JSON.stringify(index);
+            writeFileSync(indexPath, indexBytes);
+
+            const packagingStore = new ProjectPackageStore(projectRoot);
+            const hostStore = new CpmPackageStore(projectRoot);
+            assert.equal(packagingStore.readInstalledSnapshots().length, vector.snapshots, `${vector.name}: Packaging index`);
+            assert.equal(packagingStore.inspect(packageRoot).isValidStructure, vector.inspect, `${vector.name}: Packaging package`);
+            if (vector.hostError == null) {
+                assert.equal(hostStore.resolveActivePackage(pluginId, true)?.manifest.version, version, `${vector.name}: Host`);
+            } else {
+                assert.throws(() => hostStore.resolveActivePackage(pluginId, true), vector.hostError, `${vector.name}: Host`);
+            }
+            assert.equal(readFileSync(indexPath, 'utf8'), indexBytes, `${vector.name}: read-only index`);
+        } finally {
+            rmSync(projectRoot, { recursive: true, force: true });
+        }
     }
 });
