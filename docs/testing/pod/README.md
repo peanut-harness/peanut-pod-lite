@@ -2,19 +2,19 @@
 
 本目录是离线研究基线。`initial-input.json` 的候选身份固定在 Lite 提交 `f6ac69fb9b5ce7f840d540cd1b1fe3fd23a3ec02`，`source-catalog.json` 的 SHA-256 为 `7d034e70884fa9b684bb9b3ea41931acba787ef62cd2220f96b371bd461cb2fd`。这些值仅标识来源审阅快照，不表示现行产品已通过。
 
-六条主线是安装生命周期、基础编辑、设计到工程、字体与内容、账号权限、恢复连续使用。每条在 Creator 3.8.3 和 3.8.7 各有一条尚未执行的定义；报告保留 12 条 `not_run`，当前通过数为零。来源索引的 `traceRefs` 固定了本机可读的 Lite、Pro、Server 和 CPM 文件路径及内容摘要。Lite 是本索引的维护仓；Pro、Server 和 CPM 的目录还没有按各自来源协议接入，因此报告明确列为 `missingRepositories`，分母完整性为 false。外仓线索并未被本输入升级为受信执行证据；新增来源、目录项或字节漂移应重新审阅。
+六条主线是安装生命周期、基础编辑、设计到工程、字体与内容、账号权限、恢复连续使用。每条在 Creator 3.8.3 和 3.8.7 各有一条尚未执行的定义；报告保留 12 条 `not_run`，当前通过数为零。来源索引的 `traceRefs` 固定了本机可读的 Lite、Pro、Server 和 CPM 文件路径及内容摘要。初始输入另绑定 Pro 核心 84 项、高级 15 项操作目录，Lite 保存并逐实现摘要核对的 Server 三条账户路由审阅记录，以及 CPM 公开 schema v2 stable 清单。四仓根均可读且字节吻合时，来源分母为 109 项、`missingRepositories` 为空；其中新增的 103 项仍为 `unmapped`，映射和产品验收未完成。CPM 当前空 stable 清单的 `releaseAvailable` 为 `false`，不代表安装成功。外仓线索并未被本输入升级为受信执行证据；新增来源、目录项或字节漂移应重新审阅。
 
 ## 离线命令
 
-在 Lite 仓根执行，`ROOT` 为该工作树的绝对路径，`OUT` 为不在输入或来源根内、尚不存在的目录：
+在 Lite 仓根执行，`ROOT`、`PRO`、`SERVER`、`CPM` 分别为四个仓库的绝对路径，`OUT` 为不在输入或来源根内、尚不存在的目录：
 
 ```sh
-node --import tsx tools/pod-test-coverage/cli.mts validate --input "$ROOT/docs/testing/pod/initial-input.json" --source-root "lite=$ROOT"
-node --import tsx tools/pod-test-coverage/cli.mts report --input "$ROOT/docs/testing/pod/initial-input.json" --source-root "lite=$ROOT" --out "$OUT"
-node --import tsx tools/pod-test-coverage/cli.mts check-acceptance --input "$ROOT/docs/testing/pod/initial-input.json" --source-root "lite=$ROOT" --workflow basic-editing
+node --import tsx tools/pod-test-coverage/cli.mts validate --input "$ROOT/docs/testing/pod/initial-input.json" --source-root "lite=$ROOT" --source-root "pro=$PRO" --source-root "server=$SERVER" --source-root "cpm=$CPM"
+node --import tsx tools/pod-test-coverage/cli.mts report --input "$ROOT/docs/testing/pod/initial-input.json" --source-root "lite=$ROOT" --source-root "pro=$PRO" --source-root "server=$SERVER" --source-root "cpm=$CPM" --out "$OUT"
+node --import tsx tools/pod-test-coverage/cli.mts check-acceptance --input "$ROOT/docs/testing/pod/initial-input.json" --source-root "lite=$ROOT" --source-root "pro=$PRO" --source-root "server=$SERVER" --source-root "cpm=$CPM" --workflow basic-editing
 ```
 
-`validate` 和 `report` 对合法但未完成的基线返回 0；`check-acceptance` 返回 2。报告同时输出 `report.json` 与 `report.md`，不会执行输入命令。`--synthetic-check` 仅供合成夹具检验退出码；其 0 不等于产品验收，合成证明不会计入当前产品通过数。
+`validate` 和 `report` 对合法但未完成的基线返回 0；`check-acceptance` 返回 2。仅给 Lite 根时，外仓来源显示为 `missing`，不会沿用过时的完整分母。报告同时输出 `report.json` 与 `report.md`，不会执行输入命令。`--synthetic-check` 仅供合成夹具检验退出码；其 0 不等于产品验收，合成证明不会计入当前产品通过数。
 
 ## 来源与缺口导航
 

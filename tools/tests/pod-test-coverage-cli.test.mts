@@ -116,6 +116,8 @@ test('pinned initial six-workflow input remains valid and product incomplete', (
     const args = ['--input', input, '--source-root', `lite=${repositoryRoot}`];
     const validation = run(['validate', ...args]);
     assert.equal(validation.status, 0, validation.stderr);
+    assert.deepEqual(JSON.parse(validation.stdout).missingRepositories, []);
+    assert.equal(JSON.parse(validation.stdout).inventoryComplete, false);
     const output = join(tmpdir(), `pod-report-initial-${process.pid}-${Date.now()}`);
     try {
         const rendered = run(['report', ...args, '--out', output]);
@@ -126,6 +128,11 @@ test('pinned initial six-workflow input remains valid and product incomplete', (
         assert.equal(report.workflows.length, 6);
         assert.equal(report.acceptancePlans.length, 2);
         assert.equal(report.acceptanceComplete, false);
+        assert.equal(report.denominator.complete, false);
+        assert.deepEqual(report.denominator.missingRepositories, []);
+        assert.deepEqual(report.denominator.sources.filter((source: { completeness: string }) =>
+            source.completeness === 'missing').map((source: { id: string }) => source.id),
+        ['cpm-stable', 'pro-core', 'pro-premium', 'server-account-routes']);
     } finally { rmSync(output, { recursive: true, force: true }); }
     assert.equal(run(['check-acceptance', ...args, '--workflow', 'basic-editing']).status, 2);
 });

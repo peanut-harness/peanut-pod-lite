@@ -41,7 +41,11 @@
       "creator-3.8.7"
     ],
     "inputDigests": {
-      "reviewed-mainlines": "7d034e70884fa9b684bb9b3ea41931acba787ef62cd2220f96b371bd461cb2fd"
+      "reviewed-mainlines": "7d034e70884fa9b684bb9b3ea41931acba787ef62cd2220f96b371bd461cb2fd",
+      "pro-core": "3f7455abe5af6dd3bf9a71558c24a80fb67cbc8cfbabcf1fd1ada1757cbd71c2",
+      "pro-premium": "b2db1114af031d75c7d82f30ae32bec3868c3405d5abf3e00885248adc709dc7",
+      "server-account-routes": "39aed7e818ddba6019d6fd99acd4f6d97e710f94f628128e7ad1b9307da3a9ba",
+      "cpm-stable": "dc79f1f107f4fd85fd50da51ac4113be9be4532ecb546e2b22c174a0a93f8b93"
     }
   },
   "sources": [
@@ -60,6 +64,54 @@
       "kind": "curated-business",
       "creatorVersion": null,
       "completeness": "reviewed"
+    },
+    {
+      "id": "pro-core",
+      "repository": "peanut-pod-pro",
+      "role": "current-product",
+      "commit": "c5f6990dd665ba2049fa8b290d669115c664a771",
+      "tree": "ad4f77864fc879a7faec788864ff1a53e8bc3da4",
+      "sourceRef": { "rootId": "pro", "path": "catalog/core-operations.json", "sha256": "3f7455abe5af6dd3bf9a71558c24a80fb67cbc8cfbabcf1fd1ada1757cbd71c2" },
+      "sha256": "3f7455abe5af6dd3bf9a71558c24a80fb67cbc8cfbabcf1fd1ada1757cbd71c2",
+      "kind": "pro-core-catalog",
+      "creatorVersion": null,
+      "completeness": "complete"
+    },
+    {
+      "id": "pro-premium",
+      "repository": "peanut-pod-pro",
+      "role": "current-product",
+      "commit": "c5f6990dd665ba2049fa8b290d669115c664a771",
+      "tree": "ad4f77864fc879a7faec788864ff1a53e8bc3da4",
+      "sourceRef": { "rootId": "pro", "path": "catalog/premium-operations.json", "sha256": "b2db1114af031d75c7d82f30ae32bec3868c3405d5abf3e00885248adc709dc7" },
+      "sha256": "b2db1114af031d75c7d82f30ae32bec3868c3405d5abf3e00885248adc709dc7",
+      "kind": "pro-premium-catalog",
+      "creatorVersion": null,
+      "completeness": "complete"
+    },
+    {
+      "id": "server-account-routes",
+      "repository": "peanut-pod-server",
+      "role": "current-product",
+      "commit": "5a1c27366d87f2494e16e36fac2d7f7b810a1aae",
+      "tree": "7dfdeedbb1c99d86b824307c1fc1cce4cdd20c9c",
+      "sourceRef": { "rootId": "lite", "path": "docs/testing/pod/server-route-review.json", "sha256": "39aed7e818ddba6019d6fd99acd4f6d97e710f94f628128e7ad1b9307da3a9ba" },
+      "sha256": "39aed7e818ddba6019d6fd99acd4f6d97e710f94f628128e7ad1b9307da3a9ba",
+      "kind": "server-reviewed-routes",
+      "creatorVersion": null,
+      "completeness": "reviewed"
+    },
+    {
+      "id": "cpm-stable",
+      "repository": "cpm-install",
+      "role": "current-product",
+      "commit": "a5b9bf9b7bc369732c6ee2efb2b33c4a9fa32487",
+      "tree": "374d222260c5ba42d0ffd52de993e893b750f36e",
+      "sourceRef": { "rootId": "cpm", "path": "releases.json", "sha256": "dc79f1f107f4fd85fd50da51ac4113be9be4532ecb546e2b22c174a0a93f8b93" },
+      "sha256": "dc79f1f107f4fd85fd50da51ac4113be9be4532ecb546e2b22c174a0a93f8b93",
+      "kind": "cpm-release-manifest-v2",
+      "creatorVersion": null,
+      "completeness": "complete"
     }
   ],
   "capabilities": [
