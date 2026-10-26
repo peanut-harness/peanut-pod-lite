@@ -79,6 +79,22 @@ test('repository and project aliases are refused before inspecting their content
     } finally { rmSync(scratch, { recursive: true, force: true }); }
 });
 
+test('dangling input, scene target and ancestor links are rejected rather than absent', () => {
+    const f = realpathSync(mkdtempSync(join(tmpdir(), 'component-scene-dangling-')));
+    try {
+        const audit = join(f, 'tests/fixtures/editor-stability/components/3.8.3/component-assembly-audit.json');
+        mkdirSync(dirname(audit), { recursive: true }); symlinkSync('missing-audit', audit);
+        assert.throws(() => ComponentExistingSpriteSceneSource.author(f, '3.8.3'), /path_link/);
+        mkdirSync(join(f, 'assets'));
+        const target = join(f, 'assets/components/cc.Sprite.scene');
+        mkdirSync(dirname(target), { recursive: true }); symlinkSync('missing-scene', target);
+        assert.throws(() => ComponentExistingSpriteSceneSource.inspectTargets(f, '3.8.3'), /path_link/);
+        rmSync(target); rmSync(join(f, 'assets/components'), { recursive: true });
+        symlinkSync('missing-parent', join(f, 'assets/components'));
+        assert.throws(() => ComponentExistingSpriteSceneSource.inspectTargets(f, '3.8.3'), /path_link/);
+    } finally { rmSync(f, { recursive: true, force: true }); }
+});
+
 test('scene and sidecar targets must be absent, while existing parent meta stays protected', () => {
     const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'component-scene-target-')));
     try {

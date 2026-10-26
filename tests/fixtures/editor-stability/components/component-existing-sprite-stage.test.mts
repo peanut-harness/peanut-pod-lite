@@ -143,6 +143,25 @@ test('linked source is rejected even when its bytes match the manifest', () => {
     } finally { f.close(); }
 });
 
+test('dangling target, source and ancestor links are refused rather than treated as missing', () => {
+    const f = fixture();
+    try {
+        const plan = () => ComponentExistingSpriteStage.planSyntheticDryRun(f.repository, f.project, f.manifest);
+        const target = join(f.project, f.manifest.files[0].path);
+        mkdirSync(dirname(target), { recursive: true }); symlinkSync('missing-target', target);
+        assert.throws(plan, /path_link/);
+        rmSync(target);
+        const source = join(f.repository, image); rmSync(source); symlinkSync('missing-source', source);
+        assert.throws(plan, /path_link/);
+        rmSync(source); put(source, imageBytes);
+        rmSync(join(f.project, 'assets'), { recursive: true });
+        mkdirSync(join(f.project, 'assets'));
+        symlinkSync('missing-folder', join(f.project, 'assets/fixtures'));
+        assert.throws(plan, /path_link/);
+        assert.ok(!existsSync(target));
+    } finally { f.close(); }
+});
+
 test('unproven authored source and incomplete protected manifest cannot become a stage plan', () => {
     const f = fixture();
     try {

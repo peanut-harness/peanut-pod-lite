@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync, readFileSync, realpathSync } from 'node:fs';
+import { lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { dirname, isAbsolute, resolve, sep } from 'node:path';
 import { ComponentSceneFixture } from './component-scene-fixture.mts';
 import { ComponentSceneIntegrity } from './component-scene-integrity.mts';
@@ -22,6 +22,7 @@ const PARENT_METAS = ['assets/components.meta', 'assets/fixtures.meta', 'assets/
     'assets/fixtures/media/assets.meta', 'assets/fixtures/media/assets/image.meta'] as const;
 
 function sha(bytes: Buffer): string { return createHash('sha256').update(bytes).digest('hex'); }
+function present(path: string): boolean { return lstatSync(path, { throwIfNoEntry: false }) !== undefined; }
 
 function fixedFile(root: string, path: string): string {
     if (!path || isAbsolute(path) || path.split('/').some(part =>
@@ -31,18 +32,18 @@ function fixedFile(root: string, path: string): string {
     if (!absolute.startsWith(`${root}${sep}`)) throw new Error('component_sprite_scene_path_escape');
     let parent = dirname(absolute);
     while (parent !== root) {
-        if (existsSync(parent) && (!lstatSync(parent).isDirectory() || realpathSync(parent) !== parent))
+        if (present(parent) && (!lstatSync(parent).isDirectory() || realpathSync(parent) !== parent))
             throw new Error('component_sprite_scene_path_link');
         parent = dirname(parent);
     }
-    if (existsSync(absolute) && (!lstatSync(absolute).isFile() || realpathSync(absolute) !== absolute))
+    if (present(absolute) && (!lstatSync(absolute).isFile() || realpathSync(absolute) !== absolute))
         throw new Error('component_sprite_scene_path_link');
     return absolute;
 }
 
 function pinnedJson(root: string, path: string, expected: string): Record<string, any> {
     const file = fixedFile(root, path);
-    if (!existsSync(file)) throw new Error('component_sprite_scene_input_missing');
+    if (!present(file)) throw new Error('component_sprite_scene_input_missing');
     const bytes = readFileSync(file);
     if (sha(bytes) !== expected) throw new Error('component_sprite_scene_input_sha_mismatch');
     const value = JSON.parse(bytes.toString('utf8'));
@@ -72,7 +73,8 @@ export class ComponentExistingSpriteSceneSource {
         const historical = TYPES.map(type => {
             const path = `evidence/task-5.1/checkpoint-510400c-${version}/assets/components/${type}.scene`;
             const file = fixedFile(root, path);
-            return { path, found: existsSync(file), sha256: existsSync(file) ? sha(readFileSync(file)) : null,
+            const found = present(file);
+            return { path, found, sha256: found ? sha(readFileSync(file)) : null,
                 provenanceVerified: false };
         });
         const scenes = TYPES.map(type => {
@@ -115,13 +117,14 @@ export class ComponentExistingSpriteSceneSource {
         const scenePaths = TYPES.flatMap(type => [`assets/components/${type}.scene`, `assets/components/${type}.scene.meta`]);
         const targets = scenePaths.map(path => {
             const file = fixedFile(root, path);
-            if (existsSync(file)) throw new Error('component_sprite_scene_target_exists');
+            if (present(file)) throw new Error('component_sprite_scene_target_exists');
             return { path, exists: false };
         });
         const parents = PARENT_METAS.map(path => {
             const file = fixedFile(root, path);
-            return { path, exists: existsSync(file), sha256: existsSync(file) ? sha(readFileSync(file)) : null,
-                policy: existsSync(file) ? 'preserve_exact_bytes' : 'authoring_required_before_stage' };
+            const exists = present(file);
+            return { path, exists, sha256: exists ? sha(readFileSync(file)) : null,
+                policy: exists ? 'preserve_exact_bytes' : 'authoring_required_before_stage' };
         });
         return { creatorVersion: version, projectPath: root, mode: 'read_only', executable: false,
             targets, parentMetas: parents,

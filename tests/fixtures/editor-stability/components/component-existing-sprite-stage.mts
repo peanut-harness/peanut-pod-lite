@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync, readFileSync, realpathSync } from 'node:fs';
+import { lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, isAbsolute, resolve, sep } from 'node:path';
 import { ComponentExistingProjectPlan } from './component-existing-project-plan.mts';
@@ -49,6 +49,7 @@ export type SpriteStageManifest = {
 function hash(bytes: Buffer): string {
     return createHash('sha256').update(bytes).digest('hex');
 }
+function present(path: string): boolean { return lstatSync(path, { throwIfNoEntry: false }) !== undefined; }
 
 function safeFile(root: string, path: string): string {
     if (!path || isAbsolute(path) || path.split('/').some(part =>
@@ -58,11 +59,11 @@ function safeFile(root: string, path: string): string {
     if (!absolute.startsWith(`${root}${sep}`)) throw new Error('component_sprite_stage_path_escape');
     let parent = dirname(absolute);
     while (parent !== root) {
-        if (existsSync(parent) && (!lstatSync(parent).isDirectory() || realpathSync(parent) !== parent))
+        if (present(parent) && (!lstatSync(parent).isDirectory() || realpathSync(parent) !== parent))
             throw new Error('component_sprite_stage_path_link');
         parent = dirname(parent);
     }
-    if (existsSync(absolute) && (!lstatSync(absolute).isFile() || realpathSync(absolute) !== absolute))
+    if (present(absolute) && (!lstatSync(absolute).isFile() || realpathSync(absolute) !== absolute))
         throw new Error('component_sprite_stage_path_link');
     return absolute;
 }
@@ -115,15 +116,15 @@ export class ComponentExistingSpriteStage {
         exactPaths(manifest.protectedFiles.map(item => item.path), PROTECTED, 'component_sprite_stage_protected_incomplete');
         const protectedStates = manifest.protectedFiles.map(item => {
             const path = safeFile(target, item.path);
-            if (!existsSync(path) || !/^[0-9a-f]{64}$/u.test(item.sha256)
+            if (!present(path) || !/^[0-9a-f]{64}$/u.test(item.sha256)
                 || hash(readFileSync(path)) !== item.sha256) throw new Error('component_sprite_stage_protected_changed');
             return { path: item.path, sha256: item.sha256 };
         });
         const files = manifest.files.map(item => {
             const destination = safeFile(target, item.path);
-            if (existsSync(destination)) throw new Error('component_sprite_stage_target_exists');
+            if (present(destination)) throw new Error('component_sprite_stage_target_exists');
             const source = safeFile(root, item.sourcePath);
-            if (!existsSync(source) || !/^[0-9a-f]{64}$/u.test(item.sha256))
+            if (!present(source) || !/^[0-9a-f]{64}$/u.test(item.sha256))
                 throw new Error('component_sprite_stage_source_invalid');
             const bytes = readFileSync(source);
             if (hash(bytes) !== item.sha256) throw new Error('component_sprite_stage_source_mismatch');
