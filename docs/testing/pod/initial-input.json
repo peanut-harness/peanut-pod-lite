@@ -1,7 +1,7 @@
 {
   "schemaVersion": "pod-test-coverage-input.v1",
   "candidate": {
-    "id": "self-managed-lite-0.2.1-20261026",
+    "id": "self-managed-lite-0.2.1-pro-core-88-20261026",
     "repositories": {
       "peanut-pod-lite": {
         "commit": "660226aa28d0d96fc4766c81c3b58af71cd1a8f0",
@@ -18,12 +18,14 @@
         }
       },
       "peanut-pod-pro": {
-        "commit": "634418c90ec59f6630e535e763259dc15748e68c",
-        "tree": "62f0655bbdcac644bc57809b5c3c9f70ef435d6d",
+        "commit": "c877665e37d5f927052338524a6f88886b1d57fc",
+        "tree": "f0637b9fc909f4a204a0646434be5e26ad0599e9",
         "platform": "unverified",
         "runtimeVersion": "unverified",
         "toolchain": "unverified",
-        "artifactDigests": {}
+        "artifactDigests": {
+          "proPackage": "801c6d26d4d386de8bff09bbce70d1acf33abe74ba29e72e6e8cb182efe1f68f"
+        }
       },
       "peanut-pod-server": {
         "commit": "5a1c27366d87f2494e16e36fac2d7f7b810a1aae",
@@ -40,7 +42,7 @@
     ],
     "inputDigests": {
       "reviewed-mainlines": "7e9723dbf51c8d0b1a780e47739582bd736c4b2d1f322be83803a7650d23bcd9",
-      "pro-core": "3f7455abe5af6dd3bf9a71558c24a80fb67cbc8cfbabcf1fd1ada1757cbd71c2",
+      "pro-core": "471dd61257089562c660799e4c14a52e86997ad1eed9d79a9ea05d0750dd9920",
       "pro-premium": "b2db1114af031d75c7d82f30ae32bec3868c3405d5abf3e00885248adc709dc7",
       "server-account-routes": "39aed7e818ddba6019d6fd99acd4f6d97e710f94f628128e7ad1b9307da3a9ba",
       "lite-packaging": "f818348e7b01bfaa787035c933464a5ea28ee08750ee8e67bbb1592d9a7d8623",
@@ -68,14 +70,14 @@
       "id": "pro-core",
       "repository": "peanut-pod-pro",
       "role": "current-product",
-      "commit": "634418c90ec59f6630e535e763259dc15748e68c",
-      "tree": "62f0655bbdcac644bc57809b5c3c9f70ef435d6d",
+      "commit": "c877665e37d5f927052338524a6f88886b1d57fc",
+      "tree": "f0637b9fc909f4a204a0646434be5e26ad0599e9",
       "sourceRef": {
         "rootId": "pro",
         "path": "catalog/core-operations.json",
-        "sha256": "3f7455abe5af6dd3bf9a71558c24a80fb67cbc8cfbabcf1fd1ada1757cbd71c2"
+        "sha256": "471dd61257089562c660799e4c14a52e86997ad1eed9d79a9ea05d0750dd9920"
       },
-      "sha256": "3f7455abe5af6dd3bf9a71558c24a80fb67cbc8cfbabcf1fd1ada1757cbd71c2",
+      "sha256": "471dd61257089562c660799e4c14a52e86997ad1eed9d79a9ea05d0750dd9920",
       "kind": "pro-core-catalog",
       "creatorVersion": null,
       "completeness": "complete"
@@ -84,8 +86,8 @@
       "id": "pro-premium",
       "repository": "peanut-pod-pro",
       "role": "current-product",
-      "commit": "634418c90ec59f6630e535e763259dc15748e68c",
-      "tree": "62f0655bbdcac644bc57809b5c3c9f70ef435d6d",
+      "commit": "c877665e37d5f927052338524a6f88886b1d57fc",
+      "tree": "f0637b9fc909f4a204a0646434be5e26ad0599e9",
       "sourceRef": {
         "rootId": "pro",
         "path": "catalog/premium-operations.json",
@@ -132,8 +134,8 @@
       "id": "pro-directory-package",
       "repository": "peanut-pod-pro",
       "role": "current-product",
-      "commit": "634418c90ec59f6630e535e763259dc15748e68c",
-      "tree": "62f0655bbdcac644bc57809b5c3c9f70ef435d6d",
+      "commit": "c877665e37d5f927052338524a6f88886b1d57fc",
+      "tree": "f0637b9fc909f4a204a0646434be5e26ad0599e9",
       "sourceRef": {
         "rootId": "pro",
         "path": "packages/mcp-cocos-host-adapter/package.json",

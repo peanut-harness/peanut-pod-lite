@@ -2,11 +2,11 @@
 
 此前 Lite `0.2.0` 自有安装候选在两处既有隔离 Creator 工程的部分实测见 [4.1 历史候选证据](creator-current-candidate-4.1.md)。它是同版本替换，不是 `0.2.1` 升级证据；4.1 仍未完成，矩阵的产品用例状态不因此提升。
 
-本目录是离线研究与当前候选的来源矩阵。`initial-input.json` 绑定 Lite `0.2.1` 源码 `660226aa28d0d96fc4766c81c3b58af71cd1a8f0`、Pro `634418c90ec59f6630e535e763259dc15748e68c` 和 Server 审阅提交；[Lite 候选字节回执](lite-0.2.1-candidate.json) 固定 Host/Core 目录与归档摘要。`source-catalog.json` 的 SHA-256 为 `7e9723dbf51c8d0b1a780e47739582bd736c4b2d1f322be83803a7650d23bcd9`。这些值固定来源与候选输入，不表示产品已通过。
+本目录是离线研究与当前候选的来源矩阵。`initial-input.json` 绑定 Lite `0.2.1` 源码 `660226aa28d0d96fc4766c81c3b58af71cd1a8f0`、Pro 目录修正提交 `c877665e37d5f927052338524a6f88886b1d57fc` 和 Server 审阅提交；[Lite 候选字节回执](lite-0.2.1-candidate.json) 固定 Host/Core 目录与归档摘要。`source-catalog.json` 的 SHA-256 为 `7e9723dbf51c8d0b1a780e47739582bd736c4b2d1f322be83803a7650d23bcd9`。这些值固定来源与候选输入，不表示产品已通过。
 
 本轮显式根读回、分母和六条主线退出码见 [0.2.1 来源矩阵回执](self-managed-source-validation-0.2.1.md)。
 
-六条主线是安装生命周期、基础编辑、设计到工程、字体与内容、账号权限、恢复连续使用。每条在 Creator 3.8.3 和 3.8.7 各有一条尚未执行的定义；报告保留 12 条 `not_run`，当前通过数为零。当前来源为 Lite 策展 6、Lite Packaging 包身份 1、Pro 核心 84、高级 15、Pro 目录包身份 1、Server 审阅路由 3，合计 110；其中 104 项仍为 `unmapped`。来源完整性不证明安装或运行成功，两个包身份来源的 `releaseAvailable` 均为 `null`。此前 CPM stable 空清单及四仓报告保留于 `source-inventory-validation.md` 作为历史回执，不进入当前候选分母。
+六条主线是安装生命周期、基础编辑、设计到工程、字体与内容、账号权限、恢复连续使用。每条在 Creator 3.8.3 和 3.8.7 各有一条尚未执行的定义；报告保留 12 条 `not_run`，当前通过数为零。当前来源为 Lite 策展 6、Lite Packaging 包身份 1、Pro 核心 88、高级 15、Pro 目录包身份 1、Server 审阅路由 3，合计 114；其中 108 项仍为 `unmapped`。来源完整性不证明安装或运行成功，两个包身份来源的 `releaseAvailable` 均为 `null`。此前 110 项候选和 CPM stable 空清单的报告作为历史回执保留，不进入当前分母。
 
 ## 离线命令
 
