@@ -20,4 +20,8 @@ CPM 公开 `releases.json` 的 stable 集合为空，`releaseAvailable=false`。
 | `git diff --check` | 通过 |
 | Lite scoped RAG `check-sync --brief` | `ok scope=peanut-pod-lite chunks=724` |
 
-依赖通过与锁文件相同的已有本地安装树复用，未更新依赖或锁文件。产品通过数保持零。远端交付状态须在普通集成推送并独立回读 SHA 后另行填写，不能以本地测试代替。
+依赖通过与锁文件相同的已有本地安装树复用，未更新依赖或锁文件。产品通过数保持零。
+
+## 远端交付
+
+实现与本地验证回执在干净主检出普通快进集成并推送；独立读取 `origin` 的 `refs/heads/main` 得到 `d66003c0112266d3d9ec5d3d4f084460341f1eb6`，与推送的候选一致。代码交付为 `remote-verified`。本次勾选和回执收尾本身仍须普通推送及再次远端回读；当前产品六条主线未验收，OpenSpec 变更未归档。

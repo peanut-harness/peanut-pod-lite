@@ -10,4 +10,4 @@
 
 ## 2. 组合验收与交付
 
-- [ ] 2.1 `[peanut-pod-lite:docs/testing/pod/**,openspec/changes/bind-pod-product-source-inventories/** | depends:1.3 | serial | owner:pod-source-owner | requirements:pod-product-source-inventories#Cross-product report keeps provenance and unfinished work visible | non-goals:不重跑Creator或服务、不核验Actions、不自动归档旧change]` 完成组合验证和回执，区分工具状态、目录完整性、stable 可用性与产品未验收；验收：受影响定向测试、`npm run test:tools`、`npm run verify`、本 change 严格校验、`git diff --check`和 Lite scoped RAG 按有效输入 run/reuse；checkpoint 经普通集成推送后独立回读远端 SHA，只有 remote-verified 标代码交付完成。
+- [x] 2.1 `[peanut-pod-lite:docs/testing/pod/**,openspec/changes/bind-pod-product-source-inventories/** | depends:1.3 | serial | owner:pod-source-owner | requirements:pod-product-source-inventories#Cross-product report keeps provenance and unfinished work visible | non-goals:不重跑Creator或服务、不核验Actions、不自动归档旧change]` 完成组合验证和回执，区分工具状态、目录完整性、stable 可用性与产品未验收；验收：受影响定向测试、`npm run test:tools`、`npm run verify`、本 change 严格校验、`git diff --check`和 Lite scoped RAG 按有效输入 run/reuse；checkpoint 经普通集成推送后独立回读远端 SHA，只有 remote-verified 标代码交付完成。
