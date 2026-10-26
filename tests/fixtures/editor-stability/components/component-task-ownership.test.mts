@@ -15,6 +15,10 @@ const entry = { repo: 'peanut-pod-lite', change: 'stabilize-editor-operations-an
 
 test('task ownership follows the registered handoff and refuses the previous actor', () => {
     assert.equal(ComponentTaskOwnership.fromRegistry(repository, workspace, owner, { version: 1, entries: [entry] }), owner);
+    assert.equal(ComponentTaskOwnership.fromRegistry(repository, workspace, owner,
+        { version: 1, entries: [{ ...entry, deliveryMode: 'coordinated' }] }), owner);
+    assert.throws(() => ComponentTaskOwnership.fromRegistry(repository, workspace, owner,
+        { version: 1, entries: [{ ...entry, deliveryMode: 'coordinated', integrationOwner: 'other' }] }), /owner_mismatch/);
     const next = 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff';
     const transferred = { version: 1, entries: [{ ...entry, owner: next, checkpointOwner: next, integrationOwner: next }] };
     assert.equal(ComponentTaskOwnership.fromRegistry(repository, workspace, next, transferred), next);
@@ -23,7 +27,7 @@ test('task ownership follows the registered handoff and refuses the previous act
 
 test('task ownership rejects incomplete handoffs, stale paths, inactive entries and absent actor identity', () => {
     for (const patch of [{ owner: 'other' }, { checkpointOwner: 'other' }, { integrationOwner: 'other' },
-        { path: '.worktrees/peanut-pod-lite/other' }, { branch: 'main' }, { state: 'retained' }, { deliveryMode: 'coordinated' }]) {
+        { path: '.worktrees/peanut-pod-lite/other' }, { branch: 'main' }, { state: 'retained' }, { deliveryMode: 'unknown' }]) {
         assert.throws(() => ComponentTaskOwnership.fromRegistry(repository, workspace, owner,
             { version: 1, entries: [{ ...entry, ...patch }] }), /owner_mismatch/);
     }
