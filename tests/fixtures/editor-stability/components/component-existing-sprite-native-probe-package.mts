@@ -6,6 +6,7 @@ import { basename, join, resolve, sep } from 'node:path';
 import { build, type Metafile } from 'esbuild';
 
 const PREFIX = 'tests/fixtures/editor-stability/components/';
+const ACCEPTED_SOURCE_COMMIT = '61fcce7509044d4715b25462dde2849dc929c1a1';
 const INPUTS = Object.freeze([
     { source: `${PREFIX}component-existing-sprite-native-probe-entry.ts`,
         sha256: '1063129bc2ad2242733571ff000811f33194e7f9d348e6202ffe9c50d1d1c1e9', bundle: 'main.js' },
@@ -26,7 +27,7 @@ function sha(bytes: Buffer | string): string { return createHash('sha256').updat
 function present(path: string): boolean { return lstatSync(path, { throwIfNoEntry: false }) !== undefined; }
 function regular(path: string): Buffer {
     if (!present(path)) throw new Error('component_sprite_probe_package_source_missing');
-    if (!lstatSync(path).isFile() || realpathSync(path) !== path)
+    if (!lstatSync(path).isFile() || lstatSync(path).nlink !== 1 || realpathSync(path) !== path)
         throw new Error('component_sprite_probe_package_source_link');
     return readFileSync(path);
 }
@@ -82,10 +83,19 @@ export class ComponentExistingSpriteNativeProbePackage {
             if (sha(regular(path)) !== row.sha256) throw new Error('component_sprite_probe_package_source_sha_mismatch');
             return { ...row, path };
         });
-        const sourceCommit = execFileSync('git', ['-c', 'core.fsmonitor=false', 'rev-parse', 'HEAD'],
+        const checkoutCommit = execFileSync('git', ['-c', 'core.fsmonitor=false', 'rev-parse', 'HEAD'],
             { cwd: root, encoding: 'utf8' }).trim();
-        if (!/^[a-f0-9]{40}$/u.test(sourceCommit))
+        if (!/^[a-f0-9]{40}$/u.test(checkoutCommit))
             throw new Error('component_sprite_probe_package_source_commit_invalid');
+        execFileSync('git', ['-c', 'core.fsmonitor=false', 'merge-base', '--is-ancestor',
+            ACCEPTED_SOURCE_COMMIT, checkoutCommit], { cwd: root, stdio: 'ignore' });
+        for (const source of sources) {
+            const accepted = execFileSync('git', ['-c', 'core.fsmonitor=false', 'show',
+                `${ACCEPTED_SOURCE_COMMIT}:${source.source}`], { cwd: root });
+            if (!accepted.equals(regular(source.path)) || sha(accepted) !== source.sha256)
+                throw new Error('component_sprite_probe_package_accepted_source_drift');
+        }
+        const sourceCommit = ACCEPTED_SOURCE_COMMIT;
         const files: { path: string; sha256: string; bytes: Buffer }[] = [];
         for (const bundle of BUNDLES) {
             const result = await build({ entryPoints: [resolve(root, bundle.entry)], bundle: true, platform: 'node',
@@ -125,7 +135,8 @@ export class ComponentExistingSpriteNativeProbePackage {
             packageRoot: destination, probeId: manifest.name, probeVersion: manifest.version,
             separateFromProductCandidate: true, installable: false, executable: false,
             diagnosticMode: mode === 'diagnostic-383', nativeCompatible: null, nativeAccepted: false,
-            sourceCommit, packageSha256,
+            sourceCommit, checkoutCommit, packagerSourceSha256: sha(regular(resolve(root,
+                `${PREFIX}component-existing-sprite-native-probe-package.mts`))), packageSha256,
             sourceFiles: sources.map(({ source, sha256 }) => ({ path: source, sha256 })),
             outputFiles: output.map(({ path, sha256 }) => ({ path, sha256 })),
             blockers: ['Creator_API_compatibility_unverified', 'real_lease_and_stage_unregistered',

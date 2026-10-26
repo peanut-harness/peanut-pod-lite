@@ -27,9 +27,14 @@ test('offline package pins entry, descriptor, dispatcher and scene sources and t
         assert.equal(manifest.private, true);
         assert.equal(manifest.peanutOfflineOnly, true);
         assert.equal(manifest.name, 'peanut-component-sprite-probe');
-        assert.equal(manifest.probeSourceCommit,
+        assert.equal(manifest.probeSourceCommit, '61fcce7509044d4715b25462dde2849dc929c1a1');
+        assert.equal(report.sourceCommit, manifest.probeSourceCommit);
+        assert.equal(report.checkoutCommit,
             execFileSync('git', ['-c', 'core.fsmonitor=false', 'rev-parse', 'HEAD'],
                 { cwd: repository, encoding: 'utf8' }).trim());
+        assert.notEqual(report.checkoutCommit, report.sourceCommit);
+        assert.equal(report.packagerSourceSha256,
+            digest(readFileSync(join(repository, 'tests/fixtures/editor-stability/components/component-existing-sprite-native-probe-package.mts'))));
         assert.deepEqual(Object.keys(manifest.sourceDigests).sort(), Package.inputs.map(row => row.source).sort());
         for (const row of Package.inputs) {
             assert.equal(manifest.sourceDigests[row.source], digest(readFileSync(join(repository, row.source))));
@@ -49,9 +54,10 @@ test('offline package pins entry, descriptor, dispatcher and scene sources and t
 });
 
 test('diagnostic package is fixed to 3.8.3 existing asset and remains unaccepted', async () => {
-    const destination = scratch();
+    const destination = scratch(); const second = scratch();
     try {
         const report = await Package.build(repository, destination, 'diagnostic-383');
+        const repeat = await Package.build(repository, second, 'diagnostic-383');
         const manifest = JSON.parse(readFileSync(join(destination, 'package.json'), 'utf8'));
         assert.equal(manifest.private, true);
         assert.equal(manifest.peanutOfflineOnly, false);
@@ -68,7 +74,14 @@ test('diagnostic package is fixed to 3.8.3 existing asset and remains unaccepted
             manifest: digest(readFileSync(join(destination, 'package.json'))),
         })));
         assert.equal(report.packageSha256, expected);
-    } finally { rmSync(destination, { recursive: true, force: true }); }
+        assert.equal(report.packageSha256, '0add8b7a252e597d6b9972b21ef93f83bc9a9e544261f8d24565f66a5abcee1a');
+        assert.equal(repeat.packageSha256, report.packageSha256);
+        for (const file of ['main.js', 'scene.js', 'package.json'])
+            assert.deepEqual(readFileSync(join(second, file)), readFileSync(join(destination, file)));
+    } finally {
+        rmSync(destination, { recursive: true, force: true });
+        rmSync(second, { recursive: true, force: true });
+    }
 });
 
 test('changed or linked source refuses before producing an output', async () => {
