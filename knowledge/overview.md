@@ -37,8 +37,9 @@ Cocos Creator 编辑器产品。当前源码契约为 88 项免费操作（41 �
 - capability 缺 schema 时目录构造直接失败，不静默漏注册。
 - Lite 永不 import Pro；Pro 缺失不得挡住 Lite 启动；订阅不等于写盘许可。
 - Creator 2.4 缺本机安装时保留已提交正式模板，禁止用测试 fixture 覆盖发布资产。
-- 产品分发是目录包 / CPM，不是 `npm publish`。
-- `@peanut/pod-engine/installation` 公开纯 CPM manifest/完整性协议；Pro 不得恢复旧顶层 `cpm-core` 包。
+- Pod 使用自有 Peanut Packaging / Plugin Manager 构建、安装和目录包验签；产品分发不依赖 CPM，也不使用 `npm publish`。
+- `@peanut/pod-engine/installation` 公开目录包 manifest、完整性与安装 API；旧 `Cpm*` 别名只作兼容保留，生产安装/Host 加载不调用 CPM 专用协议。Pro 不得恢复旧顶层 `cpm-core` 包。
+- 当前 Lite 候选为 `0.2.1`（源码提交 `660226a`）；两版现有隔离工程的 `0.2.0 → 0.2.1` 升级、受控失败与修复已通过。真实空工程首装、六条产品主线和长稳仍缺原始证据，见 `docs/testing/pod/creator-0.2.1-upgrade-4.1.md`。
 - Creator 进程必须精确匹配 `--project` / `--path`；Node 单测不是实机冒烟。
 
 ## Verification
