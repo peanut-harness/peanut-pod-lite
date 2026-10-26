@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync,
     symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -13,7 +14,7 @@ const repository = resolve(import.meta.dirname, '../../../..');
 const digest = (bytes: Buffer): string => createHash('sha256').update(bytes).digest('hex');
 function scratch(): string { return realpathSync(mkdtempSync(join(tmpdir(), 'component-sprite-probe-package-'))); }
 
-test('offline package pins entry, dispatcher and scene sources and exactly three private outputs', async () => {
+test('offline package pins entry, descriptor, dispatcher and scene sources and three private outputs', async () => {
     const destination = scratch();
     try {
         const report = await Package.build(repository, destination);
@@ -26,16 +27,23 @@ test('offline package pins entry, dispatcher and scene sources and exactly three
         assert.equal(manifest.private, true);
         assert.equal(manifest.peanutOfflineOnly, true);
         assert.equal(manifest.name, 'peanut-component-sprite-probe');
+        assert.equal(manifest.probeSourceCommit,
+            execFileSync('git', ['-c', 'core.fsmonitor=false', 'rev-parse', 'HEAD'],
+                { cwd: repository, encoding: 'utf8' }).trim());
         assert.deepEqual(Object.keys(manifest.sourceDigests).sort(), Package.inputs.map(row => row.source).sort());
         for (const row of Package.inputs) {
             assert.equal(manifest.sourceDigests[row.source], digest(readFileSync(join(repository, row.source))));
             assert.equal(manifest.bundleDigests[row.bundle], digest(readFileSync(join(destination, row.bundle))));
         }
-        assert.match(readFileSync(join(destination, 'main.js'), 'utf8'), /offline_only/u);
+        const packageSha = digest(Buffer.from(JSON.stringify({
+            main: manifest.bundleDigests['main.js'], scene: manifest.bundleDigests['scene.js'],
+            manifest: digest(readFileSync(join(destination, 'package.json'))),
+        })));
+        assert.equal(report.packageSha256, packageSha);
         const bundled = createRequire(import.meta.url)(join(destination, 'main.js'));
         assert.equal(typeof bundled.load, 'function');
         assert.equal(typeof bundled.unload, 'function');
-        assert.throws(bundled.load, /offline_only/);
+        await assert.rejects(bundled.load(), /version_unregistered/);
         assert.equal(JSON.stringify(report).includes('nativeAccepted":true'), false);
     } finally { rmSync(destination, { recursive: true, force: true }); }
 });
@@ -79,7 +87,7 @@ test('nonempty, linked or nonowned output roots refuse without overwriting', asy
 
 test('bundle closure refuses extra source, output, dynamic or unknown external imports', () => {
     const source = Package.inputs[0].source;
-    const included = [source, Package.inputs[1].source];
+    const included = [source, Package.inputs[1].source, Package.inputs[2].source];
     const input = { bytes: 1, imports: [], format: 'esm' as const };
     const output = { bytes: 1, inputs: Object.fromEntries(included.map(file => [file, { bytesInOutput: 1 }])),
         imports: [] as Metafile['outputs'][string]['imports'],

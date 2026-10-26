@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { lstatSync, readFileSync, realpathSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve, sep } from 'node:path';
@@ -7,16 +8,18 @@ import { build, type Metafile } from 'esbuild';
 const PREFIX = 'tests/fixtures/editor-stability/components/';
 const INPUTS = Object.freeze([
     { source: `${PREFIX}component-existing-sprite-native-probe-entry.ts`,
-        sha256: '89fa7843fec3829e39fd49a6ab49991c546071a08de2027f0b4ff5c6297b467c', bundle: 'main.js' },
+        sha256: '61095b5b37545a587f322a7130f38f0c2442ecd5e9b6ce883a85794f4766ea4f', bundle: 'main.js' },
     { source: `${PREFIX}component-existing-sprite-native-probe-main.ts`,
         sha256: '9d8efe0ca637b766b6168001be6d04774f2e710745c29d825386ae2729c17158', bundle: 'main.js' },
+    { source: `${PREFIX}component-existing-sprite-probe-descriptor.ts`,
+        sha256: '5a775ebdf35714eb31b3ebfe7785e88c2557723b6b5ecb34f61d2e48af52f78b', bundle: 'main.js' },
     { source: `${PREFIX}component-existing-sprite-native-probe-scene.ts`,
         sha256: '56d2c84c8de5f25d9c64c199c3095b5abb961b34b6720062055de5f931938d46', bundle: 'scene.js' },
 ]);
-const EXTERNALS = new Set(['node:crypto', 'node:fs', 'node:http', 'node:path', 'cc']);
+const EXTERNALS = new Set(['node:crypto', 'node:fs', 'node:http', 'node:os', 'node:path', 'cc']);
 const BUNDLES = Object.freeze([
-    { entry: INPUTS[0].source, source: [INPUTS[0].source, INPUTS[1].source], output: 'main.js' },
-    { entry: INPUTS[2].source, source: [INPUTS[2].source], output: 'scene.js' },
+    { entry: INPUTS[0].source, source: [INPUTS[0].source, INPUTS[1].source, INPUTS[2].source], output: 'main.js' },
+    { entry: INPUTS[3].source, source: [INPUTS[3].source], output: 'scene.js' },
 ]);
 
 function sha(bytes: Buffer | string): string { return createHash('sha256').update(bytes).digest('hex'); }
@@ -76,6 +79,10 @@ export class ComponentExistingSpriteNativeProbePackage {
             if (sha(regular(path)) !== row.sha256) throw new Error('component_sprite_probe_package_source_sha_mismatch');
             return { ...row, path };
         });
+        const sourceCommit = execFileSync('git', ['-c', 'core.fsmonitor=false', 'rev-parse', 'HEAD'],
+            { cwd: root, encoding: 'utf8' }).trim();
+        if (!/^[a-f0-9]{40}$/u.test(sourceCommit))
+            throw new Error('component_sprite_probe_package_source_commit_invalid');
         const files: { path: string; sha256: string; bytes: Buffer }[] = [];
         for (const bundle of BUNDLES) {
             const result = await build({ entryPoints: [resolve(root, bundle.entry)], bundle: true, platform: 'node',
@@ -94,12 +101,15 @@ export class ComponentExistingSpriteNativeProbePackage {
         const manifest = {
             package_version: 2, name: 'peanut-component-sprite-probe', version: '0.1.0',
             private: true, peanutOfflineOnly: true, main: './main.js',
+            probeSourceCommit: sourceCommit,
             contributions: { scene: { script: './scene.js' } },
             sourceDigests: Object.fromEntries(sources.map(row => [row.source, row.sha256])),
             bundleDigests: Object.fromEntries(files.map(row => [row.path, row.sha256])),
         };
         const manifestBytes = Buffer.from(JSON.stringify(manifest, null, 2) + '\n');
         const output = [...files, { path: 'package.json', sha256: sha(manifestBytes), bytes: manifestBytes }];
+        const packageSha256 = sha(JSON.stringify({ main: files[0].sha256,
+            scene: files[1].sha256, manifest: sha(manifestBytes) }));
         for (const file of output) {
             const path = join(destination, file.path);
             if (present(path)) throw new Error('component_sprite_probe_package_output_exists');
@@ -108,9 +118,10 @@ export class ComponentExistingSpriteNativeProbePackage {
         return { schema: 'peanut.pod.component-existing-sprite-probe-package.v2',
             packageRoot: destination, probeId: manifest.name, probeVersion: manifest.version,
             separateFromProductCandidate: true, installable: false, executable: false,
+            sourceCommit, packageSha256,
             sourceFiles: sources.map(({ source, sha256 }) => ({ path: source, sha256 })),
             outputFiles: output.map(({ path, sha256 }) => ({ path, sha256 })),
-            blockers: ['Creator_API_compatibility_unverified', 'Creator_load_offline_only',
+            blockers: ['Creator_API_compatibility_unverified', 'real_lease_and_stage_unregistered',
                 'native_readback_unverified', 'external_project_stage_and_lease_required'] };
     }
 }

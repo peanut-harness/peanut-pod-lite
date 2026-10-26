@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync,
-    writeFileSync } from 'node:fs';
+    symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { ComponentExistingSpriteNativeProbeEntry as Entry, load, unload } from './component-existing-sprite-native-probe-entry.ts';
+import { ComponentExistingSpriteNativeProbeEntry as Entry, createSyntheticCreatorEntry,
+    load, unload } from './component-existing-sprite-native-probe-entry.ts';
 
 const sceneUuid = '00000000-0000-4000-8000-000000000001';
 const controlUuid = '00000000-0000-4000-8000-000000000002';
@@ -233,7 +235,132 @@ test('invalid JSON is an explicit body failure before Editor access', async () =
     } finally { await entry.close(); f.close(); }
 });
 
-test('Creator exports remain deliberately offline only', async () => {
-    assert.throws(load, /offline_only/);
-    await unload();
+function activationFixture() {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'component-sprite-activation-')));
+    const project = join(root, 'synthetic-project');
+    const extension = join(project, 'extensions/peanut-component-sprite-probe');
+    mkdirSync(join(project, '.peanut-ai'), { recursive: true }); mkdirSync(extension, { recursive: true });
+    const bundle = Buffer.from('synthetic-only-bundle');
+    const bundleSha = createHash('sha256').update(bundle).digest('hex');
+    writeFileSync(join(extension, 'main.js'), bundle);
+    const sceneBytes = Buffer.from('synthetic-only-scene');
+    const sceneSha = createHash('sha256').update(sceneBytes).digest('hex');
+    writeFileSync(join(extension, 'scene.js'), sceneBytes);
+    const sourceCommit = 'd'.repeat(40);
+    const manifestBytes = Buffer.from(JSON.stringify({
+        name: 'peanut-component-sprite-probe', probeSourceCommit: sourceCommit,
+        bundleDigests: { 'main.js': bundleSha, 'scene.js': sceneSha }, peanutOfflineOnly: true,
+    }));
+    writeFileSync(join(extension, 'package.json'), manifestBytes);
+    const manifestSha = createHash('sha256').update(manifestBytes).digest('hex');
+    const packageSha = createHash('sha256').update(JSON.stringify({
+        main: bundleSha, scene: sceneSha, manifest: manifestSha,
+    })).digest('hex');
+    const lease = { schema: 'peanut.pod.sprite-runtime-lease.v1', status: 'active',
+        projectPath: project, creatorVersion: '3.8.3',
+        owner: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', runId: 'sprite-activation',
+        pid: process.pid, candidateSourceCommit: '660226aa28d0d96fc4766c81c3b58af71cd1a8f0',
+        hostSha256: '3954bec522639354ce249f594055e7a543854ee721c645994051cd094f534438',
+        coreSha256: 'ef38d9ac7f12a6face2e353cbb02c538ce0546520d1cb3941a903c8a376d794f',
+        probeSourceCommit: sourceCommit, probeBundleSha256: packageSha,
+        issuedAt: Date.now() - 1000, expiresAt: Date.now() + 60000,
+        permissions: ['assetIdentity', 'sceneFields'], creatorExecutable: process.execPath };
+    const leasePath = join(root, 'lease.json');
+    const editor = { Project: { path: project }, App: { version: '3.8.3' },
+        Message: { request: async (_target: string, method: string, ...args: unknown[]) => {
+            if (method === 'query-asset-info') return { url: args[0],
+                uuid: args[0] === sceneUrl ? sceneUuid : controlUuid };
+            if (method === 'query-assets') return [{ url: frameUrl, uuid: frameUuid,
+                type: 'cc.SpriteFrame', imported: true }];
+            throw new Error('unexpected_mock_call');
+        } } };
+    return { root, project, lease, leasePath, editor,
+        descriptorPath: join(project, '.peanut-ai/component-sprite-probe.json'),
+        writeLease: (value: unknown = lease) => writeFileSync(leasePath, JSON.stringify(value), { mode: 0o600 }),
+        close: () => rmSync(root, { recursive: true, force: true }) };
+}
+
+test('synthetic Creator load uses a fixed lease, owned descriptor and only read-only native requests', async () => {
+    const f = activationFixture(); f.writeLease();
+    const creator = createSyntheticCreatorEntry(f.project, f.editor);
+    try {
+        await creator.load();
+        const descriptor = JSON.parse(readFileSync(f.descriptorPath, 'utf8'));
+        assert.equal(descriptor.projectPath, f.project);
+        assert.equal(descriptor.pid, process.pid);
+        assert.equal(descriptor.probeSourceCommit, f.lease.probeSourceCommit);
+        const response = await post(descriptor.port, { action: 'assetIdentity', projectPath: f.project,
+            creatorVersion: '3.8.3', owner: f.lease.owner, runId: f.lease.runId, pid: process.pid }, descriptor.token);
+        assert.equal(response.status, 200);
+        assert.equal((await response.json()).result.frameUuid, frameUuid);
+        await assert.rejects(creator.load(), /already_loaded/);
+    } finally { await creator.unload(); f.close(); }
+    assert.equal(existsSync(f.descriptorPath), false);
+});
+
+test('missing, expired, mismatched and malformed fixed lease refuse before descriptor or listener', async () => {
+    for (const change of [null, { expiresAt: Date.now() - 1 }, { pid: -1 },
+        { owner: 'other' }, { candidateSourceCommit: 'b'.repeat(40) },
+        { probeBundleSha256: '0'.repeat(64) }, { permissions: ['assetIdentity', 'write'] },
+        { unexpected: true }]) {
+        const f = activationFixture();
+        try {
+            if (change !== null) f.writeLease({ ...f.lease, ...change });
+            const creator = createSyntheticCreatorEntry(f.project, f.editor);
+            await assert.rejects(creator.load(), /lease|bundle/);
+            assert.equal(existsSync(f.descriptorPath), false);
+            await creator.unload();
+        } finally { f.close(); }
+    }
+});
+
+test('production load cannot be enabled by a synthetic Editor context or caller flag', async () => {
+    const f = activationFixture(); f.writeLease();
+    const prior = Reflect.get(globalThis, 'Editor');
+    Reflect.set(globalThis, 'Editor', f.editor);
+    try {
+        await assert.rejects(load(), /creator_identity_invalid/);
+        assert.equal(existsSync(f.descriptorPath), false);
+        await unload();
+        assert.throws(() => createSyntheticCreatorEntry('/tmp/unregistered-project', f.editor), /synthetic_project_invalid/);
+    } finally {
+        if (prior === undefined) Reflect.deleteProperty(globalThis, 'Editor');
+        else Reflect.set(globalThis, 'Editor', prior);
+        f.close();
+    }
+});
+
+test('linked lease, changed scene bundle and occupied descriptor fail before a native call', async () => {
+    for (const kind of ['link', 'scene', 'occupied'] as const) {
+        const f = activationFixture(); f.writeLease();
+        try {
+            if (kind === 'link') {
+                const foreign = join(f.root, 'foreign-lease');
+                writeFileSync(foreign, readFileSync(f.leasePath));
+                rmSync(f.leasePath); symlinkSync(foreign, f.leasePath);
+            }
+            if (kind === 'scene') writeFileSync(join(f.project,
+                'extensions/peanut-component-sprite-probe/scene.js'), 'tampered');
+            if (kind === 'occupied') writeFileSync(f.descriptorPath, 'foreign');
+            const creator = createSyntheticCreatorEntry(f.project, f.editor);
+            await assert.rejects(creator.load(), /lease_file_invalid|bundle_identity_invalid|descriptor_occupied/);
+            assert.equal(existsSync(f.descriptorPath), kind === 'occupied');
+            if (kind === 'occupied') assert.equal(readFileSync(f.descriptorPath, 'utf8'), 'foreign');
+            await creator.unload();
+        } finally { f.close(); }
+    }
+});
+
+test('an admitted synthetic session refuses native calls once its lease expires', async () => {
+    const f = activationFixture(); f.writeLease({ ...f.lease, expiresAt: Date.now() + 200 });
+    const creator = createSyntheticCreatorEntry(f.project, f.editor);
+    try {
+        await creator.load();
+        const descriptor = JSON.parse(readFileSync(f.descriptorPath, 'utf8'));
+        await new Promise(done => setTimeout(done, 220));
+        const response = await post(descriptor.port, { action: 'assetIdentity', projectPath: f.project,
+            creatorVersion: '3.8.3', owner: f.lease.owner, runId: f.lease.runId, pid: process.pid }, descriptor.token);
+        assert.equal(response.status, 400);
+        assert.equal((await response.json()).error, 'component_sprite_probe_lease_expired');
+    } finally { await creator.unload(); f.close(); }
 });
