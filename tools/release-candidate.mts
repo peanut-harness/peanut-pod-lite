@@ -1,28 +1,18 @@
 import { execFileSync } from 'node:child_process';
-import { createHash, createPrivateKey, createPublicKey, sign } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 
-import { CpmSigningProtocol } from '../packages/engine/modules/installation/src/integrity/cpm-signing-protocol.ts';
 import { readRootReleaseVersion } from './release-identity.mts';
 
 const PRODUCT_ID = 'peanut.pod-lite';
 const CREATOR_PROFILES = Object.freeze(['3.8.3', '3.8.7']);
 const OPERATION_COUNTS = Object.freeze({ operationCount: 88, readOperationCount: 41, writeOperationCount: 47 });
-// 与 cpm-install `dev-signing.mjs` 相同的公开种子：开发密钥人人可复现，仅在 CPM_DEV_KEYS=1 时被信任且永不用于 stable。
-const LITE_PRODUCT_DEV_SEED = 'peanut-harness/lite-product-dev/v1';
-const PKCS8_ED25519_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex');
-
-/** @description 内置 Lite 产品开发私钥（公开种子派生，仅用于开发测试）。 */
-export function devProductPrivateKey() {
-    return createPrivateKey({ key: Buffer.concat([PKCS8_ED25519_PREFIX, createHash('sha256').update(LITE_PRODUCT_DEV_SEED).digest()]), format: 'der', type: 'pkcs8' });
-}
-
 /**
  * @description 重新核对已打包的 Lite 候选：descriptor 身份、双 Creator 画像、archive SHA-256
- * 以及从 archive 字节重算的 Host/Core 目录包摘要。发布只消费通过本检查的 artifact。
+ * 以及从 archive 字节重算的 Host/Core 目录包摘要。安装只消费通过本检查的候选。
  * @param {string} releaseDirectory `release/peanut.pod-lite-<version>` 目录。
  * @param {{ expectedVersion?: string, expectedSourceCommit?: string }} [options] 期望身份。
  * @returns {object} 已核对的 descriptor。
@@ -54,81 +44,6 @@ export function verifyReleaseCandidate(releaseDirectory, options = {}) {
     if (payload.length !== declared.size || payload.some((path) => declared.get(path) !== sha256(core.get(path)))) throw new Error('lite_release_core_payload_mismatch');
     if (packageDigest(core, manifestName) !== descriptor.core.packageDigest) throw new Error('lite_release_core_digest_mismatch');
     return descriptor;
-}
-
-/**
- * @description 由已核对 descriptor 生成 `lite-product-v1` 签名输入。
- * @param {object} descriptor {@link verifyReleaseCandidate} 返回值。
- * @param {{ baseUrl: string, channel: string }} options 不可变 HTTPS 目录与渠道。
- * @returns {object} 受签字段。
- */
-export function createSigningInput(descriptor, options) {
-    let base;
-    try {
-        base = new URL(`${options.baseUrl.replace(/\/+$/u, '')}/`);
-    } catch {
-        throw new Error('lite_release_base_url_invalid');
-    }
-    if (base.protocol !== 'https:' || base.username || base.password || base.hash || base.search) throw new Error('lite_release_base_url_invalid');
-    if (!['beta', 'internal', 'stable'].includes(options.channel)) throw new Error('lite_release_channel_invalid');
-    const fields = {
-        id: descriptor.productId,
-        version: descriptor.version,
-        channel: options.channel,
-        sourceCommit: descriptor.sourceCommit,
-        hostUrl: new URL(descriptor.host.archive, base).href,
-        hostSha256: descriptor.host.sha256,
-        hostPackageDigest: descriptor.host.packageDigest,
-        coreUrl: new URL(descriptor.core.archive, base).href,
-        coreSha256: descriptor.core.sha256,
-        corePackageDigest: descriptor.core.packageDigest,
-        creatorProfiles: descriptor.creatorProfiles.map((profile) => profile.version),
-    };
-    CpmSigningProtocol.canonicalize('lite-product-v1', fields);
-    return fields;
-}
-
-/**
- * @description 使用受控产品私钥签名；缺失私钥时失败关闭，dry-run 只输出规范化 payload；devKey 使用内置开发密钥（拒绝 stable）。
- * @returns {object} dry-run 为 `{ payload }`，否则为 `{ publicKey, product }`。
- */
-export function signProductEntry(fields, options: { privateKeyPem?: string, devKey?: boolean, dryRun?: boolean } = {}) {
-    const payload = CpmSigningProtocol.canonicalize('lite-product-v1', fields);
-    if (options.dryRun === true) return { payload };
-    let privateKey;
-    if (options.devKey === true) {
-        if (fields.channel === 'stable') throw new Error('lite_product_dev_key_stable_refused');
-        privateKey = devProductPrivateKey();
-    } else {
-        if (typeof options.privateKeyPem !== 'string' || options.privateKeyPem.length === 0) throw new Error('lite_product_signing_key_missing');
-        try {
-            privateKey = createPrivateKey(options.privateKeyPem);
-        } catch {
-            throw new Error('lite_product_signing_key_invalid');
-        }
-    }
-    const publicKey = createPublicKey(privateKey).export({ type: 'spki', format: 'der' }).toString('base64');
-    const signature = sign(null, Buffer.from(payload, 'utf8'), privateKey).toString('base64');
-    if (!CpmSigningProtocol.verify('lite-product-v1', fields, signature, publicKey)) throw new Error('lite_product_signature_invalid');
-    return { publicKey, product: { ...fields, signature } };
-}
-
-/**
- * @description 从候选 HTTPS 地址回读 Host/Core archive 并核对受签摘要，不跟随重定向。
- * @returns {Promise<object>} 回读证据。
- */
-export async function verifyCandidateReadback(fields, fetchImpl = globalThis.fetch) {
-    const evidence = {};
-    for (const kind of ['host', 'core']) {
-        const url = fields[`${kind}Url`];
-        const response = await fetchImpl(url, { redirect: 'error' });
-        if (response.redirected) throw new Error('lite_release_readback_redirect_refused');
-        if (!response.ok) throw new Error(`lite_release_readback_refused:${response.status}`);
-        const digest = sha256(Buffer.from(await response.arrayBuffer()));
-        if (digest !== fields[`${kind}Sha256`]) throw new Error(`lite_release_readback_mismatch:${kind}`);
-        evidence[kind] = { url, sha256: digest };
-    }
-    return { schemaVersion: 1, id: fields.id, version: fields.version, ...evidence };
 }
 
 function readArchive(releaseDirectory, artifact, kind, rootName) {
@@ -179,26 +94,10 @@ function cleanSourceCommit(repositoryRoot: string) {
 
 async function main(args: string[]) {
     const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
-    const option = (name: string) => {
-        const index = args.indexOf(name);
-        return index >= 0 ? args[index + 1] : undefined;
-    };
-    const command = args[0];
-    if (command === 'candidate') {
-        const version = readRootReleaseVersion(repositoryRoot);
-        const descriptor = verifyReleaseCandidate(join(repositoryRoot, 'release', `${PRODUCT_ID}-${version}`), { expectedVersion: version, expectedSourceCommit: cleanSourceCommit(repositoryRoot) });
-        const fields = createSigningInput(descriptor, { baseUrl: option('--base-url') ?? '', channel: option('--channel') ?? 'beta' });
-        const output = option('--out');
-        if (output != null) writeFileSync(output, `${JSON.stringify(fields, null, 4)}\n`, { flag: 'wx' });
-        return fields;
-    }
-    const fields = JSON.parse(readFileSync(option('--input') ?? '', 'utf8'));
-    if (command === 'sign') {
-        const devKey = args.includes('--dev-key');
-        return signProductEntry(fields, { dryRun: args.includes('--dry-run'), devKey, privateKeyPem: devKey ? undefined : process.env.LITE_PRODUCT_SIGNING_KEY });
-    }
-    if (command === 'readback') return verifyCandidateReadback(fields);
-    throw new Error('lite_release_cli_usage');
+    if (args[0] !== 'candidate' || args.length > 1) throw new Error('lite_release_cli_usage');
+    const version = readRootReleaseVersion(repositoryRoot);
+    return verifyReleaseCandidate(join(repositoryRoot, 'release', `${PRODUCT_ID}-${version}`),
+        { expectedVersion: version, expectedSourceCommit: cleanSourceCommit(repositoryRoot) });
 }
 
 if (process.argv[1] != null && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

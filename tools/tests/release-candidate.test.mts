@@ -1,16 +1,14 @@
 import assert from 'node:assert/strict';
-import { createHash, createPublicKey, generateKeyPairSync } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
-import { CpmSigningProtocol } from '../../packages/engine/modules/installation/src/integrity/cpm-signing-protocol.ts';
 import { buildReleaseArtifacts } from '../build-release-artifacts.mts';
-import { createSigningInput, devProductPrivateKey, signProductEntry, verifyCandidateReadback, verifyReleaseCandidate } from '../release-candidate.mts';
+import { verifyReleaseCandidate } from '../release-candidate.mts';
 
 const fixtureRoot = resolve(import.meta.dirname, '../../packages/hosts/modules/creator-38/.test-temp', `release-candidate-${process.pid}`);
 const sourceCommit = 'b'.repeat(40);
-const baseUrl = 'https://releases.peanut-harness.dev/lite/0.2.0';
 const profiles = [
     { version: '3.8.3', operationCount: 88, readOperationCount: 41, writeOperationCount: 47 },
     { version: '3.8.7', operationCount: 88, readOperationCount: 41, writeOperationCount: 47 },
@@ -74,56 +72,4 @@ test('verifies a packed candidate and rejects identity, profile, archive and pay
     await mutate((value) => { value.host.packageDigest = '0'.repeat(64); }, /lite_release_host_digest_mismatch/u);
     await mutate((value) => { value.core.packageDigest = '0'.repeat(64); }, /lite_release_core_manifest_mismatch/u);
     await mutate((value) => { value.sourceCommit = 'short'; }, /lite_release_descriptor_invalid/u);
-});
-
-test('creates immutable HTTPS signing input and signs only with a supplied key', async () => {
-    const release = await buildFixture('sign');
-    const descriptor = verifyReleaseCandidate(release);
-    const fields = createSigningInput(descriptor, { baseUrl: `${baseUrl}/`, channel: 'beta' });
-    assert.equal(fields.hostUrl, `${baseUrl}/${descriptor.host.archive}`);
-    assert.equal(fields.coreUrl, `${baseUrl}/${descriptor.core.archive}`);
-    assert.deepEqual(fields.creatorProfiles, ['3.8.3', '3.8.7']);
-    for (const bad of ['http://releases.peanut-harness.dev/lite', 'https://user@releases.peanut-harness.dev/lite', 'https://releases.peanut-harness.dev/lite?x=1', 'not a url']) {
-        assert.throws(() => createSigningInput(descriptor, { baseUrl: bad, channel: 'beta' }), /lite_release_base_url_invalid/u, bad);
-    }
-    assert.throws(() => createSigningInput(descriptor, { baseUrl, channel: 'nightly' }), /lite_release_channel_invalid/u);
-
-    assert.equal(JSON.parse(signProductEntry(fields, { dryRun: true }).payload).kind, 'lite-product-v1');
-    assert.throws(() => signProductEntry(fields), /lite_product_signing_key_missing/u);
-    assert.throws(() => signProductEntry(fields, { privateKeyPem: 'invalid' }), /lite_product_signing_key_invalid/u);
-    const { privateKey } = generateKeyPairSync('ed25519');
-    const pem = privateKey.export({ type: 'pkcs8', format: 'pem' }) as string;
-    const signed = signProductEntry(fields, { privateKeyPem: pem });
-    assert.equal(CpmSigningProtocol.verify('lite-product-v1', signed.product, signed.product.signature, signed.publicKey), true);
-    assert.doesNotMatch(JSON.stringify(signed), /PRIVATE KEY/u);
-});
-
-test('read-back verifies candidate bytes without following redirects', async () => {
-    const release = await buildFixture('readback');
-    const descriptor = verifyReleaseCandidate(release);
-    const fields = createSigningInput(descriptor, { baseUrl, channel: 'beta' });
-    const archives = {
-        [fields.hostUrl]: await readFile(resolve(release, descriptor.host.archive)),
-        [fields.coreUrl]: await readFile(resolve(release, descriptor.core.archive)),
-    };
-    const seen: string[] = [];
-    const evidence = await verifyCandidateReadback(fields, async (url: string, init: { redirect: string }) => {
-        seen.push(init.redirect);
-        return { ok: true, redirected: false, arrayBuffer: async () => archives[url] };
-    });
-    assert.deepEqual(seen, ['error', 'error']);
-    assert.equal(evidence.core.sha256, descriptor.core.sha256);
-    await assert.rejects(verifyCandidateReadback(fields, async (url: string) => ({ ok: true, redirected: false, arrayBuffer: async () => (url === fields.hostUrl ? archives[fields.coreUrl] : archives[url]) })), /lite_release_readback_mismatch:host/u);
-    await assert.rejects(verifyCandidateReadback(fields, async () => ({ ok: true, redirected: true, arrayBuffer: async () => Buffer.alloc(0) })), /lite_release_readback_redirect_refused/u);
-});
-
-test('built-in dev product key matches cpm-install and never signs stable', async () => {
-    const release = await buildFixture('dev-key');
-    const fields = createSigningInput(verifyReleaseCandidate(release), { baseUrl, channel: 'beta' });
-    const publicKey = createPublicKey(devProductPrivateKey()).export({ type: 'spki', format: 'der' }).toString('base64');
-    assert.equal(publicKey, 'MCowBQYDK2VwAyEAeKAVKJRVwUCfHV9QVs1arFqN5VFsz4iBcQ531fXzbtk=');
-    const signed = signProductEntry(fields, { devKey: true });
-    assert.equal(signed.publicKey, publicKey);
-    assert.equal(CpmSigningProtocol.verify('lite-product-v1', signed.product, signed.product.signature, publicKey), true);
-    assert.throws(() => signProductEntry({ ...fields, channel: 'stable' }, { devKey: true }), /lite_product_dev_key_stable_refused/u);
 });

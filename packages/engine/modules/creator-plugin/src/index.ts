@@ -115,7 +115,7 @@ export class CoreCocosCreatorHostPluginModule {
         displayName: 'Peanut Pod Lite',
         main: './peanut.pod-lite.bundle.js',
         engines: { host: `^${PEANUT_POD_LITE_VERSION}` },
-        // Host loads this package via CPM (activateCore). Plugin Manager must not
+        // Host loads this verified package through Peanut Packaging (activateCore). Plugin Manager must not
         // auto-activate it as a legacy MCP capability plugin.
         activation: { autoActivate: false, events: ['onStartup'] },
         permissions: {},

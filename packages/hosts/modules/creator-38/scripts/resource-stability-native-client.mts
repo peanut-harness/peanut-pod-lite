@@ -2,7 +2,6 @@ import { appendFileSync, existsSync, lstatSync, readFileSync, readdirSync, realp
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
-import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { ComponentNativeLogGuard } from '../../../../../tests/fixtures/editor-stability/components/component-native-log-guard.mts';
 import { ComponentNativeRawLogs } from '../../../../../tests/fixtures/editor-stability/components/component-native-raw-logs.mts';
@@ -11,6 +10,7 @@ import type { IResourceManagedConnection } from './resource-stability-managed-po
 import type { IResourceCaseObservation, IResourceSessionIdentity, IResourceSnapshot } from './resource-stability-contracts.mts';
 import { ResourceStabilityPreparationRefusal } from './resource-stability-preparation-refusal.mts';
 import { ResourceStabilitySafeFailure } from './resource-stability-safe-failure.mts';
+import { HostPackageIdentity } from '../src/host-package-identity.ts';
 
 /**
  * @description 4.3 所属工程的认证连接；每个请求重新读取 descriptor、token、端口及原始进程身份。
@@ -51,10 +51,8 @@ export class ResourceStabilityNativeClient implements IResourceManagedConnection
         const current = this.record(await this.request('resource-probe.json', '/identity', 'x-resource-token', {}));
         const host = this.record(current.host);
         const descriptor = JSON.parse(readFileSync(join(this.root, 'release/peanut.pod-lite-0.2.0/lite-release-descriptor.json'), 'utf8')) as unknown;
-        const { CpmPackageStore } = createRequire(import.meta.url)('../src/cpm-package-store.js') as {
-            CpmPackageStore: { compareReleaseIdentity: (artifacts: unknown, descriptor: unknown) => unknown[] } };
         if (host.ready !== true || current.pid !== this.lease.pid || current.creatorVersion !== '3.8.3'
-            || CpmPackageStore.compareReleaseIdentity(host.artifacts, descriptor).length) throw new Error('resource_native_candidate_mismatch');
+            || HostPackageIdentity.compareReleaseIdentity(host.artifacts, descriptor).length) throw new Error('resource_native_candidate_mismatch');
         return { creatorVersion: '3.8.3', projectPath: this.project, projectName: String(JSON.parse(readFileSync(join(this.project, 'package.json'), 'utf8')).name),
             owner: String(this.registration.owner), change: String(this.registration.change), runId: String(this.registration.runId),
             creatorPid: Number(this.lease.pid), creatorStartedAt: String(this.lease.startedAt), hostSha256: String(this.registration.hostSha256),
