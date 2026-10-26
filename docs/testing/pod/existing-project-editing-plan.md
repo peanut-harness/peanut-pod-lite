@@ -13,7 +13,7 @@
 
 1. **源码入口。**给受管任务脚本提供可控的 runId、候选身份和输出；新增重开后的只读核验入口。现有脚本会写 `assets/_peanut-managed-task-live/<runId>`，此目录当前不在旧 4.1 租约内。源码写集需单独登记，定向测试通过后才能进入工程运行。
 2. **每版运行前。**新鲜检查 Creator 进程、端口、项目与磁盘空间；对 Host、安装索引、包、既有资产、`temp/logs/library/profiles/settings` 做可回读备份。原有 manifest/fixture 与无关 assets/metas 的 SHA 必须一致。候选身份、工程版本、备份或独占占用任一不符就停止。
-3. **写入与重开。**每版只在登记的 `assets/_peanut-managed-task-live/<runId>` 下创建 Prefab/Scene 和必要夹具，记录实际创建清单、审批令牌范围、任务证据、AssetDB UUID/meta/引用和日志偏移。关闭本次 Creator 进程，再重开同一工程，以另一个只读入口复核资源、引用、脚本/组件结果、候选身份及新增日志。
+3. **写入与重开。**每版只在登记的 `assets/_peanut-managed-task-live/<runId>` 下创建 Prefab/Scene 和必要夹具，记录实际创建清单、审批令牌范围、任务证据、AssetDB UUID/meta、缺失引用扫描和日志偏移。关闭本次 Creator 进程，再重开同一工程，以另一个只读入口复核资源、候选身份及新增日志。当前空资源样本不证明组件或代码矩阵。
 4. **后验。**逐项比对运行前后工程；无关资产与 meta 不得漂移。若出现未解释警告/错误、身份不一致、失败回滚不明或 `may_have_changed`，停止该版本及后续依赖，不自动重试或删除历史证据。清理仅凭本次创建清单和备份执行。
 
 ## 通过边界

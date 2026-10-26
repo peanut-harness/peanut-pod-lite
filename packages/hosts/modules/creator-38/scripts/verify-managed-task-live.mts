@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { createHash, randomBytes } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { HostPackageIdentity } from '../src/host-package-identity.ts';
 import { assertManagedTaskLiveReport, readCreatedIdentity } from './managed-task-live-evidence.mts';
 
-const projectPath = resolve(readArgument('--project'));
+const projectPath = realpathSync(resolve(readArgument('--project')));
 const outputPath = resolve(readArgument('--output'));
 const descriptor = readJson(join(projectPath, '.peanut-ai', 'cocos-mcp.json'));
 const hostStatus = readJson(join(projectPath, 'peanut-plugins', 'runtime', 'host-status.json'));
@@ -16,7 +16,9 @@ const startedAt = new Date().toISOString();
 const logOffset = existsSync(logPath) ? Buffer.byteLength(readFileSync(logPath)) : 0;
 const owner = randomBytes(16).toString('hex');
 const other = randomBytes(16).toString('hex');
-const runId = `${Date.now()}-${randomBytes(3).toString('hex')}`;
+const requestedRunId = optionalArgument('--run-id');
+const runId = requestedRunId ?? `${Date.now()}-${randomBytes(3).toString('hex')}`;
+assert.match(runId, /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/u, 'managed_task_run_id_invalid');
 const root = `assets/_peanut-managed-task-live/${runId}`;
 let stage = 'startup';
 
@@ -247,9 +249,13 @@ const report = {
     schema: 'peanut.creator38.managed-task-live.v2',
     startedAt,
     finishedAt: new Date().toISOString(),
-    project: { name: projectPath.split('/').at(-1), creatorVersion: hostStatus.creatorContext.version.raw },
+    project: { name: projectPath.split('/').at(-1), pathDigest: createHash('sha256').update(projectPath).digest('hex'),
+        creatorVersion: hostStatus.creatorContext.version.raw },
     artifacts: hostStatus.artifacts,
     artifactAgreement: true,
+    assetRoot: root,
+    createdPaths: [prefabPath, scenePath, racePath],
+    saveReopenPerformed: false,
     hub: { sessionId: health.sessionId, revision: health.revision, catalogRevision: catalog.revision },
     checks: {
         cancellation: { blockers: blockerStatuses, cancelled: cancelledStatus, nonOwnerError: nonOwnerCancel.error, ownerCancel, targetAbsent: true },
@@ -268,7 +274,8 @@ const report = {
         },
         postflight: { taskCount: successfulTaskIds.length, exactlyOnce: true },
         cleanup: { probeFiles, cancelledTargetAbsent: true },
-        projectLog: { startOffset: logOffset, deltaBytes: Buffer.byteLength(logDelta), unexpectedLines: unexpectedLogLines },
+        projectLog: { startOffset: logOffset, endOffset: logOffset + Buffer.byteLength(logDelta),
+            deltaBytes: Buffer.byteLength(logDelta), unexpectedLines: unexpectedLogLines },
     },
     evidence,
     creationEvidence,
@@ -375,6 +382,13 @@ function requireDirectory(path) {
 function readArgument(name) {
     const index = process.argv.indexOf(name);
     if (index < 0 || process.argv[index + 1] == null) throw new Error(`missing_argument:${name}`);
+    return process.argv[index + 1];
+}
+
+function optionalArgument(name) {
+    const index = process.argv.indexOf(name);
+    if (index < 0) return null;
+    if (process.argv[index + 1] == null) throw new Error(`missing_argument:${name}`);
     return process.argv[index + 1];
 }
 

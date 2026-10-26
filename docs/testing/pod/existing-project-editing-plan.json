@@ -29,7 +29,7 @@
   "writeNamespaceTemplate": "assets/_peanut-managed-task-live/<runId>/**",
   "runOrder": ["3.8.3", "3.8.7"],
   "requiredStages": ["fresh_occupancy_and_backup", "candidate_identity", "managed_create", "save_close", "reopen", "independent_readback", "project_diff"],
-  "requiredEvidence": ["raw_commands_and_exit_codes", "backup_manifest", "host_core_identity", "approval_scope", "created_paths", "assetdb_uuid_and_meta", "references", "component_and_code_results", "incremental_project_log", "before_after_protected_hashes"],
+  "requiredEvidence": ["raw_commands_and_exit_codes", "backup_manifest", "host_core_identity", "approval_scope", "created_paths", "assetdb_uuid_and_meta", "missing_reference_scan", "component_and_code_gap_record", "incremental_project_log", "before_after_protected_hashes"],
   "coverageDraftPending": { "3.8.3": 4128, "3.8.7": 4119 },
   "podMatrixCasesNotRun": 12,
   "gates": {
