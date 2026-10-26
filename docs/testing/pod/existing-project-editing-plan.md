@@ -4,8 +4,8 @@
 
 | 项目 | Creator | 受保护基线 | 当前阶段 |
 | --- | --- | --- | --- |
-| `.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-3.8.3` | 3.8.3 | manifest `d0590e91…`、fixture `979d5eaf…` | 等待源码入口与运行租约 |
-| `.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-3.8.7` | 3.8.7 | manifest `77447e17…`、fixture `4719237b…` | 等待前一版完成及独立运行租约 |
+| `.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-3.8.3` | 3.8.3 | manifest `d0590e91…`、fixture `979d5eaf…` | 源码入口已本地验收，等待运行租约；runId `pod-edit-021-383-20261026-01` |
+| `.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-3.8.7` | 3.8.7 | manifest `77447e17…`、fixture `4719237b…` | 等待前一版完成及独立运行租约；runId `pod-edit-021-387-20261026-01` |
 
 候选 Host/Core 包摘要分别为 `3954bec522639354ce249f594055e7a543854ee721c645994051cd094f534438` 和 `ef38d9ac7f12a6face2e353cbb02c538ce0546520d1cb3941a903c8a376d794f`；归档 SHA-256 分别为 `266589255eca7e6a8fa03f64171a329e607b8de514df79a0cdcf7418dbfb771f` 和 `cb037f16b57e38b38306f0066d6eb88ea94ef514cccfe92d5e49c49925ca64d0`。源码提交身份以 4.1 实测的 `660226aa28d0d96fc4766c81c3b58af71cd1a8f0` 为准，不把后来的文档提交解释成重新实测。
 
