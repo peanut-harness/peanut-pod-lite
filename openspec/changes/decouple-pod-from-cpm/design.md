@@ -36,6 +36,10 @@
 
 Pro 构建器改从 Lite installation 的自有完整性/manifest API 取得包规则，或将当前等价协议以 Pod 自有名称公开；运行产物需与 Host 共享校验器字节兼容。保持服务端实时权益、签名远程目录、归档摘要和本地写入审批。Pro 缺失或损坏只改变 `query-status.pro`，不阻断 Core。为避免先改生产协议导致 Pro 失装，先固定双方目录包测试向量，再更换构建器与 Host 读取入口。
 
+### 4a. Pod 生产入口不再调用 CPM 专用协议
+
+自有 installation 公共 API 承接当前目录包摘要、manifest 与签名规范，并固定与既有有效包相同的字节向量。`ProjectPackageStore`、`SignedPluginCatalogVerifier`、Host 更新器、Host/Core 身份比较及实机验收脚本转用该 API；`release:candidate` 只生成 Pod 自有候选身份与必要签名材料，不再引用 `cpm-install` 开发种子、`CPM_DEV_KEYS` 或公开 CPM release 格式。Pro 构建器跟随同一公共 API。生产导入和调用中不保留 CPM 专用类名；历史索引 schema v2 的磁盘字节与已被外部消费的错误码可在明确兼容边界保留，并以映射测试证明原因未丢失。历史测试向量和旧变更回执仅作追踪。
+
 ### 5. 测试矩阵按产品路径重绑定
 
 安装用例的命令引用改为现有自有构建/安装入口，来源项改为 Lite Packaging 与 Pro 包身份。移除 `cpm-install` 对新候选的仓库和 stable 清单分母，保留此前报告作为历史证据；不删或重解释旧回执。新候选重新冻结提交、包摘要、Creator 版本和输入摘要，`not_run` 只有在隔离工程取得原始安装、加载、失败恢复及独立读回后才改变。其它五条主线不因来源变更自动通过。
@@ -51,6 +55,7 @@ Pro 构建器改从 Lite installation 的自有完整性/manifest API 取得包�
 - [旧工程格式或半途状态不一致] → 只读盘点、冻结前后摘要，兼容则原样接续；不兼容时拒绝并提供可恢复迁移，不自动重建索引。
 - [Pro 与 Lite 跨仓协议漂移] → 固定共享测试向量与包摘要，先签收公共 API 和版本，再更新 Pro pin/构建器；不从私有 sibling 源码导入。
 - [旧 CPM 名称散布在历史、vendor 和错误码中] → 区分生产依赖与历史追踪；生产入口清零，历史证据保留，兼容错误码按消费者证明逐项处理。
+- [自有协议重命名引起摘要或签名漂移] → 先冻结目录包和签名的字节向量，再切换所有生产调用方；摘要、签名、Host 身份比较任一不一致即停止后续安装切换。
 
 ## Migration Plan
 

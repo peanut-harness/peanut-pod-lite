@@ -10,6 +10,8 @@
 
 Pod SHALL 通过自有 Peanut Packaging / Plugin Manager 产出的受验证目录包和项目安装事务安装 Lite Core 与 Pro。正式 Pod 安装、启动、升级和修复 MUST 不要求独立 CPM CLI、bootstrap、公开 release manifest 或相邻 `cpm-install` 检出。现有 Host 放置入口 SHALL 在 Creator 启动前与该项目安装事实匹配。
 
+Pod 生产构建、远程目录验签、Host 更新、候选身份核验和实机验收脚本 MUST 调用自有目录包与签名契约，不得导入或调用 CPM 专用协议。既有工程的索引 schema v2 磁盘格式和已被消费的诊断码 MAY 在有兼容测试时保留；这些兼容字节不得要求 CPM 工具或密钥开关存在。
+
 #### Scenario: Fresh isolated project
 - **WHEN** 调用方以自有入口将相同候选身份的 Host 与 Core 安装进受支持且已关闭的 Creator 工程
 - **THEN** 安装结果可独立读取包版本、摘要和项目活动身份，Host 启动并仅从已验证的活动 Core 加载
@@ -17,6 +19,10 @@ Pod SHALL 通过自有 Peanut Packaging / Plugin Manager 产出的受验证目�
 #### Scenario: CPM is absent
 - **WHEN** 执行正式安装与 Creator 启动的环境没有 CPM CLI、公开清单或 `cpm-install` 仓库
 - **THEN** 自有安装与加载仍可完成，且结果不回退到手工索引写入或未验证目录扫描
+
+#### Scenario: Pod production entrypoints
+- **WHEN** 构建 Lite/Pro 目录包、验签远程目录、更新 Host 并核对候选身份
+- **THEN** 各入口使用 Pod 自有协议且保留已冻结的包摘要和签名字节；生产依赖清单不包含 CPM 专用 API 或 `CPM_DEV_KEYS`
 
 ### Requirement: Installer and Host share one verified installation state
 
