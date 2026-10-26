@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { ComponentExistingSpriteNativeProbeMain } from './component-existing-sprite-native-probe-main.ts';
 
@@ -14,7 +14,8 @@ const sceneUrl = 'db://assets/components/cc.Sprite.scene';
 const controlUrl = 'db://assets/components/cc.UIOpacity.scene';
 const frameUrl = 'db://assets/fixtures/media/assets/image/checker.png/spriteFrame';
 
-function fixture(request?: (target: string, method: string, ...args: unknown[]) => Promise<unknown>) {
+function fixture(request?: (target: string, method: string, ...args: unknown[]) => Promise<unknown>,
+    version: '3.8.3' | '3.8.7' = '3.8.3') {
     const root = realpathSync(mkdtempSync(join(tmpdir(), 'component-native-main-')));
     const projectPath = join(root, 'synthetic-project'); mkdirSync(projectPath);
     const calls: { target: string; method: string; args: unknown[] }[] = [];
@@ -31,11 +32,20 @@ function fixture(request?: (target: string, method: string, ...args: unknown[]) 
             frameValid: true, frameType: 'cc.SpriteFrame' };
         throw new Error('unexpected_mock_call');
     } };
-    const context = { projectPath, creatorVersion: '3.8.3' as const, owner,
+    const context = { projectPath, creatorVersion: version, owner,
         runId: 'sprite-canary', pid: 12345, token, timeoutMs: 50, message };
-    const input = { action: 'assetIdentity', projectPath, creatorVersion: '3.8.3',
+    const input = { action: 'assetIdentity', projectPath, creatorVersion: version,
         owner, runId: 'sprite-canary', pid: 12345, token };
     return { context, input, calls, close: () => rmSync(root, { recursive: true, force: true }) };
+}
+
+function seedExisting(project: string, version: '3.8.3' | '3.8.7') {
+    const relative = 'assets/peanut-pod-upgrade-0-2-1/probe.json';
+    const actual = `/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-${version}`;
+    mkdirSync(dirname(join(project, relative)), { recursive: true });
+    for (const name of [relative, `${relative}.meta`])
+        writeFileSync(join(project, name), readFileSync(join(actual, name)));
+    return relative;
 }
 
 test('asset and scene getters use only exact native reads and never return the token', async () => {
@@ -136,5 +146,73 @@ test('unexpected scene payload fields cannot leak into a readback result', async
             ...f.input, action: 'sceneFields', expectedSceneUuid: sceneUuid,
             expectedFrameUuid: frameUuid, expectOpacity: true,
         }), /native_readback_shape_invalid/);
+    } finally { f.close(); }
+});
+
+test('fixed preexisting JSON asset uses one exact native query and version-specific UUID', async () => {
+    for (const [version, uuid] of [['3.8.3', '83213e97-04f5-48f9-9d1c-a4af0ba54c1d'],
+        ['3.8.7', '4ab4daed-90ec-434e-a5d6-7193d386540b']] as const) {
+        const url = 'db://assets/peanut-pod-upgrade-0-2-1/probe.json';
+        const f = fixture(async (_target, _method, argument) => ({ url: argument, uuid,
+            type: 'cc.JsonAsset', invalid: false }), version);
+        try {
+            seedExisting(f.context.projectPath, version);
+            const result = await new ComponentExistingSpriteNativeProbeMain(f.context).dispatch({
+                ...f.input, action: 'existingAssetIdentity',
+            });
+            assert.equal(result.uuid, uuid);
+            assert.equal(result.nativeAccepted, false);
+            assert.deepEqual(f.calls, [{ target: 'asset-db', method: 'query-asset-info', args: [url] }]);
+        } finally { f.close(); }
+    }
+});
+
+test('fixed asset refuses wrong URL, UUID, type, null and native error without fallback', async () => {
+    const url = 'db://assets/peanut-pod-upgrade-0-2-1/probe.json';
+    for (const response of [{ url: `${url}-other`, uuid: '83213e97-04f5-48f9-9d1c-a4af0ba54c1d', type: 'cc.JsonAsset' },
+        { url, uuid: '4ab4daed-90ec-434e-a5d6-7193d386540b', type: 'cc.JsonAsset' },
+        { url, uuid: '83213e97-04f5-48f9-9d1c-a4af0ba54c1d', type: 'json' }, null]) {
+        const f = fixture(async () => response);
+        try {
+            seedExisting(f.context.projectPath, '3.8.3');
+            await assert.rejects(new ComponentExistingSpriteNativeProbeMain(f.context).dispatch({
+                ...f.input, action: 'existingAssetIdentity',
+            }), /existing_identity_mismatch|response_invalid/);
+        } finally { f.close(); }
+    }
+    const failure = new Error('real_asset_db_rejection');
+    const f = fixture(async () => { throw failure; });
+    try {
+        seedExisting(f.context.projectPath, '3.8.3');
+        await assert.rejects(new ComponentExistingSpriteNativeProbeMain(f.context).dispatch({
+            ...f.input, action: 'existingAssetIdentity',
+        }), error => error === failure);
+    } finally { f.close(); }
+});
+
+test('fixed asset source/meta drift and caller-selected URL fail before Editor requests', async () => {
+    const f = fixture(async () => { throw new Error('should_not_call'); });
+    try {
+        const relative = seedExisting(f.context.projectPath, '3.8.3');
+        const probe = new ComponentExistingSpriteNativeProbeMain(f.context);
+        await assert.rejects(probe.dispatch({ ...f.input, action: 'existingAssetIdentity',
+            url: 'db://assets/other' }), /arguments_invalid/);
+        writeFileSync(join(f.context.projectPath, relative), '{}');
+        await assert.rejects(probe.dispatch({ ...f.input, action: 'existingAssetIdentity' }), /existing_source_invalid/);
+        seedExisting(f.context.projectPath, '3.8.3');
+        writeFileSync(join(f.context.projectPath, `${relative}.meta`), '{}');
+        await assert.rejects(probe.dispatch({ ...f.input, action: 'existingAssetIdentity' }), /existing_source_invalid/);
+        assert.equal(f.calls.length, 0);
+    } finally { f.close(); }
+});
+
+test('3.8.7 refuses 3.8.3 existing-asset bytes before native lookup', async () => {
+    const f = fixture(async () => { throw new Error('should_not_call'); }, '3.8.7');
+    try {
+        seedExisting(f.context.projectPath, '3.8.3');
+        await assert.rejects(new ComponentExistingSpriteNativeProbeMain(f.context).dispatch({
+            ...f.input, action: 'existingAssetIdentity',
+        }), /existing_source_invalid/);
+        assert.deepEqual(f.calls, []);
     } finally { f.close(); }
 });

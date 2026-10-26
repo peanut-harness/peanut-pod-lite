@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync,
     symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { ComponentExistingSpriteNativeProbeEntry as Entry, createSyntheticCreatorEntry,
     load, unload } from './component-existing-sprite-native-probe-entry.ts';
@@ -268,6 +268,8 @@ function activationFixture() {
     const leasePath = join(root, 'lease.json');
     const editor = { Project: { path: project }, App: { version: '3.8.3' },
         Message: { request: async (_target: string, method: string, ...args: unknown[]) => {
+            if (method === 'query-asset-info' && args[0] === 'db://assets/peanut-pod-upgrade-0-2-1/probe.json')
+                return { url: args[0], uuid: '83213e97-04f5-48f9-9d1c-a4af0ba54c1d', type: 'cc.JsonAsset' };
             if (method === 'query-asset-info') return { url: args[0],
                 uuid: args[0] === sceneUrl ? sceneUuid : controlUuid };
             if (method === 'query-assets') return [{ url: frameUrl, uuid: frameUuid,
@@ -282,6 +284,11 @@ function activationFixture() {
 
 test('synthetic Creator load uses a fixed lease, owned descriptor and only read-only native requests', async () => {
     const f = activationFixture(); f.writeLease();
+    const relative = 'assets/peanut-pod-upgrade-0-2-1/probe.json';
+    const actual = '/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-3.8.3';
+    mkdirSync(dirname(join(f.project, relative)), { recursive: true });
+    for (const name of [relative, `${relative}.meta`])
+        writeFileSync(join(f.project, name), readFileSync(join(actual, name)));
     const creator = createSyntheticCreatorEntry(f.project, f.editor);
     try {
         await creator.load();
@@ -293,6 +300,10 @@ test('synthetic Creator load uses a fixed lease, owned descriptor and only read-
             creatorVersion: '3.8.3', owner: f.lease.owner, runId: f.lease.runId, pid: process.pid }, descriptor.token);
         assert.equal(response.status, 200);
         assert.equal((await response.json()).result.frameUuid, frameUuid);
+        const existing = await post(descriptor.port, { action: 'existingAssetIdentity', projectPath: f.project,
+            creatorVersion: '3.8.3', owner: f.lease.owner, runId: f.lease.runId, pid: process.pid }, descriptor.token);
+        assert.equal(existing.status, 200);
+        assert.equal((await existing.json()).result.uuid, '83213e97-04f5-48f9-9d1c-a4af0ba54c1d');
         await assert.rejects(creator.load(), /already_loaded/);
     } finally { await creator.unload(); f.close(); }
     assert.equal(existsSync(f.descriptorPath), false);

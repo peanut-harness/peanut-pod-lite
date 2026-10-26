@@ -10,7 +10,7 @@ const INPUTS = Object.freeze([
     { source: `${PREFIX}component-existing-sprite-native-probe-entry.ts`,
         sha256: '61095b5b37545a587f322a7130f38f0c2442ecd5e9b6ce883a85794f4766ea4f', bundle: 'main.js' },
     { source: `${PREFIX}component-existing-sprite-native-probe-main.ts`,
-        sha256: '9d8efe0ca637b766b6168001be6d04774f2e710745c29d825386ae2729c17158', bundle: 'main.js' },
+        sha256: '44cf5fb6d3fe54455b41e379625c29cd9158839aca4f3b7c42aad25871a6b2a1', bundle: 'main.js' },
     { source: `${PREFIX}component-existing-sprite-probe-descriptor.ts`,
         sha256: '5a775ebdf35714eb31b3ebfe7785e88c2557723b6b5ecb34f61d2e48af52f78b', bundle: 'main.js' },
     { source: `${PREFIX}component-existing-sprite-native-probe-scene.ts`,
