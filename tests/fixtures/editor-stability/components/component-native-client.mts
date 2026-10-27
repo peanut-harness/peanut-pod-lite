@@ -175,8 +175,17 @@ export class ComponentNativeClient {
         await this.mcp({ action: enabled ? 'attachCapabilities' : 'detachCapabilities', projectPath: this.project,
             owner: this.registration.owner, capabilities: McpScopedResourceBoundary.names, resourceRoots: McpScopedResourceBoundary.roots });
         const catalog = this.record(await this.mcp({ action: 'catalog' })); const status = this.record(await this.mcp({ action: 'status' }));
-        if (!Array.isArray(catalog.capabilities) || catalog.capabilities.length !== (enabled ? 46 : 40)
-            || !Array.isArray(status.writeEnabledPluginIds) || status.writeEnabledPluginIds.length) throw new Error('component_matrix_exposure_mismatch');
+        if (this.registration.kind === 'registered-existing-0.2.1-project') {
+            const names = Array.isArray(catalog.capabilities) ? catalog.capabilities.map(item => this.record(item).name) : [];
+            if (names.length < McpScopedResourceBoundary.names.length || new Set(names).size !== names.length
+                || !McpScopedResourceBoundary.names.every(name => names.includes(name))
+                || status.isEnabled !== true || status.directWriteEnabled !== false
+                || !Array.isArray(status.writeEnabledPluginIds)
+                || status.writeEnabledPluginIds.length !== 1 || status.writeEnabledPluginIds[0] !== 'peanut.editor-mcp')
+                throw new Error('component_matrix_exposure_mismatch');
+        } else if (!Array.isArray(catalog.capabilities) || catalog.capabilities.length !== (enabled ? 46 : 40)
+            || !Array.isArray(status.writeEnabledPluginIds) || status.writeEnabledPluginIds.length)
+            throw new Error('component_matrix_exposure_mismatch');
         this.events.push({ step: enabled ? 'attach-six' : 'detach-six', catalogCount: catalog.capabilities.length, allEnabled: false }); this.save();
     }
 
