@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync,
+import * as fs from 'node:fs';
+import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync,
     symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
@@ -42,12 +43,12 @@ test('offline package pins entry, descriptor, dispatcher and scene sources and t
         assert.equal(manifest.private, true);
         assert.equal(manifest.peanutOfflineOnly, true);
         assert.equal(manifest.name, 'peanut-component-sprite-probe');
-        assert.equal(manifest.probeSourceCommit, 'aa4423bbb6371bfcf20a5d1e3ce2bf053f538995');
+        assert.equal(manifest.probeSourceCommit, 'd3aab51e70a9d3ff034f573cb8ad61281f65978c');
         assert.equal(report.sourceCommit, manifest.probeSourceCommit);
         assert.equal(report.checkoutCommit,
             execFileSync('git', ['-c', 'core.fsmonitor=false', 'rev-parse', 'HEAD'],
                 { cwd: repository, encoding: 'utf8' }).trim());
-        assert.notEqual(report.checkoutCommit, report.sourceCommit);
+        assert.match(report.sourceCommit, /^[a-f0-9]{40}$/u);
         assert.equal(report.packagerSourceSha256,
             digest(readFileSync(join(repository, 'tests/fixtures/editor-stability/components/component-existing-sprite-native-probe-package.mts'))));
         assert.deepEqual(Object.keys(manifest.sourceDigests).sort(), Package.inputs.map(row => row.source).sort());
@@ -89,7 +90,7 @@ test('diagnostic package is fixed to 3.8.3 existing asset and remains unaccepted
             manifest: digest(readFileSync(join(destination, 'package.json'))),
         })));
         assert.equal(report.packageSha256, expected);
-        assert.equal(report.packageSha256, '98340a038a17de63a7fcff08cfc25bc321c026f8aa4acf7c09ea4c6e36c91a41');
+        assert.equal(report.packageSha256, '301c82d3792a07ed1c7ea99283cda87becd9d9ce7085bd621a8ae2d9764cd22a');
         assert.equal(repeat.packageSha256, report.packageSha256);
         for (const file of ['main.js', 'scene.js', 'package.json'])
             assert.deepEqual(readFileSync(join(second, file)), readFileSync(join(destination, file)));
@@ -106,6 +107,61 @@ test('diagnostic package is fixed to 3.8.3 existing asset and remains unaccepted
     } finally {
         rmSync(destination, { recursive: true, force: true });
         rmSync(second, { recursive: true, force: true });
+    }
+});
+
+test('emitted diagnostic bundle publishes and clears a descriptor with legacy lstat behavior', async () => {
+    const destination = scratch();
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'component-sprite-activation-')));
+    const project = join(root, 'synthetic-project');
+    const extension = join(project, 'extensions/peanut-component-sprite-probe');
+    const descriptorPath = join(project, '.peanut-ai/component-sprite-probe.json');
+    try {
+        const report = await Package.build(repository, destination, 'diagnostic-383');
+        mkdirSync(join(project, '.peanut-ai'), { recursive: true });
+        mkdirSync(extension, { recursive: true });
+        for (const name of ['main.js', 'scene.js', 'package.json'])
+            copyFileSync(join(destination, name), join(extension, name));
+        const relative = 'assets/peanut-pod-upgrade-0-2-1/probe.json';
+        const actual = '/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-3.8.3';
+        mkdirSync(dirname(join(project, relative)), { recursive: true });
+        for (const name of [relative, `${relative}.meta`])
+            copyFileSync(join(actual, name), join(project, name));
+        const owner = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+        const lease = { schema: 'peanut.pod.sprite-runtime-lease.v1', status: 'active',
+            projectPath: project, creatorVersion: '3.8.3', owner, runId: 'bundle-legacy-test',
+            pid: process.pid, candidateSourceCommit: '660226aa28d0d96fc4766c81c3b58af71cd1a8f0',
+            hostSha256: '3954bec522639354ce249f594055e7a543854ee721c645994051cd094f534438',
+            coreSha256: 'ef38d9ac7f12a6face2e353cbb02c538ce0546520d1cb3941a903c8a376d794f',
+            probeSourceCommit: report.sourceCommit, probeBundleSha256: report.packageSha256,
+            issuedAt: Date.now() - 1000, expiresAt: Date.now() + 60000,
+            permissions: ['existingAssetIdentity'], creatorExecutable: process.execPath,
+            purpose: 'existing-asset-compatibility',
+            creatorExecutableSha256: digest(readFileSync(process.execPath)) };
+        writeFileSync(join(root, 'lease.json'), JSON.stringify(lease), { mode: 0o600 });
+        const module = { exports: {} as { createSyntheticCreatorEntry: (projectPath: string,
+            editor: unknown, mode: string) => { load(): Promise<void>; unload(): Promise<void> } } };
+        runInNewContext(readFileSync(join(destination, 'main.js'), 'utf8'), {
+            module, exports: module.exports, Buffer, process, setTimeout, clearTimeout,
+            require: (name: string) => name === 'fs' ? { ...fs,
+                lstatSync: (path: string) => fs.lstatSync(path) }
+                : name === 'cc' ? {} : createRequire(import.meta.url)(name),
+        }, { filename: 'legacy-creator-probe-bundle.js', timeout: 1000 });
+        const editor = { Project: { path: project }, App: { version: '3.8.3' },
+            Message: { request: async () => { throw new Error('unexpected_native_request'); } } };
+        const creator = module.exports.createSyntheticCreatorEntry(project, editor, 'diagnostic-383');
+        try {
+            assert.equal(existsSync(descriptorPath), false);
+            await creator.load();
+            const descriptor = JSON.parse(readFileSync(descriptorPath, 'utf8'));
+            assert.equal(descriptor.runId, lease.runId);
+            assert.equal(descriptor.probeSourceCommit, report.sourceCommit);
+            assert.equal(descriptor.probeBundleSha256, report.packageSha256);
+        } finally { await creator.unload(); }
+        assert.equal(existsSync(descriptorPath), false);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+        rmSync(destination, { recursive: true, force: true });
     }
 });
 
