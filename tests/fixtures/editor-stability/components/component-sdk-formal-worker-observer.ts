@@ -16,13 +16,10 @@ class ComponentSdkFormalWorkerObserver {
         const editor = Reflect.get(globalThis, 'Editor');
         const method = manager?._preStartDB;
         const modules = Object.keys(require.cache).filter(path => path.endsWith('/peanut-pod-lite-host/dist/sdk-startup-timer-worker.js'));
-        const starts = editor?.Metrics?.__protected__?.getTrackTimeStartMap?.();
         appendFileSync(join(output, 'formal-worker-observer.ndjson'), JSON.stringify({ phase, pid: process.pid,
             at: Date.now(), creatorVersion: editor?.App?.version ?? null, managerAvailable: !!manager,
             methodSha256: typeof method === 'function' ? createHash('sha256').update(Function.prototype.toString.call(method)).digest('hex') : null,
             formalModuleCount: modules.length, formalModuleLoaded: modules.length === 1 && require.cache[modules[0]]?.loaded === true,
-            matchingStartLabels: starts instanceof Map ? [...starts.keys()].filter((key: unknown) => typeof key === 'string'
-                && key.startsWith('asset-db:worker-startup-database[')) : null,
         }) + '\n');
     }
 }
