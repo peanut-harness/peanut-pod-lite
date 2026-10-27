@@ -148,10 +148,10 @@ test('production adapter refuses missing stage permit and freeform caller target
     assert.equal(existsSync(path), false);
 });
 
-test('production permit pins C5 run04 and rejects consumed or stale diagnostic identities', () => {
+test('production permit pins C6 run05 and rejects consumed or stale diagnostic identities', () => {
     const now = Date.now();
     const permit = { schema: 'peanut.pod.sprite-production-383-stage-permit.v1', status: 'active',
-        owner: OWNER, runId: 'pod-51-probe-383-20261027-04',
+        owner: OWNER, runId: 'pod-51-probe-383-20261027-05',
         projectPath: '/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-3.8.3',
         creatorVersion: '3.8.3',
         creatorExecutable: '/Applications/Cocos/Creator/3.8.3/CocosCreator.app/Contents/MacOS/CocosCreator',
@@ -159,8 +159,8 @@ test('production permit pins C5 run04 and rejects consumed or stale diagnostic i
         candidateSourceCommit: '660226aa28d0d96fc4766c81c3b58af71cd1a8f0',
         hostSha256: '3954bec522639354ce249f594055e7a543854ee721c645994051cd094f534438',
         coreSha256: 'ef38d9ac7f12a6face2e353cbb02c538ce0546520d1cb3941a903c8a376d794f',
-        probeSourceCommit: 'd3aab51e70a9d3ff034f573cb8ad61281f65978c',
-        probeBundleSha256: '301c82d3792a07ed1c7ea99283cda87becd9d9ce7085bd621a8ae2d9764cd22a',
+        probeSourceCommit: '371445bb78a1f3e64bb1aa788ba437b694a126c3',
+        probeBundleSha256: '8057a4b4f90718d5aeb74a2f891e9770a53a11608f01f7be4b287e23044dec8d',
         issuedAt: now, expiresAt: now + 600000,
         backupManifestPath: '/private/tmp/not-used-by-identity-check/manifest.json',
         backupManifestSha256: HASH, processSnapshotPath: '/private/tmp/not-used-by-identity-check/process-snapshot.txt',
@@ -171,26 +171,30 @@ test('production permit pins C5 run04 and rejects consumed or stale diagnostic i
         { probeBundleSha256: '0add8b7a252e597d6b9972b21ef93f83bc9a9e544261f8d24565f66a5abcee1a' },
         { probeSourceCommit: 'aa4423bbb6371bfcf20a5d1e3ce2bf053f538995' },
         { probeBundleSha256: '98340a038a17de63a7fcff08cfc25bc321c026f8aa4acf7c09ea4c6e36c91a41' },
+        { probeSourceCommit: 'd3aab51e70a9d3ff034f573cb8ad61281f65978c' },
+        { probeBundleSha256: '301c82d3792a07ed1c7ea99283cda87becd9d9ce7085bd621a8ae2d9764cd22a' },
         { runId: 'pod-51-probe-383-20261027-02' },
         { runId: 'pod-51-probe-383-20261027-03' },
+        { runId: 'pod-51-probe-383-20261027-04' },
     ]) assert.throws(() => assertProduction383PermitIdentity({ ...permit, ...stale }, OWNER, permit.runId, now),
         /permit_identity_invalid/u);
 });
 
-test('production evidence path admits only one exact C5 backup leaf and matching snapshot', () => {
+test('production evidence path admits only one exact C6 backup leaf and matching snapshot', () => {
     const root = '/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-editor-operations-20261026/task-5.1';
-    const directory = join(root, 'c5-383-preparation', '20261027T020000Z-abcdef12');
+    const directory = join(root, 'c6-383-preparation', '20261027T023000Z-abcdef12');
     const valid = { backupManifestPath: join(directory, 'manifest.json'),
         processSnapshotPath: join(directory, 'process-snapshot.txt') };
     assert.doesNotThrow(() => assertProduction383EvidencePaths(valid));
     for (const stale of [
-        { backupManifestPath: valid.backupManifestPath.replace('c5-383-preparation', 'c0-383-preparation') },
-        { backupManifestPath: valid.backupManifestPath.replace('c5-383-preparation', 'c3-383-preparation') },
-        { backupManifestPath: valid.backupManifestPath.replace('c5-383-preparation', 'c4-383-preparation') },
-        { backupManifestPath: valid.backupManifestPath.replace('c5-383-preparation', 'c5-383-preparation-old') },
-        { backupManifestPath: valid.backupManifestPath.replace('20261027T020000Z-abcdef12', 'not-a-run') },
+        { backupManifestPath: valid.backupManifestPath.replace('c6-383-preparation', 'c0-383-preparation') },
+        { backupManifestPath: valid.backupManifestPath.replace('c6-383-preparation', 'c3-383-preparation') },
+        { backupManifestPath: valid.backupManifestPath.replace('c6-383-preparation', 'c4-383-preparation') },
+        { backupManifestPath: valid.backupManifestPath.replace('c6-383-preparation', 'c5-383-preparation') },
+        { backupManifestPath: valid.backupManifestPath.replace('c6-383-preparation', 'c6-383-preparation-old') },
+        { backupManifestPath: valid.backupManifestPath.replace('20261027T023000Z-abcdef12', 'not-a-run') },
         { backupManifestPath: join(directory, 'nested', 'manifest.json') },
-        { backupManifestPath: `${directory}/../20261027T020000Z-abcdef12/manifest.json` },
+        { backupManifestPath: `${directory}/../20261027T023000Z-abcdef12/manifest.json` },
         { backupManifestPath: '/private/tmp/manifest.json' },
         { processSnapshotPath: join(directory, 'other.txt') },
         { processSnapshotPath: join(directory, 'nested', 'process-snapshot.txt') },
