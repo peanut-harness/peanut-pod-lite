@@ -162,7 +162,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
         || !/^task51-attempt-[0-9]{2}$/u.test(campaign ?? '') || process.argv.length !== 5)
         throw new Error('component_existing_runstage_arguments_invalid');
     const result = mode === 'plan'
-        ? (() => { const { planned, candidate: _candidate, ...summary } = ComponentExistingMatrixRunstage.prepare(version as Version, campaign as string); return { ...summary, fileCount: planned.length }; })()
+        ? (() => { const { planned, candidate: _candidate, publicFieldContract: _contract, ...summary } = ComponentExistingMatrixRunstage.prepare(version as Version, campaign as string); return { ...summary, fileCount: planned.length }; })()
         : ComponentExistingMatrixRunstage.stage(version as Version, campaign as string);
     process.stdout.write(JSON.stringify(result) + '\n');
 }
