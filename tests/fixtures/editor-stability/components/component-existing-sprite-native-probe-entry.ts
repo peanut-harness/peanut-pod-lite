@@ -1,5 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import type { Socket } from 'node:net';
 import { lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve, sep } from 'node:path';
@@ -44,6 +45,7 @@ export class ComponentExistingSpriteNativeProbeEntry {
     private active = 0;
     private publishedGeneration = '';
     private readonly pending = new Set<Promise<void>>();
+    private readonly sockets = new Set<Socket>();
     private closing: Promise<void> | null = null;
 
     public constructor(context: Context) {
@@ -65,6 +67,10 @@ export class ComponentExistingSpriteNativeProbeEntry {
             const task = this.handle(request, response, probe, generation, token);
             this.pending.add(task);
             void task.then(() => this.pending.delete(task), () => this.pending.delete(task));
+        });
+        server.on('connection', (socket: Socket) => {
+            this.sockets.add(socket);
+            socket.once('close', () => this.sockets.delete(socket));
         });
         server.requestTimeout = 6000;
         server.headersTimeout = 6000;
@@ -153,13 +159,18 @@ export class ComponentExistingSpriteNativeProbeEntry {
     private async closeOwned(): Promise<void> {
         this.accepting = false;
         const server = this.server;
-        this.server = null;
         this.generation = ''; this.token = '';
         if (server) {
-            server.closeAllConnections();
-            await new Promise<void>(done => server.close(() => done()));
+            const closed = server.listening
+                ? new Promise<void>((done, reject) => server.close(error => error ? reject(error) : done()))
+                : Promise.resolve();
+            for (const socket of this.sockets) socket.destroy();
+            let closeError: unknown;
+            try { await closed; } catch (error) { closeError = error; }
+            await Promise.allSettled([...this.pending]);
+            if (closeError) throw closeError;
+            this.server = null;
         }
-        await Promise.allSettled([...this.pending]);
         if (this.publishedGeneration) {
             await this.context.descriptor.clear(this.publishedGeneration);
             this.publishedGeneration = '';

@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { once } from 'node:events';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync,
     symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { connect } from 'node:net';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { ComponentExistingSpriteNativeProbeEntry as Entry, createSyntheticCreatorEntry,
@@ -163,6 +165,28 @@ test('close and reload retire the old token and generation without rewriting an 
         f.context.descriptor.clear(old.generation);
         assert.equal(existsSync(f.descriptorPath), true);
     } finally { await entry.close(); f.close(); }
+});
+
+test('close destroys only its owned idle socket and releases the listener', async () => {
+    const f = fixture(); const entry = new Entry(f.context);
+    let socket: ReturnType<typeof connect> | null = null;
+    try {
+        const endpoint = await entry.start();
+        socket = connect(endpoint.port, '127.0.0.1');
+        await once(socket, 'connect');
+        const socketClosed = new Promise<void>(done => {
+            socket!.on('error', () => {});
+            socket!.once('close', () => done());
+        });
+        const closing = entry.close();
+        await Promise.race([closing, new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('synthetic_owned_socket_close_timeout')), 1000))]);
+        await socketClosed;
+        assert.equal(socket.destroyed, true);
+        assert.equal(existsSync(f.descriptorPath), false);
+        await assert.rejects(post(endpoint.port, f.input, '0'.repeat(64)));
+        await entry.close();
+    } finally { socket?.destroy(); await entry.close(); f.close(); }
 });
 
 test('descriptor publish failure closes the listener and never admits a request', async () => {
