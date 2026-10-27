@@ -25,6 +25,7 @@ test('behavior scene preserves original byte inputs, references and component or
         assert.equal(actual[1]._id, identity(type).sceneUuid); assert.equal(actual.at(-1).componentType, type);
         assert.deepEqual(actual[2]._components, [{ __id__: 3 }, { __id__: entries.length }]);
         assert.equal(JSON.parse(result.metaBytes.toString()).uuid, identity(type).sceneUuid);
+        if (type !== 'cc.Bloom') assert.deepEqual(actual[2]._lscale, { __type__: 'cc.Vec3', x: 4, y: 4, z: 4 });
     }
 });
 

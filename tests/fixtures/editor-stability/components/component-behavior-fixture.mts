@@ -36,6 +36,13 @@ export class ComponentBehaviorFixture {
         const node = entries[nodeIndex]!;
         if (!Array.isArray(node._components)) throw new Error('component_behavior_fixture_component_links_missing');
         this.dependencies(type, entries, targets[0]!);
+        if (type !== 'cc.Bloom') {
+            const modelIndex = type === 'cc.SkeletalAnimation' ? nodeIndex : this.record(targets[0]!._skinningRoot).__id__;
+            if (typeof modelIndex !== 'number' || !Number.isSafeInteger(modelIndex) || entries[modelIndex]?.__type__ !== 'cc.Node')
+                throw new Error('component_behavior_fixture_model_root_missing');
+            // 原真实曲线仅移动0.1m，扩大独立载体使姿势差异可见；不改骨骼曲线或原始资源。
+            entries[modelIndex]!._lscale = { __type__: 'cc.Vec3', x: 4, y: 4, z: 4 };
+        }
         const scriptType = new CocosUuidCodec().compress(identity.scriptUuid);
         if (entries.some(entry => entry.__type__ === scriptType)) throw new Error('component_behavior_fixture_script_collision');
         const observerIndex = entries.length;
