@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LumenPrefabDocument } from '../../../../packages/engine/modules/lumen/source/hierarchy/prefab-document.ts';
@@ -32,6 +32,31 @@ function safeProjectFile(project: string, relative: string): string {
 
 export class ComponentExistingMatrixRunstage {
     /**
+     * @description 规划现存空附件的owner交接；不持有文件写权，不撤销或转移已有能力授权。
+     * @param project 已登记工程根。
+     * @param owner 当前工作树登记所有者。
+     * @param before 现存附件清单原始字节。
+     * @returns 精确前像摘要和迁移后字节；原owner仍有能力时拒绝自动交接。
+     */
+    public static attachmentHandoff(project: string, owner: string, before: Buffer) {
+        const value: unknown = JSON.parse(before.toString('utf8'));
+        if (!value || typeof value !== 'object' || Array.isArray(value))
+            throw new Error('component_existing_attachment_record_invalid');
+        const record = Object.fromEntries(Object.entries(value));
+        if (Object.keys(record).sort().join(',') !== 'capabilities,owner,projectPath,resourceRoots,schemaVersion'
+            || record.schemaVersion !== 1 || record.projectPath !== project
+            || typeof record.owner !== 'string' || !/^[A-Za-z0-9._:-]{1,128}$/u.test(record.owner)
+            || !/^[A-Za-z0-9._:-]{1,128}$/u.test(owner)
+            || !Array.isArray(record.capabilities) || record.capabilities.some(name => typeof name !== 'string')
+            || JSON.stringify(record.resourceRoots) !== JSON.stringify(['assets/components', 'assets/fixtures']))
+            throw new Error('component_existing_attachment_scope_invalid');
+        const required = record.owner !== owner;
+        if (required && record.capabilities.length > 0) throw new Error('component_existing_attachment_live_grants_require_revocation');
+        return { required, beforeSha256: digest(before), previousOwner: record.owner, owner,
+            afterBytes: required ? Buffer.from(JSON.stringify({ ...record, owner }, null, 2) + '\n') : Buffer.from(before) };
+    }
+
+    /**
      * @description 为现有工程准备全分母的新路径写集；蒙皮上下文只用于离线计划，不能由旧stage入口部分执行。
      * @param version 精确版本。
      * @param campaign 全新且未暂存的矩阵标识。
@@ -53,6 +78,12 @@ export class ComponentExistingMatrixRunstage {
         const processes = execFileSync('/bin/ps', ['-axo', 'args=', '-ww'], { encoding: 'utf8' });
         if (processes.split('\n').some(line => line.includes(`--project ${project}`)))
             throw new Error('component_existing_runstage_project_occupied');
+        const attachmentPath = join(project, '.peanut-ai/cocos-mcp-attachments.json');
+        const attachmentStat = lstatSync(attachmentPath, { throwIfNoEntry: false });
+        if (attachmentStat && (!attachmentStat.isFile() || realpathSync(attachmentPath) !== attachmentPath))
+            throw new Error('component_existing_attachment_path_invalid');
+        const attachmentHandoff = existsSync(attachmentPath)
+            ? { path: attachmentPath, ...this.attachmentHandoff(project, owner, readFileSync(attachmentPath)) } : null;
         const engine = `/Applications/Cocos/Creator/${version}/CocosCreator.app/Contents/Resources/resources/3d/engine`;
         if (skinnedContext) {
             const existing = ComponentSkinnedHierarchy.prepareExisting(root, project, engine, version);
@@ -110,6 +141,7 @@ export class ComponentExistingMatrixRunstage {
         const candidate = { creatorVersion: version, componentCount: 99, fieldCount: 795, nativePassedRows: 0,
             campaign, rows: targetRows };
         return { owner, project, output, stagingPath, preservedInputPath, receiptPath, version, campaign,
+            attachmentHandoff,
             publicFieldContract: ComponentNativeFieldContract.create(root, engine, fields, audit.nativeDeclarations),
             planned, candidate, assembledComponents: targetRows.filter(row => row.status !== 'blocked').length,
             blockedComponents: targetRows.filter(row => row.status === 'blocked').length };
@@ -117,6 +149,7 @@ export class ComponentExistingMatrixRunstage {
 
     public static stage(version: Version, campaign: string, actor = process.env.CODEX_THREAD_ID ?? '') {
         const plan = this.prepare(version, campaign, actor);
+        if (plan.attachmentHandoff?.required) throw new Error('component_existing_runstage_attachment_handoff_required');
         const original = readFileSync(plan.stagingPath);
         const created: string[] = [];
         try {

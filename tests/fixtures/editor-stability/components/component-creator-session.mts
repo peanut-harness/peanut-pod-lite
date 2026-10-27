@@ -1,5 +1,5 @@
 import { spawn, execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, realpathSync, openSync, closeSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, realpathSync, openSync, closeSync, existsSync, lstatSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
@@ -10,6 +10,7 @@ import { ComponentServiceProfile } from './component-service-profile.mts';
 import { ComponentTaskOwnership } from './component-task-ownership.mts';
 import { ComponentCreatorDiagnostics } from './component-creator-diagnostics.mts';
 import { ComponentMatrixScope } from './component-matrix-scope.mts';
+import { ComponentExistingMatrixRunstage } from './component-existing-matrix-runstage.mts';
 
 /**
  * @description 5.1 独占隔离工程的外层 npm 启动入口；记录 PID、启动时间与完整二进制日志。
@@ -36,6 +37,13 @@ class ComponentCreatorSession {
         if (scope.mode === 'isolated' && existsSync(join(output, 'component-matrix-staging.json'))) ComponentEngineModules.assertProject(project,
             registration.creatorVersion, ComponentEngineModules.context(registration.engineModulesContext));
         if (scope.mode === 'existing') {
+            const attachmentPath = join(project, '.peanut-ai/cocos-mcp-attachments.json');
+            const attachmentStat = lstatSync(attachmentPath, { throwIfNoEntry: false });
+            if (attachmentStat) {
+                if (!attachmentStat.isFile() || realpathSync(attachmentPath) !== attachmentPath) throw new Error('component_creator_attachment_path_invalid');
+                const handoff = ComponentExistingMatrixRunstage.attachmentHandoff(project, registration.owner, readFileSync(attachmentPath));
+                if (handoff.required) throw new Error('component_creator_attachment_owner_not_handed_off');
+            }
             const descriptor = JSON.parse(readFileSync(join(repository, 'release/peanut.pod-lite-0.2.1/lite-release-descriptor.json'), 'utf8'));
             if (descriptor.version !== '0.2.1' || descriptor.host.sha256 !== registration.hostSha256
                 || descriptor.core.sha256 !== registration.coreSha256
