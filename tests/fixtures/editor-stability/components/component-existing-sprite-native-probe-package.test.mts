@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync,
     symlinkSync, writeFileSync } from 'node:fs';
@@ -161,6 +161,74 @@ test('emitted diagnostic bundle publishes and clears a descriptor with legacy ls
         assert.equal(existsSync(descriptorPath), false);
     } finally {
         rmSync(root, { recursive: true, force: true });
+        rmSync(destination, { recursive: true, force: true });
+    }
+});
+
+test('emitted diagnostic bundle clears its own descriptor on normal process exit', async () => {
+    const destination = scratch();
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'component-sprite-activation-')));
+    const foreignRoot = realpathSync(mkdtempSync(join(tmpdir(), 'component-sprite-activation-')));
+    const project = join(root, 'synthetic-project');
+    const extension = join(project, 'extensions/peanut-component-sprite-probe');
+    const descriptorPath = join(project, '.peanut-ai/component-sprite-probe.json');
+    try {
+        const report = await Package.build(repository, destination, 'diagnostic-383');
+        mkdirSync(join(project, '.peanut-ai'), { recursive: true });
+        mkdirSync(extension, { recursive: true });
+        for (const name of ['main.js', 'scene.js', 'package.json'])
+            copyFileSync(join(destination, name), join(extension, name));
+        const child = String.raw`
+const fs = require('fs');
+const crypto = require('crypto');
+const path = require('path');
+const project = process.argv[1];
+const extension = path.join(project, 'extensions/peanut-component-sprite-probe');
+const manifestBytes = fs.readFileSync(path.join(extension, 'package.json'));
+const manifest = JSON.parse(manifestBytes);
+const sha = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
+const packageSha = sha(JSON.stringify({ main: manifest.bundleDigests['main.js'],
+    scene: manifest.bundleDigests['scene.js'], manifest: sha(manifestBytes) }));
+const lease = { schema: 'peanut.pod.sprite-runtime-lease.v1', status: 'active',
+    projectPath: project, creatorVersion: '3.8.3',
+    owner: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', runId: 'normal-exit-test',
+    pid: process.pid, candidateSourceCommit: '660226aa28d0d96fc4766c81c3b58af71cd1a8f0',
+    hostSha256: '3954bec522639354ce249f594055e7a543854ee721c645994051cd094f534438',
+    coreSha256: 'ef38d9ac7f12a6face2e353cbb02c538ce0546520d1cb3941a903c8a376d794f',
+    probeSourceCommit: manifest.probeSourceCommit, probeBundleSha256: packageSha,
+    issuedAt: Date.now() - 1000, expiresAt: Date.now() + 60000,
+    permissions: ['existingAssetIdentity'], creatorExecutable: process.execPath,
+    purpose: 'existing-asset-compatibility', creatorExecutableSha256: sha(fs.readFileSync(process.execPath)) };
+fs.writeFileSync(path.join(path.dirname(project), 'lease.json'), JSON.stringify(lease), { mode: 0o600 });
+const editor = { Project: { path: project }, App: { version: '3.8.3' },
+    Message: { request: async () => { throw new Error('unexpected_native_request'); } } };
+const creator = require(path.join(extension, 'main.js')).createSyntheticCreatorEntry(project, editor, 'diagnostic-383');
+creator.load().then(() => {
+    if (process.argv[2] === 'foreign') {
+        const descriptor = path.join(project, '.peanut-ai/component-sprite-probe.json');
+        fs.renameSync(descriptor, path.join(path.dirname(project), 'retained-own-descriptor'));
+        fs.writeFileSync(descriptor, 'foreign-descriptor', { mode: 0o600 });
+    }
+    process.exit(0);
+}, error => { console.error(error); process.exit(1); });`;
+        execFileSync(process.execPath, ['-e', child, project], { timeout: 10000, encoding: 'utf8' });
+        assert.equal(existsSync(descriptorPath), false, `own descriptor survived normal exit: ${report.packageSha256}`);
+        const foreignProject = join(foreignRoot, 'synthetic-project');
+        const foreignExtension = join(foreignProject, 'extensions/peanut-component-sprite-probe');
+        mkdirSync(join(foreignProject, '.peanut-ai'), { recursive: true });
+        mkdirSync(foreignExtension, { recursive: true });
+        for (const name of ['main.js', 'scene.js', 'package.json'])
+            copyFileSync(join(destination, name), join(foreignExtension, name));
+        const foreign = spawnSync(process.execPath, ['-e', child, foreignProject, 'foreign'],
+            { timeout: 10000, encoding: 'utf8' });
+        assert.equal(foreign.status, 0, foreign.stderr);
+        assert.match(foreign.stderr, /component_sprite_probe_exit_cleanup_failed:component_sprite_descriptor_ownership_mismatch/u);
+        assert.equal(readFileSync(join(foreignProject, '.peanut-ai/component-sprite-probe.json'), 'utf8'),
+            'foreign-descriptor');
+        assert.equal(existsSync(join(foreignRoot, 'retained-own-descriptor')), true);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+        rmSync(foreignRoot, { recursive: true, force: true });
         rmSync(destination, { recursive: true, force: true });
     }
 });

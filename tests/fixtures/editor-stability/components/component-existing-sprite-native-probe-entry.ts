@@ -291,6 +291,7 @@ function lifecycle(config: { path: string; lease: string; binary: string; versio
     mode: Mode; binarySha256?: string;
     editor(): unknown }): { load(): Promise<void>; unload(): Promise<void> } {
     let active: ComponentExistingSpriteNativeProbeEntry | null = null;
+    let detachExitCleanup: (() => void) | null = null;
     return {
         async load(): Promise<void> {
             if (active) throw new Error('component_sprite_probe_creator_already_loaded');
@@ -324,7 +325,19 @@ function lifecycle(config: { path: string; lease: string; binary: string; versio
                 },
             });
             active = entry;
-            try { await entry.start(); }
+            try {
+                const endpoint = await entry.start();
+                const generation = endpoint.generation;
+                const clearOwnDescriptor = (): void => {
+                    try { descriptor.clear(generation); }
+                    catch (error) {
+                        const reason = error instanceof Error ? error.message : 'unknown';
+                        process.stderr.write(`component_sprite_probe_exit_cleanup_failed:${reason}\n`);
+                    }
+                };
+                process.once('exit', clearOwnDescriptor);
+                detachExitCleanup = () => process.off('exit', clearOwnDescriptor);
+            }
             catch (error) {
                 try { await entry.close(); active = null; }
                 catch (cleanup) { throw new AggregateError([error, cleanup], 'component_sprite_probe_creator_cleanup_failed'); }
@@ -334,6 +347,7 @@ function lifecycle(config: { path: string; lease: string; binary: string; versio
         async unload(): Promise<void> {
             if (!active) return;
             await active.close();
+            detachExitCleanup?.(); detachExitCleanup = null;
             active = null;
         },
     };

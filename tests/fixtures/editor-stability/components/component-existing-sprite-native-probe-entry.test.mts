@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { once } from 'node:events';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync,
-    symlinkSync, writeFileSync } from 'node:fs';
+    renameSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { connect, type Socket } from 'node:net';
 import { dirname, join } from 'node:path';
@@ -412,6 +412,53 @@ test('diagnostic lease admits only fixed 3.8.3 existing asset readback', async (
     } finally { await creator.unload(); f.close(); }
 });
 
+test('normal-exit fallback follows only the active generation and detaches on unload', async () => {
+    const f = activationFixture(true); f.writeLease();
+    const creator = createSyntheticCreatorEntry(f.project, f.editor, 'diagnostic-383');
+    const baseline = process.listenerCount('exit');
+    try {
+        await creator.load();
+        const first = JSON.parse(readFileSync(f.descriptorPath, 'utf8'));
+        assert.equal(process.listenerCount('exit'), baseline + 1);
+        await creator.unload();
+        assert.equal(process.listenerCount('exit'), baseline);
+        assert.equal(existsSync(f.descriptorPath), false);
+        await creator.load();
+        const second = JSON.parse(readFileSync(f.descriptorPath, 'utf8'));
+        assert.notEqual(second.generation, first.generation);
+        assert.equal(process.listenerCount('exit'), baseline + 1);
+    } finally {
+        await creator.unload(); f.close();
+    }
+    assert.equal(process.listenerCount('exit'), baseline);
+});
+
+test('foreign descriptor replacement cannot be cleared by explicit unload or exit fallback', async () => {
+    const f = activationFixture(true); f.writeLease();
+    const creator = createSyntheticCreatorEntry(f.project, f.editor, 'diagnostic-383');
+    const baseline = process.listenerCount('exit');
+    const retained = join(f.root, 'retained-owned-descriptor');
+    try {
+        await creator.load();
+        renameSync(f.descriptorPath, retained);
+        writeFileSync(f.descriptorPath, 'foreign-descriptor', { mode: 0o600 });
+        await assert.rejects(creator.unload(), /descriptor_ownership_mismatch/);
+        assert.equal(readFileSync(f.descriptorPath, 'utf8'), 'foreign-descriptor');
+        assert.equal(process.listenerCount('exit'), baseline + 1);
+        rmSync(f.descriptorPath);
+        renameSync(retained, f.descriptorPath);
+        await creator.unload();
+        assert.equal(existsSync(f.descriptorPath), false);
+    } finally {
+        if (existsSync(retained)) {
+            rmSync(f.descriptorPath, { force: true });
+            renameSync(retained, f.descriptorPath);
+        }
+        await creator.unload(); f.close();
+    }
+    assert.equal(process.listenerCount('exit'), baseline);
+});
+
 test('closing during an unready asset-db poll cancels the pending lookup', async () => {
     const f = activationFixture(true); f.writeLease();
     const relative = 'assets/peanut-pod-upgrade-0-2-1/probe.json';
@@ -506,7 +553,9 @@ test('linked lease, changed scene bundle and occupied descriptor fail before a n
                 'extensions/peanut-component-sprite-probe/scene.js'), 'tampered');
             if (kind === 'occupied') writeFileSync(f.descriptorPath, 'foreign');
             const creator = createSyntheticCreatorEntry(f.project, f.editor);
+            const listeners = process.listenerCount('exit');
             await assert.rejects(creator.load(), /lease_file_invalid|bundle_identity_invalid|descriptor_occupied/);
+            assert.equal(process.listenerCount('exit'), listeners);
             assert.equal(existsSync(f.descriptorPath), kind === 'occupied');
             if (kind === 'occupied') assert.equal(readFileSync(f.descriptorPath, 'utf8'), 'foreign');
             await creator.unload();
