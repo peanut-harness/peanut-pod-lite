@@ -82,14 +82,14 @@ test('same bundled worker loses SDK globals through nested require but installs 
         assert.equal(Object.hasOwn(globalThis, 'Editor'), false);
         runInNewContext(`module.exports.load=()=>require(${JSON.stringify(entry)}).load();`, context);
         assert.throws(() => module.exports.load(), /worker_version_missing/u);
-        const original = manager._preStartDB;
+        const original = manager._startupDB;
         module.exports = {} as typeof module.exports;
         runInNewContext(readFileSync(entry, 'utf8'), { ...context, exports: module.exports });
-        const installed = manager._preStartDB;
+        const installed = manager._startupDB;
         assert.notEqual(installed, original, 'direct worker evaluation must install before a late global hook');
         module.exports.load();
-        assert.notEqual(installed, original); module.exports.methods.beforePreStart(); assert.equal(manager._preStartDB, installed);
-        module.exports.unload(); assert.equal(manager._preStartDB, original);
+        assert.notEqual(installed, original); module.exports.methods.beforePreStart(); assert.equal(manager._startupDB, installed);
+        module.exports.unload(); assert.equal(manager._startupDB, original);
     } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -103,14 +103,14 @@ test('direct worker entry defers installation until the SDK globals are ready', 
         const manager: Record<string, unknown> = {};
         for (const name of ['_preStartDB', '_startupDB', '_startDB']) manager[name] = runInNewContext(`({${proof.methods[name].source}}).${name}`);
         const metrics = runInNewContext(`({${proof.methods.trackTimeStart.source}})`);
-        const original = manager._preStartDB;
+        const original = manager._startupDB;
         const module = { exports: {} as { load(): void; methods: { beforePreStart(): void } } };
         const context = { module, exports: module.exports, require: createRequire(entry), __dirname: dirname(entry), __filename: entry } as Record<string, unknown>;
         runInNewContext(readFileSync(entry, 'utf8'), context);
-        assert.equal(manager._preStartDB, original);
+        assert.equal(manager._startupDB, original);
         context.Editor = { App: { version: '3.8.7' }, Metrics: metrics };
         context.Manager = { assetDBManager: manager };
         module.exports.methods.beforePreStart();
-        assert.notEqual(manager._preStartDB, original);
+        assert.notEqual(manager._startupDB, original);
     } finally { rmSync(root, { recursive: true, force: true }); }
 });

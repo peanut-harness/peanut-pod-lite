@@ -14,7 +14,7 @@ export class SdkStartupTimerCompat {
     };
 
     /**
-     * @description 在原预启动数据库工作之前调用 SDK 自己的真实 start；仅恢复本次安装的引用。
+     * @description 在冷库启动入口调用 SDK 自己的真实 start；仅恢复本次安装的引用。
      * @param manager 实际 worker 的数据库管理器。
      * @param metrics 实际 SDK Metrics 对象。
      * @param version 实际 Creator 版本。
@@ -30,24 +30,30 @@ export class SdkStartupTimerCompat {
         const start = metrics.trackTimeStart;
         if (typeof start !== 'function' || this.hash(start) !== '4fcbe419ba23a2b08918d539b8ac7f4558bb154fe18a3332c8855e2874cc3d4f')
             throw new Error('peanut_sdk_timer_metrics_source_mismatch');
-        const original = manager._preStartDB as Function;
-        const descriptor = Object.getOwnPropertyDescriptor(manager, '_preStartDB');
+        const original = manager._startupDB as Function;
+        const descriptor = Object.getOwnPropertyDescriptor(manager, '_startupDB');
         const state = { installed: true, starts: 0 };
-        const replacement = function(this: unknown, database: unknown): unknown {
-            if (!SdkStartupTimerCompat.record(database) || !SdkStartupTimerCompat.record(database.options)
-                || !SdkStartupTimerCompat.record(manager.assetDBMap)) throw new Error('peanut_sdk_timer_database_identity_invalid');
-            const name = database.options.name;
+        const replacement = function(this: unknown, stage: unknown): unknown {
+            if (!SdkStartupTimerCompat.record(stage) || !SdkStartupTimerCompat.record(manager.assetDBMap)
+                || !SdkStartupTimerCompat.record(manager.assetDBInfo)) throw new Error('peanut_sdk_timer_database_identity_invalid');
+            const name = stage.name;
             if (this !== manager || typeof name !== 'string' || !/^[A-Za-z0-9._-]+$/u.test(name)
-                || manager.assetDBMap[name] !== database) throw new Error('peanut_sdk_timer_database_identity_invalid');
+                || !SdkStartupTimerCompat.record(manager.assetDBMap[name])
+                || !SdkStartupTimerCompat.record(manager.assetDBMap[name].options)
+                || manager.assetDBMap[name].options.name !== name
+                || !SdkStartupTimerCompat.record(manager.assetDBInfo[name])
+                || manager.assetDBInfo[name].state !== 'start'
+                || typeof stage.afterPreImportResolve !== 'function')
+                throw new Error('peanut_sdk_timer_database_identity_invalid');
             Reflect.apply(start, metrics, [`asset-db:worker-startup-database[${name}]`]);
             state.starts += 1;
-            return Reflect.apply(original, this, [database]);
+            return Reflect.apply(original, this, [stage]);
         };
-        Object.defineProperty(manager, '_preStartDB', { configurable: true, writable: true, value: replacement });
+        Object.defineProperty(manager, '_startupDB', { configurable: true, writable: true, value: replacement });
         return { state, restore: (): void => {
             if (!state.installed) return;
-            if (manager._preStartDB !== replacement) throw new Error('peanut_sdk_timer_patch_identity_changed');
-            if (descriptor) Object.defineProperty(manager, '_preStartDB', descriptor); else delete manager._preStartDB;
+            if (manager._startupDB !== replacement) throw new Error('peanut_sdk_timer_patch_identity_changed');
+            if (descriptor) Object.defineProperty(manager, '_startupDB', descriptor); else delete manager._startupDB;
             state.installed = false;
         } };
     }
