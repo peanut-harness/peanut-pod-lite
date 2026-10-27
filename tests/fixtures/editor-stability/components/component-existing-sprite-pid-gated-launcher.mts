@@ -17,13 +17,13 @@ const PRODUCTION = Object.freeze({
     binarySha256: '799386a840d319b7eb78a788a4919950d8537f41aeca2cb6ce85a0ee2c4a0330',
     lease: join(PRIVATE, 'sprite-runtime-lease-383.json'),
     permit: join(PRIVATE, 'sprite-production-383-stage-permit.json'),
-    preparationRoot: join(PRIVATE, 'c4-383-preparation'),
-    runId: 'pod-51-probe-383-20261027-03',
+    preparationRoot: join(PRIVATE, 'c5-383-preparation'),
+    runId: 'pod-51-probe-383-20261027-04',
     candidateSourceCommit: '660226aa28d0d96fc4766c81c3b58af71cd1a8f0',
     hostSha256: '3954bec522639354ce249f594055e7a543854ee721c645994051cd094f534438',
     coreSha256: 'ef38d9ac7f12a6face2e353cbb02c538ce0546520d1cb3941a903c8a376d794f',
-    probeSourceCommit: 'aa4423bbb6371bfcf20a5d1e3ce2bf053f538995',
-    probeBundleSha256: '98340a038a17de63a7fcff08cfc25bc321c026f8aa4acf7c09ea4c6e36c91a41',
+    probeSourceCommit: 'd3aab51e70a9d3ff034f573cb8ad61281f65978c',
+    probeBundleSha256: '301c82d3792a07ed1c7ea99283cda87becd9d9ce7085bd621a8ae2d9764cd22a',
 });
 
 type OwnedLease = { path: string; dev: number; ino: number; digest: string; generation: string };
