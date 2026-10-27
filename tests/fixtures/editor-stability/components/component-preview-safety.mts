@@ -1,11 +1,51 @@
 import { readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 import { ComponentNativeClient } from './component-native-client.mts';
 
 /**
  * @description 独立、有界的实际预览安全验收；只允许最多三次刷新，未知状态立即停止。
  */
-class ComponentPreviewSafety {
+export class ComponentPreviewSafety {
+    /**
+     * @description 核对当前实际工程类型的冻结候选，禁止现有0.2.1工程复用历史0.2.0身份。
+     * @param root 当前工作树。
+     * @param registration 已验证工程登记。
+     * @returns 与登记完全匹配的候选摘要。
+     */
+    public static releaseIdentity(root: string, registration: Readonly<Record<string, unknown>>) {
+        const kind = registration.kind;
+        if (!['registered-existing-0.2.1-project', 'worktree-local-validation-project'].includes(String(kind)))
+            throw new Error('preview_safety_project_kind_invalid');
+        const version = kind === 'registered-existing-0.2.1-project' ? '0.2.1' : '0.2.0';
+        const descriptor = this.record(JSON.parse(readFileSync(join(root, `release/peanut.pod-lite-${version}/lite-release-descriptor.json`), 'utf8')));
+        const host = this.record(descriptor.host); const core = this.record(descriptor.core);
+        if (descriptor.version !== version || typeof host.sha256 !== 'string' || !/^[a-f0-9]{64}$/u.test(host.sha256)
+            || typeof core.sha256 !== 'string' || !/^[a-f0-9]{64}$/u.test(core.sha256)
+            || host.sha256 !== registration.hostSha256 || core.sha256 !== registration.coreSha256)
+            throw new Error('preview_safety_candidate_identity_mismatch');
+        return { version, hostSha256: host.sha256, coreSha256: core.sha256 };
+    }
+
+    /**
+     * @description 对未受信JSON记录执行显式收窄。
+     * @param value 未受信记录。
+     * @returns 已收窄记录。
+     */
+    private static record(value: unknown): Record<string, unknown> {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('preview_safety_descriptor_invalid');
+        return Object.fromEntries(Object.entries(value));
+    }
+
+    /**
+     * @description 在实际刷新前冻结的候选身份。
+     */
+    private readonly candidate: ReturnType<typeof ComponentPreviewSafety.releaseIdentity>;
+    /**
+     * @description 实际执行的安全入口源码摘要。
+     */
+    private readonly runnerSha256 = createHash('sha256').update(readFileSync(new URL(import.meta.url))).digest('hex');
     /**
      * @description 本任务实际工程与认证传输。
      */
@@ -21,6 +61,7 @@ class ComponentPreviewSafety {
      */
     public constructor(project: string) {
         this.client = new ComponentNativeClient(project);
+        this.candidate = ComponentPreviewSafety.releaseIdentity(this.client.root, this.client.registration);
         writeFileSync(join(this.client.output, 'preview-safety-start.json'), JSON.stringify({ startedAt: new Date().toISOString(),
             maxRefreshCalls: 3, candidateSourceCommit: this.client.registration.candidateSourceCommit }) + '\n', { flag: 'wx' });
     }
@@ -103,13 +144,17 @@ class ComponentPreviewSafety {
      * @param verified 所有实际窗口计数和业务后验是否通过。
      */
     private save(verified: boolean): void {
-        const descriptor = JSON.parse(readFileSync(join(this.client.root, 'release/peanut.pod-lite-0.2.0/lite-release-descriptor.json'), 'utf8'));
+        if (createHash('sha256').update(readFileSync(new URL(import.meta.url))).digest('hex') !== this.runnerSha256)
+            throw new Error('preview_safety_runner_changed');
         writeFileSync(join(this.client.output, 'preview-safety-receipt.json'), JSON.stringify({
             verified, creatorVersion: this.client.registration.creatorVersion, candidateSourceCommit: this.client.registration.candidateSourceCommit,
-            hostSha256: descriptor.host.sha256, coreSha256: descriptor.core.sha256, maxRefreshCalls: 3,
+            hostSha256: this.candidate.hostSha256, coreSha256: this.candidate.coreSha256,
+            runnerSha256: this.runnerSha256, maxRefreshCalls: 3,
             allEnabled: false, task51Complete: false, steps: this.steps }, null, 2) + '\n');
     }
 }
-const project = process.argv[process.argv.indexOf('--project') + 1];
-if (!project) throw new Error('preview_safety_project_required');
-await new ComponentPreviewSafety(project).run();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+    const project = process.argv[process.argv.indexOf('--project') + 1];
+    if (!project) throw new Error('preview_safety_project_required');
+    await new ComponentPreviewSafety(project).run();
+}
