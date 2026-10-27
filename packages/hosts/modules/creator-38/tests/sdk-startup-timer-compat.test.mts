@@ -37,32 +37,35 @@ function sdk() {
     return { manager, metrics, events, starts };
 }
 
-test('real frozen SDK cold path is broken, product starts before real work and preserves the actual end', async () => {
+test('real frozen SDK cold path is broken, product starts before cold startup completion and preserves the actual end', async () => {
     const broken = sdk(); const stage = await broken.manager._preStartDB(broken.manager.assetDBMap.internal);
     await assert.rejects(broken.manager._startupDB(stage), /missing_real_start/u);
-    const fixed = sdk(); const original = fixed.manager._preStartDB;
+    const fixed = sdk(); const original = fixed.manager._startupDB;
+    const first = await fixed.manager._preStartDB(fixed.manager.assetDBMap.internal);
     const end = fixed.metrics.trackTimeEnd; const patch = SdkStartupTimerCompat.install(fixed.manager, fixed.metrics, '3.8.7');
     for (const name of ['internal', 'assets']) {
-        const next = await fixed.manager._preStartDB(fixed.manager.assetDBMap[name]); await fixed.manager._startupDB(next);
+        const next = name === 'internal' ? first : await fixed.manager._preStartDB(fixed.manager.assetDBMap[name]);
+        await fixed.manager._startupDB(next);
         const label = `asset-db:worker-startup-database[${name}]`;
-        assert(fixed.events.indexOf('start:' + label) < fixed.events.indexOf('database-begin:' + name));
+        assert(fixed.events.indexOf('database-begin:' + name) < fixed.events.indexOf('start:' + label));
+        assert(fixed.events.indexOf('start:' + label) < fixed.events.indexOf('database-complete:' + name));
         assert(fixed.events.indexOf('database-complete:' + name) < fixed.events.indexOf('end:' + label));
         assert.equal(fixed.events.filter(value => value === 'start:' + label).length, 1);
         assert.equal(fixed.events.filter(value => value === 'end:' + label).length, 1);
     }
     assert.equal(fixed.metrics.trackTimeEnd, end); assert.equal(fixed.starts.size, 0); assert.equal(patch.state.starts, 2);
-    assert.throws(() => Reflect.apply(fixed.manager._preStartDB, {}, [fixed.manager.assetDBMap.internal]), /database_identity/u);
-    assert.throws(() => fixed.manager._preStartDB({ options: { name: 'internal' } } as IDatabase), /database_identity/u);
-    patch.restore(); patch.restore(); assert.equal(fixed.manager._preStartDB, original);
+    assert.throws(() => Reflect.apply(fixed.manager._startupDB, {}, [first]), /database_identity/u);
+    assert.throws(() => fixed.manager._startupDB({ name: 'internal' }), /database_identity/u);
+    patch.restore(); patch.restore(); assert.equal(fixed.manager._startupDB, original);
 });
 
 test('unknown SDK methods and metrics fail before installing or starting any timer', () => {
     for (const name of ['_preStartDB', '_startupDB', '_startDB'] as const) {
-        const current = sdk(); const original = current.manager._preStartDB;
+        const current = sdk(); const original = current.manager._startupDB;
         Object.defineProperty(current.manager, name, { configurable: true, writable: true, value: async () => undefined });
-        const prior = current.manager._preStartDB;
+        const prior = current.manager._startupDB;
         assert.throws(() => SdkStartupTimerCompat.install(current.manager, current.metrics, '3.8.7'), /source_mismatch/u);
-        assert.equal(current.manager._preStartDB, prior); assert.equal(current.events.length, 0);
+        assert.equal(current.manager._startupDB, prior); assert.equal(current.events.length, 0);
         assert.equal(typeof original, 'function');
     }
     const current = sdk(); current.metrics.trackTimeStart = (): void => {};
@@ -73,14 +76,14 @@ test('unknown SDK methods and metrics fail before installing or starting any tim
 test('worker is idempotent, skips 3.8.3 and restores only its own method reference', () => {
     const skipped = new SdkStartupTimerWorker(); skipped.load({ App: { version: '3.8.3' } }, null);
     assert.deepEqual(skipped.status(), { installed: false, starts: 0 }); skipped.unload();
-    const current = sdk(); const worker = new SdkStartupTimerWorker(); const original = current.manager._preStartDB;
+    const current = sdk(); const worker = new SdkStartupTimerWorker(); const original = current.manager._startupDB;
     const editor = { App: { version: '3.8.7' }, Metrics: current.metrics }; const manager = { assetDBManager: current.manager };
-    worker.load(editor, manager); const own = current.manager._preStartDB; worker.load(editor, manager);
-    assert.equal(current.manager._preStartDB, own); assert.equal(worker.status().installed, true);
-    worker.unload(); assert.equal(current.manager._preStartDB, original); worker.unload();
-    worker.load(editor, manager); current.manager._preStartDB = async () => undefined;
+    worker.load(editor, manager); const own = current.manager._startupDB; worker.load(editor, manager);
+    assert.equal(current.manager._startupDB, own); assert.equal(worker.status().installed, true);
+    worker.unload(); assert.equal(current.manager._startupDB, original); worker.unload();
+    worker.load(editor, manager); current.manager._startupDB = async () => undefined;
     assert.throws(() => worker.unload(), /patch_identity_changed/u);
-    assert.notEqual(current.manager._preStartDB, original);
+    assert.notEqual(current.manager._startupDB, original);
 });
 
 

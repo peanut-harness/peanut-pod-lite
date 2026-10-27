@@ -1,7 +1,8 @@
-import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
-import { join, dirname, sep } from 'node:path';
+import { realpathSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { ComponentSdkListenerCompat } from './component-sdk-listener-compat';
 import { ComponentSdkRendererTimerTrace } from './component-sdk-renderer-timer-trace';
+import { ComponentSdkCompatScope } from './component-sdk-compat-scope';
 
 /**
  * @description 独立项目扩展提供SDK兼容修复，原只读probe保持只读，不修改Creator安装包。
@@ -16,10 +17,9 @@ class ComponentSdkListenerScene {
      */
     public static load(): void {
         const cce = Reflect.get(globalThis, 'cce'); const editor = Reflect.get(globalThis, 'Editor');
-        const project = realpathSync(cce?.project ?? editor?.Project?.path); const output = dirname(project);
-        const registration = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8'));
-        if (registration.task !== '5.1' || registration.sdkListenerCompat !== true || registration.projectPath !== project
-            || !project.startsWith(realpathSync(registration.worktree) + sep + 'evidence' + sep + 'task-5.1' + sep))
+        const project = realpathSync(cce?.project ?? editor?.Project?.path);
+        const { output, registration } = ComponentSdkCompatScope.locate(project);
+        if (registration.task !== '5.1' || registration.sdkListenerCompat !== true || registration.projectPath !== project)
             throw new Error('component_sdk_listener_project_not_registered');
         const cc = require('cc');
         this.patch = ComponentSdkListenerCompat.install(cce.Component, Reflect.get(globalThis, 'EditorExtends').Component, cc.VERSION);

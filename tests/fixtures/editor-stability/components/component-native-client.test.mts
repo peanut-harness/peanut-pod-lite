@@ -39,6 +39,7 @@ async function fixture(run: (client: RegistrationClient) => Promise<void>): Prom
     const identity = { owner: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', runId: 'unit-only' };
     writeFileSync(join(output, 'project-ownership.json'), JSON.stringify({ ...identity, task: '5.1', projectPath: project }));
     writeFileSync(join(output, 'creator-owned-start.json'), JSON.stringify({ ...identity, project }));
+    writeFileSync(join(output, 'component-matrix-staging.json'), JSON.stringify({ campaign: 'task51-attempt-23' }));
     try { await run(new RegistrationClient(project, { current: () => identity.owner })); } finally { rmSync(output, { recursive: true, force: true }); }
 }
 
@@ -64,6 +65,18 @@ test('scene identity rejects escaped paths and broken metadata without attemptin
         writeFileSync(join(client.project, 'assets/components/cc.Label.scene.meta'), '{broken');
         await assert.rejects(client.sceneIdentity('assets/components/cc.Label.scene'), SyntaxError);
         assert.deepEqual(client.calls, ['assets']);
+    });
+});
+
+test('scene identity accepts only run-scoped component paths declared by the active matrix staging', async () => {
+    await fixture(async client => {
+        const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+        const scene = 'assets/components/_lifecycle/task51-attempt-23/cc.RigidBody.scene';
+        mkdirSync(join(client.project, 'assets/components/_lifecycle/task51-attempt-23'), { recursive: true });
+        writeFileSync(join(client.project, scene + '.meta'), JSON.stringify({ uuid }));
+        client.observe = () => [{ url: `db://${scene}`, uuid }];
+        assert.equal(await client.sceneIdentity(scene), uuid);
+        await assert.rejects(client.sceneIdentity('assets/components/_lifecycle/task51-attempt-24/cc.RigidBody.scene'), /scene_path_invalid/u);
     });
 });
 

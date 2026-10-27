@@ -9,6 +9,7 @@ import { ComponentEngineModules } from './component-engine-modules.mts';
 import { ComponentServiceProfile } from './component-service-profile.mts';
 import { ComponentTaskOwnership } from './component-task-ownership.mts';
 import { ComponentCreatorDiagnostics } from './component-creator-diagnostics.mts';
+import { ComponentMatrixScope } from './component-matrix-scope.mts';
 
 /**
  * @description 5.1 独占隔离工程的外层 npm 启动入口；记录 PID、启动时间与完整二进制日志。
@@ -19,11 +20,10 @@ class ComponentCreatorSession {
      */
     public static preflight(): { registration: Record<string, string> & { offlineServiceProfile?: boolean }; project: string; output: string; binary: string; sameVersion: boolean; diagnosticArgs: string[] } {
         const repository = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
-        const project = realpathSync(process.cwd()); const output = dirname(project);
-        if (!project.startsWith(`${repository}${sep}evidence${sep}task-5.1${sep}`) || project !== join(output, 'project'))
-            throw new Error('component_creator_project_out_of_scope');
+        const scope = ComponentMatrixScope.locate(repository, process.cwd());
+        const project = scope.project; const output = scope.output;
         const registration = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8')) as Record<string, string> & { offlineServiceProfile?: boolean };
-        if (registration.task !== '5.1' || registration.kind !== 'worktree-local-validation-project'
+        if (registration.task !== '5.1' || !['worktree-local-validation-project', 'registered-existing-0.2.1-project'].includes(registration.kind)
             || registration.projectPath !== project || registration.owner !== ComponentTaskOwnership.current(repository))
             throw new Error('component_creator_project_unregistered');
         const manifest = JSON.parse(readFileSync(join(project, 'package.json'), 'utf8'));
@@ -31,15 +31,24 @@ class ComponentCreatorSession {
         const sdk = join(registration.creatorApp ?? '', 'Contents/Resources/resources/3d/engine/package.json');
         if (JSON.parse(readFileSync(sdk, 'utf8')).version !== manifest.creator?.version
             || manifest.creator.version !== registration.creatorVersion) throw new Error('component_creator_exact_version_mismatch');
-        ComponentEngineProfile.assertProject(project, registration.creatorVersion);
+        if (scope.mode === 'isolated') ComponentEngineProfile.assertProject(project, registration.creatorVersion);
         if (registration.offlineServiceProfile === true) ComponentServiceProfile.assertProject(project, registration.creatorVersion);
-        if (existsSync(join(output, 'component-matrix-staging.json'))) ComponentEngineModules.assertProject(project,
+        if (scope.mode === 'isolated' && existsSync(join(output, 'component-matrix-staging.json'))) ComponentEngineModules.assertProject(project,
             registration.creatorVersion, ComponentEngineModules.context(registration.engineModulesContext));
-        const descriptor = verifyReleaseCandidate(join(repository, 'release/peanut.pod-lite-0.2.0'), {
-            expectedVersion: '0.2.0', expectedSourceCommit: registration.candidateSourceCommit,
-        });
-        if (descriptor.host.sha256 !== registration.hostSha256 || descriptor.core.sha256 !== registration.coreSha256)
-            throw new Error('component_creator_candidate_mismatch');
+        if (scope.mode === 'existing') {
+            const descriptor = JSON.parse(readFileSync(join(repository, 'release/peanut.pod-lite-0.2.1/lite-release-descriptor.json'), 'utf8'));
+            if (descriptor.version !== '0.2.1' || descriptor.host.sha256 !== registration.hostSha256
+                || descriptor.core.sha256 !== registration.coreSha256
+                || descriptor.host.packageDigest !== registration.hostPackageDigest
+                || descriptor.core.packageDigest !== registration.corePackageDigest)
+                throw new Error('component_creator_candidate_mismatch');
+        } else {
+            const descriptor = verifyReleaseCandidate(join(repository, 'release/peanut.pod-lite-0.2.0'), {
+                expectedVersion: '0.2.0', expectedSourceCommit: registration.candidateSourceCommit,
+            });
+            if (descriptor.host.sha256 !== registration.hostSha256 || descriptor.core.sha256 !== registration.coreSha256)
+                throw new Error('component_creator_candidate_mismatch');
+        }
         const processes = this.processes();
         if (processes.some((line) => line.includes(`${binary} --project ${project}`))) throw new Error('creator_project_session_conflict');
         const sameVersion = processes.some((line) => line.includes(`${binary} --project `));
@@ -51,12 +60,16 @@ class ComponentCreatorSession {
      * @description 保留 npm pre/post hooks，捕获实际子进程起止与所有原始 stdout/stderr。
      */
     public static async launch(): Promise<void> {
-        if (process.env.npm_lifecycle_event !== 'creator' || process.env.npm_config_ignore_scripts === 'true')
+        const repository = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
+        const scope = ComponentMatrixScope.locate(repository, process.cwd());
+        if (scope.mode === 'isolated' && (process.env.npm_lifecycle_event !== 'creator' || process.env.npm_config_ignore_scripts === 'true'))
             throw new Error('component_creator_outer_npm_required');
         const context = this.preflight();
+        const logPath = join(context.project, 'temp/logs/project.log');
+        const projectLogOffset = existsSync(logPath) ? readFileSync(logPath).length : 0;
         const out = openSync(join(context.output, 'stdout.log'), 'wx', 0o600);
         const err = openSync(join(context.output, 'stderr.log'), 'wx', 0o600);
-        const useOpen = context.sameVersion;
+        const useOpen = process.platform === 'darwin' || context.sameVersion;
         const launcherOut = useOpen ? openSync(join(context.output, 'launcher-stdout.log'), 'wx', 0o600) : out;
         const launcherErr = useOpen ? openSync(join(context.output, 'launcher-stderr.log'), 'wx', 0o600) : err;
         const args = useOpen ? ['-n', '-a', context.registration.creatorApp ?? '', '-W',
@@ -94,6 +107,7 @@ class ComponentCreatorSession {
                     project: context.project, creatorVersion: context.registration.creatorVersion, identity,
                     executableSha256: createHash('sha256').update(readFileSync(context.binary)).digest('hex'),
                     startedAt: new Date().toISOString(), candidateSourceCommit: context.registration.candidateSourceCommit,
+                    projectLogOffset,
                 }, null, 2) + '\n', { flag: 'wx' });
                 process.stdout.write(`component_creator_owned_pid:${creatorPid}\n`);
             })().catch(reject); });

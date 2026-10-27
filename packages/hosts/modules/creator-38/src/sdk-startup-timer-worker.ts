@@ -10,7 +10,7 @@ export class SdkStartupTimerWorker {
     private patch: ReturnType<typeof SdkStartupTimerCompat.install> | null = null;
 
     /**
-     * @description 在实际数据库预启动之前安装精确版本修复。
+     * @description 在冷库启动入口执行之前安装精确版本修复。
      * @param editor SDK worker 的 Editor。
      * @param manager SDK worker 的 Manager。
      */
@@ -46,7 +46,7 @@ export class SdkStartupTimerWorker {
 
 const worker = new SdkStartupTimerWorker();
 /**
- * @description Host asset-db 贡献可能在 beforePreStart 全局派发之后才加载；SDK 仍会在此后启动数据库。
+ * @description Host asset-db 贡献可能在 beforePreStart 全局派发及冷库预启动之后才加载；SDK 仍会在此后启动数据库。
  * 在直接 worker 入口求值时尽早安装，SDK 全局尚未就绪时交由原始生命周期钩子重试。
  */
 const installIfReady = (): void => {

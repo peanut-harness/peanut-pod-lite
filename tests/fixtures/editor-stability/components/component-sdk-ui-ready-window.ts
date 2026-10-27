@@ -1,6 +1,7 @@
 import { readFileSync, realpathSync } from 'node:fs';
-import { dirname, join, sep } from 'node:path';
+import { join } from 'node:path';
 import { ComponentSdkUiReadyCompat } from './component-sdk-ui-ready-compat';
+import { ComponentSdkCompatScope } from './component-sdk-compat-scope';
 
 /**
  * @description 仅在两次真实SDK首次计时结束的证明落盘后，安装当前隔离窗口的精确兼容。
@@ -13,13 +14,12 @@ class ComponentSdkUiReadyWindow {
      * @description 核对工程、SDK及实际阶段证据；不执行SDK函数文本或生成计时数据。
      */
     public static load(): unknown {
-        const project = realpathSync(join(__dirname, '../..')); const output = dirname(project);
-        const registration = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8'));
+        const project = realpathSync(join(__dirname, '../..'));
+        const { output, registration } = ComponentSdkCompatScope.locate(project);
         const proof = JSON.parse(readFileSync(join(output, 'sdk-ui-ready-phases.json'), 'utf8'));
         const editor = Reflect.get(globalThis, 'Editor');
         if (registration.task !== '5.1' || registration.sdkUiReadyCompat !== true || registration.projectPath !== project
             || !['3.8.3', '3.8.7'].includes(registration.creatorVersion) || editor.App.version !== registration.creatorVersion || realpathSync(editor.Project.path) !== project
-            || !project.startsWith(realpathSync(registration.worktree) + sep + 'evidence' + sep + 'task-5.1' + sep)
             || proof.runId !== registration.runId || proof.projectPath !== project
             || !['main-window:ready', 'hierarchy:render-tree'].every(label => proof.observed?.includes(label)))
             throw new Error('component_sdk_ui_ready_project_or_phase_unverified');

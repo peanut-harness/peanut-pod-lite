@@ -9,6 +9,8 @@ import { ComponentServiceProfile } from './component-service-profile.mts';
 import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 import { ComponentNativeAssetLoader } from './component-native-asset-loader.ts';
 import { ComponentTaskOwnership } from './component-task-ownership.mts';
+import { ComponentMatrixScope } from './component-matrix-scope.mts';
+import { ComponentExistingEngineCompatibility } from './component-existing-engine-compatibility.mts';
 
 /**
  * @description 每次重读令牌与端口，并把原生响应绑定到登记工程及本任务实际启动进程。
@@ -19,8 +21,8 @@ class ComponentNativeRead {
      */
     public static async run(project: string): Promise<void> {
         const root = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
-        project = realpathSync(project); const output = dirname(project);
-        if (!project.startsWith(`${root}${sep}evidence${sep}task-5.1${sep}`)) throw new Error('component_native_read_project_out_of_scope');
+        const scope = ComponentMatrixScope.locate(root, project);
+        project = scope.project; const output = scope.output;
         const registration = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8'));
         const lease = JSON.parse(readFileSync(join(output, 'creator-owned-start.json'), 'utf8'));
         if (registration.task !== '5.1' || registration.owner !== ComponentTaskOwnership.current(root)
@@ -72,17 +74,24 @@ class ComponentNativeRead {
         } while (true);
         if (!health) throw new Error('component_native_health_missing');
         writeFileSync(join(output, 'native-health.json'), JSON.stringify(health, null, 2) + '\n', { mode: 0o600 });
-        ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(registration.creatorVersion));
+        if (scope.mode === 'existing') ComponentExistingEngineCompatibility.assert(health.effectiveEngineProfile,
+            root, String(registration.creatorVersion));
+        else ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(registration.creatorVersion));
         if (existsSync(join(output, 'component-matrix-staging.json'))) {
             const context = ComponentEngineModules.context(registration.engineModulesContext);
-            ComponentEngineModules.assertProject(project, String(registration.creatorVersion), context);
-            ComponentEngineModules.assertActive(health.engineModulesProfile, String(registration.creatorVersion), context);
-            ComponentEngineModules.assertActiveMacros(health.engineMacroProfile, String(registration.creatorVersion), context);
+            if (scope.mode === 'isolated') {
+                ComponentEngineModules.assertProject(project, String(registration.creatorVersion), context);
+                ComponentEngineModules.assertActive(health.engineModulesProfile, String(registration.creatorVersion), context);
+                ComponentEngineModules.assertActiveMacros(health.engineMacroProfile, String(registration.creatorVersion), context);
+            }
         }
         if (registration.offlineServiceProfile === true) ComponentServiceProfile.assertActive(health.serviceConfigProfile, String(registration.creatorVersion));
-        const { CpmPackageStore } = createRequire(import.meta.url)('../../../../packages/hosts/modules/creator-38/src/cpm-package-store.js');
-        const descriptor = JSON.parse(readFileSync(join(root, 'release/peanut.pod-lite-0.2.0/lite-release-descriptor.json'), 'utf8'));
-        const identityErrors = CpmPackageStore.compareReleaseIdentity(health.host.artifacts, descriptor);
+        const identityErrors = scope.mode === 'existing'
+            ? [health.host.artifacts.host.packageDigest === registration.hostPackageDigest,
+                health.host.artifacts.core.packageDigest === registration.corePackageDigest].every(Boolean) ? [] : ['installed-package-digest-mismatch']
+            : createRequire(import.meta.url)('../../../../packages/hosts/modules/creator-38/src/cpm-package-store.js')
+                .CpmPackageStore.compareReleaseIdentity(health.host.artifacts,
+                    JSON.parse(readFileSync(join(root, 'release/peanut.pod-lite-0.2.0/lite-release-descriptor.json'), 'utf8')));
         if (!health.host.ready || health.creatorVersion !== registration.creatorVersion || health.pid !== lease.pid || identityErrors.length)
             throw new Error(`component_native_health_or_candidate_failed:${JSON.stringify(identityErrors)}`);
         const staging = JSON.parse(readFileSync(join(output, 'staging-receipt.json'), 'utf8')) as {

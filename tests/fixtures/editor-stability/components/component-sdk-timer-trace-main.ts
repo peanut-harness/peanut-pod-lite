@@ -1,11 +1,12 @@
-import { appendFileSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
-import { dirname, join, sep } from 'node:path';
+import { appendFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { randomBytes } from 'crypto';
 import { ComponentSdkTimerTrace } from './component-sdk-timer-trace';
 import { ComponentSdkWindowDiagnostics } from './component-sdk-window-diagnostics';
 import { ComponentSdkUiReadyPhases } from './component-sdk-ui-ready-phases';
 import { ComponentSdkWindowModuleLifecycle } from './component-sdk-window-module-lifecycle';
+import { ComponentSdkCompatScope } from './component-sdk-compat-scope';
 
 /**
  * @description 显式登记的SDK计时观测入口；不修改安装包、统计事件或原始日志。
@@ -19,12 +20,11 @@ class ComponentSdkTimerTraceMain {
      */
     public static load(): void {
         if (this.lifecycle && !this.lifecycle.canRestart) throw new Error('component_sdk_window_generation_active');
-        const editor = Reflect.get(globalThis, 'Editor'); const project = realpathSync(editor.Project.path); const output = dirname(project);
-        const registration = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8'));
+        const editor = Reflect.get(globalThis, 'Editor'); const project = realpathSync(editor.Project.path);
+        const { output, registration } = ComponentSdkCompatScope.locate(project);
         if (registration.task !== '5.1' || (registration.sdkTimerTrace !== true && registration.sdkUiReadyCompat !== true) || registration.projectPath !== project
             || !['3.8.3', '3.8.7'].includes(registration.creatorVersion) || editor.App.version !== registration.creatorVersion
-            || registration.creatorVersion === '3.8.3' && (registration.sdkUiReadyCompat !== true || registration.sdkSceneCacheCompat !== true)
-            || !project.startsWith(realpathSync(registration.worktree) + sep + 'evidence' + sep + 'task-5.1' + sep))
+            || registration.creatorVersion === '3.8.3' && (registration.sdkUiReadyCompat !== true || registration.sdkSceneCacheCompat !== true))
             throw new Error('component_sdk_timer_trace_project_not_registered');
         const generationId = String(process.pid) + ':' + randomBytes(16).toString('hex') + ':' + String(++this.generation);
         const lifecycle = new ComponentSdkWindowModuleLifecycle({
@@ -60,13 +60,31 @@ class ComponentSdkTimerTraceMain {
                 const receipt = join(output, 'sdk-ui-ready-compat-state.json');
                 writeFileSync(receipt, JSON.stringify({ installed: false, pending: true }) + '\n');
                 const script = realpathSync(join(project, 'extensions/peanut-component-sdk-compat/ui-ready.js'));
-                const phases = ComponentSdkUiReadyPhases.install(map, observed => {
-                    if (!lifecycle.isOpen) return;
-                    writeFileSync(join(output, 'sdk-ui-ready-phases.json'), JSON.stringify({ runId: registration.runId, projectPath: project,
-                        observed, at: Date.now(), pid: process.pid, source: 'actual SDK Metrics.trackTimeEnd successful Map.delete' }, null, 2) + '\n', { flag: 'wx' });
-                    install(script, receipt);
-                });
-                lifecycle.own(() => phases.restore());
+                const observe = (): void => {
+                    const phases = ComponentSdkUiReadyPhases.install(map, observed => {
+                        if (!lifecycle.isOpen) return;
+                        writeFileSync(join(output, 'sdk-ui-ready-phases.json'), JSON.stringify({ runId: registration.runId, projectPath: project,
+                            observed, at: Date.now(), pid: process.pid, source: 'actual SDK Metrics.trackTimeEnd successful Map.delete' }, null, 2) + '\n', { flag: 'wx' });
+                        install(script, receipt);
+                    });
+                    lifecycle.own(() => phases.restore());
+                };
+                if (registration.creatorVersion === '3.8.7') {
+                    let attempts = 0;
+                    const timer = setInterval(() => {
+                        if (!lifecycle.isOpen) { clearInterval(timer); return; }
+                        try {
+                            const source = Function.prototype.toString.call(map.delete);
+                            if (!source.includes('SdkBuildTaskTimerCompat.labels')) {
+                                if (++attempts < 300) return;
+                                throw new Error('component_sdk_ui_ready_host_timer_wrapper_missing');
+                            }
+                            clearInterval(timer);
+                            observe();
+                        } catch (error) { clearInterval(timer); lifecycle.abort(error); }
+                    }, 10);
+                    lifecycle.own(() => clearInterval(timer));
+                } else observe();
             }
             if (registration.sdkRendererTimerTrace === true) {
                 const receipt = join(output, 'sdk-window-renderer-trace-state.json');

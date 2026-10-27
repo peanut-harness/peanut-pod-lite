@@ -20,7 +20,7 @@ export class ComponentTaskOwnership {
     }
 
     /**
-     * @description 校验唯一活动登记、工作树绑定及三项 self-delivery 所有权。
+     * @description 校验唯一活动登记、工作树绑定及三项一致的执行所有权。
      * @param repository 当前真实工作树。
      * @param workspace 所属设备工作空间。
      * @param actor 当前会话身份。
@@ -35,7 +35,7 @@ export class ComponentTaskOwnership {
             && entry.change === 'stabilize-editor-operations-and-bulk-file-io');
         if (matches.length !== 1) throw new Error('component_task_registry_ambiguous');
         const entry = matches[0];
-        if (!entry || entry.state !== 'active' || entry.deliveryMode !== 'self-delivery'
+        if (!entry || entry.state !== 'active' || !['self-delivery', 'coordinated'].includes(String(entry.deliveryMode))
             || entry.path !== '.worktrees/peanut-pod-lite/stabilize-editor-operations-and-bulk-file-io'
             || relative(workspace, repository) !== entry.path
             || entry.branch !== 'change/stabilize-editor-operations-and-bulk-file-io'

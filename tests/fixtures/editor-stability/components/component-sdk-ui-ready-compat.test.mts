@@ -88,6 +88,20 @@ test('phase installation requires both actual successful SDK end deletions and r
     assert.deepEqual(observations, [['main-window:ready', 'hierarchy:render-tree']]); assert.equal(patch.state.installed, false); patch.restore();
 });
 
+test('phase observer installed outside an existing Host timer wrapper restores that wrapper after both real ends', async () => {
+    const map = new Map<unknown, unknown>(); const base = map.delete;
+    const host = function(this: Map<unknown, unknown>, key: unknown): boolean { return base.call(this, key); };
+    map.delete = host;
+    let completed = 0;
+    ComponentSdkUiReadyPhases.install(map, () => { completed++; },
+        () => 'at Metrics.trackTimeEnd (/sdk/app.asar/builtin/metrics/dist/libs/metrics.ccc:1:5874)');
+    for (const label of ['main-window:ready', 'hierarchy:render-tree']) {
+        map.set(label, Date.now()); assert.equal(map.delete(label), true);
+    }
+    await Promise.resolve();
+    assert.equal(completed, 1); assert.equal(map.delete, host);
+});
+
 
 test('3.8.3 uses its separately frozen broadcast with actual end and serial hierarchy refreshes, and rejects cross-version broadcast substitution', async () => {
     const fixed = sdk('3.8.3'); fixed.metrics.trackTimeStart('main-window:ready'); fixed.handlers['scene:ready']();

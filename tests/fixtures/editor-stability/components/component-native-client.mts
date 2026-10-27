@@ -12,6 +12,8 @@ import { ComponentServiceProfile } from './component-service-profile.mts';
 import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 import { ComponentProjectUrlResolver } from './component-project-url-resolver.mts';
 import { ComponentTaskOwnership } from './component-task-ownership.mts';
+import { ComponentMatrixScope } from './component-matrix-scope.mts';
+import { ComponentExistingEngineCompatibility } from './component-existing-engine-compatibility.mts';
 
 /**
  * @description 矩阵验证的实际认证传输；只允许精确六项写及只读观测，令牌不进入证据。
@@ -56,9 +58,8 @@ export class ComponentNativeClient {
      * @param ownership 当前归属读取器；离线测试可注入隔离登记边界。
      */
     public constructor(project: string, ownership: Pick<typeof ComponentTaskOwnership, 'current'> = ComponentTaskOwnership) {
-        this.project = realpathSync(project); this.output = dirname(this.project);
-        if (!this.project.startsWith(`${this.root}${sep}evidence${sep}task-5.1${sep}`) || this.project !== join(this.output, 'project'))
-            throw new Error('component_matrix_project_out_of_scope');
+        const scope = ComponentMatrixScope.locate(this.root, project);
+        this.project = scope.project; this.output = scope.output;
         this.registration = JSON.parse(readFileSync(join(this.output, 'project-ownership.json'), 'utf8'));
         this.lease = JSON.parse(readFileSync(join(this.output, 'creator-owned-start.json'), 'utf8'));
         if (this.registration.formalSdkStartupTimer && this.registration.sdkStartupTimerCompat === true)
@@ -113,7 +114,10 @@ export class ComponentNativeClient {
                             throw new Error('component_sdk_ui_ready_identity_mismatch');
                         this.events.push({ step: 'sdk-ui-ready-compat-observed', result: compatibility }); this.save();
                     }
-                    ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(this.registration.creatorVersion));
+                    if (this.registration.kind === 'registered-existing-0.2.1-project')
+                        ComponentExistingEngineCompatibility.assert(health.effectiveEngineProfile,
+                            this.root, String(this.registration.creatorVersion));
+                    else ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(this.registration.creatorVersion));
                     if (this.registration.sdkSceneCacheCompat === true) {
                         const compatibility = this.record(await this.probe('sdk-scene-cache-compat-status'));
                         if (compatibility.installed !== true || compatibility.managerHookVerified !== true || compatibility.creatorVersion !== '3.8.3'
@@ -129,22 +133,45 @@ export class ComponentNativeClient {
                         this.events.push({ step: 'health-engine-modules-observed', creatorVersion: health.creatorVersion,
                             engineModulesProfile: health.engineModulesProfile ?? null }); this.save();
                         const context = ComponentEngineModules.context(this.registration.engineModulesContext);
-                        ComponentEngineModules.assertProject(this.project, String(this.registration.creatorVersion), context);
-                        ComponentEngineModules.assertActive(health.engineModulesProfile, String(this.registration.creatorVersion), context);
-                        ComponentEngineModules.assertActiveMacros(health.engineMacroProfile, String(this.registration.creatorVersion), context);
+                        if (this.registration.kind !== 'registered-existing-0.2.1-project') {
+                            ComponentEngineModules.assertProject(this.project, String(this.registration.creatorVersion), context);
+                            ComponentEngineModules.assertActive(health.engineModulesProfile, String(this.registration.creatorVersion), context);
+                            ComponentEngineModules.assertActiveMacros(health.engineMacroProfile, String(this.registration.creatorVersion), context);
+                        }
                     }
                     if (this.registration.offlineServiceProfile === true) ComponentServiceProfile.assertActive(health.serviceConfigProfile, String(this.registration.creatorVersion));
-                    const { CpmPackageStore } = createRequire(import.meta.url)('../../../../packages/hosts/modules/creator-38/src/cpm-package-store.js');
-                    const descriptor = JSON.parse(readFileSync(join(this.root, 'release/peanut.pod-lite-0.2.0/lite-release-descriptor.json'), 'utf8'));
-                    if (health.creatorVersion !== this.registration.creatorVersion || health.pid !== this.lease.pid
-                        || CpmPackageStore.compareReleaseIdentity(host.artifacts, descriptor).length) throw new Error('component_matrix_candidate_mismatch');
+                    if (this.registration.kind === 'registered-existing-0.2.1-project') {
+                        const artifacts = this.record(host.artifacts);
+                        if (health.creatorVersion !== this.registration.creatorVersion || health.pid !== this.lease.pid
+                            || this.record(artifacts.host).packageDigest !== this.registration.hostPackageDigest
+                            || this.record(artifacts.core).packageDigest !== this.registration.corePackageDigest)
+                            throw new Error('component_matrix_candidate_mismatch');
+                    } else {
+                        const { CpmPackageStore } = createRequire(import.meta.url)('../../../../packages/hosts/modules/creator-38/src/cpm-package-store.js');
+                        const descriptor = JSON.parse(readFileSync(join(this.root, 'release/peanut.pod-lite-0.2.0/lite-release-descriptor.json'), 'utf8'));
+                        if (health.creatorVersion !== this.registration.creatorVersion || health.pid !== this.lease.pid
+                            || CpmPackageStore.compareReleaseIdentity(host.artifacts, descriptor).length)
+                            throw new Error('component_matrix_candidate_mismatch');
+                    }
                     if (this.registration.formalSdkStartupTimer) {
                         if (typeof this.registration.candidateSourceCommit !== 'string') throw new Error('component_formal_sdk_worker_registration_mismatch');
-                        const formal = ComponentFormalSdkWorker.source(join(this.root, 'release/peanut.pod-lite-0.2.0'),
-                            this.registration.candidateSourceCommit, String(this.registration.creatorVersion));
+                        const existing = this.registration.kind === 'registered-existing-0.2.1-project';
+                        const candidateDirectory = join(this.root,
+                            existing ? 'release/peanut.pod-lite-0.2.1' : 'release/peanut.pod-lite-0.2.0');
+                        const sourceCommit = existing
+                            ? JSON.parse(readFileSync(join(candidateDirectory, 'lite-release-descriptor.json'), 'utf8')).sourceCommit
+                            : this.registration.candidateSourceCommit;
+                        const formal = ComponentFormalSdkWorker.source(candidateDirectory, sourceCommit,
+                            String(this.registration.creatorVersion));
                         if (!formal) throw new Error('component_formal_sdk_worker_source_missing');
-                        ComponentFormalSdkWorker.assertInstalled(this.project, this.registration, formal);
-                        this.events.push({ step: 'formal-sdk-startup-worker-source-verified', sourceVerified: true, result: formal }); this.save();
+                        if (existing && !ComponentFormalSdkWorker.samePayload(this.registration.formalSdkStartupTimer, formal))
+                            throw new Error('component_formal_sdk_worker_registration_mismatch');
+                        ComponentFormalSdkWorker.assertInstalled(this.project, existing ? {
+                            ...this.registration, candidateSourceCommit: formal.sourceCommit, formalSdkStartupTimer: formal,
+                        } : this.registration, formal);
+                        this.events.push({ step: 'formal-sdk-startup-worker-source-verified', sourceVerified: true,
+                            registrationSourceCommitReconciled: existing && this.registration.formalSdkStartupTimer.sourceCommit !== formal.sourceCommit,
+                            result: formal }); this.save();
                     }
                     this.events.push({ step: 'health', result: health }); this.save(); return health;
                 }
@@ -164,8 +191,17 @@ export class ComponentNativeClient {
         await this.mcp({ action: enabled ? 'attachCapabilities' : 'detachCapabilities', projectPath: this.project,
             owner: this.registration.owner, capabilities: McpScopedResourceBoundary.names, resourceRoots: McpScopedResourceBoundary.roots });
         const catalog = this.record(await this.mcp({ action: 'catalog' })); const status = this.record(await this.mcp({ action: 'status' }));
-        if (!Array.isArray(catalog.capabilities) || catalog.capabilities.length !== (enabled ? 46 : 40)
-            || !Array.isArray(status.writeEnabledPluginIds) || status.writeEnabledPluginIds.length) throw new Error('component_matrix_exposure_mismatch');
+        if (this.registration.kind === 'registered-existing-0.2.1-project') {
+            const names = Array.isArray(catalog.capabilities) ? catalog.capabilities.map(item => this.record(item).name) : [];
+            if (names.length < McpScopedResourceBoundary.names.length || new Set(names).size !== names.length
+                || !McpScopedResourceBoundary.names.every(name => names.includes(name))
+                || status.isEnabled !== true || status.directWriteEnabled !== false
+                || !Array.isArray(status.writeEnabledPluginIds)
+                || status.writeEnabledPluginIds.length !== 1 || status.writeEnabledPluginIds[0] !== 'peanut.editor-mcp')
+                throw new Error('component_matrix_exposure_mismatch');
+        } else if (!Array.isArray(catalog.capabilities) || catalog.capabilities.length !== (enabled ? 46 : 40)
+            || !Array.isArray(status.writeEnabledPluginIds) || status.writeEnabledPluginIds.length)
+            throw new Error('component_matrix_exposure_mismatch');
         this.events.push({ step: enabled ? 'attach-six' : 'detach-six', catalogCount: catalog.capabilities.length, allEnabled: false }); this.save();
     }
 
@@ -236,7 +272,14 @@ export class ComponentNativeClient {
      * @returns 当前实际登记UUID；超时或元数据损坏时拒绝，不触发导入和打开。
      */
     public async sceneIdentity(scene: string): Promise<string> {
-        if (!/^assets\/components\/(?:_lifecycle\/)?(?:cc(?:\.[a-zA-Z0-9_]+)+|(?:sp|dragonBones)\.[a-zA-Z0-9_]+)\.scene$/u.test(scene)) {
+        const staging = this.record(JSON.parse(readFileSync(join(this.output, 'component-matrix-staging.json'), 'utf8')));
+        const campaign = typeof staging.campaign === 'string' && /^task51-attempt-[0-9]{2}$/u.test(staging.campaign)
+            ? staging.campaign : null;
+        const componentFile = '(?:cc(?:\\.[a-zA-Z0-9_]+)+|(?:sp|dragonBones)\\.[a-zA-Z0-9_]+)\\.scene';
+        const standard = new RegExp(`^assets/components/(?:_lifecycle/)?${componentFile}$`, 'u').test(scene);
+        const runScoped = campaign !== null && scene === `assets/components/_lifecycle/${campaign}/${scene.split('/').at(-1)}`
+            && new RegExp(`^assets/components/_lifecycle/${campaign}/${componentFile}$`, 'u').test(scene);
+        if (!standard && !runScoped) {
             throw new Error('component_matrix_scene_path_invalid');
         }
         const until = Date.now() + 60000;

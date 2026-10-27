@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 import { ComponentNativeClient } from './component-native-client.mts';
 import { ComponentTaskOwnership } from './component-task-ownership.mts';
+import { ComponentMatrixScope } from './component-matrix-scope.mts';
 
 /**
  * @description 按原始启动身份仅向本任务实例发送正常退出请求；没有全局退出或强杀入口。
@@ -15,9 +16,8 @@ class ComponentCreatorClose {
      */
     public static async run(project: string): Promise<void> {
         const root = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
-        project = realpathSync(project); const output = dirname(project);
-        if (!project.startsWith(`${root}${sep}evidence${sep}task-5.1${sep}`) || project !== join(output, 'project'))
-            throw new Error('component_creator_close_project_out_of_scope');
+        const scope = ComponentMatrixScope.locate(root, project);
+        project = scope.project; const output = scope.output;
         const registration = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8'));
         const lease = JSON.parse(readFileSync(join(output, 'creator-owned-start.json'), 'utf8'));
         if (registration.owner !== ComponentTaskOwnership.current(root) || registration.task !== '5.1'

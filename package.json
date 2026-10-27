@@ -22,7 +22,7 @@
     "release:candidate": "npm run verify && npm run pack && tsx tools/release-candidate.mts candidate",
     "verify:structure": "node tools/verify-workspace-structure.mjs",
     "verify:standards": "tsx tools/verify-source-conformance.mts",
-    "verify": "npm run verify:structure && npm run verify:standards && npm run generate:check && npm run build && npm run typecheck && npm test"
+    "verify": "npm run verify:structure && npm run verify:standards && npm run generate:check && npm run build && npm run pack && npm run typecheck && npm test"
   },
   "devDependencies": {
     "@types/node": "^24.13.4",

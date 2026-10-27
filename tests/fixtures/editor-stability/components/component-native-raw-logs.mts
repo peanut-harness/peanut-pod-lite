@@ -1,6 +1,8 @@
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import { ComponentMatrixScope } from './component-matrix-scope.mts';
 
 /**
  * @description 自有Creator各原始通道的身份、真实字节游标及未完成行。
@@ -26,7 +28,23 @@ export class ComponentNativeRawLogs {
         const empty = createHash('sha256').digest('hex');
         const sources = this.checkpoint(project).map(item => ({ ...item, offset: 0, partial: '', prefixSha256: empty }));
         const path = join(project, 'temp/logs/project.log');
-        sources.push({ path, identity: this.identity(path), offset: 0, partial: '', prefixSha256: empty });
+        const root = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
+        const scope = existsSync(join(project, 'extensions/peanut-component-probe/project-ownership.json'))
+            ? ComponentMatrixScope.locate(root, project) : null;
+        const lease = scope?.mode === 'existing' ? JSON.parse(readFileSync(join(scope.output, 'creator-owned-start.json'), 'utf8')) : null;
+        let offset = lease?.projectLogOffset;
+        if (scope?.mode === 'existing' && (!Number.isSafeInteger(offset) || offset < 0))
+            throw new Error('component_existing_raw_log_baseline_missing');
+        const bytes = readFileSync(path);
+        if (offset > bytes.length) {
+            const startedAt = Date.parse(String(lease?.startedAt));
+            if (scope?.mode !== 'existing' || !Number.isFinite(startedAt)
+                || statSync(path).mtimeMs < startedAt) throw new Error('component_existing_raw_log_truncated');
+            // Creator rebuilt project.log after the owned launch. Scan every byte of this new generation.
+            offset = 0;
+        }
+        sources.push({ path, identity: this.identity(path), offset: offset ?? 0, partial: '',
+            prefixSha256: createHash('sha256').update(bytes.subarray(0, offset ?? 0)).digest('hex') });
         return this.readDelta(sources);
     }
 
@@ -36,7 +54,10 @@ export class ComponentNativeRawLogs {
      * @returns 每个实际原始通道的动作前游标。
      */
     public static checkpoint(project: string): ComponentRawCheckpoint[] {
-        const output = dirname(project); const leasePath = join(output, 'creator-owned-start.json');
+        const root = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
+        const output = existsSync(join(project, 'extensions/peanut-component-probe/project-ownership.json'))
+            ? ComponentMatrixScope.locate(root, project).output : dirname(project);
+        const leasePath = join(output, 'creator-owned-start.json');
         if (!existsSync(leasePath)) {
             if (existsSync(join(output, 'project-ownership.json'))) throw new Error('component_native_raw_lease_missing');
             return [];
