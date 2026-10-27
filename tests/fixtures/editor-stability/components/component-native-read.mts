@@ -10,6 +10,7 @@ import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 import { ComponentNativeAssetLoader } from './component-native-asset-loader.ts';
 import { ComponentTaskOwnership } from './component-task-ownership.mts';
 import { ComponentMatrixScope } from './component-matrix-scope.mts';
+import { ComponentExistingEngineCompatibility } from './component-existing-engine-compatibility.mts';
 
 /**
  * @description 每次重读令牌与端口，并把原生响应绑定到登记工程及本任务实际启动进程。
@@ -73,7 +74,9 @@ class ComponentNativeRead {
         } while (true);
         if (!health) throw new Error('component_native_health_missing');
         writeFileSync(join(output, 'native-health.json'), JSON.stringify(health, null, 2) + '\n', { mode: 0o600 });
-        ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(registration.creatorVersion));
+        if (scope.mode === 'existing') ComponentExistingEngineCompatibility.assert(health.effectiveEngineProfile,
+            root, String(registration.creatorVersion));
+        else ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(registration.creatorVersion));
         if (existsSync(join(output, 'component-matrix-staging.json'))) {
             const context = ComponentEngineModules.context(registration.engineModulesContext);
             if (scope.mode === 'isolated') {

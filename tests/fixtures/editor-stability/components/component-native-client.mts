@@ -13,6 +13,7 @@ import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 import { ComponentProjectUrlResolver } from './component-project-url-resolver.mts';
 import { ComponentTaskOwnership } from './component-task-ownership.mts';
 import { ComponentMatrixScope } from './component-matrix-scope.mts';
+import { ComponentExistingEngineCompatibility } from './component-existing-engine-compatibility.mts';
 
 /**
  * @description 矩阵验证的实际认证传输；只允许精确六项写及只读观测，令牌不进入证据。
@@ -113,7 +114,10 @@ export class ComponentNativeClient {
                             throw new Error('component_sdk_ui_ready_identity_mismatch');
                         this.events.push({ step: 'sdk-ui-ready-compat-observed', result: compatibility }); this.save();
                     }
-                    ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(this.registration.creatorVersion));
+                    if (this.registration.kind === 'registered-existing-0.2.1-project')
+                        ComponentExistingEngineCompatibility.assert(health.effectiveEngineProfile,
+                            this.root, String(this.registration.creatorVersion));
+                    else ComponentEngineProfile.assertBuiltin(health.effectiveEngineProfile, String(this.registration.creatorVersion));
                     if (this.registration.sdkSceneCacheCompat === true) {
                         const compatibility = this.record(await this.probe('sdk-scene-cache-compat-status'));
                         if (compatibility.installed !== true || compatibility.managerHookVerified !== true || compatibility.creatorVersion !== '3.8.3'
