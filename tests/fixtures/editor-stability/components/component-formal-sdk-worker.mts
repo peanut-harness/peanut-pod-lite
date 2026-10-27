@@ -24,6 +24,13 @@ export interface IComponentFormalSdkWorkerProof {
  * @description 组件夹具只消费已冻结正式 worker，拒绝与历史测试 patch 同时安装。
  */
 export class ComponentFormalSdkWorker {
+    public static samePayload(left: unknown, right: IComponentFormalSdkWorkerProof): boolean {
+        if (!left || typeof left !== 'object') return false;
+        const payload = (value: Record<string, unknown>) => Object.fromEntries(
+            Object.entries(value).filter(([key]) => key !== 'sourceCommit'));
+        return isDeepStrictEqual(payload(left as Record<string, unknown>), payload(right as unknown as Record<string, unknown>));
+    }
+
     /**
      * @description 校验候选 archive 后读取固定两个条目；3.8.3 不声称已安装 3.8.7 修复。
      * @param directory 已冻结候选目录。

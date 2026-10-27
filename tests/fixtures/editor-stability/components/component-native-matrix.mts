@@ -78,13 +78,17 @@ class ComponentNativeMatrix {
         const staging = this.client.record(JSON.parse(readFileSync(join(this.client.output, 'component-matrix-staging.json'), 'utf8')));
         this.components = this.records(fields.components); this.staged = this.records(staging.rows);
         this.resourceBindings = this.client.record(fields.resources);
-        if (this.staged.some(row => row.status !== 'blocked' && row.scenePath !== `assets/components/_lifecycle/${row.componentType}.scene`)) {
+        const runId = typeof staging.campaign === 'string' && /^task51-attempt-[0-9]{2}$/u.test(staging.campaign)
+            ? staging.campaign : null;
+        if (this.staged.some(row => row.status !== 'blocked' && row.scenePath !== `assets/components/_lifecycle/${row.componentType}.scene`
+            && (!runId || row.scenePath !== `assets/components/_lifecycle/${runId}/${row.componentType}.scene`))) {
             throw new Error('component_matrix_disposable_lifecycle_scene_required');
         }
         for (const row of this.staged) {
             const presentation = this.client.record(row.presentation);
             if (typeof presentation.scenePath !== 'string') continue;
-            if (presentation.scenePath !== `assets/components/${row.componentType}.scene` ||
+            if (presentation.scenePath !== `assets/components/${row.componentType}.scene` &&
+                (!runId || presentation.scenePath !== `assets/components/_lifecycle/${runId}/presentations/${row.componentType}.scene`) ||
                 this.hash(presentation.scenePath) !== presentation.stagedSha256) throw new Error('component_matrix_presentation_identity_invalid');
             this.presentationDigests.set(presentation.scenePath, this.hash(presentation.scenePath));
         }

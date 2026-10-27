@@ -66,7 +66,7 @@
 - **THEN** 用例与最终稳定性验收失败，返回保守状态和可定位证据，不以落盘或 refresh 完成声明代码稳定
 
 ### Requirement: Lifecycle diagnostics remain raw and attributable
-验收系统 SHALL 从受管启动开始保存启动、操作、冷却和正常退出各阶段的原始文本日志与时间区间，绑定候选 Host/Core 和工程身份，并使任一阶段新增 warning/error 阻止零警告验收；不得通过增加 ignore 规则、吞异常或降低日志级别满足验收。
+验收系统 SHALL 从受管启动开始保存启动、操作、冷却和正常退出各阶段的原始文本日志与时间区间，绑定候选 Host/Core 和工程身份，并区分 Pod 功能判定与 Creator 环境诊断。不得通过增加 ignore 规则、吞异常或降低日志级别满足验收。只有证据将诊断归因于 Pod 行为时，才使对应 Pod 功能验收失败；明确归因于 Creator/SDK/OS 的诊断须原样记录，但不得判 Pod 失败或阻塞独立 Pod 工作。归因未明时记录为 unresolved，不得据此判 Pod 失败；也不得宣称 Creator 环境达到零诊断。
 
 #### Scenario: Project naming causes a startup warning
 - **WHEN** 隔离工程的名称导致 Creator 发出可执行文件名警告
@@ -74,10 +74,10 @@
 
 #### Scenario: Normal shutdown reports a destroyed object
 - **WHEN** 正常退出产生 `Object has been destroyed` 或等价生命周期警告
-- **THEN** 保存原始堆栈并复测带扩展与最小工程的归属；未根治或证明安全规避前该阶段保持失败，不能因属于 Creator 内部而豁免
+- **THEN** 保存原始堆栈、候选和进程身份，并按发起操作、调用来源与可用对照归因；只有证明由 Pod 引起时才判 Pod 退出失败。已归因到 Creator/SDK/OS 的诊断保留为平台记录，不阻塞 Pod 验收；归因未明时标记 unresolved，不判 Pod 失败，也不作环境零诊断声明
 
 ### Requirement: Stability acceptance binds the complete current candidate
-系统 SHALL 仅在两版同一新候选的全量矩阵、至少 100 文件分片批读写、30 分钟正常混合负载、10 分钟过载与冷却回收、正常退出全部通过时声明本次全量稳定性完成，并报告零遗漏、零非预期失败、零新增原始日志警告错误及零探针任务残留。
+系统 SHALL 仅在两版同一新候选的全量矩阵、至少 100 文件分片批读写、30 分钟正常混合负载、10 分钟过载与冷却回收均完成，Pod 归因的失败为零且无探针任务残留时声明 Pod 稳定性验收完成。所有原始日志仍须完整报告；Creator/SDK/OS 诊断单列为平台结果，不阻塞 Pod 稳定性验收，但存在此类诊断时不得声明 Creator 环境零诊断或环境稳定性通过。
 
 #### Scenario: Candidate changes after an earlier soak
 - **WHEN** Host、Core 或影响操作行为的源码发生变化

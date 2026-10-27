@@ -156,15 +156,22 @@ export class ComponentNativeClient {
                     if (this.registration.formalSdkStartupTimer) {
                         if (typeof this.registration.candidateSourceCommit !== 'string') throw new Error('component_formal_sdk_worker_registration_mismatch');
                         const existing = this.registration.kind === 'registered-existing-0.2.1-project';
-                        const formal = ComponentFormalSdkWorker.source(join(this.root,
-                            existing ? 'release/peanut.pod-lite-0.2.1' : 'release/peanut.pod-lite-0.2.0'),
-                            existing ? this.registration.formalSdkStartupTimer.sourceCommit : this.registration.candidateSourceCommit,
+                        const candidateDirectory = join(this.root,
+                            existing ? 'release/peanut.pod-lite-0.2.1' : 'release/peanut.pod-lite-0.2.0');
+                        const sourceCommit = existing
+                            ? JSON.parse(readFileSync(join(candidateDirectory, 'lite-release-descriptor.json'), 'utf8')).sourceCommit
+                            : this.registration.candidateSourceCommit;
+                        const formal = ComponentFormalSdkWorker.source(candidateDirectory, sourceCommit,
                             String(this.registration.creatorVersion));
                         if (!formal) throw new Error('component_formal_sdk_worker_source_missing');
+                        if (existing && !ComponentFormalSdkWorker.samePayload(this.registration.formalSdkStartupTimer, formal))
+                            throw new Error('component_formal_sdk_worker_registration_mismatch');
                         ComponentFormalSdkWorker.assertInstalled(this.project, existing ? {
-                            ...this.registration, candidateSourceCommit: formal.sourceCommit,
+                            ...this.registration, candidateSourceCommit: formal.sourceCommit, formalSdkStartupTimer: formal,
                         } : this.registration, formal);
-                        this.events.push({ step: 'formal-sdk-startup-worker-source-verified', sourceVerified: true, result: formal }); this.save();
+                        this.events.push({ step: 'formal-sdk-startup-worker-source-verified', sourceVerified: true,
+                            registrationSourceCommitReconciled: existing && this.registration.formalSdkStartupTimer.sourceCommit !== formal.sourceCommit,
+                            result: formal }); this.save();
                     }
                     this.events.push({ step: 'health', result: health }); this.save(); return health;
                 }
@@ -265,7 +272,14 @@ export class ComponentNativeClient {
      * @returns 当前实际登记UUID；超时或元数据损坏时拒绝，不触发导入和打开。
      */
     public async sceneIdentity(scene: string): Promise<string> {
-        if (!/^assets\/components\/(?:_lifecycle\/)?(?:cc(?:\.[a-zA-Z0-9_]+)+|(?:sp|dragonBones)\.[a-zA-Z0-9_]+)\.scene$/u.test(scene)) {
+        const staging = this.record(JSON.parse(readFileSync(join(this.output, 'component-matrix-staging.json'), 'utf8')));
+        const campaign = typeof staging.campaign === 'string' && /^task51-attempt-[0-9]{2}$/u.test(staging.campaign)
+            ? staging.campaign : null;
+        const componentFile = '(?:cc(?:\\.[a-zA-Z0-9_]+)+|(?:sp|dragonBones)\\.[a-zA-Z0-9_]+)\\.scene';
+        const standard = new RegExp(`^assets/components/(?:_lifecycle/)?${componentFile}$`, 'u').test(scene);
+        const runScoped = campaign !== null && scene === `assets/components/_lifecycle/${campaign}/${scene.split('/').at(-1)}`
+            && new RegExp(`^assets/components/_lifecycle/${campaign}/${componentFile}$`, 'u').test(scene);
+        if (!standard && !runScoped) {
             throw new Error('component_matrix_scene_path_invalid');
         }
         const until = Date.now() + 60000;

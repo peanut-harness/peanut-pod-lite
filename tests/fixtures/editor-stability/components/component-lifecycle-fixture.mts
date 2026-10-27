@@ -14,9 +14,12 @@ export class ComponentLifecycleFixture {
      * @param componentType 已审计类型。
      * @returns 独立可变测试副本。
      */
-    public static create(source: LumenPrefabDocument, version: '3.8.3' | '3.8.7', componentType: string): LumenPrefabDocument {
+    public static create(source: LumenPrefabDocument, version: '3.8.3' | '3.8.7', componentType: string,
+        relativePath = `assets/components/_lifecycle/${componentType}.scene`): LumenPrefabDocument {
         if (!/^cc\.[a-zA-Z0-9_.]+$|^(?:sp|dragonBones)\.[a-zA-Z0-9_]+$/u.test(componentType)) throw new Error('component_lifecycle_type_invalid');
-        const document = new LumenPrefabDocument(`assets/components/_lifecycle/${componentType}.scene`,
+        if (!relativePath.startsWith('assets/components/_lifecycle/') || !relativePath.endsWith('.scene')
+            || relativePath.split('/').some(part => !part || part === '.' || part === '..')) throw new Error('component_lifecycle_path_invalid');
+        const document = new LumenPrefabDocument(relativePath,
             structuredClone([...source.entries]), new LumenComponentPropertySchema(LumenCocosVersion.parse(version)));
         ComponentSceneIntegrity.assert(document);
         return document;

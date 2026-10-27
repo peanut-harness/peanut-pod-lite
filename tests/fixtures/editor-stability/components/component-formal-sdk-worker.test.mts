@@ -32,6 +32,13 @@ test('formal worker source requires the exact contribution and complete fixed pa
     assert.throws(() => ComponentFormalSdkWorker.fromBytes({ ...candidate, sourceCommit: 'old-version-label' }, files), /source_invalid/u);
 });
 
+test('registration source commit can reconcile only when every formal worker payload digest matches', () => {
+    const proof = ComponentFormalSdkWorker.fromBytes(candidate, files);
+    assert.equal(ComponentFormalSdkWorker.samePayload({ ...proof, sourceCommit: 'd'.repeat(40) }, proof), true);
+    assert.equal(ComponentFormalSdkWorker.samePayload({ ...proof, workerSha256: 'd'.repeat(64) }, proof), false);
+    assert.equal(ComponentFormalSdkWorker.samePayload(null, proof), false);
+});
+
 test('installed formal worker must match candidate registration and both fixed entries; old patch receipts remain distinct', () => {
     const root = realpathSync(mkdtempSync(join(tmpdir(), 'formal-sdk-worker-'))); const project = join(root, 'project');
     const host = join(project, 'extensions/peanut-pod-lite-host'); mkdirSync(join(host, 'dist'), { recursive: true });

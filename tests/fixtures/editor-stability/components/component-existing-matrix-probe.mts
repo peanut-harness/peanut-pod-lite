@@ -10,6 +10,9 @@ import { ComponentFieldFixtures } from './component-field-fixtures.mts';
 import { ComponentNativeFieldContract } from './component-native-field-contract.mts';
 import { ComponentResourceBindings } from './component-resource-bindings.mts';
 import { ComponentProjectUrlFiles } from './component-project-url-files.ts';
+import { ComponentSceneFixture } from './component-scene-fixture.mts';
+import { ComponentLifecycleFixture } from './component-lifecycle-fixture.mts';
+import { LumenCocosVersion } from '../../../../packages/engine/modules/lumen/source/schema/cocos-version.ts';
 
 type Version = '3.8.3' | '3.8.7';
 const root = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
@@ -38,9 +41,29 @@ export class ComponentExistingMatrixProbe {
         const audit = ComponentCatalogAudit.create(root, engine, version);
         const fields = ComponentFieldFixtures.create(root, version, audit.nativeDeclarations);
         const contract = ComponentNativeFieldContract.create(root, engine, fields, audit.nativeDeclarations);
+        const candidateScenes: ReturnType<typeof ComponentLifecycleFixture.create>[] = [];
         const rows = report.rows.map((row: Record<string, unknown>) => {
             const type = String(row.componentType);
-            if (row.status === 'blocked') return { componentType: type, status: 'blocked', blockers: row.blockers };
+            if (row.status === 'blocked') {
+                const blockers = Array.isArray(row.blockers) ? row.blockers.map(String) : [];
+                const runtimeCandidates = blockers.length > 0 && blockers.every((blocker) =>
+                    blocker.startsWith('active-physics-backend-unverified:')
+                    || blocker === 'active-high-quality-render-pipeline-unverified');
+                if (!runtimeCandidates) return { componentType: type, status: 'blocked', blockers };
+                const fixture = fields.components.find((item) => item.componentType === type);
+                if (!fixture) throw new Error('component_existing_probe_field_row_missing');
+                const assembled = ComponentSceneFixture.create(root, version, fixture, audit.nativeDeclarations, true);
+                if (assembled.status === 'blocked') throw new Error(`component_existing_probe_candidate_assembly_failed:${type}`);
+                const lifecycle = ComponentLifecycleFixture.create(assembled.document, version, type);
+                const scenePath = lifecycle.relativePath;
+                const fullScenePath = join(project, scenePath);
+                if (existsSync(fullScenePath)) throw new Error(`component_existing_probe_candidate_target_exists:${scenePath}`);
+                candidateScenes.push(lifecycle);
+                return { componentType: type, status: assembled.status, pendingRequirements: assembled.pendingRequirements,
+                    targetPath: assembled.targetPath, nodePaths: assembled.nodePaths, scenePath,
+                    stagedSha256: sha(JSON.stringify([...lifecycle.entries], null, 2) + '\n'), fieldStates: assembled.fieldStates,
+                    presentation: { status: 'presentation-context-pending', scenePath: null, stagedSha256: null } };
+            }
             const scenePath = `assets/components/_lifecycle/${type}.scene`;
             const presentationPath = `assets/components/${type}.scene`;
             return { componentType: type, status: row.status, pendingRequirements: [],
@@ -65,7 +88,8 @@ export class ComponentExistingMatrixProbe {
         const planned = [join(output, 'project-ownership.json'), join(output, 'component-matrix-staging.json'),
             join(output, 'staging-receipt.json'), ...['package.json', 'main.js', 'scene.js',
                 'project-ownership.json', 'public-field-contract.json', 'project-url-files.json'].map(name => join(probe, name))];
-        if (planned.some(path => existsSync(path))) throw new Error('component_existing_probe_target_exists');
+        if ([...planned, ...candidateScenes.map(scene => join(project, scene.relativePath))].some(path => existsSync(path)))
+            throw new Error('component_existing_probe_target_exists');
         const moduleRoot = fileURLToPath(new URL('./', import.meta.url));
         const bundles = Object.fromEntries([['component-native-main.ts', 'main.js'], ['component-native-scene.ts', 'scene.js']]
             .map(([source, destination]) => {
@@ -75,6 +99,7 @@ export class ComponentExistingMatrixProbe {
                 return [destination, Buffer.from(result.outputFiles[0].contents)];
             }));
         mkdirSync(probe, { recursive: true });
+        for (const scene of candidateScenes) scene.save(project, false, LumenCocosVersion.parse(version));
         writeFileSync(join(output, 'project-ownership.json'), JSON.stringify(registration, null, 2) + '\n', { flag: 'wx' });
         writeFileSync(join(probe, 'project-ownership.json'), JSON.stringify(registration, null, 2) + '\n', { flag: 'wx' });
         ComponentProjectUrlFiles.stage(root, project, registration);
