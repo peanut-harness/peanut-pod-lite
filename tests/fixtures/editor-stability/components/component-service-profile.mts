@@ -9,6 +9,35 @@ import { ComponentSdkArchive } from './component-sdk-archive.mts';
  */
 export class ComponentServiceProfile {
     /**
+     * @description 只读规划现有工程缺失的空服务迁移输入；不削弱新工程stage保护，不授予实际写权。
+     * @param root 当前工作树。
+     * @param project 已恢复、已登记的现有工程。
+     * @param resources 精确SDK的Resources根。
+     * @param version 已支持的精确版本。
+     * @returns 必须以排他创建执行的单文件计划；外层另行核对备份、恢复、占用和登记。
+     */
+    public static planExisting(root: string, project: string, resources: string, version: string) {
+        this.assertVersion(version); this.assertSdk(root, resources, version);
+        if (realpathSync(project) !== project || realpathSync(join(project, 'settings')) !== join(project, 'settings'))
+            throw new Error('component_service_settings_link_refused');
+        const absentPaths = ['settings/service.json', 'settings/v2/extensions/cocos-service.json',
+            'settings/v2/packages/cocos-service.json', 'profiles/service.json',
+            'profiles/v2/extensions/cocos-service.json', 'profiles/v2/packages/cocos-service.json'];
+        for (const relative of absentPaths) {
+            const path = join(project, relative);
+            for (let parent = dirname(path); parent !== project; parent = dirname(parent)) {
+                const state = lstatSync(parent, { throwIfNoEntry: false });
+                if (state && (!state.isDirectory() || realpathSync(parent) !== parent))
+                    throw new Error('component_service_settings_link_refused');
+            }
+            if (lstatSync(path, { throwIfNoEntry: false })) throw new Error('component_service_existing_config_refused');
+        }
+        return { projectPath: project, creatorVersion: version, relativePath: 'settings/service.json',
+            expectedAbsent: true as const, absentPaths,
+            bytes: Buffer.from(JSON.stringify(this.legacy(), null, 2) + '\n'), executable: false as const };
+    }
+
+    /**
      * @description 启动前精确核验本版SDK配置迁移实现，未知实现不能复用迁移输入。
      */
     public static assertSdk(root: string, resources: string, version: string): void {

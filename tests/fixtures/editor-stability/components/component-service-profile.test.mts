@@ -78,3 +78,45 @@ test('service staging refuses linked settings rather than writing outside the ne
         assert.equal(existsSync(join(target, 'service.json')), false);
     } finally { rmSync(f.root, { recursive: true, force: true }); }
 });
+
+test('existing project planning is read-only while the original new-project stage still refuses started projects', (t) => {
+    const sdk = t.mock.method(ComponentServiceProfile, 'assertSdk', () => {});
+    const f = create();
+    try {
+        mkdirSync(join(f.project, 'library')); mkdirSync(join(f.project, 'temp'));
+        const plan = ComponentServiceProfile.planExisting('/repository', f.project, '/sdk/resources', '3.8.7');
+        assert.equal(plan.relativePath, 'settings/service.json'); assert.equal(plan.expectedAbsent, true);
+        assert.equal(plan.executable, false); assert.equal(plan.absentPaths.length, 6);
+        const value = JSON.parse(plan.bytes.toString()); assert.deepEqual(value.configs[0].services, []);
+        assert.equal(existsSync(f.path), false); assert.equal(sdk.mock.calls.length, 1);
+        assert.throws(() => ComponentServiceProfile.stage(f.project, '3.8.7'), /already_started/u);
+        assert.equal(existsSync(f.path), false);
+    } finally { rmSync(f.root, { recursive: true, force: true }); }
+});
+
+test('existing planning refuses every old or new service location, dangling links and SDK drift without overwriting', (t) => {
+    t.mock.method(ComponentServiceProfile, 'assertSdk', () => {});
+    for (const relative of ['settings/service.json', 'settings/v2/extensions/cocos-service.json',
+        'settings/v2/packages/cocos-service.json', 'profiles/service.json',
+        'profiles/v2/extensions/cocos-service.json', 'profiles/v2/packages/cocos-service.json']) {
+        const f = create();
+        try {
+            const path = join(f.project, relative); mkdirSync(join(path, '..'), { recursive: true });
+            writeFileSync(path, 'preserve existing account or service data');
+            assert.throws(() => ComponentServiceProfile.planExisting('/repository', f.project, '/sdk/resources', '3.8.7'), /existing_config_refused/u);
+            assert.equal(readFileSync(path, 'utf8'), 'preserve existing account or service data');
+        } finally { rmSync(f.root, { recursive: true, force: true }); }
+    }
+    const f = create();
+    try {
+        symlinkSync(join(f.root, 'missing'), f.path);
+        assert.throws(() => ComponentServiceProfile.planExisting('/repository', f.project, '/sdk/resources', '3.8.7'), /existing_config_refused/u);
+        assert.equal(existsSync(join(f.root, 'missing')), false);
+    } finally { rmSync(f.root, { recursive: true, force: true }); }
+    t.mock.method(ComponentServiceProfile, 'assertSdk', () => { throw new Error('component_service_sdk_source_mismatch'); });
+    const drift = create();
+    try {
+        assert.throws(() => ComponentServiceProfile.planExisting('/repository', drift.project, '/sdk/resources', '3.8.7'), /sdk_source_mismatch/u);
+        assert.equal(existsSync(drift.path), false);
+    } finally { rmSync(drift.root, { recursive: true, force: true }); }
+});
