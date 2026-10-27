@@ -50,3 +50,13 @@ test('batch preparation requires real cook inputs and prevents the original rend
     const cooked = input.map(row => row.__type__ === type ? { ...row, _mesh: null, _skeleton: null } : row);
     assert.equal(ComponentBehaviorFixture.prepare(type, bytes(cooked), meta, identity(type)).behaviorVerified, false);
 });
+
+test('first scene import accepts only the exact SDK state transition and retains UUID and every other property', () => {
+    const source = { ver: '1.1.50', importer: 'scene', imported: false, uuid: originalUuid, files: [], subMetas: {}, userData: {} };
+    const imported = { ...source, imported: true, files: ['.json'] };
+    assert.equal(ComponentBehaviorFixture.importedSceneMeta(bytes(source), bytes(imported)).uuid, originalUuid);
+    for (const patch of [{ uuid: identity('cc.Bloom').sceneUuid }, { ver: 'another' }, { importer: 'prefab' }, { imported: false },
+        { files: [] }, { files: ['.json', '.other'] }, { userData: { unexpected: true } }, { subMetas: { extra: {} } }, { extra: true }])
+        assert.throws(() => ComponentBehaviorFixture.importedSceneMeta(bytes(source), bytes({ ...imported, ...patch })));
+    assert.throws(() => ComponentBehaviorFixture.importedSceneMeta(bytes({ ...source, imported: true }), bytes(imported)));
+});

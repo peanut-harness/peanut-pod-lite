@@ -1,10 +1,29 @@
 import { createHash } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { CocosUuidCodec } from '../../../../packages/engine/modules/assets/src/cocos-uuid-codec.ts';
 
 /**
  * @description 从已冻结展示源返回独立行为场景字节；不写现有工程、不改原资源身份或生命周期副本。
  */
 export class ComponentBehaviorFixture {
+    /**
+     * @description 只接纳3.8.7首次场景导入的精确meta状态转换；UUID、版本、子资源和用户数据均不得改变。
+     * @param source 已冻结的未导入scene meta字节。
+     * @param current 实际AssetDB导入后的meta字节。
+     * @returns 精确转换及前后摘要，原始输入仍保留。
+     */
+    public static importedSceneMeta(source: Uint8Array, current: Uint8Array) {
+        const before = this.record(JSON.parse(Buffer.from(source).toString('utf8')));
+        const after = this.record(JSON.parse(Buffer.from(current).toString('utf8')));
+        if (before.ver !== '1.1.50' || before.importer !== 'scene' || before.imported !== false
+            || !isDeepStrictEqual(before.files, []) || typeof before.uuid !== 'string'
+            || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/u.test(before.uuid)
+            || !isDeepStrictEqual(after, { ...before, imported: true, files: ['.json'] }))
+            throw new Error('component_behavior_scene_meta_import_transition_invalid');
+        return { transition: 'scene-meta-first-import', uuid: before.uuid,
+            beforeSha256: createHash('sha256').update(source).digest('hex'),
+            afterSha256: createHash('sha256').update(current).digest('hex') };
+    }
     /**
      * @description 为四个已有真实载体创建独立场景并绑定唯一新脚本UUID，原始资源引用保持不变。
      * @param type 明确的测试组件。
