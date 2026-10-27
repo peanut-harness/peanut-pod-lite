@@ -4,7 +4,7 @@ import { once } from 'node:events';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync,
     symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { connect } from 'node:net';
+import { connect, type Socket } from 'node:net';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { ComponentExistingSpriteNativeProbeEntry as Entry, createSyntheticCreatorEntry,
@@ -186,6 +186,55 @@ test('close destroys only its owned idle socket and releases the listener', asyn
         assert.equal(existsSync(f.descriptorPath), false);
         await assert.rejects(post(endpoint.port, f.input, '0'.repeat(64)));
         await entry.close();
+    } finally { socket?.destroy(); await entry.close(); f.close(); }
+});
+
+test('the sixteenth socket request closes and later requests cannot reach native dispatch', async () => {
+    const f = fixture(); const entry = new Entry(f.context);
+    let socket: ReturnType<typeof connect> | null = null;
+    try {
+        const endpoint = await entry.start();
+        socket = connect(endpoint.port, '127.0.0.1');
+        await once(socket, 'connect');
+        let received = '';
+        const closed = new Promise<void>(done => {
+            socket!.on('data', chunk => { received += chunk.toString('utf8'); });
+            socket!.on('error', () => {});
+            socket!.once('close', () => done());
+        });
+        const request = 'POST /wrong HTTP/1.1\r\nHost: 127.0.0.1\r\n'
+            + 'Content-Type: application/json\r\nContent-Length: 2\r\nConnection: keep-alive\r\n\r\n{}';
+        socket.write(request.repeat(17));
+        await Promise.race([closed, new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('synthetic_socket_limit_timeout')), 2000))]);
+        const statuses = [...received.matchAll(/HTTP\/1\.1 (\d{3})/gu)].map(match => Number(match[1]));
+        assert.equal(statuses.length, 16);
+        assert.equal(statuses.slice(0, 16).every(status => status === 400 || status === 429), true);
+        assert.equal(f.calls.length, 0);
+        const server = Reflect.get(entry, 'server') as { maxRequestsPerSocket: number };
+        server.maxRequestsPerSocket = 0;
+        const overloaded = connect(endpoint.port, '127.0.0.1');
+        overloaded.on('error', () => {});
+        await once(overloaded, 'connect');
+        const sockets = Reflect.get(entry, 'sockets') as Set<Socket>;
+        const deadline = Date.now() + 1000;
+        while (sockets.size !== 1) {
+            if (Date.now() > deadline) throw new Error('synthetic_owned_socket_missing');
+            await new Promise(done => setTimeout(done, 1));
+        }
+        const owned = [...sockets][0];
+        (Reflect.get(entry, 'requestsPerSocket') as WeakMap<Socket, number>).set(owned, 16);
+        let overloadedResponse = '';
+        const overloadedClosed = new Promise<void>(done => {
+            overloaded.on('data', chunk => { overloadedResponse += chunk.toString('utf8'); });
+            overloaded.once('close', () => done());
+        });
+        overloaded.write(request);
+        await overloadedClosed;
+        assert.match(overloadedResponse, /^HTTP\/1\.1 503 /u);
+        assert.equal(f.calls.length, 0);
+        const token = JSON.parse(readFileSync(f.descriptorPath, 'utf8')).token;
+        assert.equal((await post(endpoint.port, f.input, token)).status, 200);
     } finally { socket?.destroy(); await entry.close(); f.close(); }
 });
 

@@ -19,6 +19,7 @@ type Context = Identity & { timeoutMs?: number; expiresAt?: number;
 const MAX_BODY = 16384;
 const MAX_RESPONSE = 65536;
 const MAX_ACTIVE = 2;
+const MAX_REQUESTS_PER_SOCKET = 16;
 const LOOPBACK = '127.0.0.1';
 
 function equalToken(received: unknown, expected: string): boolean {
@@ -46,6 +47,7 @@ export class ComponentExistingSpriteNativeProbeEntry {
     private publishedGeneration = '';
     private readonly pending = new Set<Promise<void>>();
     private readonly sockets = new Set<Socket>();
+    private readonly requestsPerSocket = new WeakMap<Socket, number>();
     private closing: Promise<void> | null = null;
 
     public constructor(context: Context) {
@@ -64,18 +66,26 @@ export class ComponentExistingSpriteNativeProbeEntry {
         const probe = new ComponentExistingSpriteNativeProbeMain({ ...this.context,
             projectPath: this.project, token, timeoutMs: this.context.timeoutMs ?? 5000 });
         const server = createServer((request, response) => {
+            const socket = request.socket;
+            const count = (this.requestsPerSocket.get(socket) ?? 0) + 1;
+            this.requestsPerSocket.set(socket, count);
+            if (count >= MAX_REQUESTS_PER_SOCKET) response.setHeader('connection', 'close');
+            if (count > MAX_REQUESTS_PER_SOCKET) {
+                response.writeHead(503, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+                response.end('{"ok":false,"error":"component_sprite_probe_entry_socket_limit"}');
+                return;
+            }
             const task = this.handle(request, response, probe, generation, token);
             this.pending.add(task);
             void task.then(() => this.pending.delete(task), () => this.pending.delete(task));
         });
         server.on('connection', (socket: Socket) => {
             this.sockets.add(socket);
-            socket.once('close', () => this.sockets.delete(socket));
+            socket.once('close', () => { this.sockets.delete(socket); this.requestsPerSocket.delete(socket); });
         });
         server.requestTimeout = 6000;
         server.headersTimeout = 6000;
         server.timeout = 6000;
-        server.maxRequestsPerSocket = 16;
         this.server = server; this.generation = generation; this.token = token;
         try {
             await new Promise<void>((done, reject) => {
