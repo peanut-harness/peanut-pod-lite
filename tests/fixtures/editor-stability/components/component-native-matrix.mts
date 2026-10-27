@@ -11,6 +11,7 @@ import { ComponentPostProcessContext } from './component-post-process-context.mt
 import { ComponentNativeRawLogs } from './component-native-raw-logs.mts';
 import { ComponentProjectUrlResolver } from './component-project-url-resolver.mts';
 import { ComponentNativeSkinnedContext } from './component-native-skinned-context';
+import { ComponentNativeDiagnosticAttribution } from './component-native-diagnostic-attribution';
 
 /**
  * @description 保留99组件/795字段分母，逐场景验证实际六项写、原生getter和拒绝后的零文件变化。
@@ -67,6 +68,11 @@ class ComponentNativeMatrix {
     private presentationsUnchanged: boolean | null = null;
 
     /**
+     * @description 保留全部启动诊断及精确来源推断；功能通过不代表环境零诊断。
+     */
+    private startupDiagnostics: unknown = null;
+
+    /**
      * @description 验证新分片和完整分母；可选择定向分片，但不能据此改变分母。
      * @param project 当前任务工程。
      * @param campaign 新证据标识。
@@ -105,7 +111,19 @@ class ComponentNativeMatrix {
      */
     public async run(selected: readonly string[]): Promise<void> {
         const history = ComponentNativeRawLogs.readAll(this.client.project);
-        if (history.newErrors.length || history.newWarnings.length) {
+        let startupMayContinue = history.newErrors.length + history.newWarnings.length === 0;
+        const baseline = this.client.registration.startupManifestBaseline;
+        if (!startupMayContinue && typeof baseline === 'string'
+            && baseline.startsWith(join(this.client.root, 'evidence/task-5.1/takeover-20261027') + '/')) {
+            const attributed = ComponentNativeDiagnosticAttribution.classify(history, this.client.project,
+                String(this.client.registration.creatorVersion), readFileSync(baseline),
+                readFileSync(join(this.client.project, 'package.json')),
+                readFileSync(join(String(this.client.registration.creatorApp), 'Contents/Resources/resources/3d/engine/package.json')));
+            this.startupDiagnostics = attributed;
+            startupMayContinue = attributed.podPreflightMayContinue;
+            this.client.events.push({ step: 'startup-diagnostics-attribution', ...attributed }); this.client.save();
+        }
+        if (!startupMayContinue) {
             this.campaignLog = { step: 'matrix-whole-raw-preflight', actionSucceeded: false,
                 reason: 'component_matrix_session_diagnostics_present', result: { logChecked: true, verified: false,
                     newErrorCount: history.newErrors.length, newWarningCount: history.newWarnings.length,
@@ -555,6 +573,7 @@ class ComponentNativeMatrix {
                 customPipelineName: this.backend.customPipelineName,
                 postProcessBuilderConstructor: this.backend.postProcessBuilderConstructor },
             campaignLogPostflight: this.campaignLog,
+            startupDiagnostics: this.startupDiagnostics,
             campaignAcceptance: this.campaignLog === null ? 'pending' : campaignAccepted ? 'accepted' : 'rejected',
             presentationFilesUnchanged: this.presentationsUnchanged, presentationRenderedComponents: 0,
             allEnabled: false, zeroDiagnosticsClaimed: false, task51Complete: false, rows: completeRows }, null, 2) + '\n');

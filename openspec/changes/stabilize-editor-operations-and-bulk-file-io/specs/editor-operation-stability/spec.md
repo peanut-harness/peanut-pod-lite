@@ -70,7 +70,7 @@
 
 #### Scenario: Project naming causes a startup warning
 - **WHEN** 隔离工程的名称导致 Creator 发出可执行文件名警告
-- **THEN** 修正隔离夹具名称并重新执行启动验收，保留旧失败证据，原工程不改动
+- **THEN** 保留完整原始警告、实际工程名、版本、候选和来源证据；新隔离夹具修正名称后重新验收，现有原工程不改名。按用户归因规则，能够与未变工程名、精确版本SDK身份及官方命名契约匹配的命名诊断可明确标为来源推断并继续独立Pod功能验收，不作环境零诊断声明；未知、Pod及操作期间新增诊断不因该具体记录获得豁免，不靠重启或重取日志游标隐藏原警告
 
 #### Scenario: Normal shutdown reports a destroyed object
 - **WHEN** 正常退出产生 `Object has been destroyed` 或等价生命周期警告
