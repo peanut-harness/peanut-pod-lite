@@ -33,9 +33,19 @@ class ComponentNativeMain {
         Reflect.set(process, 'traceProcessWarnings', true);
         const editor = Reflect.get(globalThis, 'Editor');
         this.project = fs.realpathSync(editor.Project.path);
-        this.registration = JSON.parse(fs.readFileSync(path.join(this.project, '..', 'project-ownership.json'), 'utf8'));
+        const existingRegistration = path.join(this.project, 'extensions/peanut-component-probe/project-ownership.json');
+        const registrationPath = fs.existsSync(existingRegistration) ? existingRegistration
+            : path.join(this.project, '..', 'project-ownership.json');
+        this.registration = JSON.parse(fs.readFileSync(registrationPath, 'utf8'));
         if (this.registration.projectPath !== this.project || this.registration.task !== '5.1') throw new Error('component_native_project_unregistered');
-        fs.appendFileSync(path.join(this.project, '..', 'sdk-metrics-at-probe-load.ndjson'),
+        const output = this.registration.kind === 'registered-existing-0.2.1-project'
+            ? String(this.registration.evidenceOutput) : path.join(this.project, '..');
+        if (this.registration.kind === 'registered-existing-0.2.1-project'
+            && (output !== path.join(String(this.registration.worktree), 'evidence/task-5.1',
+                `full51-existing-20261027-${this.registration.creatorVersion}`, 'existing-project-stage')
+                || fs.realpathSync(output) !== output))
+            throw new Error('component_native_existing_output_invalid');
+        fs.appendFileSync(path.join(output, 'sdk-metrics-at-probe-load.ndjson'),
             JSON.stringify({ ...ComponentSdkDiagnostics.metrics(editor.Metrics) as object,
                 adapters: ComponentSdkDiagnostics.adapters(createRequire(path.join(this.project, 'package.json')).cache) }) + '\n');
         this.fixtures = new ComponentProjectUrlFiles(this.project, this.registration);
@@ -52,7 +62,7 @@ class ComponentNativeMain {
                     const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
                     if (request.url === '/owned-quit') {
                         if (this.quitRequested) throw new Error('component_owned_quit_already_requested');
-                        const lease = JSON.parse(fs.readFileSync(path.join(this.project, '..', 'creator-owned-start.json'), 'utf8'));
+                        const lease = JSON.parse(fs.readFileSync(path.join(output, 'creator-owned-start.json'), 'utf8'));
                         const editor = Reflect.get(globalThis, 'Editor');
                         const prepared = ComponentOwnedCreatorQuit.prepare(editor, this.registration, lease, body);
                         this.quitRequested = true;

@@ -12,6 +12,7 @@ import { ComponentServiceProfile } from './component-service-profile.mts';
 import { ComponentNativeLogGuard } from './component-native-log-guard.mts';
 import { ComponentProjectUrlResolver } from './component-project-url-resolver.mts';
 import { ComponentTaskOwnership } from './component-task-ownership.mts';
+import { ComponentMatrixScope } from './component-matrix-scope.mts';
 
 /**
  * @description 矩阵验证的实际认证传输；只允许精确六项写及只读观测，令牌不进入证据。
@@ -56,9 +57,8 @@ export class ComponentNativeClient {
      * @param ownership 当前归属读取器；离线测试可注入隔离登记边界。
      */
     public constructor(project: string, ownership: Pick<typeof ComponentTaskOwnership, 'current'> = ComponentTaskOwnership) {
-        this.project = realpathSync(project); this.output = dirname(this.project);
-        if (!this.project.startsWith(`${this.root}${sep}evidence${sep}task-5.1${sep}`) || this.project !== join(this.output, 'project'))
-            throw new Error('component_matrix_project_out_of_scope');
+        const scope = ComponentMatrixScope.locate(this.root, project);
+        this.project = scope.project; this.output = scope.output;
         this.registration = JSON.parse(readFileSync(join(this.output, 'project-ownership.json'), 'utf8'));
         this.lease = JSON.parse(readFileSync(join(this.output, 'creator-owned-start.json'), 'utf8'));
         if (this.registration.formalSdkStartupTimer && this.registration.sdkStartupTimerCompat === true)
@@ -129,15 +129,26 @@ export class ComponentNativeClient {
                         this.events.push({ step: 'health-engine-modules-observed', creatorVersion: health.creatorVersion,
                             engineModulesProfile: health.engineModulesProfile ?? null }); this.save();
                         const context = ComponentEngineModules.context(this.registration.engineModulesContext);
-                        ComponentEngineModules.assertProject(this.project, String(this.registration.creatorVersion), context);
-                        ComponentEngineModules.assertActive(health.engineModulesProfile, String(this.registration.creatorVersion), context);
-                        ComponentEngineModules.assertActiveMacros(health.engineMacroProfile, String(this.registration.creatorVersion), context);
+                        if (this.registration.kind !== 'registered-existing-0.2.1-project') {
+                            ComponentEngineModules.assertProject(this.project, String(this.registration.creatorVersion), context);
+                            ComponentEngineModules.assertActive(health.engineModulesProfile, String(this.registration.creatorVersion), context);
+                            ComponentEngineModules.assertActiveMacros(health.engineMacroProfile, String(this.registration.creatorVersion), context);
+                        }
                     }
                     if (this.registration.offlineServiceProfile === true) ComponentServiceProfile.assertActive(health.serviceConfigProfile, String(this.registration.creatorVersion));
-                    const { CpmPackageStore } = createRequire(import.meta.url)('../../../../packages/hosts/modules/creator-38/src/cpm-package-store.js');
-                    const descriptor = JSON.parse(readFileSync(join(this.root, 'release/peanut.pod-lite-0.2.0/lite-release-descriptor.json'), 'utf8'));
-                    if (health.creatorVersion !== this.registration.creatorVersion || health.pid !== this.lease.pid
-                        || CpmPackageStore.compareReleaseIdentity(host.artifacts, descriptor).length) throw new Error('component_matrix_candidate_mismatch');
+                    if (this.registration.kind === 'registered-existing-0.2.1-project') {
+                        const artifacts = this.record(host.artifacts);
+                        if (health.creatorVersion !== this.registration.creatorVersion || health.pid !== this.lease.pid
+                            || this.record(artifacts.host).packageDigest !== this.registration.hostPackageDigest
+                            || this.record(artifacts.core).packageDigest !== this.registration.corePackageDigest)
+                            throw new Error('component_matrix_candidate_mismatch');
+                    } else {
+                        const { CpmPackageStore } = createRequire(import.meta.url)('../../../../packages/hosts/modules/creator-38/src/cpm-package-store.js');
+                        const descriptor = JSON.parse(readFileSync(join(this.root, 'release/peanut.pod-lite-0.2.0/lite-release-descriptor.json'), 'utf8'));
+                        if (health.creatorVersion !== this.registration.creatorVersion || health.pid !== this.lease.pid
+                            || CpmPackageStore.compareReleaseIdentity(host.artifacts, descriptor).length)
+                            throw new Error('component_matrix_candidate_mismatch');
+                    }
                     if (this.registration.formalSdkStartupTimer) {
                         if (typeof this.registration.candidateSourceCommit !== 'string') throw new Error('component_formal_sdk_worker_registration_mismatch');
                         const formal = ComponentFormalSdkWorker.source(join(this.root, 'release/peanut.pod-lite-0.2.0'),

@@ -119,14 +119,23 @@ class ComponentNativeMatrix {
      * @param selected 可选定向组件名单。
      */
     private async runMatrix(selected: readonly string[]): Promise<void> {
-        const descriptor = this.client.record(JSON.parse(readFileSync(join(this.client.root, 'release/peanut.pod-lite-0.2.0/lite-release-descriptor.json'), 'utf8')));
-        const safetyPath = join(this.client.root, 'evidence/task-5.1', `preview-safety-approved-${this.client.registration.creatorVersion}.json`);
-        let safety: Record<string, unknown>;
-        try { safety = this.client.record(JSON.parse(readFileSync(safetyPath, 'utf8'))); }
-        catch { throw new Error('component_matrix_preview_branch_paused_by_user'); }
-        if (safety.verified !== true || safety.candidateSourceCommit !== this.client.registration.candidateSourceCommit
-            || safety.hostSha256 !== this.client.record(descriptor.host).sha256 || safety.coreSha256 !== this.client.record(descriptor.core).sha256)
-            throw new Error('component_matrix_preview_safety_receipt_mismatch');
+        const existing = this.client.registration.kind === 'registered-existing-0.2.1-project';
+        const descriptor = this.client.record(JSON.parse(readFileSync(join(this.client.root,
+            `release/peanut.pod-lite-${existing ? '0.2.1' : '0.2.0'}/lite-release-descriptor.json`), 'utf8')));
+        if (existing) {
+            if (this.client.record(descriptor.host).packageDigest !== this.client.registration.hostPackageDigest
+                || this.client.record(descriptor.core).packageDigest !== this.client.registration.corePackageDigest)
+                throw new Error('component_matrix_existing_candidate_mismatch');
+            // This campaign does not call preview-refresh; the previous preview pause remains in force.
+        } else {
+            const safetyPath = join(this.client.root, 'evidence/task-5.1', `preview-safety-approved-${this.client.registration.creatorVersion}.json`);
+            let safety: Record<string, unknown>;
+            try { safety = this.client.record(JSON.parse(readFileSync(safetyPath, 'utf8'))); }
+            catch { throw new Error('component_matrix_preview_branch_paused_by_user'); }
+            if (safety.verified !== true || safety.candidateSourceCommit !== this.client.registration.candidateSourceCommit
+                || safety.hostSha256 !== this.client.record(descriptor.host).sha256 || safety.coreSha256 !== this.client.record(descriptor.core).sha256)
+                throw new Error('component_matrix_preview_safety_receipt_mismatch');
+        }
         const health = await this.client.health();
         if (typeof health.pid !== 'number' || !Number.isInteger(health.pid)) throw new Error('component_matrix_pid_invalid');
         const resources = this.client.record(JSON.parse(readFileSync(join(this.client.output, 'staging-receipt.json'), 'utf8')));
