@@ -14,13 +14,11 @@ interface IComponentOwnedQuitEditor {
  */
 export class ComponentOwnedCreatorQuit {
     /**
-     * @description 来自两版已加载SDK App.quit及原始归档模块的独立身份，不执行来源文本。
+     * @description 两项摘要来自3.8.3已加载SDK App.quit源码及原始归档模块，不执行来源文本。
      */
-    private static readonly pins: Record<string, { electron: string; fn: string; module: string }> = {
-        '3.8.3': { electron: '13.1.4', fn: '6e5b1af63ee6ccfccc0aa9a7a3cdc2c4195c7d9cadbbf409c60377ab9b45009c',
-            module: 'cf93cef51b13e8d5a6dd1929656379aed76144a9bc86467d85a0df3b994f23ea' },
-        '3.8.7': { electron: '31.3.1', fn: '6e5b1af63ee6ccfccc0aa9a7a3cdc2c4195c7d9cadbbf409c60377ab9b45009c',
-            module: '520b10ca7044544628179ec92837c3d4c84a734e2d4568964af4924a2adc5b1f' },
+    private static readonly pins = {
+        fn: '6e5b1af63ee6ccfccc0aa9a7a3cdc2c4195c7d9cadbbf409c60377ab9b45009c',
+        module: 'cf93cef51b13e8d5a6dd1929656379aed76144a9bc86467d85a0df3b994f23ea',
     };
 
     /**
@@ -31,8 +29,7 @@ export class ComponentOwnedCreatorQuit {
         if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('component_owned_quit_request_invalid');
         const body = Object.fromEntries(Object.entries(input));
         if (Object.keys(body).sort().join(',') !== 'owner,pid,projectPath,runId' || registration.sdkOwnedQuit !== true
-            || registration.task !== '5.1' || typeof registration.creatorVersion !== 'string'
-            || !Object.hasOwn(this.pins, registration.creatorVersion) || runtime.creatorVersion !== registration.creatorVersion
+            || registration.task !== '5.1' || registration.creatorVersion !== '3.8.3' || runtime.creatorVersion !== '3.8.3'
             || !Number.isInteger(runtime.pid) || runtime.pid <= 0 || lease.pid !== runtime.pid || body.pid !== runtime.pid
             || registration.projectPath !== runtime.projectPath || lease.project !== runtime.projectPath || body.projectPath !== runtime.projectPath
             || typeof registration.owner !== 'string' || !registration.owner || lease.owner !== registration.owner || body.owner !== registration.owner
@@ -47,8 +44,7 @@ export class ComponentOwnedCreatorQuit {
      */
     public static inspect(editor: IComponentOwnedQuitEditor): { source: string | null; sha256: string | null; expectedSha256: string } {
         const source = typeof editor?.App?.quit === 'function' ? Function.prototype.toString.call(editor.App.quit) : null;
-        return { source, sha256: source === null ? null : createHash('sha256').update(source).digest('hex'),
-            expectedSha256: this.pins[editor.App.version]?.fn ?? '' };
+        return { source, sha256: source === null ? null : createHash('sha256').update(source).digest('hex'), expectedSha256: this.pins.fn };
     }
 
     /**
@@ -59,12 +55,10 @@ export class ComponentOwnedCreatorQuit {
         const receipt = this.authorize(registration, lease, input,
             { pid: process.pid, projectPath: realpathSync(editor.Project.path), creatorVersion: editor.App.version });
         const observed = this.inspect(editor);
-        const pin = this.pins[String(registration.creatorVersion)];
-        if (!pin || process.versions.electron !== pin.electron || observed.sha256 !== pin.fn)
-            throw new Error('component_owned_quit_sdk_function_drift');
+        if (process.versions.electron !== '13.1.4' || observed.sha256 !== this.pins.fn) throw new Error('component_owned_quit_sdk_function_drift');
         const originalFs = createRequire(join(String(registration.projectPath), 'package.json'))('original-fs');
         const bytes = ComponentSdkArchive.read(join(String(registration.creatorApp), 'Contents/Resources'), 'app-lifecycle', originalFs);
-        if (createHash('sha256').update(bytes).digest('hex') !== pin.module) throw new Error('component_owned_quit_sdk_module_drift');
+        if (createHash('sha256').update(bytes).digest('hex') !== this.pins.module) throw new Error('component_owned_quit_sdk_module_drift');
         const original = editor.App.quit;
         return { receipt, run: (): void => { original.call(editor.App); } };
     }

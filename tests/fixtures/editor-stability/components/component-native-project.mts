@@ -52,8 +52,7 @@ const tiledHierarchy = args.includes('--tiled-hierarchy');
 const sdkOwnedQuit = args.includes('--sdk-owned-quit');
 const sdkDefaultCube = args.includes('--sdk-default-cube');
 if (sdkDefaultCube && (version !== '3.8.3' || fixtureProfile !== 'component-matrix')) throw new Error('component_default_cube_requires_383_matrix');
-if (sdkOwnedQuit && (!['3.8.3', '3.8.7'].includes(version) || fixtureProfile !== 'component-matrix'))
-    throw new Error('component_owned_quit_requires_component_matrix');
+if (sdkOwnedQuit && (version !== '3.8.3' || fixtureProfile !== 'component-matrix')) throw new Error('component_owned_quit_requires_383_matrix');
 const sdkSceneCacheCompat = args.includes('--sdk-scene-cache-compat');
 if (sdkSceneCacheCompat && (version !== '3.8.3' || fixtureProfile !== 'component-matrix')) throw new Error('component_sdk_cache_requires_383_matrix');
 if (tiledHierarchy && fixtureProfile !== 'component-matrix') throw new Error('component_tiled_requires_verified_matrix');
