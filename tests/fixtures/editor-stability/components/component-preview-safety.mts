@@ -47,6 +47,10 @@ export class ComponentPreviewSafety {
      */
     private readonly runnerSha256 = createHash('sha256').update(readFileSync(new URL(import.meta.url))).digest('hex');
     /**
+     * @description 由当前健康查询独立核对的实际所属进程。
+     */
+    private ownedPid: number | null = null;
+    /**
      * @description 本任务实际工程与认证传输。
      */
     private readonly client: ComponentNativeClient;
@@ -70,7 +74,11 @@ export class ComponentPreviewSafety {
      * @description 先只读核对窗口，验证query不打开；不存在才允许单次打开，之后两次只能刷新已有窗口。
      */
     public async run(): Promise<void> {
-        await this.client.health(); await this.client.attach(true);
+        const health = await this.client.health();
+        if (typeof health.pid !== 'number' || !Number.isSafeInteger(health.pid) || health.pid <= 0)
+            throw new Error('preview_safety_owned_pid_invalid');
+        this.ownedPid = health.pid;
+        await this.client.attach(true);
         const scene = 'assets/components/cc.UIOpacity.scene'; const resources = [`db://${scene}`];
         try {
             const expectedSceneUuid = await this.client.sceneIdentity(scene);
@@ -148,6 +156,7 @@ export class ComponentPreviewSafety {
             throw new Error('preview_safety_runner_changed');
         writeFileSync(join(this.client.output, 'preview-safety-receipt.json'), JSON.stringify({
             verified, creatorVersion: this.client.registration.creatorVersion, candidateSourceCommit: this.client.registration.candidateSourceCommit,
+            projectPath: this.client.project, owner: this.client.registration.owner, pid: this.ownedPid,
             hostSha256: this.candidate.hostSha256, coreSha256: this.candidate.coreSha256,
             runnerSha256: this.runnerSha256, maxRefreshCalls: 3,
             allEnabled: false, task51Complete: false, steps: this.steps }, null, 2) + '\n');
