@@ -223,7 +223,7 @@ export class ComponentNativeClient {
      * @description 独立的所属进程生命周期入口；不扩展六项业务能力，不接受脚本或其它应用目标。
      */
     public async ownedQuit(): Promise<unknown> {
-        if (this.registration.sdkOwnedQuit !== true || this.registration.creatorVersion !== '3.8.3')
+        if (this.registration.sdkOwnedQuit !== true || !['3.8.3', '3.8.7'].includes(String(this.registration.creatorVersion)))
             throw new Error('component_owned_quit_not_registered');
         return this.request('component-probe.json', '/owned-quit', 'x-component-token', {
             pid: this.lease.pid, owner: this.registration.owner, runId: this.registration.runId, projectPath: this.project,

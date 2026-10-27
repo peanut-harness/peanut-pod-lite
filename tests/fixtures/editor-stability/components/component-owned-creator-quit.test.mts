@@ -16,8 +16,17 @@ test('normal SDK quit authorization is limited to original registered process, o
     assert.throws(() => Quit.authorize(registration, lease, input, { ...runtime, pid: 301 }), /identity_invalid/u);
     assert.throws(() => Quit.authorize(registration, lease, null, runtime), /request_invalid/u);
 });
+test('3.8.7 owned quit requires its own version identity and keeps the same narrow request shape', () => {
+    const registration387 = { ...registration, creatorVersion: '3.8.7' };
+    const runtime387 = { ...runtime, creatorVersion: '3.8.7' };
+    assert.deepEqual(Quit.authorize(registration387, lease, input, runtime387),
+        Quit.authorize(registration, lease, input, runtime));
+    assert.throws(() => Quit.authorize(registration387, lease, { ...input, api: 'quit' }, runtime387), /identity_invalid/u);
+    assert.throws(() => Quit.authorize(registration387, lease, input, runtime), /identity_invalid/u);
+    assert.throws(() => Quit.authorize(registration, lease, input, runtime387), /identity_invalid/u);
+});
 test('unregistered or other SDKs cannot acquire the owned SDK quit entry point', () => {
-    for (const change of [{ sdkOwnedQuit: false }, { task: '5.2' }, { creatorVersion: '3.8.7' }])
+    for (const change of [{ sdkOwnedQuit: false }, { task: '5.2' }, { creatorVersion: '3.8.7' }, { creatorVersion: '3.8.8' }])
         assert.throws(() => Quit.authorize({ ...registration, ...change }, lease, input, runtime), /identity_invalid/u);
     assert.throws(() => Quit.authorize(registration, lease, input, { ...runtime, creatorVersion: '3.8.7' }), /identity_invalid/u);
 });
@@ -27,4 +36,6 @@ test('SDK source observation never calls or evaluates the recorded quit method',
     assert.equal(observed.source, Function.prototype.toString.call(quit));
     assert.equal(observed.sha256, createHash('sha256').update(observed.source ?? '').digest('hex'));
     assert.equal(calls, 0);
+    assert.equal(Quit.inspect({ App: { version: '3.8.7', quit }, Project: { path: '/owned/project' } }).expectedSha256,
+        observed.expectedSha256);
 });
