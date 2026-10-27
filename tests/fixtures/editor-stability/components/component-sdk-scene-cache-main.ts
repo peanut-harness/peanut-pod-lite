@@ -1,4 +1,4 @@
-import { appendFileSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, sep } from 'node:path';
 import { ComponentSdkSceneCacheCompat } from './component-sdk-scene-cache-compat';
@@ -15,6 +15,7 @@ class ComponentSdkSceneCacheMain {
      * @description 当前隔离项目和证据路径。
      */
     private static project = '';
+    private static output = '';
     /**
      * @description 已保存的真实回调事件数量。
      */
@@ -29,14 +30,22 @@ class ComponentSdkSceneCacheMain {
      */
     public static load(): void {
         const editor = Reflect.get(globalThis, 'Editor');
-        this.project = realpathSync(editor.Project.path); const output = dirname(this.project);
-        const registration: unknown = JSON.parse(readFileSync(join(output, 'project-ownership.json'), 'utf8'));
+        this.project = realpathSync(editor.Project.path);
+        const local = join(this.project, 'extensions/peanut-component-probe/project-ownership.json');
+        const registration: unknown = JSON.parse(readFileSync(existsSync(local) ? local
+            : join(dirname(this.project), 'project-ownership.json'), 'utf8'));
+        const existing = Reflect.get(registration, 'kind') === 'registered-existing-0.2.1-project';
+        const output = existing ? String(Reflect.get(registration, 'evidenceOutput')) : dirname(this.project);
+        const worktree = realpathSync(String(Reflect.get(registration, 'worktree')));
+        if (existing && (output !== join(worktree, 'evidence/task-5.1/full51-existing-20261027-3.8.3/existing-project-stage')
+            || realpathSync(output) !== output)) throw new Error('component_sdk_cache_existing_output_invalid');
         if (!registration || typeof registration !== 'object' || Reflect.get(registration, 'task') !== '5.1'
             || Reflect.get(registration, 'sdkSceneCacheCompat') !== true || Reflect.get(registration, 'projectPath') !== this.project
             || Reflect.get(registration, 'creatorVersion') !== '3.8.3' || editor.App.version !== '3.8.3'
             || typeof Reflect.get(registration, 'worktree') !== 'string'
-            || !this.project.startsWith(realpathSync(Reflect.get(registration, 'worktree')) + sep + 'evidence' + sep + 'task-5.1' + sep))
+            || (!existing && !this.project.startsWith(worktree + sep + 'evidence' + sep + 'task-5.1' + sep)))
             throw new Error('component_sdk_cache_project_not_registered');
+        this.output = output;
         const cache = createRequire(join(this.project, 'package.json')).cache;
         const entries = Object.entries(cache).filter(([path]) => path.endsWith('/app.asar/builtin/scene/dist/browser/scene-cache.ccc'));
         if (entries.length !== 1 || !entries[0]?.[1]) throw new Error('component_sdk_cache_module_not_unique');
@@ -64,11 +73,11 @@ class ComponentSdkSceneCacheMain {
      */
     private static save(): void {
         if (!this.patch) return;
-        const output = dirname(this.project); const state = this.patch.state;
-        writeFileSync(join(output, 'sdk-scene-cache-compat-state.json'), JSON.stringify({ ...state, projectPath: this.project,
+        const state = this.patch.state;
+        writeFileSync(join(this.output, 'sdk-scene-cache-compat-state.json'), JSON.stringify({ ...state, projectPath: this.project,
             pid: process.pid, managerHookVerified: this.patch.isInstalled() }, null, 2) + '\n');
         const count = state.absentCleared + state.originalDelegated;
-        if (count > this.events) { appendFileSync(join(output, 'sdk-scene-cache-compat-events.ndjson'), JSON.stringify(state.last) + '\n'); this.events = count; }
+        if (count > this.events) { appendFileSync(join(this.output, 'sdk-scene-cache-compat-events.ndjson'), JSON.stringify(state.last) + '\n'); this.events = count; }
     }
 }
 
