@@ -9,6 +9,64 @@ import { ComponentNativeClient } from './component-native-client.mts';
  */
 export class ComponentPreviewSafety {
     /**
+     * @description 明确区分实际刷新与已知不重开保护拒绝，拒绝未知结果或不干净的后验。
+     * @param value 原始受管响应。
+     * @param existingWindowProven 此前已观察到唯一预览窗口。
+     * @returns 保留可用性语义的结果分类，拒绝不能冒充刷新成功。
+     */
+    public static refreshOutcome(value: unknown, existingWindowProven: boolean): 'refreshed' | 'protective-refusal' {
+        const result = this.record(value); const post = this.record(result.postflight ?? result.taskPostflight);
+        if (result.taskStatus !== 'succeeded' || post.verified !== true || post.logChecked !== true
+            || post.newErrorCount !== 0 || post.newWarningCount !== 0)
+            throw new Error('preview_safety_refresh_unverified');
+        if (result.available === true && result.source === 'live' && result.availability === 'live'
+            && ['preview_refresh_ok:open-requested-once', 'preview_refresh_ok:existing-preview+reload-terminal'].includes(String(result.message)))
+            return 'refreshed';
+        if (existingWindowProven && result.available === false && result.source === 'live' && result.availability === 'refused'
+            && result.message === 'preview_refresh_unavailable:preview_disconnected_no_reopen') return 'protective-refusal';
+        throw new Error('preview_safety_refresh_unverified');
+    }
+
+    /**
+     * @description 只读收尾既有三次请求的精确保护拒绝案例；不重放请求、不改写原失败回执。
+     * @param evidence 原始安全回执。
+     * @param observation 同进程独立核验的候选与恢复状态。
+     * @returns 窗口安全结果及分别计数的实际成功和保护拒绝。
+     */
+    public static completeRecordedSafety(evidence: unknown, observation: unknown) {
+        const receipt = this.record(evidence); const current = this.record(observation); const state = this.record(current.state);
+        if (receipt.verified !== false || receipt.maxRefreshCalls !== 3 || !Array.isArray(receipt.steps)
+            || typeof receipt.pid !== 'number' || !Number.isSafeInteger(receipt.pid) || receipt.pid <= 0
+            || typeof receipt.projectPath !== 'string' || typeof receipt.owner !== 'string'
+            || ['projectPath', 'owner', 'pid', 'creatorVersion', 'candidateSourceCommit', 'hostSha256', 'coreSha256']
+                .some(key => receipt[key] === undefined || receipt[key] !== current[key])
+            || state.platform !== 'browser' || state.connectedPreviewCount !== 1 || state.matchingBrowserTabs !== 1)
+            throw new Error('preview_safety_recovery_identity_or_state_invalid');
+        const steps = receipt.steps.map(step => this.record(step));
+        const refreshes = steps.filter(step => step.step === 'bounded-refresh');
+        const windows = steps.filter(step => step.step === 'actual-window-count');
+        const queries = steps.filter(step => step.step === 'readonly-query-did-not-open');
+        const stopped = steps.filter(step => step.step === 'safety-stopped');
+        if (steps.map(step => step.step).join(',') !== 'readonly-query-did-not-open,bounded-refresh,actual-window-count,bounded-refresh,actual-window-count,bounded-refresh,safety-stopped'
+            || refreshes.length !== 3 || windows.length !== 2 || queries.length !== 1 || stopped.length !== 1
+            || stopped[0]?.reason !== 'preview_safety_refresh_unverified'
+            || this.record(queries[0]?.before).matchingBrowserTabs !== 0 || this.record(queries[0]?.after).matchingBrowserTabs !== 0
+            || windows.some((step, index) => step.index !== index || this.record(step.after).matchingBrowserTabs !== 1)
+            || refreshes.some((step, index) => step.index !== index)) throw new Error('preview_safety_recovery_history_invalid');
+        const outcomes = refreshes.map((step, index) => this.refreshOutcome(step.result, index > 0));
+        if (outcomes.join(',') !== 'refreshed,refreshed,protective-refusal'
+            || this.record(refreshes[0]?.result).message !== 'preview_refresh_ok:open-requested-once'
+            || this.record(refreshes[1]?.result).message !== 'preview_refresh_ok:existing-preview+reload-terminal')
+            throw new Error('preview_safety_recovery_outcomes_invalid');
+        return { verified: true, projectPath: receipt.projectPath, owner: receipt.owner, pid: receipt.pid,
+            creatorVersion: receipt.creatorVersion, candidateSourceCommit: receipt.candidateSourceCommit,
+            hostSha256: receipt.hostSha256, coreSha256: receipt.coreSha256, maxRefreshCalls: 3,
+            successfulRefreshCalls: 2, protectiveRefusalCalls: 1, extraRefreshCalls: 0,
+            verificationScope: 'bounded preview-window safety; protective refusal is not refresh success',
+            originalReceipt: receipt, recoveryObservation: current, allEnabled: false, task51Complete: false };
+    }
+
+    /**
      * @description 核对当前实际工程类型的冻结候选，禁止现有0.2.1工程复用历史0.2.0身份。
      * @param root 当前工作树。
      * @param registration 已验证工程登记。
@@ -99,9 +157,8 @@ export class ComponentPreviewSafety {
                 const result = this.client.record(await this.client.mcp({ action: 'call', name: 'peanut.editor-mcp.preview-refresh',
                     input: { refreshAssets: false, resources, approvalToken: issued.approvalToken } }));
                 this.steps.push({ step: 'bounded-refresh', index, result }); this.save(false);
-                const postflight = this.client.record(result.postflight ?? result.taskPostflight);
-                if (result.taskStatus !== 'succeeded' || postflight.verified !== true || result.available !== true)
-                    throw new Error('preview_safety_refresh_unverified');
+                const outcome = ComponentPreviewSafety.refreshOutcome(result, initialTabs > 0 || index > 0);
+                this.steps.push({ step: 'refresh-outcome', index, outcome }); this.save(false);
                 await this.connected(); const after = await this.state(true);
                 this.steps.push({ step: 'actual-window-count', index, after }); this.save(false);
                 if (this.tabs(after) !== expectedTabs) throw new Error('preview_safety_refresh_changed_window_count');
@@ -159,6 +216,7 @@ export class ComponentPreviewSafety {
             projectPath: this.client.project, owner: this.client.registration.owner, pid: this.ownedPid,
             hostSha256: this.candidate.hostSha256, coreSha256: this.candidate.coreSha256,
             runnerSha256: this.runnerSha256, maxRefreshCalls: 3,
+            verificationScope: 'bounded preview-window safety; protective refusal is not refresh success',
             allEnabled: false, task51Complete: false, steps: this.steps }, null, 2) + '\n');
     }
 }
