@@ -68,7 +68,7 @@ export class ComponentBehaviorFixture {
         entries.push({ __type__: scriptType, _name: '', _objFlags: 0, node: { __id__: nodeIndex },
             _enabled: true, __prefab: null, componentType: type, _id: '' });
         node._components = [...node._components, { __id__: observerIndex }];
-        entries[0]!._name = type; scene!._id = identity.sceneUuid;
+        entries[0]!._name = type; scene!._name = type; scene!._id = identity.sceneUuid;
         return { relativePath: identity.relativePath, sceneUuid: identity.sceneUuid, scriptUuid: identity.scriptUuid,
             sceneBytes: Buffer.from(JSON.stringify(entries, null, 2) + '\n'),
             metaBytes: Buffer.from(JSON.stringify({ ...meta, uuid: identity.sceneUuid }, null, 2) + '\n'),

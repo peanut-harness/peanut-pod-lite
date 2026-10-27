@@ -3,7 +3,7 @@ import test from 'node:test';
 import { ComponentBehaviorEvidence } from './component-behavior-evidence.ts';
 
 const image = (changed = false) => ({ width: 100, height: 100, rgba: new Uint8Array(40000).fill(changed ? 64 : 0) });
-const observation = (type: string, effect = false) => ({ schemaVersion: 1, componentType: type, sceneName: type,
+const observation = (type: string, effect = false) => ({ schemaVersion: 1, protocolVersion: 2, componentType: type, sceneName: type,
     phase: effect ? 'effect' : 'baseline', ready: true, accepted: false, requestedFrame: effect ? 8 : 1,
     observedFrame: effect ? 10 : 3, engineFramesElapsed: 2, enabled: effect,
     meshBound: true, skeletonBound: true, threshold: 0, intensity: 5 });
@@ -21,7 +21,7 @@ test('behavior evidence requires both the real renderer transition and a differe
 test('behavior evidence refuses wrong identity, premature frames, reordered frames and automatic acceptance', () => {
     const type = 'cc.Bloom'; const first = observation(type); const second = observation(type, true);
     for (const patch of [{ phase: 'baseline' }, { sceneName: 'another' }, { componentType: 'cc.TAA' }, { ready: false },
-        { accepted: true }, { schemaVersion: 2 }, { requestedFrame: 9, engineFramesElapsed: 1 },
+        { accepted: true }, { schemaVersion: 2 }, { protocolVersion: 1 }, { requestedFrame: 9, engineFramesElapsed: 1 },
         { observedFrame: 2, requestedFrame: 0 }, { observedFrame: NaN }, { engineFramesElapsed: 100 }])
         assert.throws(() => ComponentBehaviorEvidence.compare(type, first, { ...second, ...patch }, image(), image(true)));
     assert.throws(() => ComponentBehaviorEvidence.compare('cc.TAA', first, second, image(), image(true)), /not_registered/u);

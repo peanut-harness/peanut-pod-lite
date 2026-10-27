@@ -40,12 +40,12 @@ export class Task51BehaviorObservation extends Component {
         const host = window.parent.document;
         if (host.getElementById('task51-behavior-observation')) throw new Error('task51_behavior_duplicate_panel');
         this.panel = host.createElement('section'); this.panel.id = 'task51-behavior-observation';
-        this.panel.style.cssText = 'position:fixed;left:10px;top:70px;width:300px;z-index:10000;background:#fff;color:#111;padding:12px;font:12px monospace';
+        this.panel.style.cssText = 'position:fixed;left:10px;top:70px;width:300px;overflow:hidden;z-index:10000;background:#fff;color:#111;padding:12px;font:12px monospace';
         for (const phase of ['baseline', 'effect']) {
             const button = host.createElement('button'); button.textContent = `Task51 ${phase}`;
             button.onclick = () => this.apply(phase); this.panel.appendChild(button);
         }
-        this.output = host.createElement('pre'); this.output.style.whiteSpace = 'pre-wrap';
+        this.output = host.createElement('pre'); this.output.style.whiteSpace = 'pre-wrap'; this.output.style.overflowWrap = 'anywhere';
         this.panel.appendChild(this.output); host.body.appendChild(this.panel); this.apply('baseline');
         window.addEventListener('pagehide', this.pageHide, { once: true });
     }
@@ -120,7 +120,7 @@ export class Task51BehaviorObservation extends Component {
         const state = clip ? animation?.getState(clip.name) : null;
         const renderer = this.componentType.includes('Renderer') ? this.renderer() : null;
         const bloom = this.componentType === 'cc.Bloom' ? this.node.getComponent(postProcess.Bloom) : null;
-        return { schemaVersion: 1, componentType: this.componentType, sceneName: director.getScene()?.name,
+        return { schemaVersion: 1, protocolVersion: 2, componentType: this.componentType, sceneName: director.getScene()?.name,
             phase, ready: true, requestedFrame, observedFrame: this.frames, engineFramesElapsed: this.frames - requestedFrame,
             enabled: renderer?.enabled ?? bloom?.enabled ?? animation?.enabled,
             meshBound: renderer ? !!renderer.mesh : null, skeletonBound: renderer ? !!renderer.skeleton : null,

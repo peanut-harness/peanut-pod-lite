@@ -43,7 +43,7 @@ export class ComponentBehaviorEvidence {
      */
     private static observation(type: string, phase: string, value: unknown): Record<string, unknown> & { observedFrame: number } {
         const row = this.record(value);
-        if (row.schemaVersion !== 1 || row.componentType !== type || row.sceneName !== type || row.phase !== phase
+        if (row.schemaVersion !== 1 || row.protocolVersion !== 2 || row.componentType !== type || row.sceneName !== type || row.phase !== phase
             || row.ready !== true || row.accepted !== false) throw new Error('component_behavior_observation_identity_invalid');
         const { requestedFrame, observedFrame, engineFramesElapsed } = row;
         if (typeof requestedFrame !== 'number' || !Number.isSafeInteger(requestedFrame) || requestedFrame < 0

@@ -22,7 +22,8 @@ test('behavior scene preserves original byte inputs, references and component or
         assert(input.equals(before)); assert.equal(result.nativeVerified, false); assert.equal(result.behaviorVerified, false);
         assert.equal(result.task51Complete, false); assert.equal(result.originalSceneUuid, originalUuid);
         const actual = JSON.parse(result.sceneBytes.toString()); assert.deepEqual(actual[3], entries[3]);
-        assert.equal(actual[1]._id, identity(type).sceneUuid); assert.equal(actual.at(-1).componentType, type);
+        assert.equal(actual[1]._id, identity(type).sceneUuid); assert.equal(actual[1]._name, type);
+        assert.equal(actual.at(-1).componentType, type);
         assert.deepEqual(actual[2]._components, [{ __id__: 3 }, { __id__: entries.length }]);
         assert.equal(JSON.parse(result.metaBytes.toString()).uuid, identity(type).sceneUuid);
         if (type !== 'cc.Bloom') assert.deepEqual(actual[2]._lscale, { __type__: 'cc.Vec3', x: 4, y: 4, z: 4 });
