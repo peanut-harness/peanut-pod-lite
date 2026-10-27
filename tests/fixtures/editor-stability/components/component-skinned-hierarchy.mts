@@ -21,6 +21,71 @@ export interface IComponentSkinnedContext {
  */
 export class ComponentSkinnedHierarchy {
     /**
+     * @description 从现有工程的同源导入身份准备层次模板；只返回字节，不改工程、meta或历史回执。
+     * @param root 当前工作树。
+     * @param project 已登记的现有工程。
+     * @param engine 精确版本SDK根。
+     * @param version 实际精确版本。
+     * @param sdkSourceHash SDK摘要读取端口，离线测试可替换。
+     * @returns 保持现有UUID的模板与输入摘要；原生关节、模型和动画仍待实机验证。
+     */
+    public static prepareExisting(root: string, project: string, engine: string, version: string,
+        sdkSourceHash: (path: string) => string = path => createHash('sha256').update(readFileSync(path)).digest('hex')) {
+        if (!['3.8.3', '3.8.7'].includes(version)) throw new Error('component_skinned_version_unverified');
+        project = realpathSync(project);
+        const sourceRoot = join(root, 'tests/fixtures/editor-stability/components', version);
+        const proof = this.record(JSON.parse(readFileSync(join(sourceRoot, 'skinned-hierarchy-provenance.json'), 'utf8')));
+        if (proof.creatorVersion !== version || typeof proof.sourceRootUuid !== 'string'
+            || !Array.isArray(proof.sdkSources) || proof.sdkSources.length !== 6
+            || !Array.isArray(proof.files) || proof.files.length !== 2
+            || !Array.isArray(proof.jointPaths) || !proof.jointPaths.length
+            || proof.jointPaths.some(path => typeof path !== 'string' || path.split('/').some(part => ['', '.', '..'].includes(part))))
+            throw new Error('component_skinned_source_proof_invalid');
+        for (const item of proof.sdkSources) {
+            const source = this.record(item);
+            if (typeof source.path !== 'string' || source.path.includes('\\')
+                || source.path.split('/').some(part => ['', '.', '..'].includes(part)))
+                throw new Error('component_skinned_sdk_path_invalid');
+            if (sdkSourceHash(join(engine, source.path)) !== source.sha256) throw new Error('component_skinned_sdk_source_mismatch');
+        }
+        const input = this.record(proof.input);
+        if (input.path !== 'tests/fixtures/editor-stability/media/assets/model/triangle.gltf')
+            throw new Error('component_skinned_input_invalid');
+        this.bytes(join(root, input.path), input.sha256);
+        const gltf = join(project, 'assets/fixtures/media/assets/model/triangle.gltf');
+        this.bytes(gltf, input.sha256);
+        const metaPath = gltf + '.meta';
+        if (realpathSync(metaPath) !== metaPath) throw new Error('component_skinned_source_path_or_hash_invalid');
+        const metaBytes = readFileSync(metaPath); const meta = this.record(JSON.parse(metaBytes.toString('utf8')));
+        if (meta.importer !== 'gltf' || typeof meta.uuid !== 'string' || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu.test(meta.uuid))
+            throw new Error('component_skinned_native_source_identity_invalid');
+        const sourceUuid = meta.uuid; const subMetas = this.record(meta.subMetas);
+        for (const [key, importer] of [['nativeMeshSubId', 'gltf-mesh'], ['nativeSkeletonSubId', 'gltf-skeleton'],
+            ['nativeAnimationSubId', 'gltf-animation'], ['nativeMaterialSubId', 'gltf-material'], ['nativePrefabSubId', 'gltf-scene']]) {
+            const id = proof[key];
+            if (typeof id !== 'string') throw new Error('component_skinned_existing_subasset_invalid');
+            const subMeta = this.record(subMetas[id]);
+            if (subMeta.uuid !== sourceUuid + '@' + id || subMeta.importer !== importer)
+                throw new Error('component_skinned_existing_subasset_invalid');
+        }
+        const templates = proof.files.map(item => this.record(item)).filter(item => item.file === 'gltf-skinned-source.prefab.json');
+        if (templates.length !== 1) throw new Error('component_skinned_file_not_unique');
+        const prefab = JSON.parse(this.bytes(join(sourceRoot, 'gltf-skinned-source.prefab.json'), templates[0]?.sha256).toString('utf8'));
+        if (!Array.isArray(prefab) || this.record(prefab[0]).__type__ !== 'cc.Prefab')
+            throw new Error('component_skinned_native_source_identity_invalid');
+        const remap = (value: unknown): unknown => {
+            if (typeof value === 'string' && (value === proof.sourceRootUuid || value.startsWith(proof.sourceRootUuid + '@')))
+                return sourceUuid + value.slice(String(proof.sourceRootUuid).length);
+            if (Array.isArray(value)) return value.map(remap);
+            if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, remap(item)]));
+            return value;
+        };
+        return { creatorVersion: version, sourceUuid, templateBytes: Buffer.from(JSON.stringify(remap(prefab), null, 2) + '\n'),
+            sourceMetaSha256: createHash('sha256').update(metaBytes).digest('hex'), input,
+            jointPaths: proof.jointPaths, nativeAcceptance: false as const };
+    }
+
+    /**
      * @description 精确匹配SDK源码和原输入，在全新未启动工程中暂存同源meta及层次副本。
      * @param root 当前工作树。
      * @param project 本任务全新隔离工程。

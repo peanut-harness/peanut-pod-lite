@@ -12,6 +12,9 @@ import { ComponentLifecycleFixture } from './component-lifecycle-fixture.mts';
 import { ComponentPresentationFixture } from './component-presentation-fixture.mts';
 import { ComponentSceneFixture } from './component-scene-fixture.mts';
 import { ComponentTaskOwnership } from './component-task-ownership.mts';
+import { ComponentNativeFieldContract } from './component-native-field-contract.mts';
+import { ComponentSkinnedHierarchy } from './component-skinned-hierarchy.mts';
+import type { IComponentSkinnedContext } from './component-skinned-hierarchy.mts';
 
 type Version = '3.8.3' | '3.8.7';
 const root = realpathSync(fileURLToPath(new URL('../../../../', import.meta.url)));
@@ -28,7 +31,16 @@ function safeProjectFile(project: string, relative: string): string {
 }
 
 export class ComponentExistingMatrixRunstage {
-    public static prepare(version: Version, campaign: string, actor = process.env.CODEX_THREAD_ID ?? '') {
+    /**
+     * @description 为现有工程准备全分母的新路径写集；蒙皮上下文只用于离线计划，不能由旧stage入口部分执行。
+     * @param version 精确版本。
+     * @param campaign 全新且未暂存的矩阵标识。
+     * @param actor 当前登记所有者。
+     * @param skinnedContext 已核验现有资源身份的同源模板。
+     * @returns 未写入工程的候选、字段契约和精确场景写集。
+     */
+    public static prepare(version: Version, campaign: string, actor = process.env.CODEX_THREAD_ID ?? '',
+        skinnedContext: IComponentSkinnedContext | null = null) {
         if (!['3.8.3', '3.8.7'].includes(version) || !/^task51-attempt-[0-9]{2}$/u.test(campaign))
             throw new Error('component_existing_runstage_identity_invalid');
         const owner = ComponentTaskOwnership.current(root, actor);
@@ -42,15 +54,23 @@ export class ComponentExistingMatrixRunstage {
         if (processes.split('\n').some(line => line.includes(`--project ${project}`)))
             throw new Error('component_existing_runstage_project_occupied');
         const engine = `/Applications/Cocos/Creator/${version}/CocosCreator.app/Contents/Resources/resources/3d/engine`;
+        if (skinnedContext) {
+            const existing = ComponentSkinnedHierarchy.prepareExisting(root, project, engine, version);
+            const template = realpathSync(skinnedContext.templatePath);
+            if (template !== skinnedContext.templatePath || !template.startsWith(join(root, 'evidence/task-5.1/takeover-20261027') + sep)
+                || skinnedContext.sourceUuid !== existing.sourceUuid
+                || !readFileSync(template).equals(existing.templateBytes))
+                throw new Error('component_existing_runstage_skinned_template_mismatch');
+        }
         const audit = ComponentCatalogAudit.create(root, engine, version);
-        const fields = ComponentFieldFixtures.create(root, version, audit.nativeDeclarations);
+        const fields = ComponentFieldFixtures.create(root, version, audit.nativeDeclarations, skinnedContext !== null);
         if (fields.componentCount !== 99 || fields.fieldCount !== 795 || fields.components.length !== 99)
             throw new Error('component_existing_runstage_denominator_invalid');
         const targetRows: Record<string, unknown>[] = [];
         const planned: { path: string; bytes: Buffer; kind: 'lifecycle' | 'presentation'; document?: LumenPrefabDocument }[] = [];
         const runRoot = `assets/components/_lifecycle/${campaign}`;
         for (const field of fields.components) {
-            const assembled = ComponentSceneFixture.create(root, version, field, audit.nativeDeclarations, true);
+            const assembled = ComponentSceneFixture.create(root, version, field, audit.nativeDeclarations, true, skinnedContext);
             if (assembled.status === 'blocked') {
                 targetRows.push({ componentType: field.componentType, status: 'blocked', blockers: assembled.blockers,
                     fieldStates: field.cases.map(item => ({ id: item.id, status: 'component-precondition-blocked' })),
@@ -61,7 +81,7 @@ export class ComponentExistingMatrixRunstage {
             const lifecycle = ComponentLifecycleFixture.create(assembled.document, version, field.componentType, lifecyclePath);
             const lifecycleBytes = Buffer.from(JSON.stringify([...lifecycle.entries], null, 2) + '\n');
             planned.push({ path: lifecyclePath, bytes: lifecycleBytes, kind: 'lifecycle' });
-            const presentation = ComponentPresentationFixture.create(engine, version, field);
+            const presentation = ComponentPresentationFixture.create(engine, version, field, false, skinnedContext);
             let presentationRecord: Record<string, unknown>;
             if (presentation.status === 'authored-presentation-native-pending') {
                 const presentationPath = `${runRoot}/presentations/${field.componentType}.scene`;
@@ -90,6 +110,7 @@ export class ComponentExistingMatrixRunstage {
         const candidate = { creatorVersion: version, componentCount: 99, fieldCount: 795, nativePassedRows: 0,
             campaign, rows: targetRows };
         return { owner, project, output, stagingPath, preservedInputPath, receiptPath, version, campaign,
+            publicFieldContract: ComponentNativeFieldContract.create(root, engine, fields, audit.nativeDeclarations),
             planned, candidate, assembledComponents: targetRows.filter(row => row.status !== 'blocked').length,
             blockedComponents: targetRows.filter(row => row.status === 'blocked').length };
     }

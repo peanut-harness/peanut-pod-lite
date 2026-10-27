@@ -53,6 +53,44 @@ for (const version of ['3.8.3', '3.8.7'] as const) {
         });
     });
 
+    test(version + ' existing imported hierarchy keeps its UUID and bytes while preparing a fresh template', () => {
+        fixture((project, hash) => {
+            const original = ComponentSkinnedHierarchy.stage(root, project, '/sdk', version, hash); assert(original);
+            mkdirSync(join(project, 'library'));
+            const metaPath = join(project, 'assets/fixtures/media/assets/model/triangle.gltf.meta');
+            const before = readFileSync(metaPath); const templateBefore = readFileSync(original.templatePath);
+            const prepared = ComponentSkinnedHierarchy.prepareExisting(root, project, '/sdk', version, hash);
+            assert.equal(prepared.sourceUuid, original.sourceUuid);
+            assert.equal(prepared.nativeAcceptance, false);
+            assert.deepEqual(prepared.templateBytes, templateBefore);
+            assert.deepEqual(readFileSync(metaPath), before);
+            assert.deepEqual(readFileSync(original.templatePath), templateBefore);
+            assert.throws(() => ComponentSkinnedHierarchy.prepareExisting(root, project, '/sdk', '3.9.0', hash), /version_unverified/u);
+            assert.throws(() => ComponentSkinnedHierarchy.prepareExisting(root, project, '/sdk', version, () => 'drift'), /sdk_source_mismatch/u);
+            assert.deepEqual(readFileSync(metaPath), before);
+        });
+    });
+
+    test(version + ' existing source refuses a missing skeleton, foreign subasset and changed glTF without changing metadata', () => {
+        fixture((project, hash) => {
+            ComponentSkinnedHierarchy.stage(root, project, '/sdk', version, hash);
+            const gltf = join(project, 'assets/fixtures/media/assets/model/triangle.gltf');
+            const metaPath = gltf + '.meta'; const original = readFileSync(metaPath);
+            for (const change of ['missing', 'foreign', 'wrong-type']) {
+                const meta = JSON.parse(original.toString('utf8'));
+                if (change === 'missing') delete meta.subMetas[proof.nativeSkeletonSubId];
+                else if (change === 'foreign') meta.subMetas[proof.nativeSkeletonSubId].uuid = proof.sourceRootUuid + '@' + proof.nativeSkeletonSubId;
+                else meta.subMetas[proof.nativeSkeletonSubId].importer = 'gltf-mesh';
+                writeFileSync(metaPath, JSON.stringify(meta)); const before = readFileSync(metaPath);
+                assert.throws(() => ComponentSkinnedHierarchy.prepareExisting(root, project, '/sdk', version, hash), /(?:subasset|record)_invalid/u);
+                assert.deepEqual(readFileSync(metaPath), before);
+            }
+            writeFileSync(metaPath, original); writeFileSync(gltf, '{}');
+            assert.throws(() => ComponentSkinnedHierarchy.prepareExisting(root, project, '/sdk', version, hash), /source_hash_mismatch/u);
+            assert.deepEqual(readFileSync(metaPath), original);
+        });
+    });
+
     test(version + ' all three skinned recipes retain real joint hierarchy through remove/add, with unchanged 99/795 denominator', () => {
         fixture((project, hash) => {
             assert.equal(fields.componentCount, 99); assert.equal(fields.fieldCount, 795);

@@ -1,5 +1,13 @@
 # Tasks
 
+## 2026-10-27 接手续验
+
+- 用户明确授权当前会话原位接手；原工作树与分支保留，总管已转交 owner、checkpoint owner 和 integration owner，resume preflight 通过。宿主 managed attach 失败事实保留，不声称绑定成功。
+- 当前范围为补齐 60 个前置阻塞字段、组件呈现和行为，并在现有工程复验更新 5.1 收据。旧 3.8.7 收据的 99/795、722 字段读回、13 预期拒绝、60 阻塞及实际呈现 0 原样保留；阻塞分组为后处理 24、PhysX 17、蒙皮 14、Tiled 5。日志等待优化另留待办。
+- 干净检查点 `2b3dbd7` 的完整 `npm run verify` 已补跑，退出码 0，21 组共 1584 项通过、无跳过。首次受限环境的 tsx 临时通信 EPERM 单列保留；获宿主批准后的完整日志与摘要保存于本次私有接手证据，不用此结果冒充后续源码的完整验证。
+- 现有双版本 glTF 已具备同源 mesh、skeleton、animation、material 和 prefab 子资源。新增只读层次准备保持现有 UUID/meta，不替换原工程资源；新矩阵计划接入同源模板并返回完整字段契约。28 项蒙皮、场景与展示夹具定向回归通过。3.8.7 新 campaign 的 211 文件精确增量计划已在私有证据目录生成，未写原工程、未启动 Creator；95 个可装配组件仅是离线状态，仍有 4 个 Tiled 组件缺原生层级，后端、呈现和行为须独立实测。
+- 5.1 继续保持未完成。新源码需干净检查点后的完整验证；外部工程写入与真实启动仍须精确资源登记、备份/占用核对及本次启动授权。
+
 ## 1. 契约与覆盖基线
 
 - [x] 1.1 `[peanut-pod-lite:packages/protocol/**,packages/engine/modules/policy/**,packages/engine/modules/mcp/src/editor-mcp-capability-catalog.ts,packages/engine/modules/mcp/src/editor-mcp-tool-catalog.ts,packages/engine/modules/mcp/tests/** | serial | depends:none | owner:01a0f2c9-6b9a-7560-8866-f97beda3ec0c | requirements:bulk-text-file-io#Text file calls are bounded and project confined,mcp-write-task-execution#Default synchronous behavior remains compatible | non-goals:不实现文件执行器、不改变原版写权限、不修改原工程或旧实机证据、不发布]` 定义批量读写 DTO、容量配置、逐文件 outcome 和可选 `expectedSha256`，更新 policy/schema/工具映射及 profile 为原 83 项加 `asset.readText`；依赖：方案确认与实现登记；验收：目录一致性、旧工具映射、schema 和 Node 14 宿主兼容测试通过。
