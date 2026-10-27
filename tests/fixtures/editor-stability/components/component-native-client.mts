@@ -155,10 +155,15 @@ export class ComponentNativeClient {
                     }
                     if (this.registration.formalSdkStartupTimer) {
                         if (typeof this.registration.candidateSourceCommit !== 'string') throw new Error('component_formal_sdk_worker_registration_mismatch');
-                        const formal = ComponentFormalSdkWorker.source(join(this.root, 'release/peanut.pod-lite-0.2.0'),
-                            this.registration.candidateSourceCommit, String(this.registration.creatorVersion));
+                        const existing = this.registration.kind === 'registered-existing-0.2.1-project';
+                        const formal = ComponentFormalSdkWorker.source(join(this.root,
+                            existing ? 'release/peanut.pod-lite-0.2.1' : 'release/peanut.pod-lite-0.2.0'),
+                            existing ? this.registration.formalSdkStartupTimer.sourceCommit : this.registration.candidateSourceCommit,
+                            String(this.registration.creatorVersion));
                         if (!formal) throw new Error('component_formal_sdk_worker_source_missing');
-                        ComponentFormalSdkWorker.assertInstalled(this.project, this.registration, formal);
+                        ComponentFormalSdkWorker.assertInstalled(this.project, existing ? {
+                            ...this.registration, candidateSourceCommit: formal.sourceCommit,
+                        } : this.registration, formal);
                         this.events.push({ step: 'formal-sdk-startup-worker-source-verified', sourceVerified: true, result: formal }); this.save();
                     }
                     this.events.push({ step: 'health', result: health }); this.save(); return health;
