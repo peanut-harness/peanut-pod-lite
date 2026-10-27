@@ -60,13 +60,31 @@ class ComponentSdkTimerTraceMain {
                 const receipt = join(output, 'sdk-ui-ready-compat-state.json');
                 writeFileSync(receipt, JSON.stringify({ installed: false, pending: true }) + '\n');
                 const script = realpathSync(join(project, 'extensions/peanut-component-sdk-compat/ui-ready.js'));
-                const phases = ComponentSdkUiReadyPhases.install(map, observed => {
-                    if (!lifecycle.isOpen) return;
-                    writeFileSync(join(output, 'sdk-ui-ready-phases.json'), JSON.stringify({ runId: registration.runId, projectPath: project,
-                        observed, at: Date.now(), pid: process.pid, source: 'actual SDK Metrics.trackTimeEnd successful Map.delete' }, null, 2) + '\n', { flag: 'wx' });
-                    install(script, receipt);
-                });
-                lifecycle.own(() => phases.restore());
+                const observe = (): void => {
+                    const phases = ComponentSdkUiReadyPhases.install(map, observed => {
+                        if (!lifecycle.isOpen) return;
+                        writeFileSync(join(output, 'sdk-ui-ready-phases.json'), JSON.stringify({ runId: registration.runId, projectPath: project,
+                            observed, at: Date.now(), pid: process.pid, source: 'actual SDK Metrics.trackTimeEnd successful Map.delete' }, null, 2) + '\n', { flag: 'wx' });
+                        install(script, receipt);
+                    });
+                    lifecycle.own(() => phases.restore());
+                };
+                if (registration.creatorVersion === '3.8.7') {
+                    let attempts = 0;
+                    const timer = setInterval(() => {
+                        if (!lifecycle.isOpen) { clearInterval(timer); return; }
+                        try {
+                            const source = Function.prototype.toString.call(map.delete);
+                            if (!source.includes('SdkBuildTaskTimerCompat.labels')) {
+                                if (++attempts < 300) return;
+                                throw new Error('component_sdk_ui_ready_host_timer_wrapper_missing');
+                            }
+                            clearInterval(timer);
+                            observe();
+                        } catch (error) { clearInterval(timer); lifecycle.abort(error); }
+                    }, 10);
+                    lifecycle.own(() => clearInterval(timer));
+                } else observe();
             }
             if (registration.sdkRendererTimerTrace === true) {
                 const receipt = join(output, 'sdk-window-renderer-trace-state.json');
