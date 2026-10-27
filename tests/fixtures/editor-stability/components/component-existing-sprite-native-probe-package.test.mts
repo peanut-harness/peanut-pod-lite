@@ -42,7 +42,7 @@ test('offline package pins entry, descriptor, dispatcher and scene sources and t
         assert.equal(manifest.private, true);
         assert.equal(manifest.peanutOfflineOnly, true);
         assert.equal(manifest.name, 'peanut-component-sprite-probe');
-        assert.equal(manifest.probeSourceCommit, '61fcce7509044d4715b25462dde2849dc929c1a1');
+        assert.equal(manifest.probeSourceCommit, 'd87517dcb94dd3ddee743bd6b911a1788c0e44bd');
         assert.equal(report.sourceCommit, manifest.probeSourceCommit);
         assert.equal(report.checkoutCommit,
             execFileSync('git', ['-c', 'core.fsmonitor=false', 'rev-parse', 'HEAD'],
@@ -89,12 +89,13 @@ test('diagnostic package is fixed to 3.8.3 existing asset and remains unaccepted
             manifest: digest(readFileSync(join(destination, 'package.json'))),
         })));
         assert.equal(report.packageSha256, expected);
-        assert.equal(report.packageSha256, '985237d405c0f49dc9b29a8d09d5fbc2065f43a0705e8173c63b56ccb72e45a5');
+        assert.equal(report.packageSha256, '77e8539e712a45ad3b1b375dd5e11e49408c8062b9b816e144a2d8d03770e526');
         assert.equal(repeat.packageSha256, report.packageSha256);
         for (const file of ['main.js', 'scene.js', 'package.json'])
             assert.deepEqual(readFileSync(join(second, file)), readFileSync(join(destination, file)));
         const main = loadInRestrictedRuntime(readFileSync(join(destination, 'main.js')));
         const scene = loadInRestrictedRuntime(readFileSync(join(destination, 'scene.js')));
+        assert.doesNotMatch(readFileSync(join(destination, 'main.js'), 'utf8'), /closeAllConnections/u);
         assert.equal(typeof main.exports.load, 'function');
         assert.equal(typeof main.exports.unload, 'function');
         assert.ok(main.required.includes('crypto'));

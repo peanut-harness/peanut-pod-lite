@@ -6,10 +6,10 @@ import { basename, join, resolve, sep } from 'node:path';
 import { build, type Metafile, type Plugin } from 'esbuild';
 
 const PREFIX = 'tests/fixtures/editor-stability/components/';
-const ACCEPTED_SOURCE_COMMIT = '61fcce7509044d4715b25462dde2849dc929c1a1';
+const ACCEPTED_SOURCE_COMMIT = 'd87517dcb94dd3ddee743bd6b911a1788c0e44bd';
 const INPUTS = Object.freeze([
     { source: `${PREFIX}component-existing-sprite-native-probe-entry.ts`,
-        sha256: '1063129bc2ad2242733571ff000811f33194e7f9d348e6202ffe9c50d1d1c1e9', bundle: 'main.js' },
+        sha256: '5496e587744ac6c53f39ef4e620bfe0c067342d1f9c8a6240a17c382a62fa6cb', bundle: 'main.js' },
     { source: `${PREFIX}component-existing-sprite-native-probe-main.ts`,
         sha256: '51ea40d7a64ae3e9e646bf0616eaf3d0fec6c7a2f0b1c2400d9bd529edd8a2db', bundle: 'main.js' },
     { source: `${PREFIX}component-existing-sprite-probe-descriptor.ts`,
