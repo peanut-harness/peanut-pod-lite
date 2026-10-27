@@ -6,6 +6,7 @@ import { ComponentNativeAssetLoader } from './component-native-asset-loader.ts';
 import { ComponentNativeTiledContext } from './component-native-tiled-context.ts';
 import { ComponentNativeRawLogs } from './component-native-raw-logs.mts';
 import { ComponentNativeMatrixReport } from './component-native-matrix-report.mts';
+import { ComponentNativeDiagnosticAttribution } from './component-native-diagnostic-attribution';
 
 /**
  * @description TMX拥有关系专用实机矩阵；字段、拒绝和生命周期分别验证，始终保留99/795完整分母。
@@ -196,6 +197,16 @@ class ComponentTiledNative {
      */
     private raw(): void {
         const raw = ComponentNativeRawLogs.readAll(this.client.project);
+        const baseline = this.client.registration.startupManifestBaseline;
+        if (raw.newErrors.length + raw.newWarnings.length > 0 && typeof baseline === 'string'
+            && baseline.startsWith(join(this.client.root, 'evidence/task-5.1/takeover-20261027') + '/')) {
+            const attributed = ComponentNativeDiagnosticAttribution.classify(raw, this.client.project,
+                String(this.client.registration.creatorVersion), readFileSync(baseline),
+                readFileSync(join(this.client.project, 'package.json')),
+                readFileSync(join(String(this.client.registration.creatorApp), 'Contents/Resources/resources/3d/engine/package.json')));
+            this.events.push({ step: 'whole-raw-diagnostics-attribution', ...attributed }); this.save();
+            if (attributed.podPreflightMayContinue) return;
+        }
         if (raw.newErrors.length || raw.newWarnings.length) throw new Error('component_tiled_campaign_raw_diagnostics_present');
     }
 
