@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import * as fs from 'node:fs';
 import { chmodSync, existsSync, linkSync, lstatSync, mkdirSync, mkdtempSync,
     readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { createContext, runInContext } from 'node:vm';
+import { buildSync } from 'esbuild';
 import { ComponentExistingSpriteProbeDescriptorOwner as Owner,
     type ComponentSpriteProbeDescriptor } from './component-existing-sprite-probe-descriptor.ts';
 
@@ -23,6 +27,40 @@ function fixture() {
     return { root, project, target, identity,
         close: () => rmSync(root, { recursive: true, force: true }) };
 }
+
+test('compiled descriptor treats only ENOENT as absent when legacy lstat ignores options', () => {
+    const f = fixture();
+    try {
+        const output = buildSync({ entryPoints: [join(import.meta.dirname,
+            'component-existing-sprite-probe-descriptor.ts')], bundle: true,
+            platform: 'node', format: 'cjs', target: 'node12', write: false }).outputFiles[0].text;
+        const module = { exports: {} as { ComponentExistingSpriteProbeDescriptorOwner: typeof Owner } };
+        let fault: string | null = null;
+        const context = createContext({ module, exports: module.exports, Buffer, process,
+            identityJson: JSON.stringify(f.identity),
+            require: (name: string) => name === 'node:fs' || name === 'fs'
+                ? { ...fs, lstatSync: (path: string) => {
+                    if (path === f.target && fault) throw Object.assign(new Error(fault), { code: fault });
+                    return fs.lstatSync(path);
+                } }
+                : createRequire(import.meta.url)(name),
+        });
+        runInContext(output, context, { filename: 'legacy-descriptor.cjs', timeout: 1000 });
+        const identity = runInContext('JSON.parse(identityJson)', context) as ComponentSpriteProbeDescriptor;
+        const LegacyOwner = module.exports.ComponentExistingSpriteProbeDescriptorOwner;
+        for (const code of ['EACCES', 'ENOTDIR', 'ELOOP', 'EIO']) {
+            fault = code;
+            assert.throws(() => new LegacyOwner(f.project).publish(identity), { code });
+            assert.equal(existsSync(f.target), false);
+        }
+        fault = null;
+        const owner = new LegacyOwner(f.project);
+        owner.publish(identity);
+        assert.deepEqual(JSON.parse(readFileSync(f.target, 'utf8')), f.identity);
+        owner.clear(f.identity.generation);
+        assert.equal(existsSync(f.target), false);
+    } finally { f.close(); }
+});
 
 test('exclusive temporary inode publishes complete mode 0600 descriptor and clears only its generation', () => {
     const f = fixture();

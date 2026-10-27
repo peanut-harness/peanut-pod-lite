@@ -17,7 +17,13 @@ const HEX32 = /^[a-f0-9]{32}$/u;
 const OWNER = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu;
 const RUN = /^[a-z0-9][a-z0-9-]{0,63}$/u;
 
-function present(path: string): boolean { return lstatSync(path, { throwIfNoEntry: false }) !== undefined; }
+function present(path: string): boolean {
+    try { lstatSync(path); return true; }
+    catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+        throw error;
+    }
+}
 function directory(path: string): void {
     if (!present(path) || !lstatSync(path).isDirectory() || realpathSync(path) !== path)
         throw new Error('component_sprite_descriptor_directory_invalid');
