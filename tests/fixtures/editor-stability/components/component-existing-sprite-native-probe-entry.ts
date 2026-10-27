@@ -46,6 +46,7 @@ export class ComponentExistingSpriteNativeProbeEntry {
     private active = 0;
     private publishedGeneration = '';
     private readonly pending = new Set<Promise<void>>();
+    private readonly closeListeners = new Set<() => void>();
     private readonly sockets = new Set<Socket>();
     private readonly requestsPerSocket = new WeakMap<Socket, number>();
     private closing: Promise<void> | null = null;
@@ -64,7 +65,12 @@ export class ComponentExistingSpriteNativeProbeEntry {
         const token = randomBytes(32).toString('hex');
         const generation = randomBytes(16).toString('hex');
         const probe = new ComponentExistingSpriteNativeProbeMain({ ...this.context,
-            projectPath: this.project, token, timeoutMs: this.context.timeoutMs ?? 5000 });
+            projectPath: this.project, token, timeoutMs: this.context.timeoutMs ?? 5000,
+            isActive: () => this.accepting && this.generation === generation,
+            onClose: callback => {
+                this.closeListeners.add(callback);
+                return () => { this.closeListeners.delete(callback); };
+            } });
         const server = createServer((request, response) => {
             const socket = request.socket;
             const count = (this.requestsPerSocket.get(socket) ?? 0) + 1;
@@ -170,6 +176,8 @@ export class ComponentExistingSpriteNativeProbeEntry {
         this.accepting = false;
         const server = this.server;
         this.generation = ''; this.token = '';
+        for (const listener of this.closeListeners) listener();
+        this.closeListeners.clear();
         if (server) {
             const closed = server.listening
                 ? new Promise<void>((done, reject) => server.close(error => error ? reject(error) : done()))

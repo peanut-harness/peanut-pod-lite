@@ -347,6 +347,7 @@ function activationFixture(diagnostic = false) {
     const leasePath = join(root, 'lease.json');
     const editor = { Project: { path: project }, App: { version: '3.8.3' },
         Message: { request: async (_target: string, method: string, ...args: unknown[]) => {
+            if (method === 'query-ready') return true;
             if (method === 'query-asset-info' && args[0] === 'db://assets/peanut-pod-upgrade-0-2-1/probe.json')
                 return { url: args[0], uuid: '83213e97-04f5-48f9-9d1c-a4af0ba54c1d', type: 'cc.JsonAsset' };
             if (method === 'query-asset-info') return { url: args[0],
@@ -408,6 +409,38 @@ test('diagnostic lease admits only fixed 3.8.3 existing asset readback', async (
         const response = await post(descriptor.port, { ...request, action: 'existingAssetIdentity' }, descriptor.token);
         assert.equal(response.status, 200);
         assert.equal((await response.json()).result.nativeAccepted, false);
+    } finally { await creator.unload(); f.close(); }
+});
+
+test('closing during an unready asset-db poll cancels the pending lookup', async () => {
+    const f = activationFixture(true); f.writeLease();
+    const relative = 'assets/peanut-pod-upgrade-0-2-1/probe.json';
+    const actual = '/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-3.8.3';
+    mkdirSync(dirname(join(f.project, relative)), { recursive: true });
+    for (const name of [relative, `${relative}.meta`])
+        writeFileSync(join(f.project, name), readFileSync(join(actual, name)));
+    let sawReady: () => void = () => {};
+    const firstReady = new Promise<void>(done => { sawReady = done; });
+    const calls: string[] = [];
+    const editor = { ...f.editor, Message: { request: async (_target: string, method: string) => {
+        calls.push(method);
+        if (method !== 'query-ready') throw new Error('unexpected_asset_query_after_close');
+        sawReady(); return false;
+    } } };
+    const creator = createSyntheticCreatorEntry(f.project, editor, 'diagnostic-383');
+    try {
+        await creator.load();
+        const descriptor = JSON.parse(readFileSync(f.descriptorPath, 'utf8'));
+        const request = post(descriptor.port, { action: 'existingAssetIdentity', projectPath: f.project,
+            creatorVersion: '3.8.3', owner: f.lease.owner, runId: f.lease.runId,
+            pid: process.pid }, descriptor.token);
+        await firstReady;
+        const started = Date.now();
+        await creator.unload();
+        assert.ok(Date.now() - started < 500);
+        await Promise.allSettled([request]);
+        assert.ok(calls.every(method => method === 'query-ready'));
+        assert.equal(existsSync(f.descriptorPath), false);
     } finally { await creator.unload(); f.close(); }
 });
 

@@ -153,8 +153,8 @@ test('fixed preexisting JSON asset uses one exact native query and version-speci
     for (const [version, uuid] of [['3.8.3', '83213e97-04f5-48f9-9d1c-a4af0ba54c1d'],
         ['3.8.7', '4ab4daed-90ec-434e-a5d6-7193d386540b']] as const) {
         const url = 'db://assets/peanut-pod-upgrade-0-2-1/probe.json';
-        const f = fixture(async (_target, _method, argument) => ({ url: argument, uuid,
-            type: 'cc.JsonAsset', invalid: false }), version);
+        const f = fixture(async (_target, method, argument) => method === 'query-ready' ? true
+            : { url: argument, uuid, type: 'cc.JsonAsset', invalid: false }, version);
         try {
             seedExisting(f.context.projectPath, version);
             const result = await new ComponentExistingSpriteNativeProbeMain(f.context).dispatch({
@@ -162,9 +162,63 @@ test('fixed preexisting JSON asset uses one exact native query and version-speci
             });
             assert.equal(result.uuid, uuid);
             assert.equal(result.nativeAccepted, false);
-            assert.deepEqual(f.calls, [{ target: 'asset-db', method: 'query-asset-info', args: [url] }]);
+            assert.deepEqual(f.calls, [
+                { target: 'asset-db', method: 'query-ready', args: [] },
+                { target: 'asset-db', method: 'query-asset-info', args: [url] },
+            ]);
         } finally { f.close(); }
     }
+});
+
+test('fixed JSON waits for asset-db readiness then makes exactly one native lookup', async () => {
+    const url = 'db://assets/peanut-pod-upgrade-0-2-1/probe.json';
+    const uuid = '83213e97-04f5-48f9-9d1c-a4af0ba54c1d';
+    let polls = 0;
+    const f = fixture(async (_target, method, argument) => {
+        if (method === 'query-ready') return ++polls >= 2;
+        assert.equal(method, 'query-asset-info');
+        assert.equal(argument, url);
+        return { url, uuid, type: 'cc.JsonAsset', invalid: false };
+    });
+    try {
+        seedExisting(f.context.projectPath, '3.8.3');
+        const result = await new ComponentExistingSpriteNativeProbeMain({
+            ...f.context, timeoutMs: 250,
+        }).dispatch({
+            ...f.input, action: 'existingAssetIdentity',
+        });
+        assert.equal(result.uuid, uuid);
+        assert.deepEqual(f.calls.map(row => row.method),
+            ['query-ready', 'query-ready', 'query-asset-info']);
+    } finally { f.close(); }
+});
+
+test('fixed JSON never queries an unready or malformed asset-db and keeps one action deadline', async () => {
+    for (const ready of [null, 'true', undefined, { ready: true }]) {
+        const f = fixture(async (_target, method) => {
+            assert.equal(method, 'query-ready'); return ready;
+        });
+        try {
+            seedExisting(f.context.projectPath, '3.8.3');
+            await assert.rejects(new ComponentExistingSpriteNativeProbeMain(f.context).dispatch({
+                ...f.input, action: 'existingAssetIdentity',
+            }), /asset_db_ready_invalid|response_too_large_or_invalid/);
+            assert.deepEqual(f.calls.map(row => row.method), ['query-ready']);
+        } finally { f.close(); }
+    }
+    const waiting = fixture(async (_target, method) => {
+        assert.equal(method, 'query-ready'); return false;
+    });
+    try {
+        seedExisting(waiting.context.projectPath, '3.8.3');
+        const started = Date.now();
+        await assert.rejects(new ComponentExistingSpriteNativeProbeMain({
+            ...waiting.context, timeoutMs: 80,
+        }).dispatch({ ...waiting.input, action: 'existingAssetIdentity' }), /timeout/);
+        assert.ok(Date.now() - started < 300);
+        assert.ok(waiting.calls.length >= 1);
+        assert.ok(waiting.calls.every(row => row.method === 'query-ready'));
+    } finally { waiting.close(); }
 });
 
 test('fixed asset refuses wrong URL, UUID, type, null and native error without fallback', async () => {
@@ -172,12 +226,12 @@ test('fixed asset refuses wrong URL, UUID, type, null and native error without f
     for (const response of [{ url: `${url}-other`, uuid: '83213e97-04f5-48f9-9d1c-a4af0ba54c1d', type: 'cc.JsonAsset' },
         { url, uuid: '4ab4daed-90ec-434e-a5d6-7193d386540b', type: 'cc.JsonAsset' },
         { url, uuid: '83213e97-04f5-48f9-9d1c-a4af0ba54c1d', type: 'json' }, null]) {
-        const f = fixture(async () => response);
+        const f = fixture(async (_target, method) => method === 'query-ready' ? true : response);
         try {
             seedExisting(f.context.projectPath, '3.8.3');
             await assert.rejects(new ComponentExistingSpriteNativeProbeMain(f.context).dispatch({
                 ...f.input, action: 'existingAssetIdentity',
-            }), /existing_identity_mismatch|response_invalid/);
+            }), /existing_identity_mismatch|existing_asset_absent|response_invalid/);
         } finally { f.close(); }
     }
     const failure = new Error('real_asset_db_rejection');
@@ -219,8 +273,8 @@ test('3.8.7 refuses 3.8.3 existing-asset bytes before native lookup', async () =
 
 test('3.8.3 compatibility pilot admits only fixed existing asset action', async () => {
     const url = 'db://assets/peanut-pod-upgrade-0-2-1/probe.json';
-    const f = fixture(async (_target, _method, argument) => ({ url: argument,
-        uuid: '83213e97-04f5-48f9-9d1c-a4af0ba54c1d', type: 'cc.JsonAsset' }));
+    const f = fixture(async (_target, method, argument) => method === 'query-ready' ? true
+        : { url: argument, uuid: '83213e97-04f5-48f9-9d1c-a4af0ba54c1d', type: 'cc.JsonAsset' });
     try {
         seedExisting(f.context.projectPath, '3.8.3');
         const probe = new ComponentExistingSpriteNativeProbeMain({ ...f.context,
@@ -232,7 +286,7 @@ test('3.8.3 compatibility pilot admits only fixed existing asset action', async 
         const result = await probe.dispatch({ ...f.input, action: 'existingAssetIdentity' });
         assert.equal(result.nativeAccepted, false);
         assert.deepEqual(f.calls.map(row => [row.target, row.method, row.args]),
-            [['asset-db', 'query-asset-info', [url]]]);
+            [['asset-db', 'query-ready', []], ['asset-db', 'query-asset-info', [url]]]);
         assert.throws(() => new ComponentExistingSpriteNativeProbeMain({ ...f.context,
             creatorVersion: '3.8.7', allowedActions: ['existingAssetIdentity'] }), /context_invalid/u);
     } finally { f.close(); }

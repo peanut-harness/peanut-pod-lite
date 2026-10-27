@@ -24,6 +24,8 @@ type Request = { action: Action; projectPath: string; creatorVersion: string; ow
     expectedFrameUuid?: string; expectOpacity?: boolean };
 type Context = { projectPath: string; creatorVersion: '3.8.3' | '3.8.7'; owner: string;
     runId: string; pid: number; token: string; timeoutMs: number;
+    expiresAt?: number; isActive?: () => boolean;
+    onClose?: (callback: () => void) => () => void;
     allowedActions?: readonly Action[];
     message: { request(target: string, method: string, ...args: unknown[]): Promise<unknown> } };
 
@@ -56,6 +58,9 @@ export class ComponentExistingSpriteNativeProbeMain {
             || !Number.isSafeInteger(context.pid) || context.pid <= 0
             || !/^[a-f0-9]{64}$/iu.test(context.token)
             || !Number.isInteger(context.timeoutMs) || context.timeoutMs < 1 || context.timeoutMs > 5000
+            || (context.expiresAt !== undefined && !Number.isSafeInteger(context.expiresAt))
+            || (context.isActive !== undefined && typeof context.isActive !== 'function')
+            || (context.onClose !== undefined && typeof context.onClose !== 'function')
             || (context.allowedActions !== undefined
                 && (context.creatorVersion !== '3.8.3' || context.allowedActions.length !== 1
                     || context.allowedActions[0] !== 'existingAssetIdentity'))
@@ -88,20 +93,60 @@ export class ComponentExistingSpriteNativeProbeMain {
         return this.sceneFields(input.expectedSceneUuid, input.expectedFrameUuid, input.expectOpacity);
     }
 
+    private assertOpen(deadline: number): void {
+        if (this.context.isActive && !this.context.isActive())
+            throw new Error('component_sprite_probe_entry_closed');
+        if (this.context.expiresAt !== undefined && Date.now() >= this.context.expiresAt)
+            throw new Error('component_sprite_probe_lease_expired');
+        if (Date.now() >= deadline) throw new Error('component_sprite_probe_timeout');
+    }
+
     private async call(target: string, method: string, ...args: unknown[]): Promise<unknown> {
+        return this.callUntil(Date.now() + this.context.timeoutMs, target, method, ...args);
+    }
+
+    private async callUntil(deadline: number, target: string, method: string,
+        ...args: unknown[]): Promise<unknown> {
+        this.assertOpen(deadline);
         let timer: ReturnType<typeof setTimeout> | undefined;
+        let detach = () => {};
         try {
             const response = await Promise.race([
-                Promise.resolve().then(() => this.context.message.request(target, method, ...args)),
+                Promise.resolve().then(() => {
+                    this.assertOpen(deadline);
+                    return this.context.message.request(target, method, ...args);
+                }),
                 new Promise<never>((_, reject) => {
-                    timer = setTimeout(() => reject(new Error('component_sprite_probe_timeout')), this.context.timeoutMs);
+                    timer = setTimeout(() => reject(new Error('component_sprite_probe_timeout')),
+                        deadline - Date.now());
+                }),
+                new Promise<never>((_, reject) => {
+                    detach = this.context.onClose?.(() => reject(new Error('component_sprite_probe_entry_closed')))
+                        ?? (() => {});
                 }),
             ]);
+            this.assertOpen(deadline);
             const serialized = JSON.stringify(response);
             if (serialized === undefined || Buffer.byteLength(serialized) > 65536)
                 throw new Error('component_sprite_probe_response_too_large_or_invalid');
             return response;
-        } finally { if (timer) clearTimeout(timer); }
+        } finally { if (timer) clearTimeout(timer); detach(); }
+    }
+
+    private async pauseUntil(deadline: number): Promise<void> {
+        this.assertOpen(deadline);
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        let detach = () => {};
+        try {
+            await new Promise<void>((resolve, reject) => {
+                timer = setTimeout(resolve, Math.min(50, deadline - Date.now()));
+                detach = this.context.onClose?.(() => {
+                    if (timer) clearTimeout(timer);
+                    reject(new Error('component_sprite_probe_entry_closed'));
+                }) ?? (() => {});
+            });
+            this.assertOpen(deadline);
+        } finally { if (timer) clearTimeout(timer); detach(); }
     }
 
     private async assetIdentity(): Promise<Record<string, unknown>> {
@@ -124,10 +169,21 @@ export class ComponentExistingSpriteNativeProbeMain {
     }
 
     private async existingAssetIdentity(): Promise<Record<string, unknown>> {
+        const deadline = Math.min(Date.now() + this.context.timeoutMs,
+            this.context.expiresAt ?? Number.MAX_SAFE_INTEGER);
+        this.assertOpen(deadline);
         const expected = EXISTING_IDENTITIES[this.context.creatorVersion];
         pinnedFile(this.context.projectPath, EXISTING_PATH, expected.sourceSha256);
         pinnedFile(this.context.projectPath, `${EXISTING_PATH}.meta`, expected.metaSha256);
-        const info = record(await this.call('asset-db', 'query-asset-info', EXISTING));
+        while (true) {
+            const ready = await this.callUntil(deadline, 'asset-db', 'query-ready');
+            if (ready === true) break;
+            if (ready !== false) throw new Error('component_sprite_probe_asset_db_ready_invalid');
+            await this.pauseUntil(deadline);
+        }
+        const value = await this.callUntil(deadline, 'asset-db', 'query-asset-info', EXISTING);
+        if (value === null) throw new Error('component_sprite_probe_existing_asset_absent');
+        const info = record(value);
         if (info.url !== EXISTING || info.uuid !== expected.uuid
             || info.type !== 'cc.JsonAsset' || info.invalid === true)
             throw new Error('component_sprite_probe_existing_identity_mismatch');
