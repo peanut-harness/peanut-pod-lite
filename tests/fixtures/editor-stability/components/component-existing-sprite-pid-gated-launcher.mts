@@ -17,6 +17,8 @@ const PRODUCTION = Object.freeze({
     binarySha256: '799386a840d319b7eb78a788a4919950d8537f41aeca2cb6ce85a0ee2c4a0330',
     lease: join(PRIVATE, 'sprite-runtime-lease-383.json'),
     permit: join(PRIVATE, 'sprite-production-383-stage-permit.json'),
+    preparationRoot: join(PRIVATE, 'c4-383-preparation'),
+    runId: 'pod-51-probe-383-20261027-03',
     candidateSourceCommit: '660226aa28d0d96fc4766c81c3b58af71cd1a8f0',
     hostSha256: '3954bec522639354ce249f594055e7a543854ee721c645994051cd094f534438',
     coreSha256: 'ef38d9ac7f12a6face2e353cbb02c538ce0546520d1cb3941a903c8a376d794f',
@@ -278,6 +280,7 @@ export function assertProduction383PermitIdentity(value: unknown, owner: string,
         || Object.keys(value).length !== 19
         || permit.schema !== 'peanut.pod.sprite-production-383-stage-permit.v1'
         || permit.status !== 'active' || permit.owner !== owner || permit.runId !== runId
+        || runId !== PRODUCTION.runId
         || permit.projectPath !== PRODUCTION.project || permit.creatorVersion !== '3.8.3'
         || permit.creatorExecutable !== PRODUCTION.binary
         || permit.creatorExecutableSha256 !== PRODUCTION.binarySha256
@@ -293,6 +296,21 @@ export function assertProduction383PermitIdentity(value: unknown, owner: string,
         throw new Error('component_sprite_pid_gate_permit_identity_invalid');
 }
 
+export function assertProduction383EvidencePaths(value: unknown): void {
+    const evidence = value as { backupManifestPath?: unknown; processSnapshotPath?: unknown };
+    if (!evidence || typeof evidence !== 'object'
+        || typeof evidence.backupManifestPath !== 'string'
+        || typeof evidence.processSnapshotPath !== 'string')
+        throw new Error('component_sprite_pid_gate_permit_evidence_invalid');
+    const directory = dirname(evidence.backupManifestPath);
+    const leaf = basename(directory);
+    if (!/^\d{8}T\d{6}Z-[a-f0-9]{8}$/u.test(leaf)
+        || dirname(directory) !== PRODUCTION.preparationRoot
+        || evidence.backupManifestPath !== join(PRODUCTION.preparationRoot, leaf, 'manifest.json')
+        || evidence.processSnapshotPath !== join(directory, 'process-snapshot.txt'))
+        throw new Error('component_sprite_pid_gate_permit_evidence_invalid');
+}
+
 function productionPermit(owner: string, runId: string): ProductionPermit {
     const path = PRODUCTION.permit;
     const stat = statFile(path);
@@ -300,10 +318,10 @@ function productionPermit(owner: string, runId: string): ProductionPermit {
         throw new Error('component_sprite_pid_gate_permit_file_invalid');
     const value: unknown = JSON.parse(readFileSync(path, 'utf8'));
     assertProduction383PermitIdentity(value, owner, runId, Date.now());
-    const prefix = join(PRIVATE, 'c0-383-preparation') + sep;
-    if (!value.backupManifestPath.startsWith(prefix)
-        || basename(value.backupManifestPath) !== 'manifest.json'
-        || value.processSnapshotPath !== join(dirname(value.backupManifestPath), 'process-snapshot.txt')
+    assertProduction383EvidencePaths(value);
+    const backupStat = statFile(value.backupManifestPath);
+    const processStat = statFile(value.processSnapshotPath);
+    if ((backupStat.mode & 0o777) !== 0o600 || (processStat.mode & 0o777) !== 0o600
         || realpathSync(value.backupManifestPath) !== value.backupManifestPath
         || realpathSync(value.processSnapshotPath) !== value.processSnapshotPath
         || sha(readFileSync(value.backupManifestPath)) !== value.backupManifestSha256

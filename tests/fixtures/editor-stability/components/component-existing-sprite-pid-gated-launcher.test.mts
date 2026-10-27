@@ -5,7 +5,8 @@ import { chmodSync, existsSync, lstatSync, mkdtempSync, readFileSync, realpathSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { PID_GATE_SCRIPT, assertProduction383PermitIdentity, prepareProduction383PidGate, productionCreatorInvocation,
+import { PID_GATE_SCRIPT, assertProduction383EvidencePaths, assertProduction383PermitIdentity,
+    prepareProduction383PidGate, productionCreatorInvocation,
     prepareSyntheticPidGate } from './component-existing-sprite-pid-gated-launcher.mts';
 
 const OWNER = '12345678-1234-1234-1234-123456789abc';
@@ -150,7 +151,7 @@ test('production adapter refuses missing stage permit and freeform caller target
 test('production permit pins the retained diagnostic and rejects the consumed C1 identity', () => {
     const now = Date.now();
     const permit = { schema: 'peanut.pod.sprite-production-383-stage-permit.v1', status: 'active',
-        owner: OWNER, runId: 'pod-51-probe-383-20261027-02',
+        owner: OWNER, runId: 'pod-51-probe-383-20261027-03',
         projectPath: '/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-lifecycle-acceptance-2026-10-09/creator-3.8.3',
         creatorVersion: '3.8.3',
         creatorExecutable: '/Applications/Cocos/Creator/3.8.3/CocosCreator.app/Contents/MacOS/CocosCreator',
@@ -168,8 +169,29 @@ test('production permit pins the retained diagnostic and rejects the consumed C1
     for (const stale of [
         { probeSourceCommit: '61fcce7509044d4715b25462dde2849dc929c1a1' },
         { probeBundleSha256: '0add8b7a252e597d6b9972b21ef93f83bc9a9e544261f8d24565f66a5abcee1a' },
+        { runId: 'pod-51-probe-383-20261027-02' },
     ]) assert.throws(() => assertProduction383PermitIdentity({ ...permit, ...stale }, OWNER, permit.runId, now),
         /permit_identity_invalid/u);
+});
+
+test('production evidence path admits only one exact C4 backup leaf and matching snapshot', () => {
+    const root = '/Users/alex/workspaces/peanut-workspace/.peanut-ai/pod-editor-operations-20261026/task-5.1';
+    const directory = join(root, 'c4-383-preparation', '20261027T013000Z-abcdef12');
+    const valid = { backupManifestPath: join(directory, 'manifest.json'),
+        processSnapshotPath: join(directory, 'process-snapshot.txt') };
+    assert.doesNotThrow(() => assertProduction383EvidencePaths(valid));
+    for (const stale of [
+        { backupManifestPath: valid.backupManifestPath.replace('c4-383-preparation', 'c0-383-preparation') },
+        { backupManifestPath: valid.backupManifestPath.replace('c4-383-preparation', 'c3-383-preparation') },
+        { backupManifestPath: valid.backupManifestPath.replace('c4-383-preparation', 'c4-383-preparation-old') },
+        { backupManifestPath: valid.backupManifestPath.replace('20261027T013000Z-abcdef12', 'not-a-run') },
+        { backupManifestPath: join(directory, 'nested', 'manifest.json') },
+        { backupManifestPath: `${directory}/../20261027T013000Z-abcdef12/manifest.json` },
+        { backupManifestPath: '/private/tmp/manifest.json' },
+        { processSnapshotPath: join(directory, 'other.txt') },
+        { processSnapshotPath: join(directory, 'nested', 'process-snapshot.txt') },
+    ]) assert.throws(() => assertProduction383EvidencePaths({ ...valid, ...stale }),
+        /permit_evidence_invalid/u);
 });
 
 test('production invocation passes only validated host context and fixed project flags to harmless executable', async () => {
