@@ -32,11 +32,17 @@ export class ComponentNativeRawLogs {
         const scope = existsSync(join(project, 'extensions/peanut-component-probe/project-ownership.json'))
             ? ComponentMatrixScope.locate(root, project) : null;
         const lease = scope?.mode === 'existing' ? JSON.parse(readFileSync(join(scope.output, 'creator-owned-start.json'), 'utf8')) : null;
-        const offset = lease?.projectLogOffset;
+        let offset = lease?.projectLogOffset;
         if (scope?.mode === 'existing' && (!Number.isSafeInteger(offset) || offset < 0))
             throw new Error('component_existing_raw_log_baseline_missing');
         const bytes = readFileSync(path);
-        if (offset > bytes.length) throw new Error('component_existing_raw_log_truncated');
+        if (offset > bytes.length) {
+            const startedAt = Date.parse(String(lease?.startedAt));
+            if (scope?.mode !== 'existing' || !Number.isFinite(startedAt)
+                || statSync(path).mtimeMs < startedAt) throw new Error('component_existing_raw_log_truncated');
+            // Creator rebuilt project.log after the owned launch. Scan every byte of this new generation.
+            offset = 0;
+        }
         sources.push({ path, identity: this.identity(path), offset: offset ?? 0, partial: '',
             prefixSha256: createHash('sha256').update(bytes.subarray(0, offset ?? 0)).digest('hex') });
         return this.readDelta(sources);
