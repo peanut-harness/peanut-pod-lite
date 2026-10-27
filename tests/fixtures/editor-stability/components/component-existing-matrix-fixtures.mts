@@ -63,6 +63,7 @@ export class ComponentExistingMatrixFixtures {
         if (report.creatorVersion !== version || report.componentCount !== 99 || report.fieldCount !== 795
             || report.rows?.length !== 99 || report.nativePassedRows !== 0)
             throw new Error('component_existing_matrix_report_invalid');
+        const engine = `/Applications/Cocos/Creator/${version}/CocosCreator.app/Contents/Resources/resources/3d/engine`;
         const sourceMap = new Map<string, string>();
         for (const binding of Object.values(ComponentResourceBindings.create(root, version)))
             for (const source of (binding as { sources: { path: string; sha256: string }[] }).sources) {
@@ -111,7 +112,20 @@ export class ComponentExistingMatrixFixtures {
                 ? Buffer.from(JSON.stringify(remap(JSON.parse(bytes.toString('utf8'))), null, 2) + '\n') : bytes;
             files.push({ source, destination, sha256: digest(authored), bytes: authored });
         }
-        const engine = `/Applications/Cocos/Creator/${version}/CocosCreator.app/Contents/Resources/resources/3d/engine`;
+        const spriteTemplatePath = `${engine}/editor/assets/default_ui/default_sprite.png.meta`;
+        const spriteTemplate = JSON.parse(readFileSync(spriteTemplatePath, 'utf8'));
+        if (spriteTemplate.importer !== 'image' || spriteTemplate.userData?.type !== 'sprite-frame'
+            || typeof spriteTemplate.ver !== 'string') throw new Error('component_existing_matrix_sprite_template_invalid');
+        for (const image of ['assets/fixtures/media/assets/image/checker.png',
+            'assets/fixtures/media/supplemental/particle/checker.png']) {
+            if (!files.some(item => item.destination === image) || files.some(item => item.destination === image + '.meta'))
+                throw new Error('component_existing_matrix_sprite_source_invalid');
+            const hex = createHash('sha256').update(`peanut-51:${runId}:${version}:${image}`).digest('hex').slice(0, 32);
+            const uuid = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+            const meta = Buffer.from(JSON.stringify({ ver: spriteTemplate.ver, importer: 'image', imported: false,
+                uuid, files: [], subMetas: {}, userData: { type: 'sprite-frame' } }, null, 2) + '\n');
+            files.push({ source: spriteTemplatePath, destination: image + '.meta', sha256: digest(meta), bytes: meta });
+        }
         const audit = ComponentCatalogAudit.create(root, engine, version);
         const fields = ComponentFieldFixtures.create(root, version, audit.nativeDeclarations);
         if (fields.componentCount !== 99 || fields.fieldCount !== 795) throw new Error('component_existing_matrix_field_denominator_invalid');
