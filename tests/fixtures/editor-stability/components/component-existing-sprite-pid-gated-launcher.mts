@@ -20,8 +20,8 @@ const PRODUCTION = Object.freeze({
     candidateSourceCommit: '660226aa28d0d96fc4766c81c3b58af71cd1a8f0',
     hostSha256: '3954bec522639354ce249f594055e7a543854ee721c645994051cd094f534438',
     coreSha256: 'ef38d9ac7f12a6face2e353cbb02c538ce0546520d1cb3941a903c8a376d794f',
-    probeSourceCommit: '61fcce7509044d4715b25462dde2849dc929c1a1',
-    probeBundleSha256: '0add8b7a252e597d6b9972b21ef93f83bc9a9e544261f8d24565f66a5abcee1a',
+    probeSourceCommit: 'aa4423bbb6371bfcf20a5d1e3ce2bf053f538995',
+    probeBundleSha256: '98340a038a17de63a7fcff08cfc25bc321c026f8aa4acf7c09ea4c6e36c91a41',
 });
 
 type OwnedLease = { path: string; dev: number; ino: number; digest: string; generation: string };
@@ -271,30 +271,35 @@ type ProductionPermit = {
     processSnapshotPath: string; processSnapshotSha256: string;
 };
 
+export function assertProduction383PermitIdentity(value: unknown, owner: string, runId: string,
+    now: number): asserts value is ProductionPermit {
+    const permit = value as ProductionPermit;
+    if (!value || typeof value !== 'object' || Array.isArray(value)
+        || Object.keys(value).length !== 19
+        || permit.schema !== 'peanut.pod.sprite-production-383-stage-permit.v1'
+        || permit.status !== 'active' || permit.owner !== owner || permit.runId !== runId
+        || permit.projectPath !== PRODUCTION.project || permit.creatorVersion !== '3.8.3'
+        || permit.creatorExecutable !== PRODUCTION.binary
+        || permit.creatorExecutableSha256 !== PRODUCTION.binarySha256
+        || permit.candidateSourceCommit !== PRODUCTION.candidateSourceCommit
+        || permit.hostSha256 !== PRODUCTION.hostSha256 || permit.coreSha256 !== PRODUCTION.coreSha256
+        || permit.probeSourceCommit !== PRODUCTION.probeSourceCommit
+        || permit.probeBundleSha256 !== PRODUCTION.probeBundleSha256
+        || !Number.isSafeInteger(permit.issuedAt) || !Number.isSafeInteger(permit.expiresAt)
+        || permit.issuedAt > now || permit.expiresAt <= now
+        || permit.expiresAt - permit.issuedAt > 600000
+        || !/^[a-f0-9]{64}$/u.test(permit.backupManifestSha256)
+        || !/^[a-f0-9]{64}$/u.test(permit.processSnapshotSha256))
+        throw new Error('component_sprite_pid_gate_permit_identity_invalid');
+}
+
 function productionPermit(owner: string, runId: string): ProductionPermit {
     const path = PRODUCTION.permit;
     const stat = statFile(path);
     if ((stat.mode & 0o777) !== 0o600)
         throw new Error('component_sprite_pid_gate_permit_file_invalid');
-    const value = JSON.parse(readFileSync(path, 'utf8')) as ProductionPermit;
-    const now = Date.now();
-    if (!value || typeof value !== 'object' || Array.isArray(value)
-        || Object.keys(value).length !== 19
-        || value.schema !== 'peanut.pod.sprite-production-383-stage-permit.v1'
-        || value.status !== 'active' || value.owner !== owner || value.runId !== runId
-        || value.projectPath !== PRODUCTION.project || value.creatorVersion !== '3.8.3'
-        || value.creatorExecutable !== PRODUCTION.binary
-        || value.creatorExecutableSha256 !== PRODUCTION.binarySha256
-        || value.candidateSourceCommit !== PRODUCTION.candidateSourceCommit
-        || value.hostSha256 !== PRODUCTION.hostSha256 || value.coreSha256 !== PRODUCTION.coreSha256
-        || value.probeSourceCommit !== PRODUCTION.probeSourceCommit
-        || value.probeBundleSha256 !== PRODUCTION.probeBundleSha256
-        || !Number.isSafeInteger(value.issuedAt) || !Number.isSafeInteger(value.expiresAt)
-        || value.issuedAt > now || value.expiresAt <= now
-        || value.expiresAt - value.issuedAt > 600000
-        || !/^[a-f0-9]{64}$/u.test(value.backupManifestSha256)
-        || !/^[a-f0-9]{64}$/u.test(value.processSnapshotSha256))
-        throw new Error('component_sprite_pid_gate_permit_identity_invalid');
+    const value: unknown = JSON.parse(readFileSync(path, 'utf8'));
+    assertProduction383PermitIdentity(value, owner, runId, Date.now());
     const prefix = join(PRIVATE, 'c0-383-preparation') + sep;
     if (!value.backupManifestPath.startsWith(prefix)
         || basename(value.backupManifestPath) !== 'manifest.json'
