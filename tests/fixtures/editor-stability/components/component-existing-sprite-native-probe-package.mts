@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { lstatSync, readFileSync, realpathSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve, sep } from 'node:path';
-import { build, type Metafile } from 'esbuild';
+import { build, type Metafile, type Plugin } from 'esbuild';
 
 const PREFIX = 'tests/fixtures/editor-stability/components/';
 const ACCEPTED_SOURCE_COMMIT = '61fcce7509044d4715b25462dde2849dc929c1a1';
@@ -17,7 +17,15 @@ const INPUTS = Object.freeze([
     { source: `${PREFIX}component-existing-sprite-native-probe-scene.ts`,
         sha256: '56d2c84c8de5f25d9c64c199c3095b5abb961b34b6720062055de5f931938d46', bundle: 'scene.js' },
 ]);
-const EXTERNALS = new Set(['node:crypto', 'node:fs', 'node:http', 'node:os', 'node:path', 'cc']);
+const BUILTINS = new Set(['crypto', 'fs', 'http', 'os', 'path']);
+const EXTERNALS = new Set([...BUILTINS, 'cc']);
+const creatorBuiltinCompat: Plugin = { name: 'creator-builtin-compat', setup(plugin) {
+    plugin.onResolve({ filter: /^node:/ }, ({ path }) => {
+        const builtin = path.slice('node:'.length);
+        if (!BUILTINS.has(builtin)) throw new Error('component_sprite_probe_package_external_invalid');
+        return { path: builtin, external: true };
+    });
+} };
 const BUNDLES = Object.freeze([
     { entry: INPUTS[0].source, source: [INPUTS[0].source, INPUTS[1].source, INPUTS[2].source], output: 'main.js' },
     { entry: INPUTS[3].source, source: [INPUTS[3].source], output: 'scene.js' },
@@ -99,7 +107,8 @@ export class ComponentExistingSpriteNativeProbePackage {
         const files: { path: string; sha256: string; bytes: Buffer }[] = [];
         for (const bundle of BUNDLES) {
             const result = await build({ entryPoints: [resolve(root, bundle.entry)], bundle: true, platform: 'node',
-                format: 'cjs', target: 'node14', legalComments: 'none', external: [...EXTERNALS],
+                format: 'cjs', target: 'node12', legalComments: 'none', external: [...EXTERNALS],
+                plugins: [creatorBuiltinCompat],
                 outfile: join(destination, bundle.output), write: false, metafile: true });
             if (!result.metafile || result.outputFiles?.length !== 1)
                 throw new Error('component_sprite_probe_package_bundle_missing');
@@ -109,6 +118,8 @@ export class ComponentExistingSpriteNativeProbePackage {
                     throw new Error('component_sprite_probe_package_source_changed_after_build');
             }
             const bytes = Buffer.from(result.outputFiles[0].contents);
+            if (/\brequire\s*\(\s*['"]node:/u.test(bytes.toString('utf8')))
+                throw new Error('component_sprite_probe_package_external_invalid');
             files.push({ path: bundle.output, sha256: sha(bytes), bytes });
         }
         const manifest = {

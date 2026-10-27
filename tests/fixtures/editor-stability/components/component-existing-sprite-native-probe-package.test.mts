@@ -7,12 +7,27 @@ import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
+import { runInNewContext } from 'node:vm';
 import type { Metafile } from 'esbuild';
 import { ComponentExistingSpriteNativeProbePackage as Package } from './component-existing-sprite-native-probe-package.mts';
 
 const repository = resolve(import.meta.dirname, '../../../..');
 const digest = (bytes: Buffer): string => createHash('sha256').update(bytes).digest('hex');
 function scratch(): string { return realpathSync(mkdtempSync(join(tmpdir(), 'component-sprite-probe-package-'))); }
+const creatorExternals = new Set(['crypto', 'fs', 'http', 'os', 'path', 'cc']);
+
+function loadInRestrictedRuntime(bytes: Buffer): { exports: Record<string, () => Promise<void>>;
+    required: string[] } {
+    const module = { exports: {} as Record<string, () => Promise<void>> };
+    const required: string[] = [];
+    runInNewContext(bytes.toString('utf8'), { module, exports: module.exports, Buffer, process,
+        setTimeout, clearTimeout, require: (name: string) => {
+            required.push(name);
+            if (!creatorExternals.has(name)) throw new Error(`unknown_creator_external:${name}`);
+            return name === 'cc' ? {} : createRequire(import.meta.url)(name);
+        } }, { filename: 'creator-probe-bundle.js', timeout: 1000 });
+    return { exports: module.exports, required };
+}
 
 test('offline package pins entry, descriptor, dispatcher and scene sources and three private outputs', async () => {
     const destination = scratch();
@@ -74,10 +89,19 @@ test('diagnostic package is fixed to 3.8.3 existing asset and remains unaccepted
             manifest: digest(readFileSync(join(destination, 'package.json'))),
         })));
         assert.equal(report.packageSha256, expected);
-        assert.equal(report.packageSha256, '0add8b7a252e597d6b9972b21ef93f83bc9a9e544261f8d24565f66a5abcee1a');
+        assert.equal(report.packageSha256, '985237d405c0f49dc9b29a8d09d5fbc2065f43a0705e8173c63b56ccb72e45a5');
         assert.equal(repeat.packageSha256, report.packageSha256);
         for (const file of ['main.js', 'scene.js', 'package.json'])
             assert.deepEqual(readFileSync(join(second, file)), readFileSync(join(destination, file)));
+        const main = loadInRestrictedRuntime(readFileSync(join(destination, 'main.js')));
+        const scene = loadInRestrictedRuntime(readFileSync(join(destination, 'scene.js')));
+        assert.equal(typeof main.exports.load, 'function');
+        assert.equal(typeof main.exports.unload, 'function');
+        assert.ok(main.required.includes('crypto'));
+        assert.ok(main.required.every(name => creatorExternals.has(name) && !name.startsWith('node:')));
+        assert.ok(scene.required.every(name => creatorExternals.has(name) && !name.startsWith('node:')));
+        await assert.rejects(main.exports.load(), /version_unregistered/);
+        await main.exports.unload();
     } finally {
         rmSync(destination, { recursive: true, force: true });
         rmSync(second, { recursive: true, force: true });
