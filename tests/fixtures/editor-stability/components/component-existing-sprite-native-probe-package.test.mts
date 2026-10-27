@@ -43,7 +43,7 @@ test('offline package pins entry, descriptor, dispatcher and scene sources and t
         assert.equal(manifest.private, true);
         assert.equal(manifest.peanutOfflineOnly, true);
         assert.equal(manifest.name, 'peanut-component-sprite-probe');
-        assert.equal(manifest.probeSourceCommit, 'd3aab51e70a9d3ff034f573cb8ad61281f65978c');
+        assert.equal(manifest.probeSourceCommit, '371445bb78a1f3e64bb1aa788ba437b694a126c3');
         assert.equal(report.sourceCommit, manifest.probeSourceCommit);
         assert.equal(report.checkoutCommit,
             execFileSync('git', ['-c', 'core.fsmonitor=false', 'rev-parse', 'HEAD'],
@@ -90,7 +90,7 @@ test('diagnostic package is fixed to 3.8.3 existing asset and remains unaccepted
             manifest: digest(readFileSync(join(destination, 'package.json'))),
         })));
         assert.equal(report.packageSha256, expected);
-        assert.equal(report.packageSha256, '301c82d3792a07ed1c7ea99283cda87becd9d9ce7085bd621a8ae2d9764cd22a');
+        assert.equal(report.packageSha256, '8057a4b4f90718d5aeb74a2f891e9770a53a11608f01f7be4b287e23044dec8d');
         assert.equal(repeat.packageSha256, report.packageSha256);
         for (const file of ['main.js', 'scene.js', 'package.json'])
             assert.deepEqual(readFileSync(join(second, file)), readFileSync(join(destination, file)));

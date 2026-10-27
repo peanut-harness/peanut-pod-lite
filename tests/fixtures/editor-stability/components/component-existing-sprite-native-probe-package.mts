@@ -6,12 +6,12 @@ import { basename, join, resolve, sep } from 'node:path';
 import { build, type Metafile, type Plugin } from 'esbuild';
 
 const PREFIX = 'tests/fixtures/editor-stability/components/';
-const ACCEPTED_SOURCE_COMMIT = 'd3aab51e70a9d3ff034f573cb8ad61281f65978c';
+const ACCEPTED_SOURCE_COMMIT = '371445bb78a1f3e64bb1aa788ba437b694a126c3';
 const INPUTS = Object.freeze([
     { source: `${PREFIX}component-existing-sprite-native-probe-entry.ts`,
-        sha256: 'e1d205aee3e4c889f6138afa3538c84882be6606f5575c4fa21de76bce54b1e2', bundle: 'main.js' },
+        sha256: '0c0fb92cae04e6f1c923d0ac95b4ab7badfe877aa5c15a2ac91b1839f4b62d68', bundle: 'main.js' },
     { source: `${PREFIX}component-existing-sprite-native-probe-main.ts`,
-        sha256: '51ea40d7a64ae3e9e646bf0616eaf3d0fec6c7a2f0b1c2400d9bd529edd8a2db', bundle: 'main.js' },
+        sha256: '8e4dd0a03d14f42dffee9a341736dc44d3a3174f69baf2ce69928a6ac1072e63', bundle: 'main.js' },
     { source: `${PREFIX}component-existing-sprite-probe-descriptor.ts`,
         sha256: 'cd96a1a06da4ee137711b4e02e0649c249ec57fd46de39136b4d9a69fc0ddbca', bundle: 'main.js' },
     { source: `${PREFIX}component-existing-sprite-native-probe-scene.ts`,
