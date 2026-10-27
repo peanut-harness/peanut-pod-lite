@@ -43,7 +43,7 @@ test('offline package pins entry, descriptor, dispatcher and scene sources and t
         assert.equal(manifest.private, true);
         assert.equal(manifest.peanutOfflineOnly, true);
         assert.equal(manifest.name, 'peanut-component-sprite-probe');
-        assert.equal(manifest.probeSourceCommit, '371445bb78a1f3e64bb1aa788ba437b694a126c3');
+        assert.equal(manifest.probeSourceCommit, '29dab612f48c3a6f9d750c0bf62e3a6cd8e7a412');
         assert.equal(report.sourceCommit, manifest.probeSourceCommit);
         assert.equal(report.checkoutCommit,
             execFileSync('git', ['-c', 'core.fsmonitor=false', 'rev-parse', 'HEAD'],
@@ -90,7 +90,7 @@ test('diagnostic package is fixed to 3.8.3 existing asset and remains unaccepted
             manifest: digest(readFileSync(join(destination, 'package.json'))),
         })));
         assert.equal(report.packageSha256, expected);
-        assert.equal(report.packageSha256, '8057a4b4f90718d5aeb74a2f891e9770a53a11608f01f7be4b287e23044dec8d');
+        assert.equal(report.packageSha256, '0761ad190433cf664e0db1c2b08642d1f0f60af0fa3d564f0c21dafbe7e02f5b');
         assert.equal(repeat.packageSha256, report.packageSha256);
         for (const file of ['main.js', 'scene.js', 'package.json'])
             assert.deepEqual(readFileSync(join(second, file)), readFileSync(join(destination, file)));
@@ -239,9 +239,13 @@ test('changed or linked source refuses before producing an output', async () => 
         const relative = Package.inputs[0].source;
         const path = join(root, relative);
         mkdirSync(dirname(path), { recursive: true });
-        writeFileSync(path, Buffer.concat([readFileSync(join(repository, relative)), Buffer.from('\n// tampered\n')]));
+        writeFileSync(path, execFileSync('git', ['show', `371445bb78a1f3e64bb1aa788ba437b694a126c3:${relative}`],
+            { cwd: repository }));
         const second = Package.inputs[1].source;
         writeFileSync(join(root, second), readFileSync(join(repository, second)));
+        await assert.rejects(Package.build(root, destination), /source_sha_mismatch/);
+        assert.deepEqual(readdirSync(destination), []);
+        writeFileSync(path, Buffer.concat([readFileSync(join(repository, relative)), Buffer.from('\n// tampered\n')]));
         await assert.rejects(Package.build(root, destination), /source_sha_mismatch/);
         assert.deepEqual(readdirSync(destination), []);
         rmSync(path);
