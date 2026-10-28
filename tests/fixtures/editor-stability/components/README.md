@@ -1,5 +1,7 @@
 # 组件输入配方与依赖审计
 
+2026-10-28 attempt29：复用已通过的99/795字段证据，字段重跑0。真实Chrome中Bloom、SkeletalAnimation、SkinnedMeshRenderer各取得基线/效果/恢复原图；游戏ROI分别变化318089、13311、17126像素，恢复RGB完全一致，动画Joint实际由0采样到0.075m再回0。运行Scene.name为空，行为校验强制独立原生UUID、PID、冻结源码SHA及预览URL前后绑定，空名不再充当身份；错绑定、未就绪和像素伪变化仍拒绝。9项定向、检查点15d1729完整21组1584/1584通过。批处理真实预览失败：SDK源码super.skeleton setter在实际引擎产物被编成this.skeleton自递归，保留4条浏览器错误及源/产物摘要，不修改SDK或用子renderer冒充。PID63395正常退出且关闭后验通过，2329文件/462目录字节权限恢复；27新增路径/29原路径变化归档、未知0，自有浏览器标签已关闭。原生整段0错误/1原工程命名警告，不能声称整轮零诊断。MCP刷新应答不能替代页面实际更新。增量收据及99项独立证据台账见evidence/task-5.1/takeover-20261027/incremental-5.1-receipt-attempt29.json与presentation-behavior-ledger-attempt29.json；3项已观测且可恢复、1项SDK故障、95项待补，5.1未完成。
+
 本目录属于任务 5.1。两版各保留 99 个策展组件与 795 个完整递归字段，包含现有公开 MeshRenderer 烘焙设置的 8 个子字段。`component-assembly-audit.json` 是来源和依赖审计；`component-field-fixtures.json` 是有效值、真实引用和错误类型的输入配方。字段、依赖缺失或原始摘要失配时拒绝生成，不使用空占位值。
 
 `ComponentNativeSourceReader` 读取对应版本源码的 AST、导入别名、注册父类、`requireComponent`、编辑器类型标注和数值枚举，不执行引擎模块。装配顺序保留完整依赖闭包；缺声明、动态依赖、同名分支或依赖环阻止执行。Sorting2D 的抽象 UIRenderer 要求通过实际继承该类型的 Sprite 满足，不直接添加公共 API 已拒绝的抽象组件。

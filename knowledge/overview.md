@@ -1,5 +1,7 @@
 # peanut-pod-lite
 
+5.1最新增量（2026-10-28）：原60前置字段已解除，复用99/795合并收据，不重跑字段。attempt29新增Bloom、SkeletalAnimation、SkinnedMeshRenderer真实基线/变化/恢复3组行为证据，UUID/PID/源码SHA/URL强绑定且恢复画布完全一致；批处理实际SDK编译setter自递归失败，不能计通过。15d1729完整1584/1584、9项行为定向通过；自有Creator正常关闭、工程逐字节及权限恢复。99项台账为3已观测、1SDK故障、95待补，5.1未完成；不以MCP刷新应答替代浏览器更新，不改SDK绕过故障。详情见组件夹具README与attempt29增量收据。
+
 SDK续查：d7560ca完整verify1256/1256、117项组件回归及候选通过；项目内精确3.8.7监听器幂等兼容已实机通过10轮增删改保存重开、42次注册始终1/1，阈值10、零MaxListeners警告。ba91afc完整verify1256/1256、123项夹具及候选通过；冷启动遗漏start已在真实入口修复，两个数据库实机各1/1配对。发送端真实调用栈将重开计时定位到SDK Scene面板scene:ready广播处理器和hierarchy异步ready，待原文适配修复，完整原始失败保留。3.8.7 PhysXWorld只读实机确认，单项上下文已保留SDK默认false标志并显式固化有效Builtin默认宏，8e7562f完整Profile/宏与PhysXWorld已实机核验，正常退出全段零诊断；2控制器17字段未验。正常退出另外出现SDK WindowSender向已销毁WebContents发送的原始错误及project警告，保留失败并追踪，5.1仍未完成。
 
 计时定位增加显式登记的透明Map事件、IPC参数与renderer发送端调用栈观测，原样转发实际Map操作，旁观真实显式耗时、时间值和调用栈，不补造start、不更改结果或日志；工作进程实证冷启动_preStartDB遗漏worker-startup的start、_startupDB却end；新显式项目内启动兼容在真实入口补齐SDK start，严格绑定3.8.7及实机方法摘要，实机配对已通过，整段仍有52条原始错误，不能据此宣布零诊断。IPC观察者按原引用成对移除，不替换原处理器。
