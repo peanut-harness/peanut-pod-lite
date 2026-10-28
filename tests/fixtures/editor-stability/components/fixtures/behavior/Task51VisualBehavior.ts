@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, director, Sprite, SpriteFrame, Texture2D, UITransform, Color, Canvas,
-    MeshRenderer, SpriteRenderer, Billboard, Line, CurveRange, Material, Vec3, utils, primitives,
+    MeshRenderer, SpriteRenderer, Billboard, Line, CurveRange, Material, EffectAsset, Vec3, utils, primitives,
     Light, DirectionalLight, PointLight, SphereLight, SpotLight, RangedDirectionalLight, Camera } from 'cc';
 
 /**
@@ -17,6 +17,11 @@ export class Task51VisualBehavior extends Component {
      */
     @_decorator.property(SpriteFrame)
     public fixtureFrame: SpriteFrame | null = null;
+    /**
+     * @description 场景显式引用的实际EffectAsset，避免依赖名称查找时资源尚未注册。
+     */
+    @_decorator.property(EffectAsset)
+    public fixtureEffect: EffectAsset | null = null;
     /**
      * @description 实际引擎帧。
      */
@@ -49,6 +54,10 @@ export class Task51VisualBehavior extends Component {
      * @description Canvas用例中的实际图片。
      */
     private canvasSprite: Sprite | null = null;
+    /**
+     * @description 三维精灵明确绑定的真实纹理材质。
+     */
+    private spriteMaterial: Material | null = null;
     /**
      * @description 页面退出清理。
      */
@@ -99,6 +108,10 @@ export class Task51VisualBehavior extends Component {
             this.canvasSprite.color = new Color(40, 180, 255); image.getComponent(UITransform)!.setContentSize(360, 200);
         } else if (type === 'cc.SpriteRenderer') {
             const sprite = this.node.getComponent(SpriteRenderer)!; sprite.spriteFrame = this.fixtureFrame;
+            if (!this.fixtureEffect) throw new Error('task51_sprite_effect_missing');
+            this.spriteMaterial = new Material(); this.spriteMaterial.initialize({ effectAsset: this.fixtureEffect, defines: { USE_TEXTURE: true } });
+            if (this.spriteMaterial.passes.length === 0) throw new Error('task51_sprite_passes_missing');
+            this.spriteMaterial.setProperty('mainTexture', this.fixtureFrame.texture); sprite.setMaterial(this.spriteMaterial, 0);
             this.fixtureFrame.ensureMeshData(); const bounds = this.fixtureFrame.mesh!.struct;
             if (!bounds.minPosition || !bounds.maxPosition) throw new Error('task51_sprite_bounds_missing');
             const width = bounds.maxPosition.x - bounds.minPosition.x; const height = bounds.maxPosition.y - bounds.minPosition.y;
@@ -124,7 +137,9 @@ export class Task51VisualBehavior extends Component {
         scene.globals.ambient.skyLightingColor = Color.BLACK; scene.globals.ambient.groundLightingColor = Color.BLACK;
         const model = new Node('ActualLitSphere'); scene.addChild(model); this.litRenderer = model.addComponent(MeshRenderer);
         this.litRenderer.mesh = utils.createMesh(primitives.sphere(1.5, { segments: 32 }));
-        this.litMaterial = new Material(); this.litMaterial.initialize({ effectName: 'builtin-standard' });
+        if (!this.fixtureEffect) throw new Error('task51_light_effect_missing');
+        this.litMaterial = new Material(); this.litMaterial.initialize({ effectAsset: this.fixtureEffect });
+        if (this.litMaterial.passes.length === 0) throw new Error('task51_light_passes_missing');
         this.litMaterial.setProperty('mainColor', new Color(255, 120, 60)); this.litMaterial.setProperty('metallic', 0);
         this.litMaterial.setProperty('roughness', 0.5); this.litRenderer.setMaterial(this.litMaterial, 0);
         this.node.setPosition(0, 0, 4); this.node.lookAt(Vec3.ZERO); light.color = new Color(255, 240, 220);
@@ -150,13 +165,16 @@ export class Task51VisualBehavior extends Component {
         if (this.isLight()) return { enabled, geometryBound: !!this.litRenderer?.mesh?.renderingSubMeshes.length,
             materialBound: this.litRenderer?.getRenderMaterial(0)?.effectAsset === this.litMaterial?.effectAsset,
             standardEffect: this.litMaterial?.effectAsset?.name === 'builtin-standard', sphereEnabled: this.litRenderer?.enabled === true,
+            effectBound: this.litMaterial?.effectAsset === this.fixtureEffect, passesReady: !!this.litMaterial?.passes.length,
             ambientIllum: director.getScene()!.globals.ambient.skyIllum };
         if (type === 'cc.MeshRenderer') { const renderer = this.node.getComponent(MeshRenderer)!;
             return { enabled, geometryBound: !!renderer.mesh?.renderingSubMeshes.length, materialBound: renderer.getRenderMaterial(0) !== null }; }
         if (type === 'cc.Canvas') return { enabled, frameBound: this.canvasSprite?.spriteFrame === this.fixtureFrame,
             cameraBound: this.node.getComponent(Canvas)!.cameraComponent !== null };
         if (type === 'cc.SpriteRenderer') return { enabled, frameBound: this.node.getComponent(SpriteRenderer)!.spriteFrame === this.fixtureFrame,
-            geometryBound: !!this.fixtureFrame?.mesh?.renderingSubMeshes.length };
+            geometryBound: !!this.fixtureFrame?.mesh?.renderingSubMeshes.length,
+            materialBound: this.node.getComponent(SpriteRenderer)!.getRenderMaterial(0)?.effectAsset === this.fixtureEffect,
+            textureBound: this.spriteMaterial?.getProperty('mainTexture') === this.fixtureFrame?.texture, passesReady: !!this.spriteMaterial?.passes.length };
         if (type === 'cc.Billboard') { const c = this.node.getComponent(Billboard)!; return { enabled,
             textureBound: c.texture === this.fixtureFrame?.texture, width: c.width, height: c.height }; }
         const line = this.node.getComponent(Line)!; return { enabled, positions: line.positions.map(p => [p.x, p.y, p.z]),

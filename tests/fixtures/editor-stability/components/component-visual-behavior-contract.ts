@@ -22,13 +22,15 @@ export class ComponentVisualBehaviorContract {
         for (const row of [a, b]) {
             if (this.lights.has(type)) {
                 if (row.geometryBound !== true || row.materialBound !== true || row.standardEffect !== true
+                    || row.effectBound !== true || row.passesReady !== true
                     || row.sphereEnabled !== true || row.ambientIllum !== 0) throw new Error('component_visual_lighting_dependency_missing');
             } else if (type === 'cc.MeshRenderer') {
                 if (row.geometryBound !== true || row.materialBound !== true) throw new Error('component_visual_mesh_dependency_missing');
             } else if (type === 'cc.Canvas') {
                 if (row.frameBound !== true || row.cameraBound !== true) throw new Error('component_visual_canvas_dependency_missing');
             } else if (type === 'cc.SpriteRenderer') {
-                if (row.frameBound !== true || row.geometryBound !== true) throw new Error('component_visual_sprite_dependency_missing');
+                if (row.frameBound !== true || row.geometryBound !== true || row.materialBound !== true
+                    || row.textureBound !== true || row.passesReady !== true) throw new Error('component_visual_sprite_dependency_missing');
             } else if (type === 'cc.Billboard') {
                 if (row.textureBound !== true || row.width !== 4 || row.height !== 4) throw new Error('component_visual_billboard_dependency_missing');
             } else if (row.lineWidth !== 0.3 || row.materialBound !== true
