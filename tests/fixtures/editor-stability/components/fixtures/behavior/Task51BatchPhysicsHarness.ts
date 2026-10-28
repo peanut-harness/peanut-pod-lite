@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, EffectAsset, Camera, Canvas, Vec3, Color, PhysicsSystem, PhysicsSystem2D, director } from 'cc';
-import { BULLET_BATCH_TYPES, JOINT_BATCH_TYPES } from '../../component-batch-physics-catalog';
+import { BULLET_BATCH_RETEST_TYPES } from '../../component-batch-physics-catalog';
 import type { Task51BatchCase } from '../../component-batch-physics-catalog';
 import { Task51BulletBatchCase } from './Task51BulletBatchCase';
 import { Task51JointBatchCase } from './Task51JointBatchCase';
@@ -71,7 +71,7 @@ export class Task51BatchPhysicsHarness extends Component {
      * @description 先校验23项装配完整，再允许可见界面逐项选择。
      */
     protected start(): void {
-        const types = [...BULLET_BATCH_TYPES, ...JOINT_BATCH_TYPES];
+        const types = [...BULLET_BATCH_RETEST_TYPES];
         if (!this.fixtureEffect || this.targets.length !== types.length
             || types.some(type => this.targets.filter(n => n.name === type && n.getComponent(type)).length !== 1))
             throw new Error('batch_frozen_targets_incomplete');

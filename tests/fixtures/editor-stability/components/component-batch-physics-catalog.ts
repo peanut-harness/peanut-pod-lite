@@ -11,6 +11,11 @@ export const BULLET_BATCH_TYPES = ['cc.RigidBody', 'cc.ConstantForce', 'cc.BoxCo
 export const JOINT_BATCH_TYPES = ['cc.DistanceJoint2D', 'cc.FixedJoint2D', 'cc.HingeJoint2D', 'cc.RelativeJoint2D',
     'cc.SliderJoint2D', 'cc.SpringJoint2D', 'cc.WheelJoint2D'] as const;
 /**
+ * @description 仅重测上轮未通过的4项3D约束和2项角色控制器，杜绝启动时运行已通过用例。
+ */
+export const BULLET_BATCH_RETEST_TYPES = ['cc.FixedConstraint', 'cc.HingeConstraint', 'cc.PointToPointConstraint',
+    'cc.ConfigurableConstraint', 'cc.BoxCharacterController', 'cc.CapsuleCharacterController'] as const;
+/**
  * @description 统一物理批次接口，不在控制面板中模拟物体运动。
  */
 export interface Task51BatchCase {
