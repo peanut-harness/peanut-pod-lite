@@ -1,4 +1,5 @@
 import { ComponentUiBehaviorContract } from './component-ui-behavior-contract.ts';
+import { ComponentInputBehaviorContract } from './component-input-behavior-contract.ts';
 
 /**
  * @description 实际截图解码后的游戏画布像素；必须由外层保存原图、裁剪区域和来源摘要。
@@ -33,12 +34,17 @@ export class ComponentBehaviorEvidence {
         binding: ComponentBehaviorSceneBinding) {
         if (!['cc.Bloom', 'cc.SkeletalAnimation', 'cc.SkinnedMeshRenderer', 'cc.SkinnedMeshBatchRenderer',
             'cc.TiledMap', 'cc.TiledLayer', 'cc.TiledObjectGroup', 'cc.TiledTile', 'cc.TiledUserNodeData',
-            'cc.BlitScreen', 'cc.ColorGrading', 'cc.DOF', 'cc.FSR', 'cc.HBAO', 'cc.PostProcess', 'cc.TAA'].includes(type) && !ComponentUiBehaviorContract.types.has(type))
+            'cc.BlitScreen', 'cc.ColorGrading', 'cc.DOF', 'cc.FSR', 'cc.HBAO', 'cc.PostProcess', 'cc.TAA'].includes(type)
+            && !ComponentUiBehaviorContract.types.has(type) && !ComponentInputBehaviorContract.types.has(type))
             throw new Error('component_behavior_case_not_registered');
         this.binding(binding);
         const first = this.observation(type, 'baseline', baseline); const second = this.observation(type, 'effect', effect);
         if (second.observedFrame <= first.observedFrame) throw new Error('component_behavior_frame_order_invalid');
-        if (ComponentUiBehaviorContract.types.has(type)) {
+        if (ComponentInputBehaviorContract.types.has(type)) {
+            if ([first, second].some(row => typeof row.engineFramesElapsed !== 'number' || row.engineFramesElapsed < 16))
+                throw new Error('component_input_frames_insufficient');
+            ComponentInputBehaviorContract.validate(type, first.state, second.state);
+        } else if (ComponentUiBehaviorContract.types.has(type)) {
             if ([first, second].some(row => typeof row.engineFramesElapsed !== 'number' || row.engineFramesElapsed < 16))
                 throw new Error('component_ui_frames_insufficient');
             ComponentUiBehaviorContract.validate(type, first.state, second.state);
