@@ -29,6 +29,8 @@ test('collider evidence requires actual contact, stopped motion, fixed steps and
 test('gravity evidence requires a stationary zero-gravity baseline and actual falling dynamic body', () => {
     const a = { ...common, gravityScale: 0, ballY: 140, velocityY: 0 }; const b = { ...common, velocityY: -15 };
     ComponentPhysics2DBehaviorContract.validate('cc.RigidBody2D', a, b);
+    ComponentPhysics2DBehaviorContract.validate('cc.RigidBody2D', { ...a, ballY: 139.99999146664874 }, b);
+    assert.throws(() => ComponentPhysics2DBehaviorContract.validate('cc.RigidBody2D', { ...a, ballY: 140.001 }, b));
     for (const patch of [{ ballY: 140 }, { velocityY: 0 }, { contacts: 1 }, { gravityScale: 0 }, { targetEnabled: false }])
         assert.throws(() => ComponentPhysics2DBehaviorContract.validate('cc.RigidBody2D', a, { ...b, ...patch }));
     assert.throws(() => ComponentBehaviorEvidence.compare('cc.RigidBody2D', observation('cc.RigidBody2D', a), observation('cc.RigidBody2D', b, true), pixels(), pixels(true), { ...binding, afterPid: 456 }), /binding_invalid/u);

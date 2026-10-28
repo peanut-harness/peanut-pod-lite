@@ -7,6 +7,10 @@ export class ComponentPhysics2DBehaviorContract {
      */
     public static readonly types = new Set(['cc.RigidBody2D', 'cc.BoxCollider2D', 'cc.CircleCollider2D', 'cc.PolygonCollider2D']);
     /**
+     * @description Box2D浮点世界坐标往返的静止位置容差，单位为UI像素；不影响运动和画面恢复门禁。
+     */
+    private static readonly restingPositionTolerance = 1e-4;
+    /**
      * @description 联合核对后端、依赖、步数及有区分力的运动。
      * @param type 固定组件。
      * @param baseline 实际基线。
@@ -24,7 +28,7 @@ export class ComponentPhysics2DBehaviorContract {
         }
         if (type === 'cc.RigidBody2D') {
             if (a.targetEnabled !== true || b.targetEnabled !== true || a.gravityScale !== 0 || b.gravityScale !== 1
-                || a.ballY !== 140 || a.velocityY !== 0 || Number(b.ballY) >= -150 || Number(b.velocityY) >= -10
+                || Math.abs(Number(a.ballY) - 140) > this.restingPositionTolerance || a.velocityY !== 0 || Number(b.ballY) >= -150 || Number(b.velocityY) >= -10
                 || a.contacts !== 0 || b.contacts !== 0) throw new Error('component_physics2d_gravity_not_observed');
             return;
         }
