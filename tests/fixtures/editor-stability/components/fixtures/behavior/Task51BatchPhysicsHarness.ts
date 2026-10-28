@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, EffectAsset, Camera, Canvas, Vec3, Color, PhysicsSystem, PhysicsSystem2D, director } from 'cc';
-import { BULLET_BATCH_RETEST_TYPES } from '../../component-batch-physics-catalog';
+import { BULLET_BATCH_RETEST_TYPES, JOINT_BATCH_TYPES } from '../../component-batch-physics-catalog';
 import type { Task51BatchCase } from '../../component-batch-physics-catalog';
 import { Task51BulletBatchCase } from './Task51BulletBatchCase';
 import { Task51JointBatchCase } from './Task51JointBatchCase';
