@@ -20,7 +20,7 @@ export class ComponentInputBehaviorContract {
                 || a.blockEnabled !== false || b.blockEnabled !== true) throw new Error('component_input_bubbling_invalid');
             return;
         }
-        if (a.nativeEvents !== 0 || b.nativeEvents !== 1 || a.callbacks !== 0 || b.callbacks !== 1)
+        if (a.nativeEvents !== 0 || b.nativeEvents !== 1 || a.callbacks !== 0 || b.callbacks !== (type === 'cc.ToggleContainer' ? 2 : 1))
             throw new Error('component_input_real_event_missing');
         if (type === 'cc.Toggle' && (a.checked !== false || b.checked !== true || a.checkmarkActive !== false
             || b.checkmarkActive !== true || a.checkmarkBound !== true || b.checkmarkBound !== true)) throw new Error('component_input_toggle_invalid');

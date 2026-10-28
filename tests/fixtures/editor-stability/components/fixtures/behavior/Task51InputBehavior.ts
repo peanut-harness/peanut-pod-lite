@@ -94,7 +94,8 @@ export class Task51InputBehavior extends Component {
                 const background = this.sprite(this.node, 'Option' + i, 200, 120, new Color(30, 130, 255));
                 background.node.setPosition(x, 0, 0); const toggle = background.node.addComponent(Toggle);
                 toggle.transition = Button.Transition.NONE; toggle.checkMark = this.sprite(background.node, 'Check' + i, 160, 80, new Color(40, 255, 80));
-                background.node.on(Toggle.EventType.TOGGLE, this.componentChanged, this); return toggle;
+                background.node.on(Toggle.EventType.TOGGLE, this.componentChanged, this);
+                background.node.on(Node.EventType.TOUCH_END, this.inputEnded, this); return toggle;
             });
         } else if (this.componentType === 'cc.Slider') {
             const slider = this.node.getComponent(Slider)!; this.node.getComponent(UITransform)!.setContentSize(480, 80);
@@ -133,7 +134,10 @@ export class Task51InputBehavior extends Component {
         window.removeEventListener('pagehide', this.pageHide); this.node.off(Node.EventType.TOUCH_END, this.inputEnded, this);
         this.node.off(Button.EventType.CLICK, this.componentChanged, this); this.node.off(Toggle.EventType.TOGGLE, this.componentChanged, this);
         this.node.off('slide', this.componentChanged, this); this.node.parent?.off(Node.EventType.TOUCH_END, this.parentEnded, this);
-        for (const toggle of this.toggles) toggle.node.off(Toggle.EventType.TOGGLE, this.componentChanged, this);
+        for (const toggle of this.toggles) {
+            toggle.node.off(Toggle.EventType.TOGGLE, this.componentChanged, this);
+            toggle.node.off(Node.EventType.TOUCH_END, this.inputEnded, this);
+        }
         this.panel?.remove(); this.panel = null; this.output = null;
     }
     /**

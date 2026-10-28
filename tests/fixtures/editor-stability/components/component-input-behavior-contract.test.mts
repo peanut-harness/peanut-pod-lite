@@ -5,7 +5,7 @@ import { ComponentBehaviorEvidence } from './component-behavior-evidence.ts';
 const pairs: [string, Record<string, unknown>, Record<string, unknown>][] = [
     ['cc.Button', {}, {}],
     ['cc.Toggle', { checked: false, checkmarkActive: false, checkmarkBound: true }, { checked: true, checkmarkActive: true, checkmarkBound: true }],
-    ['cc.ToggleContainer', { checked: [true, false] }, { checked: [false, true] }],
+    ['cc.ToggleContainer', { checked: [true, false] }, { checked: [false, true], callbacks: 2 }],
     ['cc.Slider', { progress: 0.25, handleX: -120, handleBound: true }, { progress: 0.75, handleX: 120, handleBound: true }],
     ['cc.BlockInputEvents', { nativeEvents: 1, callbacks: 1, blockEnabled: false }, { nativeEvents: 1, callbacks: 0, blockEnabled: true }],
 ].map(([type, a, b]) => [type as string, { frameBound: true, nativeEvents: 0, callbacks: 0, ...a as object },
