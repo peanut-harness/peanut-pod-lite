@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, TiledMap, TiledTile, UITransform, Graphics, Color, postProcess } from 'cc';
+import { _decorator, Component, Node, TiledMap, TiledTile, UITransform, Graphics, Color, Camera, director, postProcess } from 'cc';
 
 /**
  * @description Tiled与剩余后处理的公开运行行为对照；不在编辑器执行，不自动宣告通过。
@@ -10,6 +10,11 @@ export class Task51RemainingBehavior extends Component {
      */
     @_decorator.property
     public componentType = '';
+    /**
+     * @description 固定刺激修订号；修订2仅用于已失败的三项Tiled与TAA，不改变旧证据的输入。
+     */
+    @_decorator.property
+    public visualRevision = 1;
     /**
      * @description 当前真实引擎更新帧。
      */
@@ -56,7 +61,8 @@ export class Task51RemainingBehavior extends Component {
                 this.user = new Node('Task51RealUser'); this.user.layer = this.node.layer;
                 this.user.addComponent(UITransform).setContentSize(8, 8);
                 const draw = this.user.addComponent(Graphics); draw.fillColor = new Color(0, 255, 255, 255);
-                draw.rect(0, 0, 8, 8); draw.fill(); this.user.setPosition(0, -12, 0);
+                draw.rect(0, 0, 8, 8); draw.fill(); const p = map.getLayer('Ground')!.getPositionAt(0, 0)!;
+                this.user.setPosition(this.visualRevision === 2 ? p.x + 4 : 0, this.visualRevision === 2 ? p.y + 4 : -12, 0);
             }
         }
         const host = window.parent.document;
@@ -111,7 +117,12 @@ export class Task51RemainingBehavior extends Component {
             const fsr = this.node.getComponent(postProcess.FSR);
             if (fsr) fsr.sharpness = 1;
             const taa = this.node.getComponent(postProcess.TAA);
-            if (taa) { taa.sampleScale = 1; taa.feedback = 0.95; }
+            if (taa) { taa.sampleScale = this.visualRevision === 2 ? 5 : 1; taa.feedback = 0.95;
+                if (!effect && this.visualRevision === 2) {
+                    const cameras = director.getScene()!.getComponentsInChildren(Camera);
+                    if (cameras.length !== 1 || !cameras[0]!.camera) throw new Error('task51_remaining_camera_ambiguous');
+                    const camera = cameras[0]!.camera; camera.resize(camera.width, camera.height);
+                } }
             const grading = this.node.getComponent(postProcess.ColorGrading);
             if (grading) { if (!grading.colorGradingMap) throw new Error('task51_remaining_lut_missing'); grading.contribute = 1; }
         }
@@ -131,10 +142,14 @@ export class Task51RemainingBehavior extends Component {
             return;
         }
         const layer = map.getLayer('Ground'); if (!layer) throw new Error('task51_remaining_layer_missing');
-        if (this.componentType === 'cc.TiledLayer') layer.setTileGIDAt(effect ? 0 : 1, 0, 0);
+        if (this.componentType === 'cc.TiledLayer') {
+            if (this.visualRevision === 2) layer.color = effect ? new Color(255, 0, 0, 255) : new Color(255, 255, 255, 255);
+            else layer.setTileGIDAt(effect ? 0 : 1, 0, 0);
+        }
         else if (this.componentType === 'cc.TiledObjectGroup') map.getObjectGroup('Objects')!.node.active = !effect;
         else if (this.componentType === 'cc.TiledTile') {
-            if (!this.tile) throw new Error('task51_remaining_tile_missing'); this.tile.grid = effect ? 0 : 1;
+            if (!this.tile) throw new Error('task51_remaining_tile_missing'); if (this.visualRevision === 2) this.tile.node.setScale(effect ? 1.8 : 1, 1, 1);
+            else this.tile.grid = effect ? 0 : 1;
         } else if (this.componentType === 'cc.TiledUserNodeData') {
             if (!this.user) throw new Error('task51_remaining_user_missing');
             const registered = !!this.user.getComponent('cc.TiledUserNodeData');
@@ -156,7 +171,8 @@ export class Task51RemainingBehavior extends Component {
     private state(): Record<string, unknown> {
         if (this.componentType.startsWith('cc.Tiled')) {
             const map = this.map(); const layer = map.getLayer('Ground'); const group = map.getObjectGroup('Objects');
-            return { mapBound: !!map.tmxAsset, layers: map.getLayers().length, objects: group?.getObjects().length ?? 0,
+            return { visualRevision: this.visualRevision, layerColor: layer ? [layer.color.r, layer.color.g, layer.color.b, layer.color.a].join(',') : null,
+                tileScaleX: this.tile?.node.scale.x ?? null, mapBound: !!map.tmxAsset, layers: map.getLayers().length, objects: group?.getObjects().length ?? 0,
                 gid: layer?.getTileGIDAt(0, 0) ?? null, groupActive: group?.node.active ?? false,
                 tileGrid: this.tile?.grid ?? null, tileRegistered: !!this.tile && layer?.getTiledTileAt(0, 0) === this.tile,
                 userRegistered: !!this.user?.getComponent('cc.TiledUserNodeData'), userParentIsLayer: !!this.user && this.user.parent === layer?.node };
@@ -166,7 +182,7 @@ export class Task51RemainingBehavior extends Component {
         const grading = this.node.getComponent(postProcess.ColorGrading); const blit = this.node.getComponent(postProcess.BlitScreen);
         const dof = this.node.getComponent(postProcess.DOF); const hbao = this.node.getComponent(postProcess.HBAO);
         const fsr = this.node.getComponent(postProcess.FSR); const taa = this.node.getComponent(postProcess.TAA);
-        return { enabled: setting?.enabled, shadingScale: pp?.shadingScale,
+        return { visualRevision: this.visualRevision, enabled: setting?.enabled, shadingScale: pp?.shadingScale,
             lutBound: !!grading?.colorGradingMap, lutWidth: grading?.colorGradingMap?.width ?? null,
             lutHeight: grading?.colorGradingMap?.height ?? null, contribute: grading?.contribute ?? null,
             activeMaterials: blit?.activeMaterials.length ?? null, focusDistance: dof?.focusDistance ?? null,

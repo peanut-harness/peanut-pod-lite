@@ -101,3 +101,21 @@ test('remaining behavior refuses missing state, wrong transitions, missing depen
         assert.throws(() => ComponentBehaviorEvidence.compare(type, first, second, image(), image(), binding), /game_pixels_unchanged/u);
     }
 });
+
+
+test('refined visual stimuli keep the same pixel gate and reject mixed revisions or fake component states', () => {
+    const rows: [string, Record<string, unknown>, Record<string, unknown>][] = [
+        ['cc.TiledLayer', { mapBound: true, layers: 1, layerColor: '255,255,255,255' }, { mapBound: true, layers: 1, layerColor: '255,0,0,255' }],
+        ['cc.TiledTile', { mapBound: true, tileRegistered: true, tileGrid: 1, tileScaleX: 1 }, { mapBound: true, tileRegistered: true, tileGrid: 1, tileScaleX: 1.8 }],
+        ['cc.TAA', { enabled: false, shadingScale: 0.5, sampleScale: 5, feedback: 0.95 }, { enabled: true, shadingScale: 0.5, sampleScale: 5, feedback: 0.95 }],
+    ];
+    for (const [type, a, b] of rows) {
+        const first = { ...observation(type), requestedFrame: 0, observedFrame: 32, engineFramesElapsed: 32, state: { ...a, visualRevision: 2 } };
+        const second = { ...observation(type, true), requestedFrame: 40, observedFrame: 72, engineFramesElapsed: 32, state: { ...b, visualRevision: 2 } };
+        assert.equal(ComponentBehaviorEvidence.compare(type, first, second, image(), image(true), binding).behaviorObserved, true);
+        assert.throws(() => ComponentBehaviorEvidence.compare(type, first, second, image(), image(), binding), /game_pixels_unchanged/u);
+        assert.throws(() => ComponentBehaviorEvidence.compare(type, first, { ...second, state: { ...b, visualRevision: 1 } }, image(), image(true), binding), /visual_revision/u);
+        for (const key of Object.keys(b))
+            assert.throws(() => ComponentBehaviorEvidence.compare(type, first, { ...second, state: { ...b, visualRevision: 2, [key]: null } }, image(), image(true), binding));
+    }
+});
