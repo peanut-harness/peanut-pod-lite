@@ -2,6 +2,7 @@ import { ComponentUiBehaviorContract } from './component-ui-behavior-contract.ts
 import { ComponentInputBehaviorContract } from './component-input-behavior-contract.ts';
 import { ComponentContextUiBehaviorContract } from './component-context-ui-behavior-contract.ts';
 import { ComponentVisualBehaviorContract } from './component-visual-behavior-contract.ts';
+import { ComponentPhysics2DBehaviorContract } from './component-physics2d-behavior-contract.ts';
 
 /**
  * @description 实际截图解码后的游戏画布像素；必须由外层保存原图、裁剪区域和来源摘要。
@@ -38,12 +39,17 @@ export class ComponentBehaviorEvidence {
             'cc.TiledMap', 'cc.TiledLayer', 'cc.TiledObjectGroup', 'cc.TiledTile', 'cc.TiledUserNodeData',
             'cc.BlitScreen', 'cc.ColorGrading', 'cc.DOF', 'cc.FSR', 'cc.HBAO', 'cc.PostProcess', 'cc.TAA'].includes(type)
             && !ComponentUiBehaviorContract.types.has(type) && !ComponentInputBehaviorContract.types.has(type)
-            && !ComponentContextUiBehaviorContract.types.has(type) && !ComponentVisualBehaviorContract.types.has(type))
+            && !ComponentContextUiBehaviorContract.types.has(type) && !ComponentVisualBehaviorContract.types.has(type)
+            && !ComponentPhysics2DBehaviorContract.types.has(type))
             throw new Error('component_behavior_case_not_registered');
         this.binding(binding);
         const first = this.observation(type, 'baseline', baseline); const second = this.observation(type, 'effect', effect);
         if (second.observedFrame <= first.observedFrame) throw new Error('component_behavior_frame_order_invalid');
-        if (ComponentVisualBehaviorContract.types.has(type)) {
+        if (ComponentPhysics2DBehaviorContract.types.has(type)) {
+            if ([first, second].some(row => typeof row.engineFramesElapsed !== 'number' || row.engineFramesElapsed < 91))
+                throw new Error('component_physics2d_frames_insufficient');
+            ComponentPhysics2DBehaviorContract.validate(type, first.state, second.state);
+        } else if (ComponentVisualBehaviorContract.types.has(type)) {
             if ([first, second].some(row => typeof row.engineFramesElapsed !== 'number' || row.engineFramesElapsed < 16))
                 throw new Error('component_visual_frames_insufficient');
             ComponentVisualBehaviorContract.validate(type, first.state, second.state);
