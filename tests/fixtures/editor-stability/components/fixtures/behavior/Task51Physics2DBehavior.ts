@@ -53,6 +53,10 @@ export class Task51Physics2DBehavior extends Component {
      */
     private contacts = 0;
     /**
+     * @description 固定步进终态只读取一次；读取失败保留首个错误，不逐帧重试。
+     */
+    private published = false;
+    /**
      * @description 唯一观测面板。
      */
     private panel: HTMLElement | null = null;
@@ -137,7 +141,7 @@ export class Task51Physics2DBehavior extends Component {
         if (this.ball && this.ball !== this.node) this.ball.destroy();
         if (this.componentType !== 'cc.RigidBody2D') { this.ball = null; this.body = null; }
         this.phase = phase; this.requestedFrame = this.frames; this.rebuildFrame = this.frames + 2;
-        this.steps = 0; this.contacts = 0;
+        this.steps = 0; this.contacts = 0; this.published = false;
         if (this.target) this.target.enabled = phase === 'effect';
         PhysicsSystem2D.instance.resetAccumulator(PhysicsSystem2D.instance.fixedTimeStep / 2);
         if (this.output) this.output.textContent = JSON.stringify({ phase, ready: false });
@@ -151,7 +155,7 @@ export class Task51Physics2DBehavior extends Component {
             this.ball.addComponent(UITransform).setContentSize(40, 40); this.body = this.ball.addComponent(RigidBody2D);
             this.prepareBody(this.body); this.addBallShape(this.ball);
         }
-        this.ball!.setPosition(0, 140, 0); this.body!.linearVelocity = Vec2.ZERO; this.body!.angularVelocity = 0;
+        this.ball!.setPosition(0, 140, 0); this.body!.linearVelocity = new Vec2(0, 0); this.body!.angularVelocity = 0;
         this.body!.gravityScale = this.componentType === 'cc.RigidBody2D' && this.phase === 'baseline' ? 0 : 1;
         this.body!.wakeUp();
     }
@@ -169,7 +173,8 @@ export class Task51Physics2DBehavior extends Component {
      * @description 只公开完整物理步进后的实际观测。
      */
     protected lateUpdate(): void {
-        if (!this.output || this.steps !== Task51Physics2DBehavior.stepsPerPhase) return;
+        if (!this.output || this.steps !== Task51Physics2DBehavior.stepsPerPhase || this.published) return;
+        this.published = true;
         const body = this.body!; const velocity = body.linearVelocity;
         const state = { backendBox2D: PhysicsSystem2D.PHYSICS_BOX2D || PhysicsSystem2D.PHYSICS_BOX2D_WASM,
             testedComponentBound: !!this.node.getComponent(this.componentType), dynamicBodyBound: this.ball!.getComponent(RigidBody2D) === body,
