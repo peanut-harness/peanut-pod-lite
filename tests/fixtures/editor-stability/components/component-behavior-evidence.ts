@@ -3,6 +3,14 @@
  */
 export type ComponentBehaviorPixels = { width: number; height: number; rgba: Uint8Array };
 
+/** @description 冻结场景与实际原生会话在取证前后的独立身份绑定。 */
+export type ComponentBehaviorSceneBinding = {
+    expectedSceneUuid: string; beforeSceneUuid: string; afterSceneUuid: string; sourceMetaUuid: string;
+    expectedPid: number; beforePid: number; afterPid: number;
+    expectedSourceSha256: string; beforeSourceSha256: string; afterSourceSha256: string;
+    expectedPreviewUrl: string; beforePreviewUrl: string; afterPreviewUrl: string;
+};
+
 /**
  * @description 将真实预览的公开运行观测与画布像素对照联合判定，禁止用字段读回或不同HUD代替行为证据。
  */
@@ -14,11 +22,14 @@ export class ComponentBehaviorEvidence {
      * @param effect 实际预览可见DOM中的效果记录。
      * @param before 基线截图相同游戏区域的真实像素。
      * @param after 效果截图相同游戏区域的真实像素。
+     * @param binding 独立原生查询、冻结来源和实际预览地址的前后绑定。
      * @returns 有界的组件行为观测，不是5.1整体通过。
      */
-    public static compare(type: string, baseline: unknown, effect: unknown, before: ComponentBehaviorPixels, after: ComponentBehaviorPixels) {
+    public static compare(type: string, baseline: unknown, effect: unknown, before: ComponentBehaviorPixels, after: ComponentBehaviorPixels,
+        binding: ComponentBehaviorSceneBinding) {
         if (!['cc.Bloom', 'cc.SkeletalAnimation', 'cc.SkinnedMeshRenderer', 'cc.SkinnedMeshBatchRenderer'].includes(type))
             throw new Error('component_behavior_case_not_registered');
+        this.binding(binding);
         const first = this.observation(type, 'baseline', baseline); const second = this.observation(type, 'effect', effect);
         if (second.observedFrame <= first.observedFrame) throw new Error('component_behavior_frame_order_invalid');
         if (type === 'cc.SkeletalAnimation') this.animation(first, second);
@@ -43,7 +54,8 @@ export class ComponentBehaviorEvidence {
      */
     private static observation(type: string, phase: string, value: unknown): Record<string, unknown> & { observedFrame: number } {
         const row = this.record(value);
-        if (row.schemaVersion !== 1 || row.protocolVersion !== 2 || row.componentType !== type || row.sceneName !== type || row.phase !== phase
+        if (row.schemaVersion !== 1 || row.protocolVersion !== 2 || row.componentType !== type
+            || (row.sceneName !== '' && row.sceneName !== type) || row.phase !== phase
             || row.ready !== true || row.accepted !== false) throw new Error('component_behavior_observation_identity_invalid');
         const { requestedFrame, observedFrame, engineFramesElapsed } = row;
         if (typeof requestedFrame !== 'number' || !Number.isSafeInteger(requestedFrame) || requestedFrame < 0
@@ -51,6 +63,28 @@ export class ComponentBehaviorEvidence {
             || observedFrame - requestedFrame < 2 || engineFramesElapsed !== observedFrame - requestedFrame)
             throw new Error('component_behavior_not_ready');
         return { ...row, observedFrame };
+    }
+    /**
+     * @description 浏览器运行场景可能没有名称；必须用原生场景UUID、进程、源码摘要与地址共同证明身份。
+     * @param value 独立采集的前后身份。
+     * @returns 无；缺失或不一致即拒绝。
+     */
+    private static binding(value: ComponentBehaviorSceneBinding): void {
+        const row = this.record(value);
+        const uuid = row.expectedSceneUuid;
+        const sha = row.expectedSourceSha256;
+        const pid = row.expectedPid;
+        const url = row.expectedPreviewUrl;
+        if (typeof uuid !== 'string' || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/u.test(uuid)
+            || [row.beforeSceneUuid, row.afterSceneUuid, row.sourceMetaUuid].some(item => item !== uuid)
+            || typeof sha !== 'string' || !/^[a-f0-9]{64}$/u.test(sha)
+            || [row.beforeSourceSha256, row.afterSourceSha256].some(item => item !== sha)
+            || typeof pid !== 'number' || !Number.isSafeInteger(pid) || pid <= 0
+            || row.beforePid !== pid || row.afterPid !== pid
+            || typeof url !== 'string' || !/^http:\/\/(?:localhost|127\.0\.0\.1):[1-9][0-9]{0,4}\/$/u.test(url)
+            || Number(new URL(url).port) > 65535
+            || row.beforePreviewUrl !== url || row.afterPreviewUrl !== url)
+            throw new Error('component_behavior_native_binding_invalid');
     }
     /**
      * @description 时间和真实骨骼位姿必须同时改变，只有采样时间字段变化仍拒绝。
