@@ -3,7 +3,9 @@
  */
 export type ComponentBehaviorPixels = { width: number; height: number; rgba: Uint8Array };
 
-/** @description 冻结场景与实际原生会话在取证前后的独立身份绑定。 */
+/**
+ * @description 冻结场景与实际原生会话在取证前后的独立身份绑定。
+ */
 export type ComponentBehaviorSceneBinding = {
     expectedSceneUuid: string; beforeSceneUuid: string; afterSceneUuid: string; sourceMetaUuid: string;
     expectedPid: number; beforePid: number; afterPid: number;
