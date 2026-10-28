@@ -2,6 +2,8 @@
 
 ## 2026-10-27 接手续验
 
+- attempt44仅复验范围方向光：重新启用后公开重申同值position/rotation/scale，并核对实际渲染灯位置范围一致；真实照明变化20015像素、A-B-A恢复RGB0通过，保留attempt43零变化失败。累计50/99、48待补及1SDK合批单列，795字段/通过项重跑0。fe38ea9完整1584/1584、10定向、SDK声明0诊断。14756原Widget启动错误及严格拒绝保留；关闭请求接受但identity_changed严格校验失败保留。只读确认备份有效、无进程句柄、未知0后，宿主批准更保守的仅恢复方案；19新/30变/1缺失恢复，2329文件/462目录字节权限一致，自有预览关闭。normalExitProven/sourceCloseValidatorPassed/closeAcceptanceUpgraded仍false，不复用phase41单次授权；5.1仍未完成。收据及台账attempt44。
+
 - attempt43补齐SpriteRenderer及Directional/Point/Sphere/SpotLight五项真实呈现与A-B-A恢复；像素变化33457/24750/14224/14017/14017、恢复RGB0，累计49/99、49待补及1SDK合批单列。范围方向光状态正常但实际变化0，拒绝通过并保留原失败，先定位渲染变换更新条件。24d18be完整1584/1584、16定向、SDK声明0诊断；75862正常关闭严格后验通过，2329文件/462目录字节权限完整恢复，未知0、自有预览关闭。已通过项和795字段重跑0，5.1未完成。收据及台账attempt43。
 
 - attempt42新增MeshRenderer/Canvas/Billboard/Line四项真实显隐与A-B-A恢复通过，变化6020/6835/56003/4027，恢复RGB0，累计44/99，54待补、1SDK合批单列，字段及通过项重跑0。SpriteRenderer缺省洋红材质视觉拒绝；方向光共用材质初始化3警及localSetLayout错误保留，另4灯未跑；下一轮仅6项补显式EffectAsset依赖和有效pass检查。f49d3f8完整1584/1584、16定向、SDK编译0诊断。11908正常终止动作成功，原SDK WindowSender退出日志后验失败保留，使用未修改既有严格SDK来源核对恢复流程；2329文件/462目录完整恢复、未知0、自有预览关闭，关闭诊断不改判，5.1未完成。收据及台账attempt42。
