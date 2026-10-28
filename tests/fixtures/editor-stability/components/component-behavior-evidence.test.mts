@@ -29,7 +29,7 @@ test('behavior evidence refuses wrong identity, premature frames, reordered fram
         { accepted: true }, { schemaVersion: 2 }, { protocolVersion: 1 }, { requestedFrame: 9, engineFramesElapsed: 1 },
         { observedFrame: 2, requestedFrame: 0 }, { observedFrame: NaN }, { engineFramesElapsed: 100 }])
         assert.throws(() => ComponentBehaviorEvidence.compare(type, first, { ...second, ...patch }, image(), image(true), binding));
-    assert.throws(() => ComponentBehaviorEvidence.compare('cc.TAA', first, second, image(), image(true), binding), /not_registered/u);
+    assert.throws(() => ComponentBehaviorEvidence.compare('cc.FXAA', first, second, image(), image(true), binding), /not_registered/u);
     assert.throws(() => ComponentBehaviorEvidence.compare(type, first, { ...second, threshold: 0.8 }, image(), image(true), binding), /stimulus/u);
     assert.throws(() => ComponentBehaviorEvidence.compare('cc.SkinnedMeshRenderer', observation('cc.SkinnedMeshRenderer'),
         { ...observation('cc.SkinnedMeshRenderer', true), skeletonBound: false }, image(), image(true), binding), /dependency/u);
@@ -70,4 +70,34 @@ test('empty runtime names require complete independent native identity and rejec
         { expectedPreviewUrl: 'https://example.com/' }])
         assert.throws(() => ComponentBehaviorEvidence.compare(type, first, second, image(), image(true), { ...binding, ...patch }), /binding_invalid/u);
     assert.throws(() => ComponentBehaviorEvidence.compare(type, first, second, image(), image(true), undefined!), /record_invalid/u);
+});
+
+
+test('remaining behavior refuses missing state, wrong transitions, missing dependencies and premature settling', () => {
+    const cases: [string, Record<string, unknown>, Record<string, unknown>][] = [
+        ['cc.TiledMap', { mapBound: true, layers: 1, objects: 1 }, { mapBound: false, layers: 0, objects: 0 }],
+        ['cc.TiledLayer', { mapBound: true, layers: 1, gid: 1 }, { mapBound: true, layers: 1, gid: 0 }],
+        ['cc.TiledObjectGroup', { mapBound: true, objects: 1, groupActive: true }, { mapBound: true, objects: 1, groupActive: false }],
+        ['cc.TiledTile', { mapBound: true, tileRegistered: true, tileGrid: 1 }, { mapBound: true, tileRegistered: true, tileGrid: 0 }],
+        ['cc.TiledUserNodeData', { mapBound: true, layers: 1, userRegistered: true, userParentIsLayer: true },
+            { mapBound: true, layers: 1, userRegistered: false, userParentIsLayer: false }],
+        ['cc.PostProcess', { enabled: true, shadingScale: 1 }, { enabled: true, shadingScale: 0.2 }],
+        ['cc.BlitScreen', { enabled: false, activeMaterials: 1 }, { enabled: true, activeMaterials: 1 }],
+        ['cc.ColorGrading', { enabled: false, lutBound: true, lutWidth: 256, lutHeight: 16, contribute: 1 },
+            { enabled: true, lutBound: true, lutWidth: 256, lutHeight: 16, contribute: 1 }],
+        ['cc.DOF', { enabled: false, focusDistance: 100, focusRange: 0.1, bokehRadius: 10 },
+            { enabled: true, focusDistance: 100, focusRange: 0.1, bokehRadius: 10 }],
+        ['cc.FSR', { enabled: false, sharpness: 1, shadingScale: 0.2 }, { enabled: true, sharpness: 1, shadingScale: 0.2 }],
+        ['cc.HBAO', { enabled: false, radiusScale: 5, aoSaturation: 5 }, { enabled: true, radiusScale: 5, aoSaturation: 5 }],
+        ['cc.TAA', { enabled: false, sampleScale: 1, feedback: 0.95 }, { enabled: true, sampleScale: 1, feedback: 0.95 }],
+    ];
+    for (const [type, before, after] of cases) {
+        const first = { ...observation(type), requestedFrame: 0, observedFrame: 32, engineFramesElapsed: 32, state: before };
+        const second = { ...observation(type, true), requestedFrame: 40, observedFrame: 72, engineFramesElapsed: 32, state: after };
+        assert.equal(ComponentBehaviorEvidence.compare(type, first, second, image(), image(true), binding).behaviorObserved, true);
+        for (const patch of [undefined, {}, before, ...Object.keys(after).map(key => ({ ...after, [key]: null }))])
+            assert.throws(() => ComponentBehaviorEvidence.compare(type, first, { ...second, state: patch }, image(), image(true), binding));
+        assert.throws(() => ComponentBehaviorEvidence.compare(type, first, { ...second, requestedFrame: 70, engineFramesElapsed: 2 }, image(), image(true), binding), /frames_insufficient/u);
+        assert.throws(() => ComponentBehaviorEvidence.compare(type, first, second, image(), image(), binding), /game_pixels_unchanged/u);
+    }
 });
