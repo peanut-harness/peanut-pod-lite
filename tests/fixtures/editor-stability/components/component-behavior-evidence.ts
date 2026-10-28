@@ -3,6 +3,7 @@ import { ComponentInputBehaviorContract } from './component-input-behavior-contr
 import { ComponentContextUiBehaviorContract } from './component-context-ui-behavior-contract.ts';
 import { ComponentVisualBehaviorContract } from './component-visual-behavior-contract.ts';
 import { ComponentPhysics2DBehaviorContract } from './component-physics2d-behavior-contract.ts';
+import { ComponentBatchPhysicsContract } from './component-batch-physics-contract.ts';
 
 /**
  * @description 实际截图解码后的游戏画布像素；必须由外层保存原图、裁剪区域和来源摘要。
@@ -40,12 +41,16 @@ export class ComponentBehaviorEvidence {
             'cc.BlitScreen', 'cc.ColorGrading', 'cc.DOF', 'cc.FSR', 'cc.HBAO', 'cc.PostProcess', 'cc.TAA'].includes(type)
             && !ComponentUiBehaviorContract.types.has(type) && !ComponentInputBehaviorContract.types.has(type)
             && !ComponentContextUiBehaviorContract.types.has(type) && !ComponentVisualBehaviorContract.types.has(type)
-            && !ComponentPhysics2DBehaviorContract.types.has(type))
+            && !ComponentPhysics2DBehaviorContract.types.has(type) && !ComponentBatchPhysicsContract.types.has(type))
             throw new Error('component_behavior_case_not_registered');
         this.binding(binding);
         const first = this.observation(type, 'baseline', baseline); const second = this.observation(type, 'effect', effect);
         if (second.observedFrame <= first.observedFrame) throw new Error('component_behavior_frame_order_invalid');
-        if (ComponentPhysics2DBehaviorContract.types.has(type)) {
+        if (ComponentBatchPhysicsContract.types.has(type)) {
+            if ([first, second].some(row => typeof row.engineFramesElapsed !== 'number' || row.engineFramesElapsed < 94))
+                throw new Error('batch_frames_insufficient');
+            ComponentBatchPhysicsContract.validate(type, first.state, second.state);
+        } else if (ComponentPhysics2DBehaviorContract.types.has(type)) {
             if ([first, second].some(row => typeof row.engineFramesElapsed !== 'number' || row.engineFramesElapsed < 91))
                 throw new Error('component_physics2d_frames_insufficient');
             ComponentPhysics2DBehaviorContract.validate(type, first.state, second.state);
@@ -77,6 +82,7 @@ export class ComponentBehaviorEvidence {
                 throw new Error('component_behavior_renderer_dependency_missing');
         }
         const pixels = this.pixels(before, after);
+        if (ComponentBatchPhysicsContract.types.has(type)) ComponentBatchPhysicsContract.motionPixels(before, after);
         return { componentType: type, behaviorObserved: true, pixels, task51Complete: false,
             verificationScope: 'registered public runtime transition and actual game-canvas pixel difference; whole-session diagnostics remain separate' };
     }
@@ -90,7 +96,8 @@ export class ComponentBehaviorEvidence {
     private static observation(type: string, phase: string, value: unknown): Record<string, unknown> & { observedFrame: number } {
         const row = this.record(value);
         if (row.schemaVersion !== 1 || row.protocolVersion !== 2 || row.componentType !== type
-            || (row.sceneName !== '' && row.sceneName !== type) || row.phase !== phase
+            || (row.sceneName !== '' && row.sceneName !== type
+                && !(ComponentBatchPhysicsContract.types.has(type) && row.sceneName === 'Task51BatchPhysics')) || row.phase !== phase
             || row.ready !== true || row.accepted !== false) throw new Error('component_behavior_observation_identity_invalid');
         const { requestedFrame, observedFrame, engineFramesElapsed } = row;
         if (typeof requestedFrame !== 'number' || !Number.isSafeInteger(requestedFrame) || requestedFrame < 0
