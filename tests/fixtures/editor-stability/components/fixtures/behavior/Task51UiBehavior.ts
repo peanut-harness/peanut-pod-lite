@@ -185,11 +185,15 @@ export class Task51UiBehavior extends Component {
         } else if (type === 'cc.Mask') this.node.getComponent(Mask)!.inverted = effect;
         else if (type === 'cc.Layout') {
             const layout = this.node.getComponent(Layout)!; layout.resizeMode = Layout.ResizeMode.CONTAINER;
+            // Layout controls its primary axis; reset the previous direction's orthogonal positions.
+            for (const child of this.visuals) child.setPosition(0, 0, 0);
             layout.spacingX = 20; layout.spacingY = 20; layout.type = effect ? Layout.Type.VERTICAL : Layout.Type.HORIZONTAL;
             layout.updateLayout(true);
         } else if (type === 'cc.Widget') {
             const widget = this.node.getComponent(Widget)!; widget.target = this.node.parent;
-            widget.alignMode = Widget.AlignMode.ONCE; widget.isAlignLeft = true; widget.isAlignRight = false;
+            // Re-enable through the public lifecycle to clear the SDK's completed ONCE alignment.
+            widget.enabled = false; widget.alignMode = Widget.AlignMode.ALWAYS; widget.enabled = true;
+            widget.isAlignLeft = true; widget.isAlignRight = false;
             widget.isAlignTop = false; widget.isAlignBottom = false; widget.isAlignHorizontalCenter = false;
             widget.isAlignVerticalCenter = false; widget.isAbsoluteLeft = true; widget.left = effect ? 480 : 120; widget.updateAlignment();
         } else if (type === 'cc.Sorting2D') this.node.getComponent(Sorting2D)!.sortingOrder = effect ? 2 : 0;
