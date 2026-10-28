@@ -99,7 +99,7 @@ export class Task51BulletBatchCase implements Task51BatchCase {
         this.motion = this.target; this.body = this.dynamic(this.target);
         const constraint = this.target.getComponent(Constraint);
         if (!constraint) { const force = this.target.getComponent(ConstantForce); if (force) { force.enabled = false; force.force = new Vec3(4, 0, 0); } return; }
-        constraint.enabled = true; constraint.enabled = false;
+        constraint.enabled = false;
         const anchor = new Node('ActualConstraintAnchor'); anchor.setPosition(0, 3, 0); this.owned.addChild(anchor);
         this.anchor = anchor.addComponent(RigidBody); this.anchor.type = ERigidBodyType.STATIC;
         anchor.addComponent(BoxCollider).size = new Vec3(0.1, 0.1, 0.1);
@@ -144,7 +144,11 @@ export class Task51BulletBatchCase implements Task51BatchCase {
             this.body.setLinearVelocity(new Vec3(0, 0, 0)); this.body.setAngularVelocity(new Vec3(0, 0, 0));
             this.body.useGravity = this.type === 'cc.ConstantForce' ? false : this.type === 'cc.RigidBody' ? phase === 'effect' : true;
             this.body.wakeUp();
-        } else this.target.getComponent(CharacterController)!.centerWorldPosition = new Vec3(0, 3, 0);
+        } else {
+            const controller = this.target.getComponent(CharacterController)!;
+            controller.enabled = true;
+            controller.centerWorldPosition = new Vec3(0, 3, 0);
+        }
         PhysicsSystem.instance.syncSceneToPhysics(); PhysicsSystem.instance.resetAccumulator();
         component.enabled = this.type === 'cc.RigidBody' || this.type.endsWith('CharacterController') || phase === 'effect';
         if (this.floor) this.floor.enabled = phase === 'effect';
@@ -180,6 +184,8 @@ export class Task51BulletBatchCase implements Task51BatchCase {
      * @description 所属节点先停用后释放本用例私有节点和GPU资源。
      */
     public dispose(): void {
+        const constraint = this.target.getComponent(Constraint);
+        if (constraint) { constraint.enabled = false; constraint.connectedBody = null; }
         this.owned.destroy(); this.visual.dispose();
     }
 }
