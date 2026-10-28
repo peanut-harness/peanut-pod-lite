@@ -3,7 +3,7 @@ import test from 'node:test';
 import { ComponentVisualBehaviorContract } from './component-visual-behavior-contract.ts';
 import { ComponentBehaviorEvidence } from './component-behavior-evidence.ts';
 const dependencies: [string, Record<string, unknown>][] = [
-    ...[...ComponentVisualBehaviorContract.lights].map(t => [t, { geometryBound: true, materialBound: true, standardEffect: true, effectBound: true, passesReady: true, sphereEnabled: true, ambientIllum: 0 }] as [string, Record<string, unknown>]),
+    ...[...ComponentVisualBehaviorContract.lights].map(t => [t, { geometryBound: true, materialBound: true, standardEffect: true, effectBound: true, passesReady: true, sphereEnabled: true, ambientIllum: 0, ...(t === 'cc.RangedDirectionalLight' ? { renderTransformReady: true } : {}) }] as [string, Record<string, unknown>]),
     ['cc.MeshRenderer', { geometryBound: true, materialBound: true }], ['cc.Canvas', { frameBound: true, cameraBound: true }],
     ['cc.SpriteRenderer', { frameBound: true, geometryBound: true, materialBound: true, textureBound: true, passesReady: true }], ['cc.Billboard', { textureBound: true, width: 4, height: 4 }],
     ['cc.Line', { positions: [[-2, -1, 0], [0, 1, 0], [2, -1, 0]], lineWidth: 0.3, materialBound: true }],

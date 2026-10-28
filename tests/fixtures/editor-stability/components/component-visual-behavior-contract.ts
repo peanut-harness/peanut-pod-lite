@@ -20,6 +20,7 @@ export class ComponentVisualBehaviorContract {
         const a = this.record(baseline); const b = this.record(effect);
         if (!this.types.has(type) || a.enabled !== false || b.enabled !== true) throw new Error('component_visual_transition_invalid');
         for (const row of [a, b]) {
+            if (type === 'cc.RangedDirectionalLight' && row.renderTransformReady !== true) throw new Error('component_visual_render_transform_unproven');
             if (this.lights.has(type)) {
                 if (row.geometryBound !== true || row.materialBound !== true || row.standardEffect !== true
                     || row.effectBound !== true || row.passesReady !== true

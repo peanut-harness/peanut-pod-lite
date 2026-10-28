@@ -154,6 +154,10 @@ export class Task51VisualBehavior extends Component {
      */
     private apply(phase: string): void {
         this.phase = phase; this.node.getComponent(this.componentType)!.enabled = phase === 'effect';
+        if (this.componentType === 'cc.RangedDirectionalLight' && phase === 'effect') {
+            // The render light updates transforms only while attached; reassert public transforms after the disabled baseline.
+            this.node.setPosition(this.node.position); this.node.setRotation(this.node.rotation); this.node.setScale(this.node.scale);
+        }
         this.requestedFrame = this.frames; if (this.output) this.output.textContent = JSON.stringify({ phase, ready: false });
     }
     /**
@@ -166,7 +170,8 @@ export class Task51VisualBehavior extends Component {
             materialBound: this.litRenderer?.getRenderMaterial(0)?.effectAsset === this.litMaterial?.effectAsset,
             standardEffect: this.litMaterial?.effectAsset?.name === 'builtin-standard', sphereEnabled: this.litRenderer?.enabled === true,
             effectBound: this.litMaterial?.effectAsset === this.fixtureEffect, passesReady: !!this.litMaterial?.passes.length,
-            ambientIllum: director.getScene()!.globals.ambient.skyIllum };
+            ambientIllum: director.getScene()!.globals.ambient.skyIllum,
+            ...(type === 'cc.RangedDirectionalLight' ? { renderTransformReady: !enabled || this.rangedTransformReady() } : {}) };
         if (type === 'cc.MeshRenderer') { const renderer = this.node.getComponent(MeshRenderer)!;
             return { enabled, geometryBound: !!renderer.mesh?.renderingSubMeshes.length, materialBound: renderer.getRenderMaterial(0) !== null }; }
         if (type === 'cc.Canvas') return { enabled, frameBound: this.canvasSprite?.spriteFrame === this.fixtureFrame,
@@ -179,6 +184,17 @@ export class Task51VisualBehavior extends Component {
             textureBound: c.texture === this.fixtureFrame?.texture, width: c.width, height: c.height }; }
         const line = this.node.getComponent(Line)!; return { enabled, positions: line.positions.map(p => [p.x, p.y, p.z]),
             lineWidth: line.width.constant, materialBound: line.getRenderMaterial(0) !== null };
+    }
+    /**
+     * @description 核对真正参与渲染的范围灯位置及范围，禁止仅用节点字段替代。
+     * @returns 渲染灯与节点公开变换是否一致。
+     */
+    private rangedTransformReady(): boolean {
+        const lights = director.getScene()!.renderScene!.rangedDirLights.filter(light => light.node === this.node);
+        if (lights.length !== 1) return false;
+        const light = lights[0]!;
+        return Vec3.equals(light.position, this.node.worldPosition) && Vec3.equals(light.scale, this.node.worldScale)
+            && Vec3.equals(light.scale, new Vec3(20, 20, 20));
     }
     /**
      * @description 固定范围内的灯光类型。
