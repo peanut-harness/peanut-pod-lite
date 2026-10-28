@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, TiledMap, TiledTile, UITransform, Graphics, Color, Camera, director, postProcess } from 'cc';
+import { _decorator, Component, Node, TiledMap, TiledTile, UITransform, Graphics, Sprite, SpriteFrame, Color, Camera, director, postProcess } from 'cc';
 
 /**
  * @description Tiled与剩余后处理的公开运行行为对照；不在编辑器执行，不自动宣告通过。
@@ -15,6 +15,11 @@ export class Task51RemainingBehavior extends Component {
      */
     @_decorator.property
     public visualRevision = 1;
+    /**
+     * @description 修订3用户节点使用已导入的真实SpriteFrame，不生成资源身份。
+     */
+    @_decorator.property(SpriteFrame)
+    public userFrame: SpriteFrame | null = null;
     /**
      * @description 当前真实引擎更新帧。
      */
@@ -60,9 +65,17 @@ export class Task51RemainingBehavior extends Component {
             if (this.componentType === 'cc.TiledUserNodeData') {
                 this.user = new Node('Task51RealUser'); this.user.layer = this.node.layer;
                 this.user.addComponent(UITransform).setContentSize(8, 8);
-                const draw = this.user.addComponent(Graphics); draw.fillColor = new Color(0, 255, 255, 255);
-                draw.rect(0, 0, 8, 8); draw.fill(); const p = map.getLayer('Ground')!.getPositionAt(0, 0)!;
-                this.user.setPosition(this.visualRevision === 2 ? p.x + 4 : 0, this.visualRevision === 2 ? p.y + 4 : -12, 0);
+                if (this.visualRevision === 3) {
+                    if (!this.userFrame) throw new Error('task51_remaining_user_frame_missing');
+                    const sprite = this.user.addComponent(Sprite); sprite.spriteFrame = this.userFrame;
+                    sprite.sizeMode = Sprite.SizeMode.CUSTOM; sprite.color = new Color(0, 255, 255, 255);
+                    this.user.getComponent(UITransform)!.setContentSize(16, 16);
+                } else {
+                    const draw = this.user.addComponent(Graphics); draw.fillColor = new Color(0, 255, 255, 255);
+                    draw.rect(0, 0, 8, 8); draw.fill();
+                } const p = map.getLayer('Ground')!.getPositionAt(0, 0)!;
+                this.user.setPosition(this.visualRevision >= 2 ? p.x + 4 - (this.visualRevision === 3 ? map.getLayer('Ground')!.leftDownToCenterX : 0) : 0,
+                    this.visualRevision >= 2 ? p.y + 4 - (this.visualRevision === 3 ? map.getLayer('Ground')!.leftDownToCenterY : 0) : -12, 0);
             }
         }
         const host = window.parent.document;
@@ -117,9 +130,10 @@ export class Task51RemainingBehavior extends Component {
             const fsr = this.node.getComponent(postProcess.FSR);
             if (fsr) fsr.sharpness = 1;
             const taa = this.node.getComponent(postProcess.TAA);
-            if (taa) { taa.sampleScale = this.visualRevision === 2 ? 5 : 1; taa.feedback = 0.95;
-                if (!effect && this.visualRevision === 2) {
-                    const cameras = director.getScene()!.getComponentsInChildren(Camera);
+            if (taa) { taa.sampleScale = this.visualRevision >= 2 ? 5 : 1; taa.feedback = 0.95;
+                if (!effect && this.visualRevision >= 2) {
+                    const cameras = director.getScene()!.getComponentsInChildren(Camera)
+                        .filter(camera => this.visualRevision < 3 || camera.usePostProcess);
                     if (cameras.length !== 1 || !cameras[0]!.camera) throw new Error('task51_remaining_camera_ambiguous');
                     const camera = cameras[0]!.camera; camera.resize(camera.width, camera.height);
                 } }
@@ -143,7 +157,10 @@ export class Task51RemainingBehavior extends Component {
         }
         const layer = map.getLayer('Ground'); if (!layer) throw new Error('task51_remaining_layer_missing');
         if (this.componentType === 'cc.TiledLayer') {
-            if (this.visualRevision === 2) layer.color = effect ? new Color(255, 0, 0, 255) : new Color(255, 255, 255, 255);
+            if (this.visualRevision >= 2) {
+                layer.color = effect ? new Color(255, 0, 0, 255) : new Color(255, 255, 255, 255);
+                if (this.visualRevision === 3) { layer.setCullingDirty(true); layer.markForUpdateRenderData(); }
+            }
             else layer.setTileGIDAt(effect ? 0 : 1, 0, 0);
         }
         else if (this.componentType === 'cc.TiledObjectGroup') map.getObjectGroup('Objects')!.node.active = !effect;
@@ -171,7 +188,10 @@ export class Task51RemainingBehavior extends Component {
     private state(): Record<string, unknown> {
         if (this.componentType.startsWith('cc.Tiled')) {
             const map = this.map(); const layer = map.getLayer('Ground'); const group = map.getObjectGroup('Objects');
-            return { visualRevision: this.visualRevision, layerColor: layer ? [layer.color.r, layer.color.g, layer.color.b, layer.color.a].join(',') : null,
+            return { visualRevision: this.visualRevision, publicRenderInvalidation: this.visualRevision === 3 && this.componentType === 'cc.TiledLayer',
+                userSpriteBound: !!this.user?.getComponent(Sprite)?.spriteFrame,
+                userGridOwned: !!this.user && (layer?.getNodesByRowCol(1, 0)?.list.some(data => data?.node === this.user) ?? false),
+                userWidth: this.user?.getComponent(UITransform)?.width ?? null, userHeight: this.user?.getComponent(UITransform)?.height ?? null, layerColor: layer ? [layer.color.r, layer.color.g, layer.color.b, layer.color.a].join(',') : null,
                 tileScaleX: this.tile?.node.scale.x ?? null, mapBound: !!map.tmxAsset, layers: map.getLayers().length, objects: group?.getObjects().length ?? 0,
                 gid: layer?.getTileGIDAt(0, 0) ?? null, groupActive: group?.node.active ?? false,
                 tileGrid: this.tile?.grid ?? null, tileRegistered: !!this.tile && layer?.getTiledTileAt(0, 0) === this.tile,
@@ -182,7 +202,7 @@ export class Task51RemainingBehavior extends Component {
         const grading = this.node.getComponent(postProcess.ColorGrading); const blit = this.node.getComponent(postProcess.BlitScreen);
         const dof = this.node.getComponent(postProcess.DOF); const hbao = this.node.getComponent(postProcess.HBAO);
         const fsr = this.node.getComponent(postProcess.FSR); const taa = this.node.getComponent(postProcess.TAA);
-        return { visualRevision: this.visualRevision, enabled: setting?.enabled, shadingScale: pp?.shadingScale,
+        return { visualRevision: this.visualRevision, postProcessCameraCount: director.getScene()!.getComponentsInChildren(Camera).filter(camera => camera.usePostProcess).length, enabled: setting?.enabled, shadingScale: pp?.shadingScale,
             lutBound: !!grading?.colorGradingMap, lutWidth: grading?.colorGradingMap?.width ?? null,
             lutHeight: grading?.colorGradingMap?.height ?? null, contribute: grading?.contribute ?? null,
             activeMaterials: blit?.activeMaterials.length ?? null, focusDistance: dof?.focusDistance ?? null,

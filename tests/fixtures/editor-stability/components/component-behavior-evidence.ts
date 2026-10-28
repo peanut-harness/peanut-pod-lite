@@ -83,18 +83,25 @@ export class ComponentBehaviorEvidence {
         if ([first, second].some(row => typeof row.engineFramesElapsed !== 'number' || row.engineFramesElapsed < minimum))
             throw new Error('component_behavior_remaining_frames_insufficient');
         const common: Record<string, unknown> = {};
-        const refined = before.visualRevision === 2 || after.visualRevision === 2;
-        if (refined && (before.visualRevision !== 2 || after.visualRevision !== 2
+        const third = before.visualRevision === 3 || after.visualRevision === 3;
+        const refined = third || before.visualRevision === 2 || after.visualRevision === 2;
+        if (refined && (before.visualRevision !== (third ? 3 : 2) || after.visualRevision !== (third ? 3 : 2)
             || !['cc.TiledLayer', 'cc.TiledTile', 'cc.TiledUserNodeData', 'cc.TAA'].includes(type)))
             throw new Error('component_behavior_visual_revision_invalid');
-        if (refined) common.visualRevision = 2;
+        if (refined) common.visualRevision = third ? 3 : 2;
+        if (third) {
+            if (type === 'cc.TiledLayer') common.publicRenderInvalidation = true;
+            else if (type === 'cc.TiledUserNodeData') Object.assign(common, { userSpriteBound: true, userWidth: 16, userHeight: 16 });
+            else if (type === 'cc.TAA') common.postProcessCameraCount = 1;
+            else throw new Error('component_behavior_visual_revision_invalid');
+        }
         let initial: Record<string, unknown>; let changed: Record<string, unknown>;
         switch (type) {
             case 'cc.TiledMap': initial = { mapBound: true, layers: 1, objects: 1 }; changed = { mapBound: false, layers: 0, objects: 0 }; break;
             case 'cc.TiledLayer': initial = refined ? { layerColor: '255,255,255,255' } : { gid: 1 }; changed = refined ? { layerColor: '255,0,0,255' } : { gid: 0 }; Object.assign(common, { mapBound: true, layers: 1 }); break;
             case 'cc.TiledObjectGroup': initial = { groupActive: true }; changed = { groupActive: false }; Object.assign(common, { mapBound: true, objects: 1 }); break;
             case 'cc.TiledTile': initial = refined ? { tileScaleX: 1, tileGrid: 1 } : { tileGrid: 1 }; changed = refined ? { tileScaleX: 1.8, tileGrid: 1 } : { tileGrid: 0 }; Object.assign(common, { mapBound: true, tileRegistered: true }); break;
-            case 'cc.TiledUserNodeData': initial = { userRegistered: true, userParentIsLayer: true }; changed = { userRegistered: false, userParentIsLayer: false }; Object.assign(common, { mapBound: true, layers: 1 }); break;
+            case 'cc.TiledUserNodeData': initial = { userRegistered: true, userParentIsLayer: true, ...(third ? { userGridOwned: true } : {}) }; changed = { userRegistered: false, userParentIsLayer: false, ...(third ? { userGridOwned: false } : {}) }; Object.assign(common, { mapBound: true, layers: 1 }); break;
             case 'cc.PostProcess': initial = { shadingScale: 1 }; changed = { shadingScale: 0.2 }; Object.assign(common, { enabled: true }); break;
             case 'cc.BlitScreen': initial = { enabled: false }; changed = { enabled: true }; Object.assign(common, { activeMaterials: 1 }); break;
             case 'cc.ColorGrading': initial = { enabled: false }; changed = { enabled: true }; Object.assign(common, { lutBound: true, lutWidth: 256, lutHeight: 16, contribute: 1 }); break;
