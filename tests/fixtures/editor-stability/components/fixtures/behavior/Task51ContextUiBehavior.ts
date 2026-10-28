@@ -153,7 +153,8 @@ export class Task51ContextUiBehavior extends Component {
             cameraNode.setPosition(0, 0, 10); this.mappingCamera = cameraNode.addComponent(Camera);
             this.mappingCamera.projection = Camera.ProjectionType.ORTHO; this.mappingCamera.orthoHeight = 5;
             this.mappingCamera.priority = -10; this.mappingCamera.clearFlags = Camera.ClearFlag.SOLID_COLOR;
-            const tracker = this.node.getComponent(UICoordinateTracker)!; tracker.target = this.uiMarker;
+            // The SDK returns coordinates local to its target; the marker is positioned in its parent's space.
+            const tracker = this.node.getComponent(UICoordinateTracker)!; tracker.target = this.uiMarker.parent;
             tracker.camera = this.mappingCamera; tracker.useScale = false;
             const callback = new EventHandler(); callback.target = this.node; callback.component = 'Task51ContextUiBehavior'; callback.handler = 'trackUi';
             tracker.syncEvents = [callback]; this.node.setPosition(-3, 0, 0);
@@ -210,7 +211,7 @@ export class Task51ContextUiBehavior extends Component {
         if (type === 'cc.RenderRoot2D') return { enabled: this.node.getComponent(RenderRoot2D)!.enabled,
             detachedFromCanvas: this.node.parent === director.getScene(), frameBound: this.node.getComponent(Sprite)!.spriteFrame === this.fixtureFrame };
         const tracker = this.node.getComponent(UICoordinateTracker)!; return { sourceX: this.node.position.x, markerX: this.uiMarker!.position.x,
-            mapped: this.mapped, targetBound: tracker.target === this.uiMarker, cameraBound: tracker.camera === this.mappingCamera,
+            mapped: this.mapped, targetBound: tracker.target === this.uiMarker!.parent, cameraBound: tracker.camera === this.mappingCamera,
             frameBound: this.uiMarker!.getComponent(Sprite)!.spriteFrame === this.fixtureFrame };
     }
     /**
