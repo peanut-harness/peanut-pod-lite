@@ -15,6 +15,8 @@ Creator **3.8.x** 原生扩展宿主。当前只有宿主与项目声明版本�
 
 Creator 3.8 扩展入口要求 CommonJS JavaScript；`src/*.js` 与 `panel/*.js` 属于宿主协议代码，不是可迁移为浏览器 ESM 的通用业务源码。发布脚本使用 esbuild 将 Hosts、Engine 与 Protocol 打成自包含 CommonJS 产物，Electron 和 canvas 保持外部依赖。
 
+宿主进程通过 Creator 注入的 `Editor.Package` 访问共享扩展包管理器。不要从已安装扩展的 Node 模块作用域解析 Creator 应用内部的 `@editor/package` 别名；两者指向同一个 SDK 管理器，但扩展自己的 CommonJS 解析路径不包含应用内部依赖。
+
 ## 打包
 
 ```bash

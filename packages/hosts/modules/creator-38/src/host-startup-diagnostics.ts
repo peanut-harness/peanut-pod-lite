@@ -51,14 +51,14 @@ class HostStartupDiagnostics {
     /**
      * @description SDK 正常导出模块的可读来源固定；未知实现不能假设 enable 的贡献顺序。
      */
-    public static fromSdk(editor: { App?: { version?: string }; Message?: Messages }, options: Omit<Options, 'events' | 'messages'>): HostStartupDiagnostics {
+    public static fromSdk(editor: { App?: { version?: string }; Message?: Messages; Package?: Events }, options: Omit<Options, 'events' | 'messages'>): HostStartupDiagnostics {
         if (!['3.8.3', '3.8.7'].includes(editor.App?.version ?? '') || !editor.Message)
             throw new Error('host_startup_diagnostics_sdk_unavailable');
-        const entry = require.resolve('@editor/package'); const root = dirname(entry);
-        this.assertSource(root);
-        // 普通 SDK 模块导出；不求值或解码任何 SDK 源码。
-        const events: Events = require('@editor/package');
-        if (typeof events.find !== 'function' || typeof events.on !== 'function' || typeof events.removeListener !== 'function'
+        // Creator exposes the shared package manager on its Editor global. Resolving
+        // the app-internal package alias from an installed extension uses the wrong
+        // Node module scope and fails even though the SDK module is present.
+        const events = editor.Package;
+        if (!events || typeof events.find !== 'function' || typeof events.on !== 'function' || typeof events.removeListener !== 'function'
             || typeof editor.Message.addBroadcastListener !== 'function' || typeof editor.Message.removeBroadcastListener !== 'function')
             throw new Error('host_startup_diagnostics_events_unavailable');
         return new HostStartupDiagnostics({ ...options, extensionPath: realpathSync(options.extensionPath), events, messages: editor.Message,

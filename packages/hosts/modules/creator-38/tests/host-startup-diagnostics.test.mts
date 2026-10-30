@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
@@ -47,6 +47,38 @@ test('query rejection, malformed ready and smoke failures preserve actual diagno
     }
     const ctx = setup(async () => true, own, async () => { throw new Error('actual-smoke-failed'); });
     ctx.observer.loadedSuccessfully(); await flush(); assert.match(String(ctx.failures[0]), /actual-smoke-failed/u); await ctx.observer.dispose();
+});
+
+test('Creator 3.8 SDK package manager is read from Editor.Package without resolving an app-internal alias', async () => {
+    const extensionPath = mkdtempSync(join(tmpdir(), 'creator-383-extension-'));
+    const packageManager = Object.assign(new EventEmitter(), { find: (_name: string) => null });
+    const broadcasts = new EventEmitter(); const failures: unknown[] = []; const records: unknown[] = [];
+    let requests = 0; let runs = 0;
+    const Message = {
+        addBroadcastListener: (name: string, callback: () => void) => broadcasts.on(name, callback),
+        removeBroadcastListener: (name: string, callback: () => void) => broadcasts.removeListener(name, callback),
+        request: async () => { requests++; return false; }
+    };
+    try {
+        const observer = HostStartupDiagnostics.fromSdk({ App: { version: '3.8.3' }, Message, Package: packageManager }, {
+            extensionPath, run: async () => { runs++; return { passed: 1 }; },
+            record: (...value: unknown[]) => records.push(value), fail: (error: unknown) => failures.push(error)
+        });
+        observer.loadedSuccessfully(); packageManager.emit('enable', { name: own.name, path: realpathSync(extensionPath) }); await flush();
+        broadcasts.emit('asset-db:ready'); await flush();
+        assert.equal(requests, 1, JSON.stringify({ records, failures })); assert.equal(runs, 1); assert.deepEqual(failures, []);
+        assert.ok(records.some(record => Array.isArray(record) && record[0] === 'complete'));
+        await observer.dispose();
+    } finally { rmSync(extensionPath, { recursive: true, force: true }); }
+});
+
+test('Creator 3.8 startup diagnostics fail closed when the Editor.Package event API is absent', () => {
+    const extensionPath = mkdtempSync(join(tmpdir(), 'creator-383-extension-missing-package-'));
+    try {
+        assert.throws(() => HostStartupDiagnostics.fromSdk({ App: { version: '3.8.3' }, Message: {
+            addBroadcastListener: () => {}, removeBroadcastListener: () => {}, request: async () => false
+        } }, { extensionPath, run: async () => ({}), record: () => {}, fail: () => {} }), /host_startup_diagnostics_events_unavailable/u);
+    } finally { rmSync(extensionPath, { recursive: true, force: true }); }
 });
 
 test('unload removes only owned listeners, cancels pending readiness and repeated reload has no growth', async () => {
