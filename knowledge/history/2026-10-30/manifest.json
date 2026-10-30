@@ -1,14 +1,16 @@
 {
-  "purpose": "历史原文证据，不代表当前完整验收；原相对链接按 originalPath 解析",
+  "purpose": "远端交付前原文；本地其他未交付任务记录不纳入此快照。历史相对链接按originalPath解释。",
   "files": [
     {
       "originalPath": "knowledge/overview.md",
+      "sourceCommit": "d020d5312b01314bab079ae84d654957fc579efa",
       "archivePath": "knowledge/history/2026-10-30/overview.md",
       "sha256": "b29ceeca3a496661f60ed7155e80daa294fea16b31e2acee7ed87774ff4dd22c",
       "bytes": 9339
     },
     {
       "originalPath": "knowledge/INDEX.md",
+      "sourceCommit": "d020d5312b01314bab079ae84d654957fc579efa",
       "archivePath": "knowledge/history/2026-10-30/INDEX.md",
       "sha256": "a0a885b0df2630dfd7f28b15a726b2db9fa281cccdb31671de0c5c0e27498b40",
       "bytes": 350
