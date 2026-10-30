@@ -10,83 +10,103 @@ const { HostStartupDiagnostics } = require('../src/host-startup-diagnostics.ts')
 const own = { name: 'peanut-pod-lite-host', path: '/project/extensions/peanut-pod-lite-host' };
 const flush = () => new Promise(resolve => setImmediate(resolve));
 function setup(reply: () => Promise<unknown> = async () => false, existingEnabled: unknown = null, run?: () => Promise<unknown>) {
-    const events = new EventEmitter(); const broadcasts = new EventEmitter(); const failures: unknown[] = []; const records: unknown[] = [];
+    const broadcasts = new EventEmitter(); const failures: unknown[] = []; const records: unknown[] = [];
+    let enabledPackage = existingEnabled as { name: string; path: string; enable: boolean } | null;
     let requests = 0; let runs = 0;
-    const observer = new HostStartupDiagnostics({ events, extensionPath: own.path, existingEnabled,
+    const observer = new HostStartupDiagnostics({ getEnabledPackage: () => enabledPackage, extensionPath: own.path,
         messages: { addBroadcastListener: (name: string, callback: () => void) => broadcasts.on(name, callback),
             removeBroadcastListener: (name: string, callback: () => void) => broadcasts.removeListener(name, callback),
             request: async (name: string, method: string) => { assert.equal(name, 'asset-db'); assert.equal(method, 'query-ready'); requests++; return reply(); } },
         run: async () => { runs++; return run ? run() : { passed: 1 }; }, record: (...value: unknown[]) => records.push(value), fail: (error: unknown) => failures.push(error) });
-    return { observer, events, broadcasts, failures, records, counts: () => ({ requests, runs }) };
+    return { observer, broadcasts, failures, records, enablePackage: (info: { name: string; path: string; enable: boolean }) => { enabledPackage = info; },
+        counts: () => ({ requests, runs }) };
 }
 
-test('cold load never queries asset-db before its own contribution enable; real ready runs smoke once', async () => {
+test('cold load waits for Creator package activation and asset-db readiness before running smoke once', async () => {
     const ctx = setup(); ctx.observer.loadedSuccessfully();
-    ctx.events.emit('enable', { ...own, name: 'foreign' }); ctx.events.emit('enable', { ...own, path: '/foreign' });
-    await flush(); assert.deepEqual(ctx.counts(), { requests: 0, runs: 0 });
-    ctx.events.emit('enable', own); await flush(); assert.deepEqual(ctx.counts(), { requests: 1, runs: 0 });
-    ctx.broadcasts.emit('asset-db:ready'); await flush(); ctx.broadcasts.emit('asset-db:ready'); ctx.events.emit('enable', own); await flush();
+    assert.deepEqual(ctx.counts(), { requests: 0, runs: 0 });
+    ctx.enablePackage({ ...own, enable: true }); await flush(); assert.deepEqual(ctx.counts(), { requests: 1, runs: 0 });
+    ctx.broadcasts.emit('asset-db:ready'); await flush(); ctx.broadcasts.emit('asset-db:ready'); await flush();
     assert.deepEqual(ctx.counts(), { requests: 1, runs: 1 }); assert.deepEqual(ctx.failures, []); await ctx.observer.dispose();
 });
 
-test('existing SDK name2pkg membership handles normal hot reload without a second enable event', async () => {
-    const ctx = setup(async () => true, own); await flush(); assert.deepEqual(ctx.counts(), { requests: 1, runs: 0 });
-    ctx.observer.loadedSuccessfully(); await flush(); assert.deepEqual(ctx.counts(), { requests: 1, runs: 1 }); await ctx.observer.dispose();
+test('hot reload queries ready after the Creator load hook and enabled package readback', async () => {
+    const ctx = setup(async () => true, { ...own, enable: true }); ctx.observer.loadedSuccessfully(); await flush();
+    assert.deepEqual(ctx.counts(), { requests: 1, runs: 1 }); await ctx.observer.dispose();
 });
 
 test('ready observed before the false query reply is retained, without treating Core load as ready', async () => {
     let reply!: (value: unknown) => void; const ctx = setup(() => new Promise(resolve => { reply = resolve; }));
-    ctx.events.emit('enable', own); ctx.broadcasts.emit('asset-db:ready'); reply(false); await flush(); assert.equal(ctx.counts().runs, 0);
-    ctx.observer.loadedSuccessfully(); await flush(); assert.equal(ctx.counts().runs, 1); await ctx.observer.dispose();
+    ctx.enablePackage({ ...own, enable: true }); ctx.observer.loadedSuccessfully(); ctx.broadcasts.emit('asset-db:ready'); await flush();
+    reply(false); await flush(); assert.equal(ctx.counts().runs, 1); await ctx.observer.dispose();
 });
 
 test('query rejection, malformed ready and smoke failures preserve actual diagnostic errors', async () => {
     for (const reply of [async () => { throw new Error('sdk-query-failed'); }, async () => ({ ready: true })]) {
-        const ctx = setup(reply); ctx.observer.loadedSuccessfully(); ctx.events.emit('enable', own); await flush();
+        const ctx = setup(reply, { ...own, enable: true }); ctx.observer.loadedSuccessfully(); await flush();
         assert.equal(ctx.failures.length, 1); assert.equal(ctx.counts().runs, 0); await ctx.observer.dispose();
     }
-    const ctx = setup(async () => true, own, async () => { throw new Error('actual-smoke-failed'); });
+    const ctx = setup(async () => true, { ...own, enable: true }, async () => { throw new Error('actual-smoke-failed'); });
     ctx.observer.loadedSuccessfully(); await flush(); assert.match(String(ctx.failures[0]), /actual-smoke-failed/u); await ctx.observer.dispose();
 });
 
-test('Creator 3.8 SDK package manager is read from Editor.Package without resolving an app-internal alias', async () => {
+test('Creator 3.8 Editor.Package query facade is used instead of private EventEmitter methods', async () => {
     const extensionPath = mkdtempSync(join(tmpdir(), 'creator-383-extension-'));
-    const packageManager = Object.assign(new EventEmitter(), { find: (_name: string) => null });
     const broadcasts = new EventEmitter(); const failures: unknown[] = []; const records: unknown[] = [];
-    let requests = 0; let runs = 0;
+    let requests = 0; let runs = 0; let activePackages: unknown[] = []; const queries: unknown[] = [];
+    const packageApi = { getPackages: (options?: unknown) => { queries.push(options); return activePackages; } };
     const Message = {
         addBroadcastListener: (name: string, callback: () => void) => broadcasts.on(name, callback),
         removeBroadcastListener: (name: string, callback: () => void) => broadcasts.removeListener(name, callback),
         request: async () => { requests++; return false; }
     };
     try {
-        const observer = HostStartupDiagnostics.fromSdk({ App: { version: '3.8.3' }, Message, Package: packageManager }, {
+        const observer = HostStartupDiagnostics.fromSdk({ App: { version: '3.8.3' }, Message, Package: packageApi }, {
             extensionPath, run: async () => { runs++; return { passed: 1 }; },
             record: (...value: unknown[]) => records.push(value), fail: (error: unknown) => failures.push(error)
         });
-        observer.loadedSuccessfully(); packageManager.emit('enable', { name: own.name, path: realpathSync(extensionPath) }); await flush();
+        observer.loadedSuccessfully();
+        assert.equal(queries.length, 0);
+        activePackages = [{ name: own.name, path: realpathSync(extensionPath), enable: true }];
+        await flush();
         broadcasts.emit('asset-db:ready'); await flush();
         assert.equal(requests, 1, JSON.stringify({ records, failures })); assert.equal(runs, 1); assert.deepEqual(failures, []);
+        assert.deepEqual(queries, [{ name: 'peanut-pod-lite-host', enable: true }]);
         assert.ok(records.some(record => Array.isArray(record) && record[0] === 'complete'));
         await observer.dispose();
     } finally { rmSync(extensionPath, { recursive: true, force: true }); }
 });
 
-test('Creator 3.8 startup diagnostics fail closed when the Editor.Package event API is absent', () => {
+test('Creator 3.8 startup diagnostics fail closed when its own package is not enabled after load', async () => {
     const extensionPath = mkdtempSync(join(tmpdir(), 'creator-383-extension-missing-package-'));
+    try {
+        const failures: unknown[] = [];
+        const observer = HostStartupDiagnostics.fromSdk({ App: { version: '3.8.3' }, Package: { getPackages: () => [
+            { name: own.name, path: extensionPath, enable: false }
+        ] }, Message: {
+            addBroadcastListener: () => {}, removeBroadcastListener: () => {}, request: async () => false
+        } }, { extensionPath, run: async () => ({}), record: () => {}, fail: error => failures.push(error) });
+        observer.loadedSuccessfully(); await flush();
+        assert.match(String(failures[0]), /host_startup_diagnostics_extension_not_enabled/u);
+        await observer.dispose();
+    } finally { rmSync(extensionPath, { recursive: true, force: true }); }
+});
+
+test('Creator 3.8 startup diagnostics fail closed when the public package query API is missing', () => {
+    const extensionPath = mkdtempSync(join(tmpdir(), 'creator-383-extension-missing-query-'));
     try {
         assert.throws(() => HostStartupDiagnostics.fromSdk({ App: { version: '3.8.3' }, Message: {
             addBroadcastListener: () => {}, removeBroadcastListener: () => {}, request: async () => false
-        } }, { extensionPath, run: async () => ({}), record: () => {}, fail: () => {} }), /host_startup_diagnostics_events_unavailable/u);
+        } }, { extensionPath, run: async () => ({}), record: () => {}, fail: () => {} }), /host_startup_diagnostics_package_query_unavailable/u);
     } finally { rmSync(extensionPath, { recursive: true, force: true }); }
 });
 
 test('unload removes only owned listeners, cancels pending readiness and repeated reload has no growth', async () => {
-    const ctx = setup(); const foreign = () => {}; ctx.events.on('enable', foreign); ctx.broadcasts.on('asset-db:ready', foreign);
-    await ctx.observer.dispose(); assert.equal(ctx.events.listenerCount('enable'), 1); assert.equal(ctx.broadcasts.listenerCount('asset-db:ready'), 1);
-    ctx.events.emit('enable', own); ctx.broadcasts.emit('asset-db:ready'); assert.deepEqual(ctx.counts(), { requests: 0, runs: 0 });
+    const ctx = setup(); const foreign = () => {}; ctx.broadcasts.on('asset-db:ready', foreign);
+    await ctx.observer.dispose(); assert.equal(ctx.broadcasts.listenerCount('asset-db:ready'), 1);
+    ctx.broadcasts.emit('asset-db:ready'); assert.deepEqual(ctx.counts(), { requests: 0, runs: 0 });
     for (let index = 0; index < 10; index++) { const next = setup(async () => true, own); next.observer.loadedSuccessfully(); await flush(); await next.observer.dispose();
-        assert.equal(next.events.listenerCount('enable'), 0); assert.equal(next.broadcasts.listenerCount('asset-db:ready'), 0); }
+        assert.equal(next.broadcasts.listenerCount('asset-db:ready'), 0); }
 });
 
 // Frozen readable SDK JavaScript only; assertions never evaluate these SDK modules.
@@ -113,23 +133,23 @@ test('unload awaits an already running smoke and preserves its rejection after l
     ctx.observer.loadedSuccessfully(); await flush(); const disposed = ctx.observer.dispose();
     reject(new Error('smoke-rejected-during-unload')); await disposed;
     assert.match(String(ctx.failures[0]), /smoke-rejected-during-unload/u);
-    assert.equal(ctx.events.listenerCount('enable'), 0); assert.equal(ctx.broadcasts.listenerCount('asset-db:ready'), 0);
+    assert.equal(ctx.broadcasts.listenerCount('asset-db:ready'), 0);
 });
 
 test('unload waits for pending query resolution and never starts smoke after disposal', async () => {
     let resolveQuery!: (value: unknown) => void;
-    const ctx = setup(() => new Promise(resolve => { resolveQuery = resolve; }));
-    ctx.observer.loadedSuccessfully(); ctx.events.emit('enable', own);
+    const ctx = setup(() => new Promise(resolve => { resolveQuery = resolve; }), own);
+    ctx.observer.loadedSuccessfully(); await flush();
     let settled = false; const disposed = ctx.observer.dispose().then(() => { settled = true; });
-    await flush(); assert.equal(settled, false); assert.equal(ctx.events.listenerCount('enable'), 0);
+    await flush(); assert.equal(settled, false);
     resolveQuery(true); await disposed;
     assert.equal(settled, true); assert.equal(ctx.counts().runs, 0); assert.deepEqual(ctx.failures, []);
 });
 
 test('unload waits for pending query rejection and preserves its actual failure after disposal', async () => {
     let rejectQuery!: (error: Error) => void;
-    const ctx = setup(() => new Promise((_, reject) => { rejectQuery = reject; }));
-    ctx.observer.loadedSuccessfully(); ctx.events.emit('enable', own);
+    const ctx = setup(() => new Promise((_, reject) => { rejectQuery = reject; }), own);
+    ctx.observer.loadedSuccessfully(); await flush();
     let settled = false; const disposed = ctx.observer.dispose().then(() => { settled = true; });
     await flush(); assert.equal(settled, false); assert.equal(ctx.broadcasts.listenerCount('asset-db:ready'), 0);
     rejectQuery(new Error('query-rejected-during-unload')); await disposed;
@@ -140,8 +160,8 @@ test('unload waits for pending query rejection and preserves its actual failure 
 
 test('unload retains an invalid SDK ready reply instead of treating disposal as successful cancellation', async () => {
     let resolveQuery!: (value: unknown) => void;
-    const ctx = setup(() => new Promise(resolve => { resolveQuery = resolve; }));
-    ctx.observer.loadedSuccessfully(); ctx.events.emit('enable', own);
+    const ctx = setup(() => new Promise(resolve => { resolveQuery = resolve; }), own);
+    ctx.observer.loadedSuccessfully(); await flush();
     const disposed = ctx.observer.dispose(); resolveQuery({ ready: true }); await disposed;
     assert.equal(ctx.counts().runs, 0);
     assert.match(String(ctx.failures[0]), /host_startup_diagnostics_ready_reply_invalid/u);

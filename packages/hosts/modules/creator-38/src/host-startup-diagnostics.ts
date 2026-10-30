@@ -2,14 +2,14 @@
 
 const { createHash } = require('crypto');
 const { readFileSync, realpathSync } = require('fs');
-const { dirname, join, resolve } = require('path');
+const { join } = require('path');
 
-type PackageInfo = { name?: string; path?: string };
-type Events = { find?(name: string): PackageInfo | null; on(name: string, callback: (info: PackageInfo) => void): unknown; removeListener(name: string, callback: (info: PackageInfo) => void): unknown };
+type PackageInfo = { enable?: boolean; name?: string; path?: string };
+type PackageQuery = { getPackages(options?: { name?: string; enable?: boolean }): PackageInfo[] };
 type Messages = { addBroadcastListener(name: string, callback: () => void): void; removeBroadcastListener(name: string, callback: () => void): void;
     request(name: string, method: string): Promise<unknown> };
-type Options = { events: Events; messages: Messages; extensionPath: string; run: () => Promise<unknown>;
-    existingEnabled?: PackageInfo | null; record: (state: string, detail?: unknown) => void; fail: (error: unknown) => void };
+type Options = { getEnabledPackage: () => PackageInfo | null; messages: Messages; extensionPath: string; run: () => Promise<unknown>;
+    record: (state: string, detail?: unknown) => void; fail: (error: unknown) => void };
 
 /**
  * @description 在自身贡献启用且数据库真实 ready 后运行诊断；不在扩展 load 中调用数据库。
@@ -21,28 +21,20 @@ class HostStartupDiagnostics {
     private ready = false;
     private disposed = false;
     private started = false;
+    private activationCheck: ReturnType<typeof setImmediate> | null = null;
     private running: Promise<void> | null = null;
     private query: Promise<void> | null = null;
     private readonly onReady = (): void => { this.ready = true; this.tryRun(); };
-    private readonly onEnabled = (info: PackageInfo): void => {
-        if (this.disposed || this.enabled || info.name !== 'peanut-pod-lite-host' || typeof info.path !== 'string'
-            || resolve(info.path) !== this.options.extensionPath) return;
-        this.enabled = true; this.options.record('enabled');
-        this.query = this.queryReady().catch(error => { this.reportFailure(error); });
-    };
 
     /**
      * @description 注入事件与消息端口便于离线测试，不依赖测试目录或测试全局变量。
      */
     public constructor(options: Options) {
         this.options = options;
-        options.events.on('enable', this.onEnabled);
         try {
             options.messages.addBroadcastListener('asset-db:ready', this.onReady);
-            options.record('waiting-for-enable');
-            if (options.existingEnabled) this.onEnabled(options.existingEnabled);
+            options.record('waiting-for-load-completion');
         } catch (error) {
-            options.events.removeListener('enable', this.onEnabled);
             options.messages.removeBroadcastListener('asset-db:ready', this.onReady);
             throw error;
         }
@@ -51,18 +43,20 @@ class HostStartupDiagnostics {
     /**
      * @description SDK 正常导出模块的可读来源固定；未知实现不能假设 enable 的贡献顺序。
      */
-    public static fromSdk(editor: { App?: { version?: string }; Message?: Messages; Package?: Events }, options: Omit<Options, 'events' | 'messages'>): HostStartupDiagnostics {
+    public static fromSdk(editor: { App?: { version?: string }; Message?: Messages; Package?: PackageQuery }, options: Omit<Options, 'getEnabledPackage' | 'messages'>): HostStartupDiagnostics {
         if (!['3.8.3', '3.8.7'].includes(editor.App?.version ?? '') || !editor.Message)
             throw new Error('host_startup_diagnostics_sdk_unavailable');
-        // Creator exposes the shared package manager on its Editor global. Resolving
-        // the app-internal package alias from an installed extension uses the wrong
-        // Node module scope and fails even though the SDK module is present.
-        const events = editor.Package;
-        if (!events || typeof events.find !== 'function' || typeof events.on !== 'function' || typeof events.removeListener !== 'function'
+        const packages = editor.Package;
+        if (!packages || typeof packages.getPackages !== 'function'
             || typeof editor.Message.addBroadcastListener !== 'function' || typeof editor.Message.removeBroadcastListener !== 'function')
-            throw new Error('host_startup_diagnostics_events_unavailable');
-        return new HostStartupDiagnostics({ ...options, extensionPath: realpathSync(options.extensionPath), events, messages: editor.Message,
-            existingEnabled: events.find('peanut-pod-lite-host') });
+            throw new Error('host_startup_diagnostics_package_query_unavailable');
+        const extensionPath = realpathSync(options.extensionPath);
+        return new HostStartupDiagnostics({ ...options, extensionPath, messages: editor.Message, getEnabledPackage: () => {
+            const matches = packages.getPackages({ name: 'peanut-pod-lite-host', enable: true });
+            if (!Array.isArray(matches)) throw new Error('host_startup_diagnostics_package_list_invalid');
+            return matches.find(info => info.name === 'peanut-pod-lite-host' && info.enable === true
+                && typeof info.path === 'string' && realpathSync(info.path) === extensionPath) ?? null;
+        } });
     }
 
     /**
@@ -79,14 +73,30 @@ class HostStartupDiagnostics {
     /**
      * @description Core 真实激活完成；该标记不代表 SDK 扩展 enable 或数据库 ready。
      */
-    public loadedSuccessfully(): void { this.loaded = true; this.tryRun(); }
+    public loadedSuccessfully(): void {
+        this.loaded = true;
+        if (this.disposed || this.enabled || this.activationCheck) return;
+        // Creator calls this from the extension's load hook before Package.enable()
+        // publishes its enabled state. A single next-turn readback observes the
+        // completed host lifecycle without relying on private EventEmitter APIs.
+        this.activationCheck = setImmediate(() => {
+            this.activationCheck = null;
+            if (this.disposed) return;
+            try {
+                if (!this.options.getEnabledPackage()) throw new Error('host_startup_diagnostics_extension_not_enabled');
+                this.enabled = true;
+                this.options.record('enabled');
+                this.query = this.queryReady().catch(error => { this.reportFailure(error); });
+            } catch (error) { this.reportFailure(error); }
+        });
+    }
 
     /**
      * @description 只移除自身引用，待实际已运行诊断完成后再允许 Core 卸载。
      */
     public async dispose(): Promise<void> {
         this.disposed = true;
-        this.options.events.removeListener('enable', this.onEnabled);
+        if (this.activationCheck) { clearImmediate(this.activationCheck); this.activationCheck = null; }
         this.options.messages.removeBroadcastListener('asset-db:ready', this.onReady);
         if (this.query) await this.query;
         if (this.running) await this.running;
