@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
@@ -23,7 +22,8 @@ test('Creator Bridge keeps managed task control connection-scoped', async () => 
         writeInstalledIndex(projectRoot, [core]);
         writeFileSync(join(projectRoot, 'package.json'), JSON.stringify({ creator: { version: '3.8.7' } }));
         globalThis.Editor = createEditor(projectRoot);
-        HostStartupDiagnostics.fromSdk = (_editor, options) => new HostStartupDiagnostics({ ...options, events: new EventEmitter(),
+        HostStartupDiagnostics.fromSdk = (_editor, options) => new HostStartupDiagnostics({ ...options,
+            getEnabledPackage: () => ({ name: 'peanut-pod-lite-host', path: resolve(import.meta.dirname, '..'), enable: true }),
             messages: { addBroadcastListener() {}, removeBroadcastListener() {}, request: async () => false } });
         await host.load({ extensionRoot: resolve(import.meta.dirname, '..') });
 

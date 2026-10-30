@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
@@ -9,7 +8,6 @@ import test from 'node:test';
 const require = createRequire(import.meta.url);
 const host = require('../src/main.js');
 const { HostStartupDiagnostics } = require('../src/host-startup-diagnostics.ts');
-const packageEvents = new EventEmitter();
 const originalFromSdk = HostStartupDiagnostics.fromSdk;
 const extensionPath = resolve(import.meta.dirname, '..');
 
@@ -18,7 +16,8 @@ test('optional Pro activation and corruption stay isolated from the required Cor
     mkdirSync(temporaryRoot, { recursive: true });
     const projectRoot = mkdtempSync(join(temporaryRoot, 'optional-pro-host-'));
     try {
-        HostStartupDiagnostics.fromSdk = (editor, options) => new HostStartupDiagnostics({ ...options, events: packageEvents, messages: editor.Message });
+        HostStartupDiagnostics.fromSdk = (editor, options) => new HostStartupDiagnostics({ ...options,
+            getEnabledPackage: () => ({ name: 'peanut-pod-lite-host', path: extensionPath, enable: true }), messages: editor.Message });
         const core = writePackage(
             projectRoot,
             'peanut.pod-lite',
@@ -34,7 +33,6 @@ test('optional Pro activation and corruption stay isolated from the required Cor
         writeInstalledIndex(projectRoot, [core, pro]);
         globalThis.Editor = createEditor(projectRoot);
         await host.load({ extensionRoot: extensionPath });
-        packageEvents.emit('enable', { name: 'peanut-pod-lite-host', path: extensionPath });
         await new Promise(resolve => setImmediate(resolve));
         const status = host.methods.queryStatus();
         assert.equal(status.ready, true);
@@ -74,7 +72,8 @@ test('optional Pro activation and corruption stay isolated from the required Cor
         const diagnosticFailure = readJson(join(projectRoot, 'peanut-plugins', 'runtime', 'startup-diagnostics.json'));
         assert.equal(diagnosticFailure.state, 'failed');
         assert.match(diagnosticFailure.detail, /unverified-sdk-diagnostic-fixture/u);
-        HostStartupDiagnostics.fromSdk = (editor, options) => new HostStartupDiagnostics({ ...options, events: packageEvents, messages: editor.Message });
+        HostStartupDiagnostics.fromSdk = (editor, options) => new HostStartupDiagnostics({ ...options,
+            getEnabledPackage: () => ({ name: 'peanut-pod-lite-host', path: extensionPath, enable: true }), messages: editor.Message });
 
         const coreBundlePath = join(core.packagePath, 'peanut.pod-lite.bundle.js');
         const coreBundle = readFileSync(coreBundlePath, 'utf8');

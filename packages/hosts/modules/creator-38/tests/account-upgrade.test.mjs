@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
@@ -60,7 +59,8 @@ test('Lite can sign in and open checkout without granting entitlements or blocki
         );
         writeInstalledIndex(projectRoot, [core]);
         globalThis.Editor = createEditor(projectRoot);
-        HostStartupDiagnostics.fromSdk = (_editor, options) => new HostStartupDiagnostics({ ...options, events: new EventEmitter(),
+        HostStartupDiagnostics.fromSdk = (_editor, options) => new HostStartupDiagnostics({ ...options,
+            getEnabledPackage: () => ({ name: 'peanut-pod-lite-host', path: resolve(import.meta.dirname, '..'), enable: true }),
             messages: { addBroadcastListener() {}, removeBroadcastListener() {}, request: async () => false } });
         await host.load({ extensionRoot: resolve(import.meta.dirname, '..') });
         assert.equal(host.methods.queryStatus().ready, true);

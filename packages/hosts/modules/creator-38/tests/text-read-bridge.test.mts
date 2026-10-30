@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { EventEmitter } from 'node:events';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -54,7 +53,7 @@ test('actual Creator main, Core dispatcher and factory share Hub revision, prior
     let diagnosticsDone!: () => void; let diagnosticsFailed!: (error: unknown) => void;
     const diagnostics = new Promise<void>((resolve, reject) => { diagnosticsDone = resolve; diagnosticsFailed = reject; });
     const diagnosticFactory = { fromSdk: (_editor: unknown, options: { record: (state: string, detail?: unknown) => void; fail: (error: unknown) => void; run: () => Promise<unknown>; extensionPath: string }) => new HostStartupDiagnostics({ ...options,
-        events: new EventEmitter(), existingEnabled: { name: 'peanut-pod-lite-host', path: hostRoot },
+        getEnabledPackage: () => ({ name: 'peanut-pod-lite-host', path: hostRoot, enable: true }),
         messages: { addBroadcastListener() {}, removeBroadcastListener() {}, request: async () => true },
         record: (state: string, detail: unknown) => { options.record(state, detail); if (state === 'complete') diagnosticsDone(); },
         fail: (error: unknown) => { options.fail(error); diagnosticsFailed(error); } }) };
