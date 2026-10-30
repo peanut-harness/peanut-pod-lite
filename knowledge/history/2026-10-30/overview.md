@@ -1,0 +1,51 @@
+# peanut-pod-lite
+
+SDK续查：d7560ca完整verify1256/1256、117项组件回归及候选通过；项目内精确3.8.7监听器幂等兼容已实机通过10轮增删改保存重开、42次注册始终1/1，阈值10、零MaxListeners警告。ba91afc完整verify1256/1256、123项夹具及候选通过；冷启动遗漏start已在真实入口修复，两个数据库实机各1/1配对。发送端真实调用栈将重开计时定位到SDK Scene面板scene:ready广播处理器和hierarchy异步ready，待原文适配修复，完整原始失败保留。3.8.7 PhysXWorld只读实机确认，单项上下文已保留SDK默认false标志并显式固化有效Builtin默认宏，8e7562f完整Profile/宏与PhysXWorld已实机核验，正常退出全段零诊断；2控制器17字段未验。正常退出另外出现SDK WindowSender向已销毁WebContents发送的原始错误及project警告，保留失败并追踪，5.1仍未完成。
+
+计时定位增加显式登记的透明Map事件、IPC参数与renderer发送端调用栈观测，原样转发实际Map操作，旁观真实显式耗时、时间值和调用栈，不补造start、不更改结果或日志；工作进程实证冷启动_preStartDB遗漏worker-startup的start、_startupDB却end；新显式项目内启动兼容在真实入口补齐SDK start，严格绑定3.8.7及实机方法摘要，实机配对已通过，整段仍有52条原始错误，不能据此宣布零诊断。IPC观察者按原引用成对移除，不替换原处理器。
+
+5.1诊断续查（2026-10-16）：GPU修复c9a5b1c完整verify1256/1256、113项组件回归及官方候选通过。BlitScreen由通用standard改为同版全屏专用材质，原生实际材质/相机/管线确认后，GL错误从2降至0，正常关闭自有PID18592后的完整日志仍有4条SDK计时器错误、零警告，整轮仍拒绝。另有界复现定位监听器注册于SDK CompManager/NodeManager，保存重开增长，两种顺序对照无效；metric冷启动也未解决SDK启动错误。全部原始证据保留，5.1受零诊断门禁阻塞。详情见editor-native-operations.md。
+
+Cocos Creator 编辑器产品。当前源码契约为 88 项免费操作（41 读、47 写/破坏性），保留旧 83 项映射并新增只读 `asset.readText`、有界 `diagnostics.queryLogs` 与视口 `queryState` / `focusNodes` / `setState`；可登录并升级订阅，但不执行付费能力。任务 1.1 完成 DTO/policy/schema/目录：默认 32 文件、每文件 1 MiB、输入/输出各 4 MiB；读取项用 `byteCount`，写入前 `beforeSha256` 区分真实摘要/absent/未知 null，`sha256` 为真实后验摘要。Core 已校验 oneOf/数组容量/哈希模式，Kernel 接纳校验已在任务 3.1 实现，实际文本读取及共享屏障/revision 已在任务 3.2 离线验收，任务 3.3 已实现全批准备与 writer 内重验，3.4 已实现逐项读回及 UUID/meta 后验和保守部分失败；3.5 已接入原有控制面安全机制并强化文本写入 AI 成功判据；Runtime 幂等索引仅存剔除审批凭据后的 SHA-256 工作摘要，源码正文不进入控制面记录；Runtime 100 项及 MCP Host/写入安全 82 项定向测试通过。Creator 多平台验收延后，实机矩阵和全量零日志验收尚未完成。 任务 1.2 已提供绑定产品与两版安装源码的覆盖草稿/严格校验：3.8.7 为 1220 目标/4119 用例，3.8.3 为 1229/4128；每版 4 个动态注册未解析项保留待运行时对照，全部 8247 用例 pending、可用性 unverified，32 项合成读取/校验测试通过。真实夹具、运行时目录和原生日志读取端口仍待后续，静态分母不代表实机覆盖。 任务 3.1 已验收无副作用的真实路径/物理别名/严格 UTF-8/JSON 字节 guard 与 Kernel 新关键词；77 项离线回归、两模块类型检查、两项文件竞态和非枚举 getter/祖先 serializer 零调用探针通过。任务 3.2 已接真实 Hub/Creator Host 的 read gateway、共享资源锁及多文件 revision；观察异常后仅以受信 owner 做一次当前 Runtime 终态确认，未知仍保持屏障，终态复用只释放一次且不重执行。早到终态缓存仅保留真实 managed receipt 窗口。源 223 项定向回归通过；总管独立 46 项与 4 项原始探针通过，覆盖重叠不相加。31 项既有 Kernel 测试严格类型诊断未变，无新增租约错误；Node25 执行、ES2017 构建未证明 Node14 或新 Creator 运行。
+
+## Architecture v2
+
+- `packages/protocol` 提供稳定 DTO 与 `ICreatorContext`，零内部依赖；`packages/sdk` 提供插件作者 API，只依赖 protocol。
+- `packages/engine`：runtime、installation、assets、Lumen、MCP、policy、kernel。
+- `packages/hosts`：Creator 壳、进程与版本画像；宿主只解析一次上下文。
+- `apps/panel`：静态面板应用，不依赖 engine/hosts。
+- 只有根 `package-lock.json`；内部 modules 不是 workspace，不得声明 `file:` 依赖。
+- 内部 modules 由 manifest 自动发现，按 `peanut.internalDependencies` 拓扑执行并校验源码导入。
+- Creator 版本实现使用阶段工厂注册表装配；版本目录互不导入，共用端口与宿主实现分别归 `adapters/core`、`adapters/shared`。
+- 源码质量门禁用 TypeScript AST 覆盖 `src/` 与 `source/` 的生产源码，排除声明文件、测试与 fixture，并锁定单文件单类及最大文件行数；属性值/引用解析、Prefab 文档来源、面板状态投影与 Scene 输入读取已从核心编排类拆出。
+
+## Creator Profiles
+
+- 2.4 与 3.0–3.5：experimental、写入关闭；3.6–3.7：unsupported。
+- `specs/creator-profiles/creator-profiles.json` 生成 protocol 画像目录，规范与运行时不能双写。
+- 3.8.3 与 3.8.7：host/project 版本都存在且一致时 full，可写；其它 3.8 补丁版本保持只读，直到逐版本完成实机证据。
+- 最低宿主兼容、实机证据与任务调度事实见 [creator-profiles.md](creator-profiles.md)。
+- 未知、缺失或不一致版本全部 fail-closed。
+- 原生资源、调度与组件矩阵边界见 [editor-native-operations.md](editor-native-operations.md)；8045b84完整verify1256项与候选通过；e90fb77两版WebView/Sprite实际可见及有界关闭整会话零诊断。Sorting2D单项模块UI对照成功，新空模板缺engine.json的首次创建修复已过92项及真实SDK离线暂存，仍待新检查点实机。99/795分母与5.1未完成状态保留。
+
+## Hard Rules
+
+- 写操作必须消费绑定连接、operation、精确资源和风险的租约；非空 approval ID 不够。Hub 审批白名单使用 namespaced capability 名称，镜像到 Lite 本地租约时宿主必须同时加入工具定义声明的内部 operation，避免 `peanut.editor-mcp.asset-open` 与 `asset.open` 口径不一致造成误拒绝。
+- `prefab.unpack`、`prefab.unlink`、`builder.build` 与删除/引用替换类操作是 destructive。
+- destructive 调用必须同时提供 destructive 租约与 `confirmDestructive:true`；`asset.import` 的 overwrite/override 动态升级为 destructive。
+- AssetDB 写入在进入宿主前拒绝绝对目标路径和 `.`/`..` 逃逸；仅 `asset.import.sources` 可读取项目外绝对源文件。
+- capability 缺 schema 时目录构造直接失败，不静默漏注册。
+- Lite 永不 import Pro；Pro 缺失不得挡住 Lite 启动；订阅不等于写盘许可。
+- Creator 2.4 缺本机安装时保留已提交正式模板，禁止用测试 fixture 覆盖发布资产。
+- Pod 使用自有 Peanut Packaging / Plugin Manager 构建、安装和目录包验签；产品分发不依赖 CPM，也不使用 `npm publish`。
+- `@peanut/pod-engine/installation` 公开目录包 manifest、完整性与安装 API；旧 `Cpm*` 别名只作兼容保留，生产安装/Host 加载不调用 CPM 专用协议。Pro 不得恢复旧顶层 `cpm-core` 包。
+- 当前 Lite 候选为 `0.2.1`（源码提交 `660226a`）；两版现有隔离工程的 `0.2.0 → 0.2.1` 升级、受控失败与修复已通过。真实空工程首装、六条产品主线和长稳仍缺原始证据，见 `docs/testing/pod/creator-0.2.1-upgrade-4.1.md`。
+- Creator 进程必须精确匹配 `--project` / `--path`；Node 单测不是实机冒烟。
+
+## Verification
+
+根目录执行 `npm run verify` 和 `npm run pack`。旧 checkout 的 ignored 顶层生成物确认无源码后移出仓库，不放宽结构门禁。结构说明见 `docs/ARCHITECTURE.md`，产品契约见 Hub `contracts/pod-product.md`。
+
+2026-10-16：空模板修复0f8e3fd完整verify1256项及本地候选通过；原生验证工具正在迁移为设备登记与当前会话身份核对，拒绝旧owner工程和租约。Sorting2D新工程实机及其余5.1仍待完成。
+
+2026-10-22：Creator 3.8.3/3.8.7 新增有界 `diagnostics.queryLogs`（尾读、字面检索、上下文、增量游标；限制在当前工程日志）和 `viewport.queryState` / `focusNodes` / `setState`。视口写入要求本地精确授权并用 Creator 原生回读验证；聚焦解析当前场景节点且不改选区。两版实机切换/恢复与单/多节点聚焦通过，Creator 错误/警告增量为零，场景与 meta 摘要不变。详见 `docs/LOG-DIAGNOSTICS.md`、`docs/VIEWPORT-CONTROL.md` 与 OpenSpec 验收证据。

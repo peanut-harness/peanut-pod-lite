@@ -29,6 +29,10 @@ Creator 3.x 新建 Prefab/Scene 时，Lite 先预留目标与父目录，再由 
 
 版本画像只维护 `specs/creator-profiles/creator-profiles.json`，运行时代码由 `npm run generate` 生成。内部 engine/host 模块由各自 manifest 的 `peanut.internalDependencies` 自动发现和拓扑执行，新增模块不需要再修改根任务脚本。
 
+## 产品路线与能力状态
+
+PinK / cocos-cli 能力拆解、旧版兼容矩阵、稳定性要求和阶段验收见 [`docs/PINK-COCOS-CLI-CAPABILITY-ROADMAP.md`](docs/PINK-COCOS-CLI-CAPABILITY-ROADMAP.md)。该文档区分能力声明、实现、实机验收与发布状态；路线建议不开放新能力，也不替代当前版本画像和 OpenSpec 实施范围。
+
 ## 验证
 
 ```powershell

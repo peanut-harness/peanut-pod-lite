@@ -6,6 +6,8 @@
 >
 > 外部参考：[Renshuxian-ai/Cocos-ai-copilot](https://github.com/Renshuxian-ai/Cocos-ai-copilot)。
 
+> 2026-10-27 补充：本文保留 2026-10-11 的研究与建议快照，不代表当前支持、操作计数或分发依赖。当前 PinK / cocos-cli 分析、旧版兼容及稳定性路线见 [专项文档](PINK-COCOS-CLI-CAPABILITY-ROADMAP.md)；现行目录为 88 项，产品分发采用自有 Peanut Packaging，具体事实以现行 README、版本画像和验收回执为准。
+
 ## 1. 结论
 
 Cocos AI Copilot 对 Peanut Pod 有较高的**产品形态与验收流程参考价值**，但当前公开仓库主要包含 README、安装说明、发布说明、变更记录和许可证，未提供足以审计其 Runtime、权限、事务、撤销和 MCP 桥接实现的源码。因此：

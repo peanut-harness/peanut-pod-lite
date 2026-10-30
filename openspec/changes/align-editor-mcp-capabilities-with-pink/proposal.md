@@ -4,6 +4,10 @@
 
 对照 PinK 使用的官方 Cocos CLI MCP，Lite 已有审批、任务和资源编辑基础，但读取结果契约、长构建可观测性及部分实时编辑能力仍有明确缺口。本变更只对齐已确认的五项外部能力，避免把 Cocos 4 接口直接当作 Creator 3.8 的可用契约。
 
+2026-10-27 安装包复核与产品路线见 [PinK / cocos-cli 能力拆解](../../../docs/PINK-COCOS-CLI-CAPABILITY-ROADMAP.md)。该 PinK 快照通过原生 `pink_*` 工具调用领域能力，内置 CLI MCP endpoint 已停用；本文的“对齐”指业务契约参考，不表示 PinK 当前 Chat 仍经该 endpoint 执行。独立 CLI 的 MCP 能力与本仓研究快照分别记录。
+
+Pod 的产品重点是已有 Creator 工程与逐版本兼容。近期建议优先完成基础编辑、A1/A2，再规划旧版样板和编辑上下文治理；这些新增路线不并入本 change，也不改变下述五项范围、任务 DAG 或整体完成门槛。
+
 ## What Changes
 
 - **P1 / A1 — 读取输出契约**：补齐基线 41 个读取操作中缺失的 40 个 `outputSchema`，校验真实业务结果；本变更新增的读取操作也必须有明确输出契约。
