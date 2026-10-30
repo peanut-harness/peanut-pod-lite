@@ -1,5 +1,7 @@
-# peanut-pod-lite 知识库
+# 知识路由
 
-先 `node ../peanut-hub/tools/knowledge/rag.mjs query "<任务>"`。先读 [overview.md](overview.md)，Creator 兼容与实机证据再读 [creator-profiles.md](creator-profiles.md)。卡片 ≤40 行。改代码后 `build`；`check-sync` 必须通过。
+- [稳定职责、架构与验证入口](overview.md)
+- [整理前完整路由与阶段证据](history/2026-10-30/INDEX.md)
+- [历史原文摘要](history/2026-10-30/manifest.json)
 
-- [编辑器原生操作与验收](editor-native-operations.md)
+其他专题卡仍保留在本目录；阶段结果以所属任务最新回执为准。
