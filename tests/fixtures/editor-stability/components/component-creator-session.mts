@@ -58,7 +58,9 @@ class ComponentCreatorSession {
                 throw new Error('component_creator_candidate_mismatch');
         }
         const processes = this.processes();
-        if (processes.some((line) => line.includes(`${binary} --project ${project}`))) throw new Error('creator_project_session_conflict');
+        const escapedProject = project.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+        const exactProjectArgument = new RegExp(`(?:^|\\s)--project\\s+${escapedProject}(?=\\s|$)`, 'u');
+        if (processes.some((line) => line.includes(binary) && exactProjectArgument.test(line))) throw new Error('creator_project_session_conflict');
         const sameVersion = processes.some((line) => line.includes(`${binary} --project `));
         const diagnosticArgs = ComponentCreatorDiagnostics.args(registration.metricsDiagnostics, registration.creatorVersion);
         return { registration, project, output, binary, sameVersion, diagnosticArgs };
