@@ -1,0 +1,17 @@
+{
+  "purpose": "历史原文证据，不代表当前完整验收；原相对链接按 originalPath 解析",
+  "files": [
+    {
+      "originalPath": "knowledge/overview.md",
+      "archivePath": "knowledge/history/2026-10-30/overview.md",
+      "sha256": "b29ceeca3a496661f60ed7155e80daa294fea16b31e2acee7ed87774ff4dd22c",
+      "bytes": 9339
+    },
+    {
+      "originalPath": "knowledge/INDEX.md",
+      "archivePath": "knowledge/history/2026-10-30/INDEX.md",
+      "sha256": "a0a885b0df2630dfd7f28b15a726b2db9fa281cccdb31671de0c5c0e27498b40",
+      "bytes": 350
+    }
+  ]
+}
